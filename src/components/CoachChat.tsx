@@ -22,49 +22,27 @@ function saveChatHistory(messages: ChatMessage[]) {
   } catch { /* ignore */ }
 }
 
-const suggestions = [
-  "มอนิ่ง สรุปวันนี้ให้หน่อย",
-  "วันนี้ควรวิ่งไหม",
-  "พรุ่งนี้ long run ได้ไหม",
-  "กินแบบนี้พอไหม",
-  "HR สูงไปไหม",
-  "นอนน้อยควรซ้อมอะไร",
-];
-
-const INITIAL_MESSAGE: ChatMessage = { role: "assistant", content: "เล่าให้โค้ชฟังได้เลย วันนี้อยากเช็กเรื่องซ้อม กิน นอน หรือ recovery?" };
+const INITIAL_MESSAGE: ChatMessage = {
+  role: "assistant",
+  content: "เล่าให้โค้ชฟังได้เลย วันนี้อยากเช็กเรื่องซ้อม กิน นอน หรือ recovery?",
+};
 
 const quickQuestions = [
   {
-    label: "สรุปเช้านี้",
-    prompt: "มอนิ่งครับ สรุปเช้านี้ให้หน่อย ขอวันที่เวลา ข้อมูลที่ใช้ประเมิน readiness, sleep, workout ล่าสุด, แปลภาษาคน และแผนวันนี้แบบมี option เบากว่าถ้าล้า",
-  },
-  {
-    label: "วันนี้ซ้อมอะไร",
+    label: "วันนี้ควรซ้อมอะไร",
     prompt: "วันนี้ควรซ้อมอะไรดีครับ ใช้ข้อมูล sleep/readiness, workout 7 วัน, weekly load, active race goal/plan ถ้ามี และบอกสิ่งที่ยังไม่รู้ด้วย",
   },
   {
-    label: "พรุ่งนี้ซ้อมอะไร",
-    prompt: "พรุ่งนี้ควรซ้อมอะไรดีครับ ระบุด้วยว่าพรุ่งนี้คือวันที่เท่าไหร่ ใช้ race goal/plan ถ้ามี, weekly load, workout ล่าสุด, sleep/readiness และให้แผนหลักกับแผนเบา",
-  },
-  {
-    label: "ซ้อมล่าสุด",
-    prompt: "วิเคราะห์ซ้อมล่าสุดให้หน่อยครับ ดูว่า session นั้นหนักแค่ไหน HR สูงไปไหม pace/cadence บอกอะไร ส่งผลต่อ weekly load ยังไง และพรุ่งนี้ควรทำอะไร",
-  },
-  {
-    label: "Long run?",
-    prompt: "พรุ่งนี้ long run ได้ไหมครับ ประเมินแบบ conservative จาก weekly mileage, longest run 7 วัน, workout ล่าสุด, sleep/readiness, race goal/plan ถ้ามี และบอกข้อจำกัดข้อมูล",
-  },
-  {
-    label: "HR สูงไหม",
-    prompt: "ช่วยดูให้หน่อยว่า HR จากซ้อมล่าสุดสูงไปไหม เทียบกับชนิด workout, pace/speed, sleep/readiness และบอกว่าควรพักหรือซ้อมต่อแบบไหน",
-  },
-  {
-    label: "กินหลังวิ่ง",
-    prompt: "หลังซ้อมล่าสุดควรกินและเติมน้ำยังไงดีครับ ขอแบบ practical ตามความหนักของ session และข้อมูล sweat/calories ถ้ามี",
+    label: "สรุปวันนี้",
+    prompt: "สรุปวันนี้ให้หน่อยครับ ขอวันที่เวลา ข้อมูลที่ใช้ประเมิน readiness, sleep, workout ล่าสุด, แปลภาษาคน และแผนวันนี้แบบมี option เบากว่าถ้าล้า",
   },
   {
     label: "Recovery",
     prompt: "วันนี้ควร recovery ยังไงดีครับ ดูจาก sleep, readiness, workout ล่าสุด, weekly load และให้ checklist สั้นๆ สำหรับคืนนี้",
+  },
+  {
+    label: "กินหลังวิ่ง",
+    prompt: "หลังซ้อมล่าสุดควรกินและเติมน้ำยังไงดีครับ ขอแบบ practical ตามความหนักของ session และข้อมูล sweat/calories ถ้ามี",
   },
 ];
 
@@ -123,34 +101,33 @@ export function CoachChat() {
   }
 
   return (
-    <section className="flex flex-1 flex-col gap-4">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex flex-wrap gap-2">
+    <section className="flex flex-1 flex-col gap-3">
+      <div className="space-y-2">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm font-semibold text-slate-600">อยากถามเรื่องไหนก่อน?</p>
+          <button type="button" onClick={clearChat} className="shrink-0 text-xs font-semibold text-slate-400 hover:text-slate-600">
+            ล้างแชท
+          </button>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
           {quickQuestions.map((item) => (
             <button
               key={item.label}
-              className="rounded-full bg-[#17201d] px-3 py-2 text-xs font-semibold text-white"
+              className="rounded-full bg-white/85 px-3 py-2.5 text-xs font-bold text-[#17201d] shadow-sm transition hover:bg-[#e7efea]"
               onClick={() => ask(item.prompt)}
             >
               {item.label}
             </button>
           ))}
-          {suggestions.map((item) => (
-            <button key={item} className="rounded-full bg-white/80 px-3 py-2 text-xs font-semibold text-slate-600" onClick={() => ask(item)}>
-              {item}
-            </button>
-          ))}
         </div>
-        <button type="button" onClick={clearChat} className="shrink-0 text-xs text-slate-400 hover:text-slate-600">
-          ล้างแชท
-        </button>
       </div>
-      <div className="card flex flex-1 flex-col gap-3 p-4">
+
+      <div className="flex flex-1 flex-col gap-3 rounded-3xl bg-white/70 p-3 shadow-sm">
         {messages.map((message, index) => (
           <div
             key={`${message.role}-${index}`}
-            className={`max-w-[86%] rounded-2xl px-4 py-3 text-sm leading-6 ${
-              message.role === "user" ? "ml-auto bg-[#17201d] text-white" : "bg-slate-50 text-slate-700"
+            className={`max-w-[88%] rounded-3xl px-4 py-3 text-sm leading-6 ${
+              message.role === "user" ? "ml-auto bg-[#17201d] text-white" : "bg-slate-50/90 text-slate-700"
             }`}
           >
             <FormattedCoachText text={message.content} />
@@ -159,9 +136,21 @@ export function CoachChat() {
         {loading ? <LoadingState label="โค้ชกำลังตอบ..." /> : null}
         <div ref={bottomRef} />
       </div>
-      <form onSubmit={submit} className="flex gap-2">
-        <input className="control" value={input} onChange={(event) => setInput(event.target.value)} placeholder="ถามโค้ช..." />
-        <button className="btn-primary shrink-0" type="submit">ส่ง</button>
+
+      <form onSubmit={submit} className="flex gap-2 rounded-3xl bg-white/90 p-2 shadow-sm">
+        <input
+          className="min-w-0 flex-1 rounded-2xl border-0 bg-slate-50 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#17201d]/10"
+          value={input}
+          onChange={(event) => setInput(event.target.value)}
+          placeholder="ถามโค้ช..."
+        />
+        <button
+          className="rounded-2xl bg-[#17201d] px-5 py-3 text-sm font-bold text-white disabled:opacity-40"
+          type="submit"
+          disabled={loading || !input.trim()}
+        >
+          ส่ง
+        </button>
       </form>
     </section>
   );

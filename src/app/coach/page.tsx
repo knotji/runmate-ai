@@ -1,12 +1,10 @@
 import { AppShell } from "@/components/AppShell";
 import { AIContextCard } from "@/components/AIContextCard";
 import { CoachChat } from "@/components/CoachChat";
-import { ProfileSummaryCard } from "@/components/ProfileSummaryCard";
 
 export default function CoachPage() {
   return (
-    <AppShell title="Coach Chat" subtitle="ถามโค้ชเรื่องวิ่ง กิน นอน และ recovery">
-      <ProfileSummaryCard />
+    <AppShell title="Coach Chat" subtitle="คุยกับโค้ชเรื่องซ้อม กิน นอน และ recovery">
       <AIContextCard />
       <CoachChat />
     </AppShell>

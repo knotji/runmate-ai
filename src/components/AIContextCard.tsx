@@ -10,62 +10,58 @@ export function AIContextCard() {
   const sleepLatest = context.sleep7d[0];
   const lastWorkout = context.workouts7d[0];
   const runLine = context.lastRun
-    ? `${context.lastRun.date}: ${context.lastRun.km.toFixed(2)} km, ${context.lastRun.durationMin} min${context.lastRun.avgHR ? `, HR ${context.lastRun.avgHR}` : ""}${context.lastRun.pace ? `, pace ${context.lastRun.pace}` : ""}`
-    : "ยังไม่มี run ใน 7 วันล่าสุด";
+    ? `${context.lastRun.km.toFixed(2)} กม. เมื่อ ${context.lastRun.date}${context.lastRun.avgHR ? `, HR เฉลี่ย ${context.lastRun.avgHR}` : ""}${context.lastRun.pace ? `, pace ${context.lastRun.pace}` : ""}`
+    : "ยังไม่มีวิ่งใน 7 วันล่าสุด";
 
   const workoutLine = useMemo(() => {
     if (!lastWorkout) return "ยังไม่มี workout ใน 7 วันล่าสุด";
     const parts = [
-      ...lastWorkout.runs.map((run) => `run ${run.km.toFixed(2)} km`),
-      ...lastWorkout.walks.map((walk) => `walk ${walk.km ? `${walk.km.toFixed(2)} km` : `${walk.durationMin} min`}`),
-      ...lastWorkout.other.map((item) => `${item.label} ${item.durationMin} min`),
+      ...lastWorkout.runs.map((run) => `วิ่ง ${run.km.toFixed(2)} กม.`),
+      ...lastWorkout.walks.map((walk) => `เดิน ${walk.km ? `${walk.km.toFixed(2)} กม.` : `${walk.durationMin} นาที`}`),
+      ...lastWorkout.other.map((item) => `${item.label} ${item.durationMin} นาที`),
     ];
-    return `${lastWorkout.date}: ${parts.join(" · ") || "workout"}`;
+    return `${lastWorkout.date}: ${parts.join(" · ") || "มี workout"}`;
   }, [lastWorkout]);
 
   return (
-    <details className="card group p-5">
+    <details className="group rounded-3xl bg-white/75 px-4 py-3 shadow-sm">
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">ข้อมูลประวัติซ้อม</p>
-          <h2 className="mt-1 text-lg font-bold text-[#17201d]">ข้อมูลที่ใช้ประกอบการวิเคราะห์</h2>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-[#17201d]">
+            โค้ชใช้ข้อมูลล่าสุดจากโปรไฟล์และประวัติซ้อม
+          </p>
+          <p className="mt-0.5 text-xs text-slate-400">
+            {context.raceGoal ? "มี Race Goal active" : `${context.runDays7d} วันวิ่งใน 7 วันล่าสุด`}
+          </p>
         </div>
-        <span className="rounded-full bg-slate-50 px-3 py-1 text-xs font-bold text-slate-500 group-open:hidden">เปิดดู</span>
-        <span className="hidden rounded-full bg-slate-50 px-3 py-1 text-xs font-bold text-slate-500 group-open:inline">ปิด</span>
+        <span className="shrink-0 rounded-full bg-[#e7efea] px-3 py-1.5 text-xs font-bold text-[#17201d] group-open:hidden">เปิดดู</span>
+        <span className="hidden shrink-0 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-500 group-open:inline">ปิด</span>
       </summary>
 
-      <div className="mt-4 space-y-3">
+      <div className="mt-3 space-y-2">
         <div className="grid grid-cols-2 gap-2">
-          <ContextMetric label="Race" value={context.raceGoal ? String(context.raceGoal.raceName ?? "Active") : "None"} />
-          <ContextMetric label="Race status" value={context.activeRaceStatus} />
-          <ContextMetric label="Run 7d" value={`${context.totalRunKm} km`} sub={`${context.runDays7d} run days`} />
-          <ContextMetric label="Readiness" value={context.avgReadiness != null ? String(context.avgReadiness) : "-"} sub="7d avg" />
+          <ContextMetric label="เป้าหมาย" value={context.raceGoal ? String(context.raceGoal.raceName ?? "มีเป้าหมายแข่ง") : "ยังไม่มี"} />
+          <ContextMetric label="วิ่ง 7 วัน" value={`${context.totalRunKm} กม.`} sub={`${context.runDays7d} วัน`} />
         </div>
 
-        <ContextBlock title="Sleep ล่าสุด">
+        <ContextBlock title="นอนล่าสุด">
           {sleepLatest
-            ? `${sleepLatest.date}: ${sleepLatest.durationH ?? "-"}, score ${sleepLatest.score ?? "-"}, readiness ${sleepLatest.readiness ?? "-"}`
-            : "ยังไม่มี sleep data ใน 7 วันล่าสุด"}
+            ? `${sleepLatest.date}: ${sleepLatest.durationH ?? "-"}, sleep score ${sleepLatest.score ?? "-"}, readiness ${sleepLatest.readiness ?? "-"}`
+            : "ยังไม่มีข้อมูลการนอนใน 7 วันล่าสุด"}
         </ContextBlock>
 
-        <ContextBlock title="Profile">
+        <ContextBlock title="โปรไฟล์">
           {context.profile
             ? profileLine(context.profile)
-            : "ยังไม่มี runner profile active"}
+            : "ยังไม่มีโปรไฟล์นักวิ่ง"}
         </ContextBlock>
 
-        <ContextBlock title="Workout ล่าสุด">{workoutLine}</ContextBlock>
-        <ContextBlock title="Run ล่าสุด">{runLine}</ContextBlock>
-
-        <ContextBlock title="Body ล่าสุด">
-          {context.latestBody
-            ? `weight ${context.latestBody.weightKg ?? "-"} kg · fat ${context.latestBody.bodyFatPct ?? "-"}% · muscle ${context.latestBody.muscleKg ?? "-"} kg`
-            : "ยังไม่มี body composition"}
-        </ContextBlock>
+        <ContextBlock title="ซ้อมล่าสุด">{workoutLine}</ContextBlock>
+        <ContextBlock title="วิ่งล่าสุด">{runLine}</ContextBlock>
 
         {context.contextNotes.length > 0 && (
-          <div className="rounded-2xl bg-amber-50 p-3">
-            <p className="text-xs font-bold uppercase tracking-wide text-amber-700">Context notes</p>
+          <div className="rounded-2xl bg-amber-50/80 p-3">
+            <p className="text-xs font-bold text-amber-700">ข้อควรระวังจากข้อมูล</p>
             <ul className="mt-2 space-y-1 text-sm leading-6 text-slate-700">
               {context.contextNotes.map((note) => (
                 <li key={note}>- {note}</li>
@@ -80,7 +76,7 @@ export function AIContextCard() {
 
 function ContextMetric({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="rounded-2xl bg-slate-50 p-3">
+    <div className="rounded-2xl bg-slate-50/80 p-3">
       <p className="text-xs text-slate-400">{label}</p>
       <p className="mt-1 truncate text-sm font-bold text-[#17201d]">{value}</p>
       {sub ? <p className="text-xs text-slate-400">{sub}</p> : null}
@@ -90,8 +86,8 @@ function ContextMetric({ label, value, sub }: { label: string; value: string; su
 
 function ContextBlock({ title, children }: { title: string; children: string }) {
   return (
-    <div className="rounded-2xl bg-slate-50 p-3">
-      <p className="text-xs font-bold uppercase tracking-wide text-[#6f8fa6]">{title}</p>
+    <div className="rounded-2xl bg-slate-50/80 p-3">
+      <p className="text-xs font-bold text-[#6f8fa6]">{title}</p>
       <p className="mt-1 text-sm leading-6 text-slate-700">{children}</p>
     </div>
   );
@@ -99,15 +95,13 @@ function ContextBlock({ title, children }: { title: string; children: string }) 
 
 function profileLine(profile: Record<string, unknown>) {
   const parts = [
-    profile.displayName && `name ${profile.displayName}`,
-    profile.easyPace && `easy ${profile.easyPace}`,
-    profile.easyHrCap && `HR cap ${profile.easyHrCap}`,
-    profile.maxHr && `maxHR ${profile.maxHr}`,
-    profile.mainGoal && `goal ${profile.mainGoal}`,
-    profile.injuryNotes && `injury ${profile.injuryNotes}`,
-    profile.coachTone && `tone ${profile.coachTone}`,
+    profile.displayName && `ชื่อ ${profile.displayName}`,
+    profile.easyPace && `easy pace ${profile.easyPace}`,
+    profile.easyHrCap && `คุม HR ${profile.easyHrCap}`,
+    profile.mainGoal && `เป้าหมาย ${profile.mainGoal}`,
+    profile.injuryNotes && `ข้อควรระวัง ${profile.injuryNotes}`,
   ].filter(Boolean);
-  return parts.length ? parts.join(" · ") : JSON.stringify(profile);
+  return parts.length ? parts.join(" · ") : "มีโปรไฟล์แล้ว แต่ข้อมูลหลักยังไม่ครบ";
 }
 
 function useCoachContextSnapshot() {
