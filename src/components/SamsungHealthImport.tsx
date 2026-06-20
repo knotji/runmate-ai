@@ -64,11 +64,11 @@ export function SamsungHealthImport() {
     const syncResult = await saveHistoryItems(preview.items);
     if (syncResult.ok) {
       setCloudSyncMessage("บันทึกแล้ว");
+      setStep("done");
     } else {
       setCloudSyncMessage(`บันทึกไม่สำเร็จ กรุณาลองใหม่: ${syncResult.error ?? "ไม่ทราบสาเหตุ"}`);
+      setStep("preview");
     }
-
-    setStep("done");
   }
 
   function onDrop(e: React.DragEvent) {
@@ -122,6 +122,11 @@ export function SamsungHealthImport() {
             <PreviewStat icon="🏃" label="ออกกำลังกาย" count={preview.workout} />
             <PreviewStat icon="⚖️" label="ชั่งน้ำหนัก" count={preview.body} />
           </div>
+          {cloudSyncMessage && (
+            <p className="rounded-2xl bg-red-50 p-3 text-xs font-semibold text-red-600">
+              {cloudSyncMessage}
+            </p>
+          )}
           {preview.sleep + preview.workout + preview.body === 0 ? (
             <p className="text-xs text-red-500">ไม่พบข้อมูลในช่วงนี้ ลอง export ใหม่ให้ครอบคลุมช่วงที่ต้องการ</p>
           ) : (

@@ -37,7 +37,8 @@ export async function saveHistoryItems(items: LocalHistoryItem[]): Promise<{ ok:
     return { ok: false, error: sessionMessage(session) };
   }
 
-  const rows = items.map((item) => ({
+  const uniqueItems = dedupeHistoryItems(items);
+  const rows = uniqueItems.map((item) => ({
     id: item.id,
     user_id: session.userId,
     type: item.type,
@@ -46,7 +47,7 @@ export async function saveHistoryItems(items: LocalHistoryItem[]): Promise<{ ok:
   }));
 
   logSupabaseSyncStart({ table: "history_items", operation: "upsert", userId: session.userId, count: rows.length });
-  const { error } = await session.supabase.from("history_items").upsert(rows);
+  const { error } = await session.supabase.from("history_items").upsert(rows, { onConflict: "user_id,id" });
   if (error) {
     logSupabaseSyncError({ table: "history_items", operation: "upsert", userId: session.userId, error, count: rows.length });
     return { ok: false, error: friendlySupabaseError(error) };
@@ -90,4 +91,12 @@ export async function loadHistoryItems(types?: HistoryType[]): Promise<{ ok: tru
 
 function sessionMessage(session: { reason: string; message?: string }) {
   return session.message ?? session.reason;
+}
+
+function dedupeHistoryItems(items: LocalHistoryItem[]) {
+  const byId = new Map<string, LocalHistoryItem>();
+  for (const item of items) {
+    byId.set(item.id, item);
+  }
+  return Array.from(byId.values());
 }

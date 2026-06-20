@@ -6,7 +6,6 @@ import { AppShell } from "@/components/AppShell";
 import { ProfileSetupForm } from "@/components/ProfileSetupForm";
 import { ProfileHistoryAnalyzer } from "@/components/ProfileHistoryAnalyzer";
 import { SamsungHealthImport } from "@/components/SamsungHealthImport";
-import { cleanupOldRunMateLocalData } from "@/lib/localCleanup";
 import { createClient } from "@/lib/supabase/client";
 
 type Tab = "profile" | "data" | "account";
@@ -23,8 +22,6 @@ type EnvDebug = {
 export default function SettingsPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>("profile");
-  const [confirmed, setConfirmed] = useState(false);
-  const [done, setDone] = useState(false);
   const [envDebug, setEnvDebug] = useState<EnvDebug | null>(null);
 
   useEffect(() => {
@@ -40,13 +37,6 @@ export default function SettingsPage() {
     const supabase = createClient();
     if (supabase) await supabase.auth.signOut();
     router.replace("/login");
-  }
-
-  function clearLocalOnly() {
-    localStorage.removeItem("runmate.localCleanup.v1");
-    cleanupOldRunMateLocalData();
-    setConfirmed(false);
-    setDone(true);
   }
 
   return (
@@ -124,32 +114,6 @@ export default function SettingsPage() {
 
       {activeTab === "account" && (
         <div className="space-y-4">
-          <section className="card space-y-3 p-5">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.15em] text-red-400">Local Cleanup</p>
-              <h2 className="mt-1 text-xl font-bold text-[#17201d]">ล้าง cache เก่าในเครื่อง</h2>
-            </div>
-            <p className="text-sm leading-6 text-slate-500">
-              ลบ RunMate localStorage เก่าที่ไม่ใช่ source of truth แล้ว ข้อมูลจริงยังอยู่ใน Supabase
-            </p>
-            {done ? (
-              <p className="rounded-2xl bg-green-50 p-3 text-sm font-bold text-green-600">ล้างข้อมูลในเครื่องเรียบร้อยแล้ว</p>
-            ) : confirmed ? (
-              <div className="flex gap-2">
-                <button type="button" className="flex-1 rounded-full bg-red-500 py-3 text-sm font-bold text-white" onClick={clearLocalOnly}>
-                  ยืนยัน
-                </button>
-                <button type="button" className="flex-1 btn-secondary text-sm" onClick={() => setConfirmed(false)}>
-                  ยกเลิก
-                </button>
-              </div>
-            ) : (
-              <button type="button" className="w-full rounded-full border border-red-300 py-3 text-sm font-bold text-red-500" onClick={() => setConfirmed(true)}>
-                Clear Local Cache
-              </button>
-            )}
-          </section>
-
           <button type="button" onClick={logout} className="w-full rounded-full bg-red-50 px-6 py-3 text-center text-sm font-bold text-red-500 transition-colors hover:text-red-700">
             ออกจากระบบ
           </button>
