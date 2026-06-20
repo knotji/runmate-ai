@@ -11,6 +11,7 @@ import type { UserProfile } from "@/types/profile";
 
 type ProfileRow = {
   id: string;
+  updated_at: string | null;
   display_name: string | null;
   birth_date: string | null;
   birth_year: number | null;
@@ -235,6 +236,8 @@ function profileToRow(profile: UserProfile, userId: string): Partial<ProfileRow>
 
 function rowToProfile(row: ProfileRow): UserProfile {
   return {
+    id: row.id,
+    updatedAt: row.updated_at ?? undefined,
     displayName: row.display_name ?? "",
     birthDate: row.birth_date ?? undefined,
     birthYear: row.birth_year ?? undefined,

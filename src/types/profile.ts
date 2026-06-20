@@ -1,6 +1,9 @@
 export type RunningLevel = "beginner" | "can_run_5k" | "can_run_10k" | "half_marathon_ready" | "returning";
 
 export type UserProfile = {
+  id?: string;
+  updatedAt?: string;
+
   // Basic Info
   displayName: string;
   birthDate?: string;

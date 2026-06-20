@@ -32,17 +32,29 @@ const TODAY = new Date().toISOString().slice(0, 10);
 const IS_DEV = process.env.NODE_ENV === "development";
 
 export function ProfileSetupForm({
+  profile: externalProfile,
+  onProfileSaved,
   redirectOnSave = false,
   mode = "full",
 }: {
+  profile?: UserProfile | null;
+  onProfileSaved?: (profile: UserProfile) => void;
   redirectOnSave?: boolean;
   mode?: "onboarding" | "full";
 }) {
   const router = useRouter();
-  const [profile, setProfile] = useState<UserProfile>(defaultProfile);
+  const [profile, setProfile] = useState<UserProfile>(() => {
+    if (externalProfile) {
+      console.info("[profile-refresh]", {
+        event: "ProfileSetupForm received new profile",
+        updatedAt: externalProfile.updatedAt ?? null,
+      });
+    }
+    return { ...defaultProfile, ...(externalProfile ?? {}) };
+  });
   const [status, setStatus] = useState<Status>({ tone: "idle", text: "" });
   const [saving, setSaving] = useState(false);
-  const [loadingCloud, setLoadingCloud] = useState(mode === "full");
+  const [loadingCloud, setLoadingCloud] = useState(mode === "full" && externalProfile === undefined);
   const [openSection, setOpenSection] = useState<string | null>("goal");
   const [birthDateError, setBirthDateError] = useState("");
   const [devOpen, setDevOpen] = useState(false);
@@ -95,20 +107,24 @@ export function ProfileSetupForm({
     }, 3000);
   }
 
-  // Load profile from Supabase. LocalStorage is no longer a data source.
+  // Load profile from Supabase when the form owns its data. LocalStorage is no longer a data source.
   useEffect(() => {
+    if (externalProfile !== undefined) return;
     if (mode !== "full") return;
 
     loadProfileFromSupabase().then((result) => {
       setLoadingCloud(false);
       if (result.ok && result.profile) {
+        console.info("[profile-refresh]", {
+          event: "ProfileSetupForm loaded profile",
+          updatedAt: result.profile.updatedAt ?? null,
+        });
         setProfile({ ...defaultProfile, ...result.profile });
         invalidateCoachCache();
       }
       // Silent fail here keeps the form usable; save still reports Supabase errors.
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [externalProfile, mode]);
 
   function update<K extends keyof UserProfile>(key: K, value: UserProfile[K]) {
     setProfile((current) => ({ ...current, [key]: value }));
@@ -138,6 +154,11 @@ export function ProfileSetupForm({
     setSaving(false);
     if (result.ok) {
       setStatus({ tone: "good", text: "บันทึกแล้ว" });
+      const freshResult = await loadProfileFromSupabase();
+      if (freshResult.ok && freshResult.profile) {
+        setProfile({ ...defaultProfile, ...freshResult.profile });
+        onProfileSaved?.(freshResult.profile);
+      }
       if (redirectOnSave) router.push("/");
     } else {
       const detail = "message" in result ? result.message : result.reason;

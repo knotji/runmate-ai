@@ -60,7 +60,12 @@ function formatValue(v: unknown): string {
   return String(v);
 }
 
-async function applyAndPersist(base: UserProfile, updates: Partial<UserProfile>, sourceUpdates: Record<string, "history_analysis">) {
+async function applyAndPersist(
+  base: UserProfile,
+  updates: Partial<UserProfile>,
+  sourceUpdates: Record<string, "history_analysis">,
+  onProfileUpdated?: (profile: UserProfile) => void
+) {
   const merged: UserProfile = {
     ...base,
     ...updates,
@@ -68,11 +73,27 @@ async function applyAndPersist(base: UserProfile, updates: Partial<UserProfile>,
   };
   const result = await saveProfileToSupabase(merged);
   if (!result.ok) throw new Error("message" in result ? result.message : result.reason);
+  console.info("[profile-refresh]", {
+    event: "profile-saved",
+    savedKeys: Object.keys(updates),
+  });
+  const freshResult = await loadProfileFromSupabase();
+  if (!freshResult.ok) throw new Error("message" in freshResult ? freshResult.message : freshResult.reason);
+  const freshProfile = freshResult.profile ?? merged;
+  console.info("[profile-refresh]", {
+    event: "fresh-profile-loaded",
+    updatedAt: freshProfile.updatedAt ?? null,
+  });
+  onProfileUpdated?.(freshProfile);
+  console.info("[profile-refresh]", {
+    event: "onProfileUpdated called",
+    updatedAt: freshProfile.updatedAt ?? null,
+  });
   invalidateCoachCache();
-  return merged;
+  return freshProfile;
 }
 
-export function ProfileHistoryAnalyzer() {
+export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?: (profile: UserProfile) => void }) {
   const [state, setState] = useState<State>("idle");
   const [result, setResult] = useState<ProfileAnalysisResult | null>(null);
   const [savedKeys, setSavedKeys] = useState<string[]>([]);
@@ -131,7 +152,7 @@ export function ProfileHistoryAnalyzer() {
       // Apply & persist
       if (updatedKeys.length > 0) {
         const base = profile ?? { displayName: "นักวิ่ง" };
-        const merged = await applyAndPersist(base as UserProfile, toSave, buildSourceUpdates(updatedKeys));
+        const merged = await applyAndPersist(base as UserProfile, toSave, buildSourceUpdates(updatedKeys), onProfileUpdated);
         setCurrentProfile(merged);
       }
 
@@ -174,7 +195,7 @@ export function ProfileHistoryAnalyzer() {
   async function overrideManual(key: keyof ProfileAnalysisSuggestions, suggestedValue: unknown) {
     const base = currentProfile ?? { displayName: "นักวิ่ง" };
     const updates = { [key]: suggestedValue } as Partial<UserProfile>;
-    const merged = await applyAndPersist(base as UserProfile, updates, buildSourceUpdates([key]));
+    const merged = await applyAndPersist(base as UserProfile, updates, buildSourceUpdates([key]), onProfileUpdated);
     setCurrentProfile(merged);
     setManualItems((prev) => prev.filter((i) => i.key !== key));
   }
@@ -182,7 +203,7 @@ export function ProfileHistoryAnalyzer() {
   async function acceptReviewItem(key: keyof ProfileAnalysisSuggestions, suggestedValue: unknown) {
     const base = currentProfile ?? { displayName: "นักวิ่ง" };
     const updates = { [key]: suggestedValue } as Partial<UserProfile>;
-    const merged = await applyAndPersist(base as UserProfile, updates, buildSourceUpdates([key]));
+    const merged = await applyAndPersist(base as UserProfile, updates, buildSourceUpdates([key]), onProfileUpdated);
     setCurrentProfile(merged);
     setReviewItems((prev) => prev.filter((i) => i.key !== key));
   }

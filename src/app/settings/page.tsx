@@ -6,7 +6,9 @@ import { AppShell } from "@/components/AppShell";
 import { ProfileSetupForm } from "@/components/ProfileSetupForm";
 import { ProfileHistoryAnalyzer } from "@/components/ProfileHistoryAnalyzer";
 import { SamsungHealthImport } from "@/components/SamsungHealthImport";
+import { loadProfileFromSupabase } from "@/lib/profileStorage";
 import { createClient } from "@/lib/supabase/client";
+import type { UserProfile } from "@/types/profile";
 
 type Tab = "profile" | "data" | "account";
 
@@ -22,7 +24,9 @@ type EnvDebug = {
 export default function SettingsPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>("profile");
+  const [runnerProfile, setRunnerProfile] = useState<UserProfile | null>(null);
   const [envDebug, setEnvDebug] = useState<EnvDebug | null>(null);
+  const profileFormKey = runnerProfile?.updatedAt ?? runnerProfile?.id ?? "empty-profile";
 
   useEffect(() => {
     fetch("/api/debug/env")
@@ -32,6 +36,26 @@ export default function SettingsPage() {
         console.warn("[env-debug-error]", error instanceof Error ? error.message : String(error));
       });
   }, []);
+
+  useEffect(() => {
+    loadProfileFromSupabase().then((result) => {
+      if (result.ok && result.profile) {
+        console.info("[profile-refresh]", {
+          event: "settings-profile-loaded",
+          updatedAt: result.profile.updatedAt ?? null,
+        });
+        setRunnerProfile(result.profile);
+      }
+    });
+  }, []);
+
+  function handleProfileUpdated(profile: UserProfile) {
+    console.info("[profile-refresh]", {
+      event: "onProfileUpdated called",
+      updatedAt: profile.updatedAt ?? null,
+    });
+    setRunnerProfile(profile);
+  }
 
   async function logout() {
     const supabase = createClient();
@@ -57,9 +81,9 @@ export default function SettingsPage() {
                 ให้ AI อ่านประวัติการซ้อมและการนอนจาก Supabase แล้วแนะนำค่าโปรไฟล์ที่เหมาะกับคุณ
               </p>
             </div>
-            <ProfileHistoryAnalyzer />
+            <ProfileHistoryAnalyzer onProfileUpdated={handleProfileUpdated} />
           </section>
-          <ProfileSetupForm />
+          <ProfileSetupForm key={profileFormKey} profile={runnerProfile} onProfileSaved={handleProfileUpdated} />
         </div>
       )}
 
