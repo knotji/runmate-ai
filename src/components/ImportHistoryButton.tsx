@@ -2,31 +2,19 @@
 
 import { useState } from "react";
 import { importedCoachHistory } from "@/data/importedCoachHistory";
-import type { HistoryType, LocalHistoryItem } from "@/lib/localHistory";
+import { saveHistoryItems } from "@/lib/cloudHistory";
 
 export function ImportHistoryButton() {
   const [status, setStatus] = useState("");
 
-  function importHistory() {
-    const byType = new Map<HistoryType, LocalHistoryItem[]>();
-    for (const item of importedCoachHistory) {
-      const list = byType.get(item.type as HistoryType) ?? [];
-      list.push(item);
-      byType.set(item.type as HistoryType, list);
+  async function importHistory() {
+    setStatus("กำลังบันทึก...");
+    const result = await saveHistoryItems(importedCoachHistory);
+    if (!result.ok) {
+      setStatus("บันทึกไม่สำเร็จ กรุณาลองใหม่");
+      return;
     }
-
-    let totalAdded = 0;
-    for (const [type, items] of byType) {
-      const key = `runmate.history.${type}`;
-      const existing = readExisting(key);
-      const existingIds = new Set(existing.map((e) => e.id));
-      const newItems = items.filter((item) => !existingIds.has(item.id));
-      const next = [...newItems, ...existing].slice(0, 60);
-      localStorage.setItem(key, JSON.stringify(next));
-      totalAdded += newItems.length;
-    }
-
-    setStatus(`นำเข้าแล้ว ${totalAdded} รายการ (${[...byType.keys()].join(", ")})`);
+    setStatus(`บันทึกแล้ว ${importedCoachHistory.length} รายการ`);
   }
 
   const typeBreakdown = importedCoachHistory.reduce<Record<string, number>>((acc, item) => {
@@ -43,19 +31,10 @@ export function ImportHistoryButton() {
           .map(([t, n]) => `${t} ${n}`)
           .join(", ")}
       </p>
-      <button className="btn-secondary mt-3 w-full" onClick={importHistory} type="button">
+      <button className="btn-secondary mt-3 w-full" onClick={() => void importHistory()} type="button">
         Import ChatGPT history
       </button>
       {status ? <p className="mt-2 text-xs font-semibold text-[#42677f]">{status}</p> : null}
     </div>
   );
-}
-
-function readExisting(key: string): LocalHistoryItem[] {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as LocalHistoryItem[]) : [];
-  } catch {
-    return [];
-  }
 }

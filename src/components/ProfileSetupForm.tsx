@@ -5,8 +5,6 @@ import { useRouter } from "next/navigation";
 import { invalidateCoachCache } from "@/lib/invalidateCoachCache";
 import {
   loadProfileFromSupabase,
-  readLocalProfile,
-  saveLocalProfile,
   saveProfileToSupabase,
 } from "@/lib/profileStorage";
 import { defaultProfile, type UserProfile } from "@/types/profile";
@@ -97,11 +95,8 @@ export function ProfileSetupForm({
     }, 3000);
   }
 
-  // Load local profile immediately, then sync from cloud
+  // Load profile from Supabase. LocalStorage is no longer a data source.
   useEffect(() => {
-    const local = readLocalProfile();
-    if (local) queueMicrotask(() => setProfile({ ...defaultProfile, ...local }));
-
     if (mode !== "full") return;
 
     loadProfileFromSupabase().then((result) => {
@@ -110,18 +105,9 @@ export function ProfileSetupForm({
         setProfile({ ...defaultProfile, ...result.profile });
         invalidateCoachCache();
       }
-      // Silent fail — local data is already shown
+      // Silent fail here keeps the form usable; save still reports Supabase errors.
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    function onExternalUpdate() {
-      const local = readLocalProfile();
-      if (local) queueMicrotask(() => setProfile({ ...defaultProfile, ...local }));
-    }
-    window.addEventListener("runmate:profile-externally-updated", onExternalUpdate);
-    return () => window.removeEventListener("runmate:profile-externally-updated", onExternalUpdate);
   }, []);
 
   function update<K extends keyof UserProfile>(key: K, value: UserProfile[K]) {
@@ -144,39 +130,26 @@ export function ProfileSetupForm({
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (birthDateError) return;
-    saveLocalProfile(profile);
     invalidateCoachCache();
-    setStatus({ tone: "good", text: "บันทึกในเครื่องแล้ว" });
 
     setSaving(true);
-    setStatus({ tone: "idle", text: "กำลังซิงก์..." });
+    setStatus({ tone: "idle", text: "กำลังบันทึก..." });
     const result = await saveProfileToSupabase(profile);
     setSaving(false);
     if (result.ok) {
-      const syncedAt = new Date().toLocaleString("th-TH", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-      localStorage.setItem("runmate.lastSyncedAt", syncedAt);
-      localStorage.setItem("runmate.lastSyncStatus", "success");
-      setStatus({ tone: "good", text: `ซิงก์ล่าสุดเมื่อ ${syncedAt}` });
+      setStatus({ tone: "good", text: "บันทึกแล้ว" });
       if (redirectOnSave) router.push("/");
     } else {
       const detail = "message" in result ? result.message : result.reason;
-      localStorage.setItem("runmate.lastSyncStatus", "error");
-      setStatus({ tone: "bad", text: `ซิงก์ไม่สำเร็จ: ${detail}` });
+      setStatus({ tone: "bad", text: `บันทึกไม่สำเร็จ กรุณาลองใหม่: ${detail}` });
     }
   }
 
   // Dev-only helpers (not shown in production)
-  async function devSyncToSupabase() {
-    setDevStatus("กำลังซิงก์...");
-    saveLocalProfile(profile);
+  async function devSaveToSupabase() {
+    setDevStatus("กำลังบันทึก...");
     const result = await saveProfileToSupabase(profile);
-    setDevStatus(result.ok ? `ซิงก์ล่าสุดแล้ว (${result.userId?.slice(0, 8)})` : `ซิงก์ไม่สำเร็จ: ${"message" in result ? result.message : result.reason}`);
+    setDevStatus(result.ok ? `บันทึกแล้ว (${result.userId?.slice(0, 8)})` : `บันทึกไม่สำเร็จ: ${"message" in result ? result.message : result.reason}`);
   }
 
   async function devLoadFromSupabase() {
@@ -922,11 +895,11 @@ export function ProfileSetupForm({
           {devOpen && (
             <div className="space-y-2 border-t border-dashed border-slate-200 px-4 pb-3 pt-2">
               <div className="flex gap-2">
-                <button type="button" className="btn-secondary flex-1 py-2 text-xs" onClick={devSyncToSupabase}>
-                  ซิงก์ข้อมูลไปคลาวด์
+                <button type="button" className="btn-secondary flex-1 py-2 text-xs" onClick={devSaveToSupabase}>
+                  บันทึกไป Supabase
                 </button>
                 <button type="button" className="btn-secondary flex-1 py-2 text-xs" onClick={devLoadFromSupabase}>
-                  โหลดข้อมูลจากคลาวด์
+                  โหลดจาก Supabase
                 </button>
               </div>
               {devStatus && <p className="text-xs font-mono text-slate-500">{devStatus}</p>}
@@ -1103,4 +1076,3 @@ function SrcField({
     </div>
   );
 }
-

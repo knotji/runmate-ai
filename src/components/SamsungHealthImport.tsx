@@ -4,8 +4,8 @@ import { useRef, useState } from "react";
 import { unzip } from "fflate";
 import { parseSamsungHealthFiles } from "@/lib/parseSamsungHealth";
 import { invalidateCoachCache } from "@/lib/invalidateCoachCache";
-import { pushHistoryItems } from "@/lib/historySync";
-import type { HistoryType, LocalHistoryItem } from "@/lib/localHistory";
+import { saveHistoryItems } from "@/lib/cloudHistory";
+import type { LocalHistoryItem } from "@/lib/localHistory";
 
 type Step = "idle" | "loading" | "preview" | "done" | "error";
 
@@ -23,10 +23,12 @@ export function SamsungHealthImport() {
   const [step, setStep] = useState<Step>("idle");
   const [preview, setPreview] = useState<Preview | null>(null);
   const [error, setError] = useState("");
+  const [cloudSyncMessage, setCloudSyncMessage] = useState("");
 
   async function handleFile(file: File) {
     setStep("loading");
     setError("");
+    setCloudSyncMessage("");
 
     try {
       const buffer = await file.arrayBuffer();
@@ -54,44 +56,17 @@ export function SamsungHealthImport() {
     }
   }
 
-  function confirmImport() {
+  async function confirmImport() {
     if (!preview) return;
-
-    const byType = new Map<HistoryType, LocalHistoryItem[]>();
-    for (const item of preview.items) {
-      const t = item.type as HistoryType;
-      const list = byType.get(t) ?? [];
-      list.push(item);
-      byType.set(t, list);
-    }
-
-    for (const [type, newItems] of byType) {
-      const key = `runmate.history.${type}`;
-      const existing = readExisting(key);
-      const existingIds = new Set(existing.map((e) => e.id));
-      const merged = [...newItems.filter((i) => !existingIds.has(i.id)), ...existing]
-        .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
-        .slice(0, 400);
-      localStorage.setItem(key, JSON.stringify(merged));
-    }
-
-    // Add import history entry
-    const newLog = {
-      id: `import-${Date.now()}`,
-      date: new Date().toISOString(),
-      sleep: preview.sleep,
-      workout: preview.workout,
-      body: preview.body,
-    };
-    try {
-      const history = JSON.parse(localStorage.getItem("runmate.importHistory") || "[]");
-      localStorage.setItem("runmate.importHistory", JSON.stringify([newLog, ...history]));
-    } catch (e) {
-      console.error(e);
-    }
+    setCloudSyncMessage("");
 
     invalidateCoachCache({ clearChat: true });
-    pushHistoryItems(preview.items).catch(() => {});
+    const syncResult = await saveHistoryItems(preview.items);
+    if (syncResult.ok) {
+      setCloudSyncMessage("บันทึกแล้ว");
+    } else {
+      setCloudSyncMessage(`บันทึกไม่สำเร็จ กรุณาลองใหม่: ${syncResult.error ?? "ไม่ทราบสาเหตุ"}`);
+    }
 
     setStep("done");
   }
@@ -169,6 +144,11 @@ export function SamsungHealthImport() {
           <p className="text-xs text-slate-600">
             นอน {preview.sleep} · ออกกำลังกาย {preview.workout} · ชั่งน้ำหนัก {preview.body} รายการ
           </p>
+          {cloudSyncMessage && (
+            <p className={`mt-2 text-xs font-semibold ${cloudSyncMessage.includes("ไม่สำเร็จ") ? "text-red-600" : "text-green-700"}`}>
+              {cloudSyncMessage}
+            </p>
+          )}
           <p className="text-xs text-slate-400 mt-2">ดูข้อมูลได้ที่หน้า Report</p>
         </div>
       )}
@@ -201,13 +181,4 @@ const THAI_MONTHS = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.
 function formatThaiShort(dateStr: string): string {
   const [, m, d] = dateStr.split("-").map(Number);
   return `${d} ${THAI_MONTHS[m - 1]}`;
-}
-
-function readExisting(key: string): LocalHistoryItem[] {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as LocalHistoryItem[]) : [];
-  } catch {
-    return [];
-  }
 }

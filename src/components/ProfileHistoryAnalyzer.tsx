@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { buildRunnerHistoryStats } from "@/lib/analyzeHistory";
-import { readLocalProfile, saveLocalProfile, saveProfileToSupabase } from "@/lib/profileStorage";
+import { loadProfileFromSupabase, saveProfileToSupabase } from "@/lib/profileStorage";
+import { loadHistoryItems } from "@/lib/cloudHistory";
 import { invalidateCoachCache } from "@/lib/invalidateCoachCache";
 import {
   getAutoSavableProfileUpdates,
@@ -59,16 +60,15 @@ function formatValue(v: unknown): string {
   return String(v);
 }
 
-function applyAndPersist(base: UserProfile, updates: Partial<UserProfile>, sourceUpdates: Record<string, "history_analysis">) {
+async function applyAndPersist(base: UserProfile, updates: Partial<UserProfile>, sourceUpdates: Record<string, "history_analysis">) {
   const merged: UserProfile = {
     ...base,
     ...updates,
     fieldSources: { ...base.fieldSources, ...sourceUpdates },
   };
-  saveLocalProfile(merged);
+  const result = await saveProfileToSupabase(merged);
+  if (!result.ok) throw new Error("message" in result ? result.message : result.reason);
   invalidateCoachCache();
-  window.dispatchEvent(new Event("runmate:profile-externally-updated"));
-  saveProfileToSupabase(merged).catch(() => {});
   return merged;
 }
 
@@ -79,6 +79,7 @@ export function ProfileHistoryAnalyzer() {
   const [reviewItems, setReviewItems] = useState<ReviewItem[]>([]);
   const [manualItems, setManualItems] = useState<ManualItem[]>([]);
   const [error, setError] = useState("");
+  const [currentProfile, setCurrentProfile] = useState<UserProfile | null>(null);
 
   async function analyze() {
     setState("loading");
@@ -89,8 +90,16 @@ export function ProfileHistoryAnalyzer() {
     setManualItems([]);
 
     try {
-      const stats = buildRunnerHistoryStats();
-      const profile = readLocalProfile();
+      const [historyResult, profileResult] = await Promise.all([
+        loadHistoryItems(["sleep", "workout"]),
+        loadProfileFromSupabase(),
+      ]);
+      if (!historyResult.ok) throw new Error(historyResult.error);
+      if (!profileResult.ok) throw new Error("message" in profileResult ? profileResult.message : profileResult.reason);
+
+      const stats = buildRunnerHistoryStats(historyResult.items);
+      const profile = profileResult.profile;
+      setCurrentProfile(profile ?? null);
 
       const res = await fetch("/api/analyze-profile-history", {
         method: "POST",
@@ -121,8 +130,9 @@ export function ProfileHistoryAnalyzer() {
 
       // Apply & persist
       if (updatedKeys.length > 0) {
-        const base = readLocalProfile() ?? { displayName: "นักวิ่ง" };
-        applyAndPersist(base as UserProfile, toSave, buildSourceUpdates(updatedKeys));
+        const base = profile ?? { displayName: "นักวิ่ง" };
+        const merged = await applyAndPersist(base as UserProfile, toSave, buildSourceUpdates(updatedKeys));
+        setCurrentProfile(merged);
       }
 
       // Manual-skipped items (user had manually edited these)
@@ -161,17 +171,19 @@ export function ProfileHistoryAnalyzer() {
     }
   }
 
-  function overrideManual(key: keyof ProfileAnalysisSuggestions, suggestedValue: unknown) {
-    const base = readLocalProfile() ?? { displayName: "นักวิ่ง" };
+  async function overrideManual(key: keyof ProfileAnalysisSuggestions, suggestedValue: unknown) {
+    const base = currentProfile ?? { displayName: "นักวิ่ง" };
     const updates = { [key]: suggestedValue } as Partial<UserProfile>;
-    applyAndPersist(base as UserProfile, updates, buildSourceUpdates([key]));
+    const merged = await applyAndPersist(base as UserProfile, updates, buildSourceUpdates([key]));
+    setCurrentProfile(merged);
     setManualItems((prev) => prev.filter((i) => i.key !== key));
   }
 
-  function acceptReviewItem(key: keyof ProfileAnalysisSuggestions, suggestedValue: unknown) {
-    const base = readLocalProfile() ?? { displayName: "นักวิ่ง" };
+  async function acceptReviewItem(key: keyof ProfileAnalysisSuggestions, suggestedValue: unknown) {
+    const base = currentProfile ?? { displayName: "นักวิ่ง" };
     const updates = { [key]: suggestedValue } as Partial<UserProfile>;
-    applyAndPersist(base as UserProfile, updates, buildSourceUpdates([key]));
+    const merged = await applyAndPersist(base as UserProfile, updates, buildSourceUpdates([key]));
+    setCurrentProfile(merged);
     setReviewItems((prev) => prev.filter((i) => i.key !== key));
   }
 
@@ -261,7 +273,7 @@ export function ProfileHistoryAnalyzer() {
                       </div>
                       <button
                         type="button"
-                        onClick={() => overrideManual(item.key, item.suggestedValue)}
+                        onClick={() => void overrideManual(item.key, item.suggestedValue)}
                         className="shrink-0 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-200"
                       >
                         แทนที่
@@ -285,7 +297,7 @@ export function ProfileHistoryAnalyzer() {
                       </div>
                       <button
                         type="button"
-                        onClick={() => acceptReviewItem(item.key, item.value)}
+                        onClick={() => void acceptReviewItem(item.key, item.value)}
                         className="shrink-0 rounded-full bg-amber-100 px-3 py-1 text-[11px] font-bold text-amber-800 hover:bg-amber-200"
                       >
                         นำมาใช้

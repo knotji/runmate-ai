@@ -1,4 +1,4 @@
-import { readHistory } from "./localHistory";
+import type { LocalHistoryItem } from "./localHistory";
 import type { SleepAnalysis, WorkoutAnalysis } from "@/types/logs";
 
 const DAY_NAMES_TH = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัส", "ศุกร์", "เสาร์"];
@@ -70,11 +70,11 @@ export type ProfileAnalysisResult = {
   warnings: string[];
 };
 
-export function buildRunnerHistoryStats(): RunnerHistoryStats {
+export function buildRunnerHistoryStats(items: LocalHistoryItem[] = []): RunnerHistoryStats {
   const cutoff = new Date(Date.now() + TZ_MS - 90 * 86400000).toISOString().slice(0, 10);
 
   // ── Workout (run) data ────────────────────────────────────────────────────
-  const workoutItems = readHistory("workout").filter((i) => i.createdAt.slice(0, 10) >= cutoff);
+  const workoutItems = items.filter((i) => i.type === "workout").filter((i) => i.createdAt.slice(0, 10) >= cutoff);
 
   type RunEntry = { date: string; km: number; avgHR: number | null; maxHR: number | null; pace: string | null; cadence: number | null; vo2max: number | null };
   const runs: RunEntry[] = [];
@@ -194,7 +194,7 @@ export function buildRunnerHistoryStats(): RunnerHistoryStats {
     : null;
 
   // ── Sleep data ────────────────────────────────────────────────────────────
-  const sleepItems = readHistory("sleep").filter((i) => i.createdAt.slice(0, 10) >= cutoff);
+  const sleepItems = items.filter((i) => i.type === "sleep").filter((i) => i.createdAt.slice(0, 10) >= cutoff);
 
   const sleepHours: number[] = [];
   const sleepScores: number[] = [];

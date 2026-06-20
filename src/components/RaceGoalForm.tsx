@@ -4,7 +4,9 @@ import { FormEvent, useState, useEffect } from "react";
 import type { RaceGoal, RacePlan } from "@/types/race";
 import { LoadingState } from "@/components/LoadingState";
 import { invalidateCoachCache } from "@/lib/invalidateCoachCache";
-import { readLocalProfile } from "@/lib/profileStorage";
+import { loadProfileFromSupabase } from "@/lib/profileStorage";
+import { buildCoachContextFromSupabase } from "@/lib/buildCoachContext";
+import { saveRaceGoalAndPlan } from "@/lib/raceStorage";
 
 export function RaceGoalForm({ onCreated }: { onCreated: (goal: RaceGoal, plan: RacePlan) => void }) {
   const [loading, setLoading] = useState(false);
@@ -25,7 +27,10 @@ export function RaceGoalForm({ onCreated }: { onCreated: (goal: RaceGoal, plan: 
   });
 
   useEffect(() => {
-    const profile = readLocalProfile();
+    let alive = true;
+    loadProfileFromSupabase().then((result) => {
+    if (!alive || !result.ok) return;
+    const profile = result.profile;
     if (!profile) return;
 
     const filled: Record<string, boolean> = {};
@@ -67,6 +72,10 @@ export function RaceGoalForm({ onCreated }: { onCreated: (goal: RaceGoal, plan: 
         setSectionOpen(false);
       }
     });
+    });
+    return () => {
+      alive = false;
+    };
   }, []);
 
   const hasAnyAutoFill = Object.values(autoFilledFields).some(Boolean);
@@ -79,18 +88,20 @@ export function RaceGoalForm({ onCreated }: { onCreated: (goal: RaceGoal, plan: 
   async function submit(event: FormEvent) {
     event.preventDefault();
     setLoading(true);
-    const { buildCoachContext } = await import("@/lib/buildCoachContext");
-    const context = buildCoachContext();
+    const context = await buildCoachContextFromSupabase();
     const response = await fetch("/api/generate-race-plan", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ goal, context }),
     });
     const result = await response.json();
-    localStorage.setItem("runmate.raceGoal", JSON.stringify(goal));
-    localStorage.setItem("runmate.racePlan", JSON.stringify(result.data));
+    const saveResult = await saveRaceGoalAndPlan(goal, result.data);
+    if (!saveResult.ok) {
+      setLoading(false);
+      return;
+    }
     invalidateCoachCache();
-    onCreated(goal, result.data);
+    onCreated(saveResult.goal, saveResult.plan);
     setLoading(false);
   }
 

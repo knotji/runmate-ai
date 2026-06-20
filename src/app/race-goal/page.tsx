@@ -7,6 +7,8 @@ import { RaceCountdownCard } from "@/components/RaceCountdownCard";
 import { TrainingPhaseCard } from "@/components/TrainingPhaseCard";
 import { WeeklyPlanCard } from "@/components/WeeklyPlanCard";
 import { invalidateCoachCache } from "@/lib/invalidateCoachCache";
+import { buildCoachContextFromSupabase } from "@/lib/buildCoachContext";
+import { deleteRaceGoalAndPlan, loadActiveRaceGoalAndPlan, saveRaceGoalAndPlan } from "@/lib/raceStorage";
 import type { RaceGoal, RacePlan } from "@/types/race";
 
 export default function RaceGoalPage() {
@@ -17,9 +19,11 @@ export default function RaceGoalPage() {
   const [refreshError, setRefreshError] = useState(false);
 
   useEffect(() => {
-    queueMicrotask(() => {
-      setGoal(readLocal("runmate.raceGoal"));
-      setPlan(readLocal("runmate.racePlan"));
+    loadActiveRaceGoalAndPlan().then((result) => {
+      if (result.ok) {
+        setGoal(result.goal);
+        setPlan(result.plan);
+      }
       setMounted(true);
     });
   }, []);
@@ -29,8 +33,7 @@ export default function RaceGoalPage() {
     setRefreshing(true);
     setRefreshError(false);
     try {
-      const { buildCoachContext } = await import("@/lib/buildCoachContext");
-      const context = buildCoachContext();
+      const context = await buildCoachContextFromSupabase();
       const res = await fetch("/api/generate-race-plan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -39,7 +42,8 @@ export default function RaceGoalPage() {
       if (!res.ok) throw new Error("api error");
       const result = await res.json() as { data: RacePlan };
       if (!result.data) throw new Error("no data");
-      localStorage.setItem("runmate.racePlan", JSON.stringify(result.data));
+      const saveResult = await saveRaceGoalAndPlan(goal, result.data);
+      if (!saveResult.ok) throw new Error(saveResult.error);
       invalidateCoachCache();
       setPlan(result.data);
     } catch {
@@ -48,9 +52,8 @@ export default function RaceGoalPage() {
     setRefreshing(false);
   }
 
-  function resetAll() {
-    localStorage.removeItem("runmate.raceGoal");
-    localStorage.removeItem("runmate.racePlan");
+  async function resetAll() {
+    if (goal?.id) await deleteRaceGoalAndPlan(goal.id);
     invalidateCoachCache({ clearChat: true });
     setGoal(null);
     setPlan(null);
@@ -87,20 +90,11 @@ export default function RaceGoalPage() {
             {plan.phases?.map((phase) => <TrainingPhaseCard key={phase.name} phase={phase} />)}
           </section>
           {plan.weeks?.[0] && <WeeklyPlanCard week={plan.weeks[0]} />}
-          <button className="btn-secondary w-full" onClick={resetAll}>
+          <button className="btn-secondary w-full" onClick={() => void resetAll()}>
             สร้างแผนใหม่
           </button>
         </>
       )}
     </AppShell>
   );
-}
-
-function readLocal<T>(key: string): T | null {
-  try {
-    const value = localStorage.getItem(key);
-    return value ? (JSON.parse(value) as T) : null;
-  } catch {
-    return null;
-  }
 }

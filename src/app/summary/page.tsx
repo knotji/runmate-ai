@@ -4,28 +4,32 @@ import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { DailySummaryCard } from "@/components/DailySummaryCard";
 import { LoadingState } from "@/components/LoadingState";
-import { appendHistory, collectCoachContext } from "@/lib/localHistory";
-import { pushHistoryItems } from "@/lib/historySync";
-import { useLocalStorageValue } from "@/lib/useLocalStorageValue";
+import { buildCoachContextFromSupabase } from "@/lib/buildCoachContext";
+import { createHistoryItem, saveHistoryItems } from "@/lib/cloudHistory";
 import type { DailySummary } from "@/types/logs";
 
 export default function SummaryPage() {
-  const savedSummary = useLocalStorageValue<DailySummary>("runmate.dailySummary");
   const [summary, setSummary] = useState<DailySummary | null>(null);
   const [loading, setLoading] = useState(false);
-  const shownSummary = summary || savedSummary;
+  const [error, setError] = useState("");
 
   async function generate() {
     setLoading(true);
+    setError("");
+    const context = await buildCoachContextFromSupabase();
     const response = await fetch("/api/generate-daily-summary", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(collectCoachContext()),
+      body: JSON.stringify(context),
     });
     const result = await response.json();
-    localStorage.setItem("runmate.dailySummary", JSON.stringify(result.data));
-    const saved = appendHistory("summary", result.data);
-    if (saved) pushHistoryItems([saved]).catch(() => {});
+    const item = createHistoryItem("summary", result.data);
+    const saveResult = await saveHistoryItems([item]);
+    if (!saveResult.ok) {
+      setError("บันทึกไม่สำเร็จ กรุณาลองใหม่");
+      setLoading(false);
+      return;
+    }
     setSummary(result.data);
     setLoading(false);
   }
@@ -34,7 +38,8 @@ export default function SummaryPage() {
     <AppShell title="Daily Summary" subtitle="สรุปวันซ้อมและแผนพรุ่งนี้">
       <button className="btn-primary w-full" onClick={generate}>Generate daily summary</button>
       {loading ? <LoadingState /> : null}
-      {shownSummary ? <DailySummaryCard summary={shownSummary} /> : null}
+      {error ? <p className="rounded-2xl bg-red-50 p-3 text-sm font-bold text-red-500">{error}</p> : null}
+      {summary ? <DailySummaryCard summary={summary} /> : null}
     </AppShell>
   );
 }

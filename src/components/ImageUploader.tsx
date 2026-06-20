@@ -16,7 +16,7 @@ export function ImageUploader({
   endpoint: string;
   extraFields?: Record<string, unknown>;
   maxFiles?: number;
-  onResult: (result: unknown) => void;
+  onResult: (result: unknown) => void | Promise<void>;
 }) {
   const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
@@ -65,7 +65,7 @@ export function ImageUploader({
       });
       if (!response.ok) throw new Error("วิเคราะห์รูปไม่สำเร็จ");
       const result = await response.json();
-      onResult(result);
+      await onResult(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : "เกิดข้อผิดพลาด ลองใหม่อีกครั้ง");
     } finally {
@@ -86,7 +86,7 @@ export function ImageUploader({
       <button className="btn-primary w-full" type="submit" disabled={loading}>
         วิเคราะห์ด้วยโค้ช AI
       </button>
-      {loading ? <LoadingState label="กำลังอัปโหลดและวิเคราะห์ภาพ..." /> : null}
+      {loading ? <LoadingState label="กำลังบันทึก..." /> : null}
       {error ? <ErrorState message={error} /> : null}
     </form>
   );

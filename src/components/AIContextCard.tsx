@@ -1,12 +1,25 @@
 "use client";
 
-import { useMemo, useSyncExternalStore } from "react";
-import { buildCoachContext, type CoachContext } from "@/lib/buildCoachContext";
-
-let contextCache: { raw: string; value: CoachContext } | null = null;
+import { useEffect, useMemo, useState } from "react";
+import { buildCoachContextFromSupabase, type CoachContext } from "@/lib/buildCoachContext";
 
 export function AIContextCard() {
-  const context = useCoachContextSnapshot();
+  const [context, setContext] = useState<CoachContext>(emptyContext);
+
+  useEffect(() => {
+    let alive = true;
+    async function load() {
+      const next = await buildCoachContextFromSupabase();
+      if (alive) setContext(next);
+    }
+    void load();
+    window.addEventListener("runmate:cloud-data-updated", load);
+    return () => {
+      alive = false;
+      window.removeEventListener("runmate:cloud-data-updated", load);
+    };
+  }, []);
+
   const sleepLatest = context.sleep7d[0];
   const lastWorkout = context.workouts7d[0];
   const runLine = context.lastRun
@@ -102,37 +115,6 @@ function profileLine(profile: Record<string, unknown>) {
     profile.injuryNotes && `ข้อควรระวัง ${profile.injuryNotes}`,
   ].filter(Boolean);
   return parts.length ? parts.join(" · ") : "มีโปรไฟล์แล้ว แต่ข้อมูลหลักยังไม่ครบ";
-}
-
-function useCoachContextSnapshot() {
-  return useSyncExternalStore(
-    (onStoreChange) => {
-      window.addEventListener("storage", onStoreChange);
-      window.addEventListener("runmate:data-updated", onStoreChange);
-      return () => {
-        window.removeEventListener("storage", onStoreChange);
-        window.removeEventListener("runmate:data-updated", onStoreChange);
-      };
-    },
-    readCoachContext,
-    () => emptyContext,
-  );
-}
-
-function readCoachContext() {
-  const raw = [
-    "runmate.profile",
-    "runmate.raceGoal",
-    "runmate.racePlan",
-    "runmate.history.sleep",
-    "runmate.history.workout",
-    "runmate.history.body",
-  ].map((key) => localStorage.getItem(key) ?? "").join("|");
-
-  if (contextCache?.raw === raw) return contextCache.value;
-  const value = buildCoachContext();
-  contextCache = { raw, value };
-  return value;
 }
 
 const emptyContext: CoachContext = {

@@ -4,14 +4,10 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { formatThaiDate } from "@/lib/date";
-import { useLocalStorageValue } from "@/lib/useLocalStorageValue";
+import { buildCoachContextFromSupabase } from "@/lib/buildCoachContext";
+import { loadActiveRaceGoalAndPlan } from "@/lib/raceStorage";
 import type { RaceGoal } from "@/types/race";
 import type { DailyCoachInsight } from "@/types/ai";
-
-const TZ_OFFSET_MS = 7 * 60 * 60 * 1000;
-function todayKey() {
-  return `runmate.coachInsight.${new Date(Date.now() + TZ_OFFSET_MS).toISOString().slice(0, 10)}`;
-}
 
 const QUICK_ACTIONS = [
   { href: "/upload?type=sleep",   icon: "🌙", label: "นอน" },
@@ -21,24 +17,18 @@ const QUICK_ACTIONS = [
 ] as const;
 
 export default function TodayPage() {
-  const goal = useLocalStorageValue<RaceGoal>("runmate.raceGoal");
+  const [goal, setGoal] = useState<RaceGoal | null>(null);
   const [insight, setInsight] = useState<DailyCoachInsight | null>(null);
   const [loading, setLoading] = useState(false);
   const [insightError, setInsightError] = useState(false);
   const [hasHistory, setHasHistory] = useState(false);
 
   const generateInsight = useCallback(async (force = false) => {
-    const cacheKey = todayKey();
-    if (!force) {
-      try {
-        const cached = localStorage.getItem(cacheKey);
-        if (cached) { setInsight(JSON.parse(cached) as DailyCoachInsight); return; }
-      } catch { /* skip */ }
-    }
+    void force;
 
-    const { buildCoachContext } = await import("@/lib/buildCoachContext");
-    const ctx = buildCoachContext();
+    const ctx = await buildCoachContextFromSupabase();
     const hasSomeData = ctx.sleep7d.length > 0 || ctx.workouts7d.length > 0 || ctx.latestBody != null;
+    setHasHistory(hasSomeData);
     if (!hasSomeData) return;
 
     setLoading(true);
@@ -53,7 +43,6 @@ export default function TodayPage() {
       const json = await res.json() as { data: DailyCoachInsight };
       if (!json.data) throw new Error("no data");
       setInsight(json.data);
-      localStorage.setItem(cacheKey, JSON.stringify(json.data));
     } catch {
       setInsightError(true);
     }
@@ -61,20 +50,16 @@ export default function TodayPage() {
   }, []);
 
   useEffect(() => {
-    const anyData = ["sleep", "workout", "body"].some((t) => {
-      try { const r = localStorage.getItem(`runmate.history.${t}`); return !!r && r !== "[]"; }
-      catch { return false; }
+    loadActiveRaceGoalAndPlan().then((result) => {
+      if (result.ok) setGoal(result.goal);
     });
-    queueMicrotask(() => {
-      setHasHistory(anyData);
-      void generateInsight();
-    });
+    queueMicrotask(() => void generateInsight());
   }, [generateInsight]);
 
   useEffect(() => {
     const onDataUpdated = () => { setInsight(null); void generateInsight(true); };
-    window.addEventListener("runmate:data-updated", onDataUpdated);
-    return () => window.removeEventListener("runmate:data-updated", onDataUpdated);
+    window.addEventListener("runmate:cloud-data-updated", onDataUpdated);
+    return () => window.removeEventListener("runmate:cloud-data-updated", onDataUpdated);
   }, [generateInsight]);
 
   const hasPace = !!(insight?.workoutTarget && insight.workoutTarget !== "-");

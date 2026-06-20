@@ -2,25 +2,9 @@
 
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { LoadingState } from "@/components/LoadingState";
-import { buildCoachContext } from "@/lib/buildCoachContext";
+import { buildCoachContextFromSupabase } from "@/lib/buildCoachContext";
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
-
-const CHAT_STORAGE_KEY = "runmate.chatHistory";
-const MAX_STORED_MESSAGES = 40;
-
-function loadChatHistory(): ChatMessage[] {
-  try {
-    const raw = localStorage.getItem(CHAT_STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as ChatMessage[]) : [];
-  } catch { return []; }
-}
-
-function saveChatHistory(messages: ChatMessage[]) {
-  try {
-    localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages.slice(-MAX_STORED_MESSAGES)));
-  } catch { /* ignore */ }
-}
 
 const INITIAL_MESSAGE: ChatMessage = {
   role: "assistant",
@@ -53,13 +37,6 @@ export function CoachChat() {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const stored = loadChatHistory();
-    if (stored.length > 0) {
-      queueMicrotask(() => setMessages(stored));
-    }
-  }, []);
-
-  useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
@@ -69,23 +46,15 @@ export function CoachChat() {
     setMessages(nextMessages);
     setInput("");
     setLoading(true);
-    const todayInsight = (() => {
-      try {
-        const TZ = 7 * 60 * 60 * 1000;
-        const key = `runmate.coachInsight.${new Date(Date.now() + TZ).toISOString().slice(0, 10)}`;
-        const raw = localStorage.getItem(key);
-        return raw ? JSON.parse(raw) : null;
-      } catch { return null; }
-    })();
+    const context = await buildCoachContextFromSupabase();
     const response = await fetch("/api/coach-chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages: nextMessages, context: { ...buildCoachContext(), todayInsight } }),
+      body: JSON.stringify({ messages: nextMessages, context }),
     });
     const result = await response.json();
     const finalMessages: ChatMessage[] = [...nextMessages, { role: "assistant", content: result.message }];
     setMessages(finalMessages);
-    saveChatHistory(finalMessages);
     setLoading(false);
   }
 
@@ -97,7 +66,7 @@ export function CoachChat() {
   function clearChat() {
     const reset = [INITIAL_MESSAGE];
     setMessages(reset);
-    localStorage.removeItem(CHAT_STORAGE_KEY);
+    // TODO: persist coach_messages in Supabase when chat history UX is needed.
   }
 
   return (

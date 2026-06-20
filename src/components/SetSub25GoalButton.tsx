@@ -2,18 +2,22 @@
 
 import { useState } from "react";
 import { invalidateCoachCache } from "@/lib/invalidateCoachCache";
-import { appendHistory } from "@/lib/localHistory";
-import { pushHistoryItems } from "@/lib/historySync";
+import { createHistoryItem, saveHistoryItems } from "@/lib/cloudHistory";
+import { saveRaceGoalAndPlan } from "@/lib/raceStorage";
 import { sub25CoachMemory, sub25RaceGoal, sub25RacePlan } from "@/lib/sub25Goal";
 
 export function SetSub25GoalButton() {
   const [status, setStatus] = useState("");
 
-  function setGoal() {
-    localStorage.setItem("runmate.raceGoal", JSON.stringify(sub25RaceGoal));
-    localStorage.setItem("runmate.racePlan", JSON.stringify(sub25RacePlan));
-    const saved = appendHistory("summary", sub25CoachMemory.data);
-    if (saved) pushHistoryItems([saved]).catch(() => {});
+  async function setGoal() {
+    setStatus("กำลังบันทึก...");
+    const raceResult = await saveRaceGoalAndPlan(sub25RaceGoal, sub25RacePlan);
+    const saved = createHistoryItem("summary", sub25CoachMemory.data);
+    const historyResult = await saveHistoryItems([saved]);
+    if (!raceResult.ok || !historyResult.ok) {
+      setStatus("บันทึกไม่สำเร็จ กรุณาลองใหม่");
+      return;
+    }
     invalidateCoachCache();
     setStatus("ตั้งเป้าหมาย 5K Sub 25 สำหรับพรุ่งนี้แล้ว");
   }
@@ -24,7 +28,7 @@ export function SetSub25GoalButton() {
       <p className="mt-1 text-xs leading-5 text-slate-700">
         ตั้งบริบทให้โค้ชจำว่า พรุ่งนี้มีแข่ง 5K เป้าหมาย Sub 25 และวันนี้ต้องเน้นสด ไม่ซ้อมหนัก
       </p>
-      <button className="btn-primary mt-3 w-full" onClick={setGoal} type="button">
+      <button className="btn-primary mt-3 w-full" onClick={() => void setGoal()} type="button">
         Set 5K Sub 25 goal
       </button>
       {status ? <p className="mt-2 text-xs font-semibold text-[#42677f]">{status}</p> : null}

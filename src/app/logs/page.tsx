@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
-import { readHistory, type HistoryType, type LocalHistoryItem } from "@/lib/localHistory";
+import { loadHistoryItems } from "@/lib/cloudHistory";
+import type { LocalHistoryItem } from "@/lib/localHistory";
 import type { SleepAnalysis, WorkoutAnalysis, MealAnalysis, DailySummary, BodyCompositionAnalysis } from "@/types/logs";
 import {
   formatDistanceKm,
@@ -18,15 +18,45 @@ import {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ReportPage() {
-  const items = useAllItems();
+  const [items, setItems] = useState<LocalHistoryItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let alive = true;
+    async function load() {
+      setLoading(true);
+      const result = await loadHistoryItems();
+      if (!alive) return;
+      if (result.ok) {
+        setItems(result.items);
+        setError("");
+      } else {
+        setError(result.error);
+      }
+      setLoading(false);
+    }
+    void load();
+    window.addEventListener("runmate:cloud-data-updated", load);
+    return () => {
+      alive = false;
+      window.removeEventListener("runmate:cloud-data-updated", load);
+    };
+  }, []);
+
   const days = groupByDay(items);
   const dashboard = buildDashboard(items);
 
   return (
     <AppShell title="Report" subtitle="บันทึกสะสมรายวัน">
-      {days.length === 0 ? (
-        <section className="card p-5 text-sm text-slate-600">
-          ยังไม่มีข้อมูล — ลองอัปโหลดรูป sleep, meal หรือ workout ที่หน้า Upload ก่อนครับ
+      {loading ? (
+        <section className="card p-5 text-sm text-slate-500">กำลังโหลดข้อมูล...</section>
+      ) : error ? (
+        <section className="card p-5 text-sm text-red-500">{error}</section>
+      ) : days.length === 0 ? (
+        <section className="card space-y-1 p-5 text-sm text-slate-600">
+          <p className="font-bold text-[#17201d]">ยังไม่มีข้อมูลสำหรับสรุปผล</p>
+          <p>เริ่มจากอัปโหลดผลนอนหรือผลวิ่งวันนี้</p>
         </section>
       ) : (
         <>
@@ -505,34 +535,4 @@ function dashboardNote(input: {
   if (input.avgReadiness != null) parts.push(`readiness เฉลี่ย ${input.avgReadiness}`);
   if (input.avgSleepHours != null) parts.push(`นอนเฉลี่ย ${input.avgSleepHours.toFixed(1)} ชม.`);
   return parts.join(" · ");
-}
-
-const HISTORY_TYPES: HistoryType[] = ["sleep", "workout", "body", "meal", "summary"];
-let itemsCache: { raw: string; items: LocalHistoryItem[] } | null = null;
-const emptyItems: LocalHistoryItem[] = [];
-
-function useAllItems(): LocalHistoryItem[] {
-  return useSyncExternalStore(
-    (onStoreChange) => {
-      window.addEventListener("storage", onStoreChange);
-      window.addEventListener("runmate:data-updated", onStoreChange);
-      return () => {
-        window.removeEventListener("storage", onStoreChange);
-        window.removeEventListener("runmate:data-updated", onStoreChange);
-      };
-    },
-    () => readAllItems(),
-    () => emptyItems,
-  );
-}
-
-function readAllItems(): LocalHistoryItem[] {
-  if (typeof window === "undefined") return [];
-  const raw = HISTORY_TYPES.map((t) => localStorage.getItem(`runmate.history.${t}`) ?? "").join("|");
-  if (itemsCache?.raw === raw) return itemsCache.items;
-  const items = HISTORY_TYPES.flatMap(readHistory).sort(
-    (a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt),
-  );
-  itemsCache = { raw, items };
-  return items;
 }

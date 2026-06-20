@@ -1,6 +1,9 @@
 "use client";
 
-import { readHistory } from "./localHistory";
+import { loadHistoryItems } from "@/lib/cloudHistory";
+import { loadProfileFromSupabase } from "@/lib/profileStorage";
+import { loadActiveRaceGoalAndPlan } from "@/lib/raceStorage";
+import type { LocalHistoryItem } from "@/lib/localHistory";
 import type { SleepAnalysis, WorkoutAnalysis, BodyCompositionAnalysis } from "@/types/logs";
 
 export type DayWorkoutSummary = {
@@ -46,20 +49,37 @@ function dateBefore(days: number): string {
   return new Date(Date.now() + TZ_OFFSET_MS - days * 86400000).toISOString().slice(0, 10);
 }
 
-function parseSafe<T>(raw: string | null): T | null {
-  try { return raw ? (JSON.parse(raw) as T) : null; } catch { return null; }
+export function buildCoachContext(): CoachContext {
+  return buildCoachContextFromData({ items: [], profile: null, raceGoal: null, racePlan: null });
 }
 
-export function buildCoachContext(): CoachContext {
+export async function buildCoachContextFromSupabase(): Promise<CoachContext> {
+  const [historyResult, profileResult, raceResult] = await Promise.all([
+    loadHistoryItems(["sleep", "workout", "body"]),
+    loadProfileFromSupabase(),
+    loadActiveRaceGoalAndPlan(),
+  ]);
+
+  return buildCoachContextFromData({
+    items: historyResult.ok ? historyResult.items : [],
+    profile: profileResult.ok ? profileResult.profile ?? null : null,
+    raceGoal: raceResult.ok ? raceResult.goal : null,
+    racePlan: raceResult.ok ? raceResult.plan : null,
+  });
+}
+
+export function buildCoachContextFromData(input: {
+  items: LocalHistoryItem[];
+  profile: Record<string, unknown> | null;
+  raceGoal: Record<string, unknown> | null;
+  racePlan: Record<string, unknown> | null;
+}): CoachContext {
   const today = todayBangkok();
   const cutoff = dateBefore(7);
 
-  const profile = parseSafe<Record<string, unknown>>(localStorage.getItem("runmate.profile"));
-  const raceGoal = parseSafe<Record<string, unknown>>(localStorage.getItem("runmate.raceGoal"));
-  const racePlan = parseSafe<Record<string, unknown>>(localStorage.getItem("runmate.racePlan"));
-
-  // ─── Sleep 7 days ──────────────────────────────────────────────────────────
-  const sleepItems = readHistory("sleep").filter((i) => i.createdAt.slice(0, 10) >= cutoff);
+  const sleepItems = input.items
+    .filter((i) => i.type === "sleep")
+    .filter((i) => i.createdAt.slice(0, 10) >= cutoff);
   const sleep7d: WeekSleepRow[] = sleepItems.map((item) => {
     const d = item.data as SleepAnalysis;
     return {
@@ -73,8 +93,9 @@ export function buildCoachContext(): CoachContext {
   const scores = sleep7d.map((s) => s.readiness).filter((n): n is number => n != null);
   const avgReadiness = scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null;
 
-  // ─── Workouts 7 days ───────────────────────────────────────────────────────
-  const workoutItems = readHistory("workout").filter((i) => i.createdAt.slice(0, 10) >= cutoff);
+  const workoutItems = input.items
+    .filter((i) => i.type === "workout")
+    .filter((i) => i.createdAt.slice(0, 10) >= cutoff);
 
   const dayMap = new Map<string, DayWorkoutSummary>();
   const ensureDay = (date: string) => {
@@ -93,8 +114,8 @@ export function buildCoachContext(): CoachContext {
     const ext = d?.extracted;
     if (!ext) continue;
 
-    const durationMs = parseDurationToMin(ext.duration);
-    if (!durationMs) continue;
+    const durationMin = parseDurationToMin(ext.duration);
+    if (!durationMin) continue;
 
     const day = ensureDay(date);
     totalSessions++;
@@ -102,16 +123,16 @@ export function buildCoachContext(): CoachContext {
     if (ext.workoutKind === "outdoor_run" || ext.workoutKind === "treadmill") {
       const km = ext.distanceKm ?? 0;
       totalRunKm += km;
-      day.runs.push({ km, durationMin: durationMs, avgHR: ext.avgHR ?? null, pace: ext.avgPace ?? null });
+      day.runs.push({ km, durationMin, avgHR: ext.avgHR ?? null, pace: ext.avgPace ?? null });
       longestRun7dKm = Math.max(longestRun7dKm ?? 0, km);
       if (!lastRun || date > lastRun.date) {
-        lastRun = { date, km, durationMin: durationMs, avgHR: ext.avgHR ?? null, pace: ext.avgPace ?? null };
+        lastRun = { date, km, durationMin, avgHR: ext.avgHR ?? null, pace: ext.avgPace ?? null };
       }
     } else if (ext.workoutKind === "walk") {
-      day.walks.push({ km: ext.distanceKm ?? null, durationMin: durationMs });
+      day.walks.push({ km: ext.distanceKm ?? null, durationMin });
     } else {
       const label = ext.workoutKind === "strength" ? "เวท" : ext.workoutKind === "cycling" ? "ปั่นจักรยาน" : "ออกกำลังกาย";
-      day.other.push({ label, durationMin: durationMs });
+      day.other.push({ label, durationMin });
     }
   }
 
@@ -119,9 +140,7 @@ export function buildCoachContext(): CoachContext {
   const runDays7d = workouts7d.filter((day) => day.runs.length > 0).length;
   const lastWorkoutDate = workouts7d[0]?.date ?? null;
 
-  // ─── Latest body composition ────────────────────────────────────────────────
-  const bodyItems = readHistory("body");
-  const latestBodyItem = bodyItems[0];
+  const latestBodyItem = input.items.filter((i) => i.type === "body")[0];
   let latestBody: CoachContext["latestBody"] = null;
   if (latestBodyItem) {
     const bd = latestBodyItem.data as BodyCompositionAnalysis;
@@ -133,10 +152,10 @@ export function buildCoachContext(): CoachContext {
   }
 
   return {
-    profile,
-    raceGoal,
-    racePlan,
-    activeRaceStatus: raceStatus(raceGoal, today),
+    profile: input.profile,
+    raceGoal: input.raceGoal,
+    racePlan: input.racePlan,
+    activeRaceStatus: raceStatus(input.raceGoal, today),
     sleep7d,
     avgReadiness,
     workouts7d,
@@ -148,7 +167,16 @@ export function buildCoachContext(): CoachContext {
     lastRun,
     latestBody,
     todayDate: today,
-    contextNotes: buildContextNotes({ raceGoal, racePlan, sleep7d, workouts7d, totalRunKm, runDays7d, longestRun7dKm, lastWorkoutDate }),
+    contextNotes: buildContextNotes({
+      raceGoal: input.raceGoal,
+      racePlan: input.racePlan,
+      sleep7d,
+      workouts7d,
+      totalRunKm,
+      runDays7d,
+      longestRun7dKm,
+      lastWorkoutDate,
+    }),
   };
 }
 
@@ -182,7 +210,6 @@ function buildContextNotes(input: {
 
 function parseDurationToMin(dur: string | null): number | null {
   if (!dur) return null;
-  // Format: "H:MM:SS" or "MM:SS"
   const parts = dur.split(":").map(Number);
   if (parts.length === 3) return Math.round(parts[0] * 60 + parts[1] + parts[2] / 60);
   if (parts.length === 2) return Math.round(parts[0] + parts[1] / 60);

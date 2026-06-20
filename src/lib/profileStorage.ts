@@ -9,8 +9,6 @@ import {
 } from "@/lib/supabase/debug";
 import type { UserProfile } from "@/types/profile";
 
-const PROFILE_KEY = "runmate.profile";
-
 type ProfileRow = {
   id: string;
   display_name: string | null;
@@ -84,20 +82,6 @@ type ProfileRow = {
   field_sources: Record<string, string | undefined> | null;
 };
 
-export function readLocalProfile(): UserProfile | null {
-  try {
-    const raw = localStorage.getItem(PROFILE_KEY);
-    return raw ? (JSON.parse(raw) as UserProfile) : null;
-  } catch {
-    return null;
-  }
-}
-
-export function saveLocalProfile(profile: UserProfile) {
-  localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
-  window.dispatchEvent(new Event("runmate:data-updated"));
-}
-
 export async function ensureSupabaseProfileSession() {
   const supabase = createClient();
   if (!supabase) {
@@ -116,7 +100,7 @@ export async function ensureSupabaseProfileSession() {
     return {
       ok: false as const,
       reason: "not-authenticated" as const,
-      message: "ไม่พบ session ผู้ใช้ กรุณา login ใหม่ก่อนซิงก์ข้อมูล",
+      message: "ไม่พบ session ผู้ใช้ กรุณา login ใหม่ก่อนบันทึกหรือโหลดข้อมูล",
     };
   }
   return { ok: true as const, supabase, userId: data.user.id };
@@ -147,7 +131,6 @@ export async function loadProfileFromSupabase() {
   }
 
   const profile = rowToProfile(data as ProfileRow);
-  saveLocalProfile(profile);
   logSupabaseSyncSuccess({ table: "profiles", operation: "select", userId: session.userId, count: 1 });
   return { ok: true as const, profile, userId: session.userId };
 }

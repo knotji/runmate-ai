@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Noto_Sans_Thai } from "next/font/google";
 import "./globals.css";
-import { HistorySyncInit } from "@/components/HistorySyncInit";
+import { LocalCleanupInit } from "@/components/LocalCleanupInit";
 import { AuthGuard } from "@/components/AuthGuard";
 import { PWARegistration } from "@/components/PWARegistration";
 
@@ -26,7 +26,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="th" className={notoThai.variable}>
       <body>
         <AuthGuard />
-        <HistorySyncInit />
+        <LocalCleanupInit />
         <PWARegistration />
         {children}
       </body>

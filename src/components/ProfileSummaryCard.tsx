@@ -1,11 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useLocalStorageValue } from "@/lib/useLocalStorageValue";
+import { useEffect, useState } from "react";
+import { loadProfileFromSupabase } from "@/lib/profileStorage";
 import type { UserProfile } from "@/types/profile";
 
 export function ProfileSummaryCard() {
-  const profile = useLocalStorageValue<UserProfile>("runmate.profile");
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+
+  useEffect(() => {
+    loadProfileFromSupabase().then((result) => {
+      if (result.ok) setProfile(result.profile ?? null);
+    });
+  }, []);
 
   return (
     <section className="card space-y-3 p-5">

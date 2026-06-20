@@ -8,11 +8,11 @@ import { MealResultCard } from "@/components/MealResultCard";
 import { WorkoutResultCard } from "@/components/WorkoutResultCard";
 import { BodyResultCard } from "@/components/BodyResultCard";
 import { PostRunAnalysisCard } from "@/components/PostRunAnalysisCard";
-import { appendHistory, type HistoryType } from "@/lib/localHistory";
 import { invalidateCoachCache } from "@/lib/invalidateCoachCache";
-import { pushHistoryItems } from "@/lib/historySync";
-import { readLocalProfile } from "@/lib/profileStorage";
+import { createHistoryItem, saveHistoryItems } from "@/lib/cloudHistory";
+import { loadProfileFromSupabase } from "@/lib/profileStorage";
 import type { BodyCompositionAnalysis, MealAnalysis, MealType, SleepAnalysis, WorkoutAnalysis } from "@/types/logs";
+import type { UserProfile } from "@/types/profile";
 
 type UploadType = "sleep" | "meal" | "workout" | "body";
 
@@ -34,6 +34,8 @@ const MEAL_TYPE_LABELS: Record<string, string> = {
 
 export default function UploadPage() {
   const [type, setType] = useState<UploadType>("sleep");
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -45,6 +47,12 @@ export default function UploadPage() {
   const [mealType, setMealType] = useState<MealType>("breakfast");
   const [result, setResult] = useState<unknown>(null);
 
+  useEffect(() => {
+    loadProfileFromSupabase().then((res) => {
+      if (res.ok) setProfile(res.profile ?? null);
+    });
+  }, []);
+
   const endpoint =
     type === "sleep"
       ? "/api/analyze-sleep"
@@ -54,21 +62,18 @@ export default function UploadPage() {
           ? "/api/analyze-workout"
           : "/api/analyze-body";
 
-  function store(next: unknown) {
-    setResult(next);
-    const key =
-      type === "sleep"
-        ? "runmate.latestSleep"
-        : type === "meal"
-          ? "runmate.latestMeal"
-          : type === "workout"
-            ? "runmate.latestWorkout"
-            : "runmate.latestBody";
+  async function store(next: unknown) {
+    setSaveStatus("saving");
     const data = (next as { data?: unknown }).data ?? next;
-    localStorage.setItem(key, JSON.stringify(data));
     const extractedDate = (data as { extracted?: { date?: string | null } }).extracted?.date;
-    const saved = appendHistory(type as HistoryType, data, extractedDate ?? undefined);
-    if (saved) pushHistoryItems([saved]).catch(() => {});
+    const saved = createHistoryItem(type, data, extractedDate ?? undefined);
+    const saveResult = await saveHistoryItems([saved]);
+    if (!saveResult.ok) {
+      setSaveStatus("error");
+      throw new Error("บันทึกไม่สำเร็จ กรุณาลองใหม่");
+    }
+    setResult(next);
+    setSaveStatus("saved");
     invalidateCoachCache();
   }
 
@@ -93,9 +98,12 @@ export default function UploadPage() {
           kind={type}
           endpoint={endpoint}
           maxFiles={type === "meal" ? 1 : type === "sleep" ? 3 : 4}
-          extraFields={{ ...(type === "meal" ? { mealType } : {}), profile: readLocalProfile() }}
+          extraFields={{ ...(type === "meal" ? { mealType } : {}), profile }}
           onResult={store}
         />
+        {saveStatus === "saving" && <p className="text-xs font-semibold text-slate-500">กำลังบันทึก...</p>}
+        {saveStatus === "saved" && <p className="text-xs font-semibold text-green-600">บันทึกแล้ว</p>}
+        {saveStatus === "error" && <p className="text-xs font-semibold text-red-500">บันทึกไม่สำเร็จ กรุณาลองใหม่</p>}
       </section>
       {result && type === "sleep" ? <SleepResultCard result={(result as { data: SleepAnalysis }).data} /> : null}
       {result && type === "meal" ? <MealResultCard result={(result as { data: MealAnalysis }).data} /> : null}

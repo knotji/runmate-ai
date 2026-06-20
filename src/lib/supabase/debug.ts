@@ -26,7 +26,8 @@ export function logSupabaseSyncSuccess(meta: SyncMeta) {
 }
 
 export function logSupabaseSyncError(meta: SyncMeta & { error: SupabaseErrorLike }) {
-  console.error("[supabase-sync-error]", {
+  // Use warn instead of error so Next.js dev overlay does not hide the app.
+  console.warn("[supabase-sync-error]", {
     ...meta,
     error: {
       code: meta.error.code,
@@ -42,5 +43,5 @@ export function friendlySupabaseError(error: SupabaseErrorLike | null | undefine
   if (isRlsError(error)) {
     return "Supabase ไม่อนุญาตให้บันทึกข้อมูลชุดนี้ กรุณาเช็ค RLS policy / grants ของตาราง";
   }
-  return error?.message ?? "ไม่สามารถซิงก์ Supabase ได้";
+  return error?.message ?? "ไม่สามารถบันทึกหรือโหลดข้อมูลจาก Supabase ได้";
 }

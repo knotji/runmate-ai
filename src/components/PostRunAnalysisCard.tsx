@@ -2,10 +2,9 @@
 
 import { useState } from "react";
 import { DetailBlock, MetricGrid } from "@/components/ResultDetail";
-import { buildCoachContext } from "@/lib/buildCoachContext";
+import { buildCoachContextFromSupabase } from "@/lib/buildCoachContext";
 import { invalidateCoachCache } from "@/lib/invalidateCoachCache";
-import { appendHistory } from "@/lib/localHistory";
-import { pushHistoryItems } from "@/lib/historySync";
+import { createHistoryItem, saveHistoryItems } from "@/lib/cloudHistory";
 import type { DailySummary, PostRunAnalysis, WorkoutAnalysis } from "@/types/logs";
 
 export function PostRunAnalysisCard({ workout }: { workout: WorkoutAnalysis }) {
@@ -22,7 +21,7 @@ export function PostRunAnalysisCard({ workout }: { workout: WorkoutAnalysis }) {
       const res = await fetch("/api/post-run-analysis", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ workout, context: buildCoachContext() }),
+        body: JSON.stringify({ workout, context: await buildCoachContextFromSupabase() }),
       });
       if (!res.ok) throw new Error("post-run analysis failed");
       const json = await res.json() as { data: PostRunAnalysis };
@@ -34,7 +33,7 @@ export function PostRunAnalysisCard({ workout }: { workout: WorkoutAnalysis }) {
     }
   }
 
-  function saveToReport() {
+  async function saveToReport() {
     if (!analysis) return;
     const summary: DailySummary = {
       readinessScore: null,
@@ -47,8 +46,12 @@ export function PostRunAnalysisCard({ workout }: { workout: WorkoutAnalysis }) {
       tomorrowPlan: analysis.tomorrowRecommendation,
       coachMessage: analysis.coachMessage,
     };
-    const saved = appendHistory("summary", summary, workout.extracted.date ?? undefined);
-    if (saved) pushHistoryItems([saved]).catch(() => {});
+    const saved = createHistoryItem("summary", summary, workout.extracted.date ?? undefined);
+    const result = await saveHistoryItems([saved]);
+    if (!result.ok) {
+      setError("บันทึกไม่สำเร็จ กรุณาลองใหม่");
+      return;
+    }
     invalidateCoachCache();
     setSaved(true);
   }
@@ -99,7 +102,7 @@ export function PostRunAnalysisCard({ workout }: { workout: WorkoutAnalysis }) {
           <DetailBlock title="Coach Message">{analysis.coachMessage}</DetailBlock>
           <button
             type="button"
-            onClick={saveToReport}
+            onClick={() => void saveToReport()}
             className="btn-secondary w-full py-3 text-sm"
           >
             {saved ? "บันทึกลง Report แล้ว" : "บันทึกลง Report"}
