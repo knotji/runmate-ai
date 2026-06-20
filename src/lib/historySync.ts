@@ -1,16 +1,31 @@
 "use client";
 
 import { ensureSupabaseProfileSession } from "@/lib/profileStorage";
+import {
+  friendlySupabaseError,
+  logSupabaseSyncError,
+  logSupabaseSyncStart,
+  logSupabaseSyncSuccess,
+} from "@/lib/supabase/debug";
 import type { LocalHistoryItem } from "@/lib/localHistory";
 
 const BATCH = 100;
 const MAX_PULL = 2000;
 
-/** Upsert items to Supabase. Fire-and-forget safe — errors are swallowed. */
-export async function pushHistoryItems(items: LocalHistoryItem[]): Promise<void> {
-  if (!items.length) return;
+/** Upsert items to Supabase. Callers may ignore the result, but errors are logged. */
+export async function pushHistoryItems(items: LocalHistoryItem[]): Promise<{ ok: boolean; error?: string }> {
+  if (!items.length) return { ok: true };
   const session = await ensureSupabaseProfileSession();
-  if (!session.ok) return;
+  if (!session.ok) {
+    const message = "message" in session ? session.message : session.reason;
+    console.warn("[supabase-sync-error]", {
+      table: "history_items",
+      operation: "upsert",
+      reason: session.reason,
+      message,
+    });
+    return { ok: false, error: message };
+  }
 
   const rows = items.map((item) => ({
     id: item.id,
@@ -21,11 +36,35 @@ export async function pushHistoryItems(items: LocalHistoryItem[]): Promise<void>
   }));
 
   for (let i = 0; i < rows.length; i += BATCH) {
+    const batch = rows.slice(i, i + BATCH);
+    logSupabaseSyncStart({
+      table: "history_items",
+      operation: "upsert",
+      userId: session.userId,
+      count: batch.length,
+    });
     const { error } = await session.supabase
       .from("history_items")
-      .upsert(rows.slice(i, i + BATCH));
-    if (error) console.warn("[historySync] push error:", error.message);
+      .upsert(batch);
+    if (error) {
+      logSupabaseSyncError({
+        table: "history_items",
+        operation: "upsert",
+        userId: session.userId,
+        error,
+        count: batch.length,
+      });
+      return { ok: false, error: friendlySupabaseError(error) };
+    }
+    logSupabaseSyncSuccess({
+      table: "history_items",
+      operation: "upsert",
+      userId: session.userId,
+      count: batch.length,
+    });
   }
+
+  return { ok: true };
 }
 
 /**
@@ -38,9 +77,17 @@ export async function pullAndMergeHistory(): Promise<{ ok: boolean; error?: stri
 
   const session = await ensureSupabaseProfileSession();
   if (!session.ok) {
-    return { ok: true };
+    const message = "message" in session ? session.message : session.reason;
+    console.warn("[supabase-sync-error]", {
+      table: "history_items",
+      operation: "select",
+      reason: session.reason,
+      message,
+    });
+    return { ok: false, error: message };
   }
 
+  logSupabaseSyncStart({ table: "history_items", operation: "select", userId: session.userId });
   const { data, error } = await session.supabase
     .from("history_items")
     .select("id, type, created_at, data")
@@ -49,11 +96,12 @@ export async function pullAndMergeHistory(): Promise<{ ok: boolean; error?: stri
     .limit(MAX_PULL);
 
   if (error) {
-    console.warn("[historySync] pull error:", error.message);
-    return { ok: false, error: error.message };
+    logSupabaseSyncError({ table: "history_items", operation: "select", userId: session.userId, error });
+    return { ok: false, error: friendlySupabaseError(error) };
   }
 
   if (!data || data.length === 0) {
+    logSupabaseSyncSuccess({ table: "history_items", operation: "select", userId: session.userId, count: 0 });
     return { ok: true, count: 0 };
   }
 
@@ -97,5 +145,11 @@ export async function pullAndMergeHistory(): Promise<{ ok: boolean; error?: stri
     window.dispatchEvent(new Event("runmate:data-updated"));
   }
 
+  logSupabaseSyncSuccess({
+    table: "history_items",
+    operation: "select",
+    userId: session.userId,
+    count: data.length,
+  });
   return { ok: true, count: data.length };
 }

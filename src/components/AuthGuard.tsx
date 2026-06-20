@@ -12,8 +12,21 @@ export function AuthGuard() {
     const supabase = createClient();
     if (!supabase) return;
 
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) router.replace("/login");
+    supabase.auth.getSession().then(async ({ data }) => {
+      if (!data.session) {
+        console.warn("[supabase-auth-user]", { hasUser: false, reason: "no-session" });
+        router.replace("/login");
+        return;
+      }
+
+      const { data: userData, error } = await supabase.auth.getUser();
+      console.info("[supabase-auth-user]", {
+        hasUser: Boolean(userData.user),
+        userId: userData.user?.id ?? null,
+        error: error?.message ?? null,
+      });
+
+      if (!userData.user) router.replace("/login");
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange((event) => {

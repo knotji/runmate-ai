@@ -146,30 +146,37 @@ export function ProfileSetupForm({
     if (birthDateError) return;
     saveLocalProfile(profile);
     invalidateCoachCache();
-
-    if (redirectOnSave) {
-      router.push("/");
-      return;
-    }
+    setStatus({ tone: "good", text: "บันทึกในเครื่องแล้ว" });
 
     setSaving(true);
-    setStatus({ tone: "idle", text: "" });
+    setStatus({ tone: "idle", text: "กำลังซิงก์..." });
     const result = await saveProfileToSupabase(profile);
     setSaving(false);
     if (result.ok) {
-      setStatus({ tone: "good", text: "บันทึกโปรไฟล์แล้ว" });
+      const syncedAt = new Date().toLocaleString("th-TH", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      localStorage.setItem("runmate.lastSyncedAt", syncedAt);
+      localStorage.setItem("runmate.lastSyncStatus", "success");
+      setStatus({ tone: "good", text: `ซิงก์ล่าสุดเมื่อ ${syncedAt}` });
+      if (redirectOnSave) router.push("/");
     } else {
       const detail = "message" in result ? result.message : result.reason;
-      setStatus({ tone: "bad", text: `บันทึกโปรไฟล์ไม่สำเร็จ: ${detail}` });
+      localStorage.setItem("runmate.lastSyncStatus", "error");
+      setStatus({ tone: "bad", text: `ซิงก์ไม่สำเร็จ: ${detail}` });
     }
   }
 
   // Dev-only helpers (not shown in production)
   async function devSyncToSupabase() {
-    setDevStatus("กำลัง sync…");
+    setDevStatus("กำลังซิงก์...");
     saveLocalProfile(profile);
     const result = await saveProfileToSupabase(profile);
-    setDevStatus(result.ok ? `Sync แล้ว (${result.userId?.slice(0, 8)})` : `Error: ${"message" in result ? result.message : result.reason}`);
+    setDevStatus(result.ok ? `ซิงก์ล่าสุดแล้ว (${result.userId?.slice(0, 8)})` : `ซิงก์ไม่สำเร็จ: ${"message" in result ? result.message : result.reason}`);
   }
 
   async function devLoadFromSupabase() {
@@ -1096,5 +1103,4 @@ function SrcField({
     </div>
   );
 }
-
 

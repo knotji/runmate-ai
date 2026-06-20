@@ -1,6 +1,12 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
+import {
+  friendlySupabaseError,
+  logSupabaseSyncError,
+  logSupabaseSyncStart,
+  logSupabaseSyncSuccess,
+} from "@/lib/supabase/debug";
 import type { UserProfile } from "@/types/profile";
 
 const PROFILE_KEY = "runmate.profile";
@@ -94,30 +100,55 @@ export function saveLocalProfile(profile: UserProfile) {
 
 export async function ensureSupabaseProfileSession() {
   const supabase = createClient();
-  if (!supabase) return { ok: false as const, reason: "missing-env" as const };
-
-  const { data: sessionData } = await supabase.auth.getSession();
-  if (!sessionData.session?.user) {
-    return { ok: false as const, reason: "not-authenticated" as const };
+  if (!supabase) {
+    console.warn("[supabase-auth-user]", { hasUser: false, reason: "missing-env" });
+    return { ok: false as const, reason: "missing-env" as const };
   }
-  return { ok: true as const, supabase, userId: sessionData.session.user.id };
+
+  const { data, error } = await supabase.auth.getUser();
+  console.info("[supabase-auth-user]", {
+    hasUser: Boolean(data.user),
+    userId: data.user?.id ?? null,
+    error: error?.message ?? null,
+  });
+
+  if (error || !data.user) {
+    return {
+      ok: false as const,
+      reason: "not-authenticated" as const,
+      message: "ไม่พบ session ผู้ใช้ กรุณา login ใหม่ก่อนซิงก์ข้อมูล",
+    };
+  }
+  return { ok: true as const, supabase, userId: data.user.id };
 }
 
 export async function loadProfileFromSupabase() {
   const session = await ensureSupabaseProfileSession();
   if (!session.ok) return session;
 
+  logSupabaseSyncStart({ table: "profiles", operation: "select", userId: session.userId });
   const { data, error } = await session.supabase
     .from("profiles")
     .select("*")
     .eq("id", session.userId)
     .maybeSingle();
 
-  if (error) return { ok: false as const, reason: "load-failed" as const, message: error.message };
-  if (!data) return { ok: true as const, profile: null, userId: session.userId };
+  if (error) {
+    logSupabaseSyncError({ table: "profiles", operation: "select", userId: session.userId, error });
+    return {
+      ok: false as const,
+      reason: "load-failed" as const,
+      message: friendlySupabaseError(error),
+    };
+  }
+  if (!data) {
+    logSupabaseSyncSuccess({ table: "profiles", operation: "select", userId: session.userId, count: 0 });
+    return { ok: true as const, profile: null, userId: session.userId };
+  }
 
   const profile = rowToProfile(data as ProfileRow);
   saveLocalProfile(profile);
+  logSupabaseSyncSuccess({ table: "profiles", operation: "select", userId: session.userId, count: 1 });
   return { ok: true as const, profile, userId: session.userId };
 }
 
@@ -125,11 +156,20 @@ export async function saveProfileToSupabase(profile: UserProfile) {
   const session = await ensureSupabaseProfileSession();
   if (!session.ok) return session;
 
+  logSupabaseSyncStart({ table: "profiles", operation: "upsert", userId: session.userId, count: 1 });
   const { error } = await session.supabase
     .from("profiles")
     .upsert(profileToRow(profile, session.userId), { onConflict: "id" });
 
-  if (error) return { ok: false as const, reason: "save-failed" as const, message: error.message };
+  if (error) {
+    logSupabaseSyncError({ table: "profiles", operation: "upsert", userId: session.userId, error });
+    return {
+      ok: false as const,
+      reason: "save-failed" as const,
+      message: friendlySupabaseError(error),
+    };
+  }
+  logSupabaseSyncSuccess({ table: "profiles", operation: "upsert", userId: session.userId, count: 1 });
   return { ok: true as const, userId: session.userId };
 }
 

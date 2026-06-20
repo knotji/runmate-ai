@@ -41,6 +41,15 @@ type ImportLog = {
   body: number;
 };
 
+type EnvDebug = {
+  runtime: {
+    nodeEnv: string;
+    vercel: boolean;
+    vercelEnv: string | null;
+  };
+  env: Record<string, { exists: boolean; value?: string | null }>;
+};
+
 export default function SettingsPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>("profile");
@@ -50,6 +59,8 @@ export default function SettingsPage() {
   // Sync state
   const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "success" | "error">("idle");
   const [lastSyncedStr, setLastSyncedStr] = useState<string | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const [envDebug, setEnvDebug] = useState<EnvDebug | null>(null);
 
   // Import history state
   const [importHistory, setImportHistory] = useState<ImportLog[]>([]);
@@ -87,6 +98,15 @@ export default function SettingsPage() {
     return () => window.removeEventListener("runmate:data-updated", onDataUpdated);
   }, []);
 
+  useEffect(() => {
+    fetch("/api/debug/env")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: EnvDebug | null) => setEnvDebug(data))
+      .catch((error) => {
+        console.warn("[env-debug-error]", error instanceof Error ? error.message : String(error));
+      });
+  }, []);
+
   async function logout() {
     const supabase = createClient();
     if (supabase) await supabase.auth.signOut();
@@ -107,6 +127,7 @@ export default function SettingsPage() {
 
   async function triggerSync() {
     setSyncStatus("syncing");
+    setSyncError(null);
     localStorage.setItem("runmate.lastSyncStatus", "syncing");
     try {
       // Pull history from database
@@ -118,7 +139,10 @@ export default function SettingsPage() {
       // Load profile from database
       const profRes = await loadProfileFromSupabase();
       if (!profRes.ok && profRes.reason !== "missing-env" && profRes.reason !== "not-authenticated") {
-        throw new Error("profile sync failed");
+        throw new Error("message" in profRes ? profRes.message : "profile sync failed");
+      }
+      if (!profRes.ok) {
+        throw new Error("message" in profRes ? profRes.message : profRes.reason);
       }
 
       const nowStr = new Date().toLocaleString("th-TH", {
@@ -133,8 +157,11 @@ export default function SettingsPage() {
       setLastSyncedStr(nowStr);
       localStorage.setItem("runmate.lastSyncedAt", nowStr);
       localStorage.setItem("runmate.lastSyncStatus", "success");
-    } catch {
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "sync failed";
+      console.error("[supabase-sync-error]", { operation: "manual-sync", message });
       setSyncStatus("error");
+      setSyncError(message);
       localStorage.setItem("runmate.lastSyncStatus", "error");
     }
   }
@@ -222,6 +249,9 @@ export default function SettingsPage() {
               <p className="mt-1 text-sm leading-6 text-slate-500 font-normal">
                 ซิงก์ข้อมูลประวัติการซ้อมและโปรไฟล์ของคุณกับระบบคลาวด์เพื่อป้องกันข้อมูลสูญหาย
               </p>
+              <p className="mt-3 rounded-2xl bg-amber-50 p-3 text-xs leading-5 text-amber-700">
+                ข้อมูลที่บันทึกบน localhost จะไม่ย้ายมาบนเว็บ Vercel อัตโนมัติ หากยังไม่ได้ซิงก์ขึ้นระบบ
+              </p>
             </div>
 
             <div className="rounded-2xl bg-slate-50 p-4 flex items-center justify-between gap-3">
@@ -229,15 +259,16 @@ export default function SettingsPage() {
                 <p className="text-xs text-slate-400">สถานะปัจจุบัน</p>
                 <p className="text-sm font-bold text-[#17201d]">
                   {syncStatus === "syncing" && "กำลังซิงก์..."}
-                  {syncStatus === "success" && "บันทึกแล้ว"}
+                  {syncStatus === "success" && (lastSyncedStr ? `ซิงก์ล่าสุดเมื่อ ${lastSyncedStr}` : "ซิงก์ล่าสุดแล้ว")}
                   {syncStatus === "error" && "ซิงก์ไม่สำเร็จ"}
-                  {syncStatus === "idle" && "ยังไม่ได้ซิงก์ข้อมูล"}
+                  {syncStatus === "idle" && "บันทึกในเครื่องแล้ว"}
                 </p>
                 {lastSyncedStr && (
                   <p className="text-[10px] text-slate-400">
                     ซิงก์ล่าสุดเมื่อ {lastSyncedStr}
                   </p>
                 )}
+                {syncError && <p className="text-[10px] font-semibold text-red-500">{syncError}</p>}
               </div>
               <button
                 type="button"
@@ -259,6 +290,40 @@ export default function SettingsPage() {
                 </svg>
                 ซิงก์ข้อมูลตอนนี้
               </button>
+            </div>
+          </section>
+
+          <section className="card p-5 space-y-3">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">Deployment Debug</p>
+              <h2 className="mt-1 text-xl font-bold text-[#17201d]">ตรวจ Supabase Runtime</h2>
+              <p className="mt-1 text-sm leading-6 text-slate-500 font-normal">
+                ใช้เช็คว่า localhost และ Vercel อ่าน env ถูกชุดไหม โดยไม่แสดงค่า secret
+              </p>
+            </div>
+            <div className="space-y-2 rounded-2xl bg-slate-50 p-4 text-xs">
+              <p className="font-semibold text-slate-600">
+                Runtime: {envDebug?.runtime.vercel ? `Vercel (${envDebug.runtime.vercelEnv ?? "unknown"})` : "Local browser"}
+              </p>
+              {envDebug ? (
+                <div className="space-y-1 text-slate-500">
+                  {Object.entries(envDebug.env).map(([name, info]) => (
+                    <div key={name} className="flex items-center justify-between gap-3">
+                      <span className="font-mono text-[10px]">{name}</span>
+                      <span className={info.exists ? "font-bold text-green-600" : "font-bold text-red-500"}>
+                        {info.exists ? "มีค่า" : "ไม่มีค่า"}
+                      </span>
+                    </div>
+                  ))}
+                  {envDebug.env.NEXT_PUBLIC_SUPABASE_URL?.value && (
+                    <p className="break-all pt-2 font-mono text-[10px] text-slate-400">
+                      Supabase URL (dev): {envDebug.env.NEXT_PUBLIC_SUPABASE_URL.value}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-slate-400">กำลังตรวจ env...</p>
+              )}
             </div>
           </section>
 
