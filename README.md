@@ -1,36 +1,72 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# RunMate AI
 
-## Getting Started
+RunMate AI, Thai display name "โค้ชข้างทาง", is a mobile-first AI running coach MVP. The app helps a runner upload daily sleep screenshots, meal photos, and running result screenshots, then uses OpenAI to extract structured data and give practical Thai coaching.
 
-First, run the development server:
+This is not a medical app. It gives general training, nutrition, and recovery guidance only.
+
+## Tech stack
+
+- Next.js App Router, TypeScript, Tailwind CSS
+- Framer Motion
+- Supabase Auth, Postgres, and Storage
+- OpenAI API for image understanding, structured extraction, plans, summaries, and coach chat
+- MVP local demo flow with `localStorage` when Supabase is not configured
+
+## Environment variables
+
+Copy `.env.example` to `.env.local` and fill values:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+AI_PROVIDER=gemini
+GEMINI_API_KEY=
+GEMINI_MODEL=gemini-2.5-flash-lite
+OPENAI_API_KEY=
+OPENAI_MODEL=gpt-4o-mini
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Set `AI_PROVIDER=gemini` to use Gemini first, or `AI_PROVIDER=openai` to use OpenAI first. Never expose `GEMINI_API_KEY`, `OPENAI_API_KEY`, or `SUPABASE_SERVICE_ROLE_KEY` in client components.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Supabase setup
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Create a Supabase project.
+2. Run `supabase/migrations/001_runmate_ai_mvp.sql` in the SQL editor or through the Supabase CLI.
+3. Confirm these storage buckets exist:
+   - `sleep-images`
+   - `meal-images`
+   - `run-images`
+4. Add your Supabase URL and anon key to `.env.local`.
 
-## Learn More
+The migration creates the MVP tables, enables RLS, and adds owner-only row policies.
 
-To learn more about Next.js, take a look at the following resources:
+## Run locally
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm install
+npm run dev
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Open `http://localhost:3000`.
 
-## Deploy on Vercel
+## MVP pages
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- `/` Today dashboard
+- `/onboarding` profile setup
+- `/race-goal` create and view race goal
+- `/upload` upload sleep, meal, or run image
+- `/upload` supports sleep screenshots, meal photos, workout screenshots, and body composition screenshots
+- `/logs` local log viewer
+- `/summary` daily summary
+- `/coach` coach chat
+- `/settings` basic settings
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## AI fallback behavior
+
+If the selected AI provider key is missing or the provider fails, API routes return safe Thai fallback coaching instead of crashing. Uploaded images are attempted through Supabase Storage when Supabase is configured; otherwise the MVP still works from image data URLs.
+
+## Safety disclaimer
+
+คำแนะนำในแอพนี้เป็นแนวทางทั่วไปด้านการซ้อม โภชนาการ และการฟื้นตัว ไม่ใช่คำแนะนำทางการแพทย์ หากมีอาการเจ็บรุนแรง เจ็บต่อเนื่อง หน้ามืด แน่นหน้าอก หรืออาการผิดปกติ ควรหยุดออกกำลังกายและปรึกษาผู้เชี่ยวชาญ

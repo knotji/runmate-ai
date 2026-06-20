@@ -1,0 +1,16 @@
+alter table public.profiles
+  add column if not exists age integer null,
+  add column if not exists gender text null,
+  add column if not exists tempo_pace text null,
+  add column if not exists race_pace text null,
+  add column if not exists available_training_days text null,
+  add column if not exists usual_run_time text null,
+  add column if not exists gear_notes text null,
+  add column if not exists shoe_rotation text null,
+  add column if not exists watch_device text null,
+  add column if not exists treadmill_access boolean null,
+  add column if not exists training_constraints text null,
+  add column if not exists secondary_goal text null,
+  add column if not exists coach_tone text null,
+  add column if not exists nutrition_notes text null,
+  add column if not exists sleep_notes text null;

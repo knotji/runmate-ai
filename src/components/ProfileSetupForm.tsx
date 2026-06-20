@@ -1,0 +1,1100 @@
+"use client";
+
+import { FormEvent, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { invalidateCoachCache } from "@/lib/invalidateCoachCache";
+import {
+  loadProfileFromSupabase,
+  readLocalProfile,
+  saveLocalProfile,
+  saveProfileToSupabase,
+} from "@/lib/profileStorage";
+import { defaultProfile, type UserProfile } from "@/types/profile";
+import { calculateAgeFromBirthDate } from "@/lib/profile/age";
+
+type Status = { tone: "idle" | "good" | "warn" | "bad"; text: string };
+
+const SECTION_KEYS: Record<string, (keyof UserProfile)[]> = {
+  basic: ["displayName", "birthDate"],
+  goal: ["mainGoal", "targetDistance", "goalPriority"],
+  baseline: ["currentLevel", "currentLongestRunKm", "weeklyMileageKm", "runningDaysPerWeek", "weeklyTrainingDays", "easyPace", "easyHrCap", "maxHr"],
+  training: ["preferredLongRunDay", "strengthTrainingDaysPerWeek", "preferredRunTime", "preferredTrainingDays", "availableTrainingDays"],
+  injury: ["injuryHistory", "injuryNotes", "currentPainNotes", "riskNotes"],
+  sleep: ["averageSleepHours", "normalSleepScore", "normalEnergyScore", "normalRestingHr", "normalHrv", "recoveryRules", "sleepNotes"],
+  coaching: ["coachingTone", "responseDetail", "language"],
+  advanced: [
+    "heightCm", "weightKg", "workSchedule", "timezone",
+    "lactateThresholdHr", "vo2max", "averageCadence",
+    "availableEquipment", "nutritionGoal", "foodPreferences",
+    "allergiesOrRestrictions", "caffeineHabit", "supplementNotes"
+  ],
+};
+
+const TODAY = new Date().toISOString().slice(0, 10);
+const IS_DEV = process.env.NODE_ENV === "development";
+
+export function ProfileSetupForm({
+  redirectOnSave = false,
+  mode = "full",
+}: {
+  redirectOnSave?: boolean;
+  mode?: "onboarding" | "full";
+}) {
+  const router = useRouter();
+  const [profile, setProfile] = useState<UserProfile>(defaultProfile);
+  const [status, setStatus] = useState<Status>({ tone: "idle", text: "" });
+  const [saving, setSaving] = useState(false);
+  const [loadingCloud, setLoadingCloud] = useState(mode === "full");
+  const [openSection, setOpenSection] = useState<string | null>("goal");
+  const [birthDateError, setBirthDateError] = useState("");
+  const [devOpen, setDevOpen] = useState(false);
+  const [devStatus, setDevStatus] = useState("");
+
+
+  // Generalized section-by-section editing state
+  const [editingSection, setEditingSection] = useState<string | null>(null);
+  const [snapshot, setSnapshot] = useState<UserProfile | null>(null);
+  const [savedSections, setSavedSections] = useState<Record<string, boolean>>({});
+
+  function startSectionEdit(section: string) {
+    setSnapshot({ ...profile });
+    setEditingSection(section);
+    setSavedSections((prev) => ({ ...prev, [section]: false }));
+  }
+
+  function cancelSectionEdit() {
+    if (snapshot) {
+      setProfile(snapshot);
+    }
+    setEditingSection(null);
+    setSnapshot(null);
+  }
+
+  function saveSectionEdit(section: string) {
+    if (snapshot) {
+      const keys = SECTION_KEYS[section];
+      if (keys) {
+        const changedKeys: string[] = [];
+        for (const key of keys) {
+          if (snapshot[key] !== profile[key]) {
+            changedKeys.push(key);
+          }
+        }
+        if (changedKeys.length > 0) {
+          const newSources = { ...profile.fieldSources };
+          for (const key of changedKeys) {
+            newSources[key] = "manual";
+          }
+          setProfile((p) => ({ ...p, fieldSources: newSources }));
+        }
+      }
+    }
+    setEditingSection(null);
+    setSnapshot(null);
+    setSavedSections((prev) => ({ ...prev, [section]: true }));
+    setTimeout(() => {
+      setSavedSections((prev) => ({ ...prev, [section]: false }));
+    }, 3000);
+  }
+
+  // Load local profile immediately, then sync from cloud
+  useEffect(() => {
+    const local = readLocalProfile();
+    if (local) queueMicrotask(() => setProfile({ ...defaultProfile, ...local }));
+
+    if (mode !== "full") return;
+
+    loadProfileFromSupabase().then((result) => {
+      setLoadingCloud(false);
+      if (result.ok && result.profile) {
+        setProfile({ ...defaultProfile, ...result.profile });
+        invalidateCoachCache();
+      }
+      // Silent fail — local data is already shown
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    function onExternalUpdate() {
+      const local = readLocalProfile();
+      if (local) queueMicrotask(() => setProfile({ ...defaultProfile, ...local }));
+    }
+    window.addEventListener("runmate:profile-externally-updated", onExternalUpdate);
+    return () => window.removeEventListener("runmate:profile-externally-updated", onExternalUpdate);
+  }, []);
+
+  function update<K extends keyof UserProfile>(key: K, value: UserProfile[K]) {
+    setProfile((current) => ({ ...current, [key]: value }));
+  }
+
+
+
+
+
+  function handleBirthDate(value: string) {
+    if (value && value > TODAY) {
+      setBirthDateError("วันเกิดต้องไม่ใช่อนาคต");
+      return;
+    }
+    setBirthDateError("");
+    update("birthDate", value || undefined);
+  }
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    if (birthDateError) return;
+    saveLocalProfile(profile);
+    invalidateCoachCache();
+
+    if (redirectOnSave) {
+      router.push("/");
+      return;
+    }
+
+    setSaving(true);
+    setStatus({ tone: "idle", text: "" });
+    const result = await saveProfileToSupabase(profile);
+    setSaving(false);
+    if (result.ok) {
+      setStatus({ tone: "good", text: "บันทึกโปรไฟล์แล้ว" });
+    } else {
+      const detail = "message" in result ? result.message : result.reason;
+      setStatus({ tone: "bad", text: `บันทึกโปรไฟล์ไม่สำเร็จ: ${detail}` });
+    }
+  }
+
+  // Dev-only helpers (not shown in production)
+  async function devSyncToSupabase() {
+    setDevStatus("กำลัง sync…");
+    saveLocalProfile(profile);
+    const result = await saveProfileToSupabase(profile);
+    setDevStatus(result.ok ? `Sync แล้ว (${result.userId?.slice(0, 8)})` : `Error: ${"message" in result ? result.message : result.reason}`);
+  }
+
+  async function devLoadFromSupabase() {
+    setDevStatus("กำลังโหลด…");
+    const result = await loadProfileFromSupabase();
+    if (result.ok && result.profile) {
+      setProfile({ ...defaultProfile, ...result.profile });
+      invalidateCoachCache();
+      setDevStatus(`โหลดแล้ว (${result.userId?.slice(0, 8)})`);
+    } else if (result.ok) {
+      setDevStatus("ยังไม่มี profile ใน DB");
+    } else {
+      setDevStatus(`Error: ${"message" in result ? result.message : result.reason}`);
+    }
+  }
+
+  function toggleSection(name: string) {
+    setOpenSection((current) => (current === name ? null : name));
+  }
+
+  const computedAge = calculateAgeFromBirthDate(profile.birthDate);
+  const hasBaselineHistorySrc = SECTION_KEYS.baseline.some((k) => profile.fieldSources?.[k] === "history_analysis");
+
+  // ── Onboarding (short form) ──────────────────────────────────────────────────
+  if (mode === "onboarding") {
+    return (
+      <form onSubmit={submit} className="card space-y-4 p-5">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">Runner Profile</p>
+          <h2 className="mt-1 text-xl font-bold text-[#17201d]">ตั้งค่าเริ่มต้น</h2>
+          <p className="mt-1 text-sm leading-6 text-slate-500">
+            ข้อมูลนี้จะช่วยให้ AI Coach วางแผนซ้อมได้เหมาะกับคุณ
+          </p>
+        </div>
+
+        <input
+          className="control"
+          required
+          placeholder="ชื่อเล่น / ชื่อที่อยากให้เรียก"
+          value={profile.displayName}
+          onChange={(e) => update("displayName", e.target.value)}
+        />
+
+        <div>
+          <label className="mb-1 block text-xs font-semibold text-slate-500">วันเกิด</label>
+          <input
+            className="control"
+            type="date"
+            max={TODAY}
+            value={profile.birthDate ?? ""}
+            onChange={(e) => handleBirthDate(e.target.value)}
+          />
+          {birthDateError && <p className="mt-1 text-xs text-red-500">{birthDateError}</p>}
+          {computedAge != null && (
+            <p className="mt-1 text-xs text-slate-400">อายุประมาณ {computedAge} ปี</p>
+          )}
+        </div>
+
+        <textarea
+          className="control min-h-20"
+          placeholder="เป้าหมายหลักตอนนี้ เช่น อยากจบมาราธอนแบบปลอดภัย"
+          value={profile.mainGoal ?? ""}
+          onChange={(e) => update("mainGoal", e.target.value)}
+        />
+        <div className="grid grid-cols-2 gap-2">
+          <NumberInput placeholder="วิ่งไกลสุด km" value={profile.currentLongestRunKm} onChange={(v) => update("currentLongestRunKm", v)} />
+          <NumberInput placeholder="วันวิ่ง/สัปดาห์" value={profile.runningDaysPerWeek ?? profile.weeklyTrainingDays} onChange={(v) => { update("runningDaysPerWeek", v); update("weeklyTrainingDays", v); }} />
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <input className="control" placeholder="Easy pace เช่น 7:00-8:00/km" value={profile.easyPace ?? ""} onChange={(e) => update("easyPace", e.target.value)} />
+          <input className="control" placeholder="Easy HR cap เช่น &lt;145" value={profile.easyHrCap ?? ""} onChange={(e) => update("easyHrCap", e.target.value)} />
+        </div>
+        <input className="control" placeholder="วัน long run เช่น อาทิตย์" value={profile.preferredLongRunDay ?? ""} onChange={(e) => update("preferredLongRunDay", e.target.value)} />
+        <textarea
+          className="control min-h-16"
+          placeholder="ประวัติบาดเจ็บ / อาการเจ็บ (ถ้ามี)"
+          value={profile.injuryHistory ?? profile.injuryNotes ?? ""}
+          onChange={(e) => { update("injuryHistory", e.target.value); update("injuryNotes", e.target.value); }}
+        />
+        <div>
+          <p className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-500">สไตล์โค้ช</p>
+          <div className="grid grid-cols-2 gap-2">
+            {(["friendly", "direct", "gentle", "strict"] as const).map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => update("coachingTone", t)}
+                className={`rounded-2xl border py-2 text-sm font-semibold ${profile.coachingTone === t ? "border-[#17201d] bg-[#17201d] text-white" : "border-slate-200 text-slate-600"}`}
+              >
+                {toneLabel(t)}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {status.text ? (
+          <p className={`rounded-2xl p-3 text-sm font-semibold ${statusClass(status.tone)}`}>{status.text}</p>
+        ) : null}
+
+        <button className="btn-primary w-full py-3" type="submit">เริ่มใช้งาน</button>
+      </form>
+    );
+  }
+
+  // ── Full profile form ────────────────────────────────────────────────────────
+  return (
+    <form onSubmit={submit} className="card space-y-3 p-5">
+      <div>
+        <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">Runner Profile</p>
+        <h2 className="mt-1 text-xl font-bold text-[#17201d]">โปรไฟล์นักวิ่ง</h2>
+        <p className="mt-1 text-sm leading-6 text-slate-500">
+          ข้อมูลนี้ช่วยให้ AI Coach วางแผนซ้อมได้เหมาะกับคุณ
+        </p>
+      </div>
+
+      {/* ── 1. Basic ── */}
+      <EditableSection
+        title="ข้อมูลพื้นฐาน"
+        open={openSection === "basic"}
+        onToggle={() => toggleSection("basic")}
+        isEditing={editingSection === "basic"}
+        onStartEdit={() => startSectionEdit("basic")}
+        onSaveEdit={() => saveSectionEdit("basic")}
+        onCancelEdit={cancelSectionEdit}
+        isSaved={savedSections.basic}
+        renderReadonly={() => (
+          <div className="grid grid-cols-2 gap-2">
+            <StatCard label="ชื่อเล่น" value={profile.displayName || "—"} />
+            <StatCard label="วันเกิด / อายุ" value={profile.birthDate ? `${profile.birthDate} (${computedAge ?? "?"} ปี)` : "—"} />
+          </div>
+        )}
+        renderEditable={() => (
+          <>
+            <input
+              className="control"
+              required
+              placeholder="ชื่อเล่น"
+              value={profile.displayName}
+              onChange={(e) => update("displayName", e.target.value)}
+            />
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-slate-500">วันเกิด</label>
+              <input
+                className="control"
+                type="date"
+                max={TODAY}
+                value={profile.birthDate ?? ""}
+                onChange={(e) => handleBirthDate(e.target.value)}
+              />
+              {birthDateError && <p className="mt-1 text-xs text-red-500">{birthDateError}</p>}
+              {computedAge != null && (
+                <p className="mt-1 text-xs text-slate-400">อายุประมาณ {computedAge} ปี</p>
+              )}
+            </div>
+          </>
+        )}
+      />
+
+      {/* ── 2. Goal ── */}
+      <EditableSection
+        title="เป้าหมายระยะยาว"
+        open={openSection === "goal"}
+        onToggle={() => toggleSection("goal")}
+        isEditing={editingSection === "goal"}
+        onStartEdit={() => startSectionEdit("goal")}
+        onSaveEdit={() => saveSectionEdit("goal")}
+        onCancelEdit={cancelSectionEdit}
+        isSaved={savedSections.goal}
+        renderReadonly={() => (
+          <div className="space-y-2">
+            <div className="rounded-xl bg-slate-50 px-3 py-2.5">
+              <p className="text-[11px] text-slate-400">เป้าหมายหลักตอนนี้</p>
+              <p className="text-sm font-semibold text-[#17201d] leading-relaxed whitespace-pre-wrap">{profile.mainGoal || "ยังไม่มีเป้าหมายระยะยาว"}</p>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <StatCard label="ระยะทางเป้าหมาย" value={profile.targetDistance || "—"} />
+              <StatCard label="ความสำคัญสูงสุด" value={profile.goalPriority ? priorityLabel(profile.goalPriority) : "—"} />
+            </div>
+          </div>
+        )}
+        renderEditable={() => (
+          <>
+            <p className="text-xs text-slate-400 -mt-1">บอก AI ว่าคุณอยากพัฒนาตัวเองไปทางไหนในระยะยาว</p>
+            <textarea
+              className="control min-h-20"
+              placeholder="เช่น อยากจบมาราธอนแบบปลอดภัย หรืออยากวิ่ง 10K ให้ดีขึ้น"
+              value={profile.mainGoal ?? ""}
+              onChange={(e) => update("mainGoal", e.target.value)}
+            />
+            <div>
+              <p className="mb-1 text-xs font-semibold text-slate-500">ระยะที่อยากไปให้ถึง</p>
+              <div className="flex flex-wrap gap-2">
+                {(["5K", "10K", "Half Marathon", "Full Marathon", "Custom"] as const).map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => update("targetDistance", d)}
+                    className={`rounded-full border px-3 py-1 text-xs font-semibold ${profile.targetDistance === d ? "border-[#17201d] bg-[#17201d] text-white" : "border-slate-200 text-slate-600"}`}
+                  >
+                    {d}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="mb-1 text-xs font-semibold text-slate-500">สิ่งที่ให้ความสำคัญที่สุด</p>
+              <div className="grid grid-cols-2 gap-2">
+                {(["finish", "time", "injury_free", "consistency", "fitness"] as const).map((g) => (
+                  <button
+                    key={g}
+                    type="button"
+                    onClick={() => update("goalPriority", g)}
+                    className={`rounded-2xl border py-2 text-xs font-semibold ${profile.goalPriority === g ? "border-[#17201d] bg-[#17201d] text-white" : "border-slate-200 text-slate-600"}`}
+                  >
+                    {priorityLabel(g)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+      />
+
+      {/* ── 3. Running Baseline ── */}
+      <EditableSection
+        title="สมรรถภาพนักวิ่ง"
+        open={openSection === "baseline"}
+        onToggle={() => toggleSection("baseline")}
+        isEditing={editingSection === "baseline"}
+        onStartEdit={() => startSectionEdit("baseline")}
+        onSaveEdit={() => saveSectionEdit("baseline")}
+        onCancelEdit={cancelSectionEdit}
+        hasHistoryAnalysis={hasBaselineHistorySrc}
+        isSaved={savedSections.baseline}
+        renderReadonly={() => (
+          <div className="space-y-2">
+            <div className="rounded-xl bg-slate-50 px-3 py-2.5">
+              <p className="text-[11px] text-slate-400">ระดับนักวิ่ง</p>
+              <p className="text-sm font-semibold text-[#17201d]">{profile.currentLevel || "ยังไม่ได้ระบุ"}</p>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <StatCard label="วิ่งไกลสุด" value={profile.currentLongestRunKm != null ? `${profile.currentLongestRunKm} km` : "—"} />
+              <StatCard label="km/สัปดาห์" value={profile.weeklyMileageKm != null ? `${profile.weeklyMileageKm} km` : "—"} />
+              <StatCard label="วัน/สัปดาห์" value={(profile.runningDaysPerWeek ?? profile.weeklyTrainingDays) != null ? `${profile.runningDaysPerWeek ?? profile.weeklyTrainingDays} วัน` : "—"} />
+            </div>
+            <div className="rounded-xl bg-slate-50 px-3 py-2.5">
+              <p className="text-[11px] text-slate-400">Easy pace</p>
+              <p className="text-sm font-semibold text-[#17201d]">
+                {profile.easyPace
+                  ? <>{profile.easyPace}<span className="ml-1 text-xs font-normal text-slate-400">นาที/กม.</span></>
+                  : "ยังไม่ได้ระบุ"}
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <StatCard label="Easy HR cap" value={profile.easyHrCap ? `${profile.easyHrCap} bpm` : "—"} />
+              <div className="rounded-xl bg-slate-50 px-3 py-2.5">
+                <p className="text-[11px] text-slate-400">Max HR</p>
+                <p className="text-sm font-semibold text-[#17201d]">
+                  {profile.maxHr != null ? `${profile.maxHr} bpm` : "ยังไม่มีข้อมูล"}
+                </p>
+                {profile.maxHr != null && profile.fieldSources?.maxHr === "history_analysis" && (
+                  <p className="mt-0.5 text-[10px] leading-tight text-slate-400">
+                    observed max จากประวัติ ไม่ใช่ max จริงทางสรีรวิทยา
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+        renderEditable={() => (
+          <>
+            <p className="text-xs text-slate-400">ข้อมูลนี้ช่วยให้ AI ประเมิน pace, HR และระดับซ้อมที่เหมาะกับคุณ</p>
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-slate-500">ระดับนักวิ่ง</label>
+              <input className="control" placeholder="เช่น นักวิ่งระดับกลาง, วิ่ง 10K ได้" value={profile.currentLevel ?? ""} onChange={(e) => update("currentLevel", e.target.value)} />
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-500">วิ่งไกลสุด <span className="font-normal text-slate-400">km</span></label>
+                <NumberInput placeholder="เช่น 15.7" value={profile.currentLongestRunKm} onChange={(v) => update("currentLongestRunKm", v)} />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-500">รวม/สัปดาห์ <span className="font-normal text-slate-400">km</span></label>
+                <NumberInput placeholder="เช่น 36.7" value={profile.weeklyMileageKm} onChange={(v) => update("weeklyMileageKm", v)} />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-500">วัน/สัปดาห์</label>
+                <NumberInput placeholder="เช่น 5" value={profile.runningDaysPerWeek ?? profile.weeklyTrainingDays} onChange={(v) => { update("runningDaysPerWeek", v); update("weeklyTrainingDays", v); }} />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-slate-500">Easy pace <span className="font-normal text-slate-400">นาที/กม.</span></label>
+              <input className="control" placeholder="เช่น 7:00–8:00 /km" value={profile.easyPace ?? ""} onChange={(e) => update("easyPace", e.target.value)} />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-500">Easy HR cap <span className="font-normal text-slate-400">bpm</span></label>
+                <input className="control" placeholder="เช่น 140–145 bpm" value={profile.easyHrCap ?? ""} onChange={(e) => update("easyHrCap", e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-500">Max HR <span className="font-normal text-slate-400">bpm</span></label>
+                <NumberInput placeholder="เช่น 188" value={profile.maxHr} onChange={(v) => update("maxHr", v)} />
+              </div>
+            </div>
+          </>
+        )}
+      />
+
+      {/* ── 4. Training Pattern ── */}
+      <EditableSection
+        title="รูปแบบซ้อม"
+        open={openSection === "training"}
+        onToggle={() => toggleSection("training")}
+        isEditing={editingSection === "training"}
+        onStartEdit={() => startSectionEdit("training")}
+        onSaveEdit={() => saveSectionEdit("training")}
+        onCancelEdit={cancelSectionEdit}
+        isSaved={savedSections.training}
+        renderReadonly={() => (
+          <div className="grid grid-cols-2 gap-2">
+            <StatCard label="วัน Long run" value={profile.preferredLongRunDay || "—"} />
+            <StatCard label="Strength (วัน/สัปดาห์)" value={profile.strengthTrainingDaysPerWeek != null ? `${profile.strengthTrainingDaysPerWeek} วัน` : "—"} />
+            <StatCard label="เวลาวิ่งที่ชอบ" value={profile.preferredRunTime ? runTimeLabel(profile.preferredRunTime) : "—"} />
+            <StatCard
+              label="วันซ้อมที่สะดวก"
+              value={
+                Array.isArray(profile.preferredTrainingDays)
+                  ? profile.preferredTrainingDays.join(", ")
+                  : profile.preferredTrainingDays || profile.availableTrainingDays || "—"
+              }
+            />
+          </div>
+        )}
+        renderEditable={() => (
+          <>
+            <div className="grid grid-cols-2 gap-2">
+              <SrcField label="วัน Long run" fieldKey="preferredLongRunDay" sources={profile.fieldSources}>
+                <input className="control" placeholder="เช่น อาทิตย์" value={profile.preferredLongRunDay ?? ""} onChange={(e) => update("preferredLongRunDay", e.target.value)} />
+              </SrcField>
+              <div className="space-y-1">
+                <span className="text-xs font-semibold text-slate-500">Strength วัน/สัปดาห์</span>
+                <NumberInput
+                  placeholder="Strength วัน/สัปดาห์"
+                  value={profile.strengthTrainingDaysPerWeek}
+                  onChange={(v) => update("strengthTrainingDaysPerWeek", v)}
+                />
+              </div>
+            </div>
+            <div>
+              <p className="mb-1 text-xs font-semibold text-slate-500">เวลาวิ่งที่ชอบ</p>
+              <div className="flex flex-wrap gap-2">
+                {(["morning", "evening", "night", "flexible"] as const).map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => update("preferredRunTime", t)}
+                    className={`rounded-full border px-3 py-1 text-xs font-semibold ${profile.preferredRunTime === t ? "border-[#17201d] bg-[#17201d] text-white" : "border-slate-200 text-slate-600"}`}
+                  >
+                    {runTimeLabel(t)}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <SrcField label="วันซ้อมที่สะดวก" fieldKey="preferredTrainingDays" sources={profile.fieldSources}>
+              <input
+                className="control"
+                placeholder="เช่น จันทร์, พุธ, ศุกร์, อาทิตย์"
+                value={(Array.isArray(profile.preferredTrainingDays) ? profile.preferredTrainingDays.join(", ") : profile.preferredTrainingDays) ?? profile.availableTrainingDays ?? ""}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  update("preferredTrainingDays", v ? v.split(",").map((s) => s.trim()) : undefined);
+                  update("availableTrainingDays", v);
+                }}
+              />
+            </SrcField>
+          </>
+        )}
+      />
+
+      {/* ── 5. Injury & Risk ── */}
+      <EditableSection
+        title="บาดเจ็บและความเสี่ยง"
+        open={openSection === "injury"}
+        onToggle={() => toggleSection("injury")}
+        isEditing={editingSection === "injury"}
+        onStartEdit={() => startSectionEdit("injury")}
+        onSaveEdit={() => saveSectionEdit("injury")}
+        onCancelEdit={cancelSectionEdit}
+        isSaved={savedSections.injury}
+        renderReadonly={() => (
+          <div className="space-y-2">
+            <div className="rounded-xl bg-slate-50 px-3 py-2.5">
+              <p className="text-[11px] text-slate-400">ประวัติบาดเจ็บ</p>
+              <p className="text-sm font-semibold text-[#17201d] leading-relaxed whitespace-pre-wrap">{profile.injuryHistory || profile.injuryNotes || "—"}</p>
+            </div>
+            <div className="rounded-xl bg-slate-50 px-3 py-2.5">
+              <p className="text-[11px] text-slate-400">อาการปัจจุบัน</p>
+              <p className="text-sm font-semibold text-[#17201d] leading-relaxed whitespace-pre-wrap">{profile.currentPainNotes || "—"}</p>
+            </div>
+            <div className="rounded-xl bg-slate-50 px-3 py-2.5">
+              <p className="text-[11px] text-slate-400">สิ่งที่ต้องระวัง</p>
+              <p className="text-sm font-semibold text-[#17201d] leading-relaxed whitespace-pre-wrap">{profile.riskNotes || "—"}</p>
+            </div>
+          </div>
+        )}
+        renderEditable={() => (
+          <>
+            <div className="space-y-1">
+              <span className="text-xs font-semibold text-slate-500">ประวัติบาดเจ็บ</span>
+              <textarea
+                className="control min-h-16"
+                placeholder="ประวัติบาดเจ็บ เช่น เข่า, ข้อเท้า, เอ็น"
+                value={profile.injuryHistory ?? profile.injuryNotes ?? ""}
+                onChange={(e) => { update("injuryHistory", e.target.value); update("injuryNotes", e.target.value); }}
+              />
+            </div>
+            <div className="space-y-1">
+              <span className="text-xs font-semibold text-slate-500">อาการปัจจุบัน (ถ้ามี)</span>
+              <textarea
+                className="control min-h-14"
+                placeholder="อาการปัจจุบัน (ถ้ามี)"
+                value={profile.currentPainNotes ?? ""}
+                onChange={(e) => update("currentPainNotes", e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <span className="text-xs font-semibold text-slate-500">สิ่งที่ต้องระวัง (ถ้ามี)</span>
+              <textarea
+                className="control min-h-14"
+                placeholder="สิ่งที่ต้องระวัง เช่น เพิ่ง recover, หมอห้ามวิ่งเร็ว"
+                value={profile.riskNotes ?? ""}
+                onChange={(e) => update("riskNotes", e.target.value)}
+              />
+            </div>
+          </>
+        )}
+      />
+
+      {/* ── 6. Sleep & Recovery ── */}
+      <EditableSection
+        title="การนอนและ Recovery"
+        open={openSection === "sleep"}
+        onToggle={() => toggleSection("sleep")}
+        isEditing={editingSection === "sleep"}
+        onStartEdit={() => startSectionEdit("sleep")}
+        onSaveEdit={() => saveSectionEdit("sleep")}
+        onCancelEdit={cancelSectionEdit}
+        isSaved={savedSections.sleep}
+        renderReadonly={() => (
+          <div className="space-y-2">
+            <div className="grid grid-cols-3 gap-2">
+              <StatCard label="นอนเฉลี่ย" value={profile.averageSleepHours != null ? `${profile.averageSleepHours} ชม.` : "—"} />
+              <StatCard label="Sleep score" value={profile.normalSleepScore != null ? String(profile.normalSleepScore) : "—"} />
+              <StatCard label="Energy score" value={profile.normalEnergyScore != null ? String(profile.normalEnergyScore) : "—"} />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <StatCard label="Resting HR" value={profile.normalRestingHr ? `${profile.normalRestingHr} bpm` : "—"} />
+              <StatCard label="HRV ปกติ" value={profile.normalHrv ? String(profile.normalHrv) : "—"} />
+            </div>
+            <div className="rounded-xl bg-slate-50 px-3 py-2.5">
+              <p className="text-[11px] text-slate-400">กฎ Recovery</p>
+              <p className="text-sm font-semibold text-[#17201d] leading-relaxed whitespace-pre-wrap">{profile.recoveryRules || profile.sleepNotes || "—"}</p>
+            </div>
+          </div>
+        )}
+        renderEditable={() => (
+          <>
+            <div className="grid grid-cols-3 gap-2">
+              <SrcField label="นอนเฉลี่ย" unit="ชม." fieldKey="averageSleepHours" sources={profile.fieldSources}>
+                <NumberInput placeholder="เช่น 7" value={profile.averageSleepHours} onChange={(v) => update("averageSleepHours", v)} />
+              </SrcField>
+              <SrcField label="Sleep score" fieldKey="normalSleepScore" sources={profile.fieldSources}>
+                <NumberInput placeholder="เช่น 75" value={profile.normalSleepScore} onChange={(v) => update("normalSleepScore", v)} />
+              </SrcField>
+              <SrcField label="Energy score" fieldKey="normalEnergyScore" sources={profile.fieldSources}>
+                <NumberInput placeholder="เช่น 70" value={profile.normalEnergyScore} onChange={(v) => update("normalEnergyScore", v)} />
+              </SrcField>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <SrcField label="Resting HR" unit="bpm" fieldKey="normalRestingHr" sources={profile.fieldSources}>
+                <NumberInput placeholder="เช่น 52" value={profile.normalRestingHr} onChange={(v) => update("normalRestingHr", v)} />
+              </SrcField>
+              <SrcField label="HRV ปกติ" fieldKey="normalHrv" sources={profile.fieldSources}>
+                <NumberInput placeholder="เช่น 45" value={profile.normalHrv} onChange={(v) => update("normalHrv", v)} />
+              </SrcField>
+            </div>
+            <SrcField label="กฎ Recovery" fieldKey="recoveryRules" sources={profile.fieldSources}>
+              <textarea
+                className="control min-h-16"
+                placeholder="เช่น ถ้า sleep score < 70 ให้ลดความหนัก"
+                value={profile.recoveryRules ?? profile.sleepNotes ?? ""}
+                onChange={(e) => { update("recoveryRules", e.target.value); update("sleepNotes", e.target.value); }}
+              />
+            </SrcField>
+          </>
+        )}
+      />
+
+      {/* ── 7. Coaching Style ── */}
+      <EditableSection
+        title="สไตล์โค้ช"
+        open={openSection === "coaching"}
+        onToggle={() => toggleSection("coaching")}
+        isEditing={editingSection === "coaching"}
+        onStartEdit={() => startSectionEdit("coaching")}
+        onSaveEdit={() => saveSectionEdit("coaching")}
+        onCancelEdit={cancelSectionEdit}
+        isSaved={savedSections.coaching}
+        renderReadonly={() => (
+          <div className="grid grid-cols-3 gap-2">
+            <StatCard label="สไตล์การพูด" value={profile.coachingTone ? toneLabel(profile.coachingTone) : "—"} />
+            <StatCard label="ความละเอียดคำตอบ" value={profile.responseDetail ? detailLabel(profile.responseDetail) : "—"} />
+            <StatCard label="ภาษา" value={profile.language ? langLabel(profile.language) : "—"} />
+          </div>
+        )}
+        renderEditable={() => (
+          <>
+            <div>
+              <p className="mb-1 text-xs font-semibold text-slate-500">สไตล์การพูด</p>
+              <div className="grid grid-cols-2 gap-2">
+                {(["friendly", "direct", "gentle", "strict"] as const).map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => update("coachingTone", t)}
+                    className={`rounded-2xl border py-2 text-sm font-semibold ${profile.coachingTone === t ? "border-[#17201d] bg-[#17201d] text-white" : "border-slate-200 text-slate-600"}`}
+                  >
+                    {toneLabel(t)}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="mb-1 text-xs font-semibold text-slate-500">ความละเอียดคำตอบ</p>
+              <div className="flex gap-2">
+                {(["short", "medium", "detailed"] as const).map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => update("responseDetail", d)}
+                    className={`flex-1 rounded-2xl border py-2 text-sm font-semibold ${profile.responseDetail === d ? "border-[#17201d] bg-[#17201d] text-white" : "border-slate-200 text-slate-600"}`}
+                  >
+                    {detailLabel(d)}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="mb-1 text-xs font-semibold text-slate-500">ภาษา</p>
+              <div className="flex gap-2">
+                {(["th", "en", "mixed"] as const).map((l) => (
+                  <button
+                    key={l}
+                    type="button"
+                    onClick={() => update("language", l)}
+                    className={`flex-1 rounded-2xl border py-2 text-sm font-semibold ${profile.language === l ? "border-[#17201d] bg-[#17201d] text-white" : "border-slate-200 text-slate-600"}`}
+                  >
+                    {langLabel(l)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+      />
+
+      {/* ── 8. Advanced ── */}
+      <EditableSection
+        title="Advanced"
+        open={openSection === "advanced"}
+        onToggle={() => toggleSection("advanced")}
+        isEditing={editingSection === "advanced"}
+        onStartEdit={() => startSectionEdit("advanced")}
+        onSaveEdit={() => saveSectionEdit("advanced")}
+        onCancelEdit={cancelSectionEdit}
+        isSaved={savedSections.advanced}
+        renderReadonly={() => (
+          <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-2">
+              <StatCard label="ส่วนสูง" value={profile.heightCm != null ? `${profile.heightCm} cm` : "—"} />
+              <StatCard label="น้ำหนัก" value={profile.weightKg != null ? `${profile.weightKg} kg` : "—"} />
+            </div>
+            <div className="rounded-xl bg-slate-50 px-3 py-2.5">
+              <p className="text-[11px] text-slate-400">ตารางงาน</p>
+              <p className="text-sm font-semibold text-[#17201d]">{profile.workSchedule || "—"}</p>
+            </div>
+            <div className="rounded-xl bg-slate-50 px-3 py-2.5">
+              <p className="text-[11px] text-slate-400">Timezone</p>
+              <p className="text-sm font-semibold text-[#17201d]">{profile.timezone || "—"}</p>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <StatCard label="LT HR" value={profile.lactateThresholdHr != null ? `${profile.lactateThresholdHr} bpm` : "—"} />
+              <StatCard label="VO2max" value={profile.vo2max != null ? String(profile.vo2max) : "—"} />
+              <StatCard label="Cadence" value={profile.averageCadence != null ? `${profile.averageCadence} spm` : "—"} />
+            </div>
+            <div className="rounded-xl bg-slate-50 px-3 py-2.5">
+              <p className="text-[11px] text-slate-400">อุปกรณ์ที่มี</p>
+              <p className="text-sm font-semibold text-[#17201d]">
+                {Array.isArray(profile.availableEquipment)
+                  ? profile.availableEquipment.join(", ")
+                  : profile.availableEquipment || "—"}
+              </p>
+            </div>
+            <div className="rounded-xl bg-slate-50 px-3 py-2.5">
+              <p className="text-[11px] text-slate-400">เป้าหมายโภชนาการ</p>
+              <p className="text-sm font-semibold text-[#17201d] leading-relaxed whitespace-pre-wrap">{profile.nutritionGoal || "—"}</p>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <StatCard label="อาหารที่ชอบ" value={profile.foodPreferences || "—"} />
+              <StatCard label="แพ้อาหาร / ข้อจำกัด" value={profile.allergiesOrRestrictions || "—"} />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <StatCard label="คาเฟอีน" value={profile.caffeineHabit || "—"} />
+              <StatCard label="อาหารเสริม" value={profile.supplementNotes || "—"} />
+            </div>
+          </div>
+        )}
+        renderEditable={() => (
+          <>
+            <p className="text-xs text-slate-400">ฟิลด์เสริมสำหรับ AI ที่ต้องการข้อมูลเพิ่มเติม</p>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <span className="text-xs font-semibold text-slate-500">ส่วนสูง (cm)</span>
+                <NumberInput placeholder="สูง (cm)" value={profile.heightCm} onChange={(v) => update("heightCm", v)} />
+              </div>
+              <div className="space-y-1">
+                <span className="text-xs font-semibold text-slate-500">น้ำหนัก (kg)</span>
+                <NumberInput placeholder="หนัก (kg)" value={profile.weightKg} onChange={(v) => update("weightKg", v)} />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <span className="text-xs font-semibold text-slate-500">ตารางงาน</span>
+              <input
+                className="control"
+                placeholder="ตารางงาน เช่น ทำงานวันธรรมดา เลิก 18:00"
+                value={profile.workSchedule ?? ""}
+                onChange={(e) => update("workSchedule", e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <span className="text-xs font-semibold text-slate-500">Timezone</span>
+              <input
+                className="control"
+                placeholder="Timezone เช่น Asia/Bangkok"
+                value={profile.timezone ?? ""}
+                onChange={(e) => update("timezone", e.target.value)}
+              />
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="space-y-1">
+                <span className="text-xs font-semibold text-slate-500">LT HR</span>
+                <NumberInput placeholder="LT HR" value={profile.lactateThresholdHr} onChange={(v) => update("lactateThresholdHr", v)} />
+              </div>
+              <div className="space-y-1">
+                <span className="text-xs font-semibold text-slate-500">VO2max</span>
+                <NumberInput placeholder="VO2max" value={profile.vo2max} onChange={(v) => update("vo2max", v)} />
+              </div>
+              <div className="space-y-1">
+                <span className="text-xs font-semibold text-slate-500">Cadence spm</span>
+                <NumberInput placeholder="Cadence spm" value={profile.averageCadence} onChange={(v) => update("averageCadence", v)} />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <span className="text-xs font-semibold text-slate-500">อุปกรณ์ที่มี</span>
+              <textarea
+                className="control min-h-14"
+                placeholder="อุปกรณ์ที่มี เช่น treadmill, track, foam roller"
+                value={(Array.isArray(profile.availableEquipment) ? profile.availableEquipment.join(", ") : profile.availableEquipment) ?? ""}
+                onChange={(e) => update("availableEquipment", e.target.value ? e.target.value.split(",").map((s) => s.trim()) : undefined)}
+              />
+            </div>
+            <div className="space-y-1">
+              <span className="text-xs font-semibold text-slate-500">เป้าหมายโภชนาการ</span>
+              <textarea
+                className="control min-h-14"
+                placeholder="เป้าหมายโภชนาการ เช่น รักษาน้ำหนัก, เพิ่มพลังงานซ้อม"
+                value={profile.nutritionGoal ?? ""}
+                onChange={(e) => update("nutritionGoal", e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <span className="text-xs font-semibold text-slate-500">อาหารที่ชอบ</span>
+              <input
+                className="control"
+                placeholder="อาหารที่ชอบ เช่น ข้าว ผัดผัก ไก่"
+                value={profile.foodPreferences ?? ""}
+                onChange={(e) => update("foodPreferences", e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <span className="text-xs font-semibold text-slate-500">แพ้อาหาร / ข้อจำกัด</span>
+              <input
+                className="control"
+                placeholder="แพ้อาหาร / ข้อจำกัด เช่น แพ้นม ไม่กินเนื้อ"
+                value={profile.allergiesOrRestrictions ?? ""}
+                onChange={(e) => update("allergiesOrRestrictions", e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <span className="text-xs font-semibold text-slate-500">กาแฟ/คาเฟอีน</span>
+              <input
+                className="control"
+                placeholder="กาแฟ/คาเฟอีน เช่น กาแฟเช้า 1 แก้ว"
+                value={profile.caffeineHabit ?? ""}
+                onChange={(e) => update("caffeineHabit", e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <span className="text-xs font-semibold text-slate-500">อาหารเสริม</span>
+              <input
+                className="control"
+                placeholder="อาหารเสริม เช่น โปรตีน, วิตามิน D"
+                value={profile.supplementNotes ?? ""}
+                onChange={(e) => update("supplementNotes", e.target.value)}
+              />
+            </div>
+          </>
+        )}
+      />
+
+      {loadingCloud && (
+        <p className="text-center text-xs text-slate-400">กำลังโหลดโปรไฟล์…</p>
+      )}
+
+      {status.text ? (
+        <p className={`rounded-2xl p-3 text-sm font-semibold ${statusClass(status.tone)}`}>{status.text}</p>
+      ) : null}
+
+      <button className="btn-primary w-full py-3" type="submit" disabled={saving}>
+        {saving ? "กำลังบันทึก…" : "บันทึกโปรไฟล์"}
+      </button>
+
+      {IS_DEV && (
+        <div className="rounded-2xl border border-dashed border-slate-200">
+          <button
+            type="button"
+            onClick={() => setDevOpen((o) => !o)}
+            className="flex w-full items-center justify-between px-4 py-2 text-left"
+          >
+            <span className="text-xs font-mono text-slate-400">Developer tools</span>
+            <span className="text-slate-300 text-sm">{devOpen ? "−" : "+"}</span>
+          </button>
+          {devOpen && (
+            <div className="space-y-2 border-t border-dashed border-slate-200 px-4 pb-3 pt-2">
+              <div className="flex gap-2">
+                <button type="button" className="btn-secondary flex-1 py-2 text-xs" onClick={devSyncToSupabase}>
+                  ซิงก์ข้อมูลไปคลาวด์
+                </button>
+                <button type="button" className="btn-secondary flex-1 py-2 text-xs" onClick={devLoadFromSupabase}>
+                  โหลดข้อมูลจากคลาวด์
+                </button>
+              </div>
+              {devStatus && <p className="text-xs font-mono text-slate-500">{devStatus}</p>}
+            </div>
+          )}
+        </div>
+      )}
+    </form>
+  );
+}
+
+
+
+function EditableSection({
+  title,
+  open,
+  onToggle,
+  isEditing,
+  onStartEdit,
+  onSaveEdit,
+  onCancelEdit,
+  hasHistoryAnalysis,
+  isSaved,
+  renderReadonly,
+  renderEditable,
+}: {
+  title: string;
+  open: boolean;
+  onToggle: () => void;
+  isEditing: boolean;
+  onStartEdit: () => void;
+  onSaveEdit: () => void;
+  onCancelEdit: () => void;
+  hasHistoryAnalysis?: boolean;
+  isSaved?: boolean;
+  renderReadonly: () => React.ReactNode;
+  renderEditable: () => React.ReactNode;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-100 overflow-hidden bg-white/40">
+      <div className="flex items-center">
+        <button
+          type="button"
+          onClick={onToggle}
+          className="flex flex-1 items-center justify-between px-4 py-3 text-left"
+        >
+          <p className="text-sm font-bold text-[#17201d]">{title}</p>
+          <span className="text-slate-400 text-lg leading-none">{open ? "−" : "+"}</span>
+        </button>
+        {open && !isEditing && (
+          <button
+            type="button"
+            onClick={onStartEdit}
+            className="mr-4 shrink-0 text-xs font-semibold text-[#42677f] hover:underline"
+          >
+            แก้ไข
+          </button>
+        )}
+        {open && isEditing && (
+          <div className="mr-4 flex shrink-0 gap-3">
+            <button
+              type="button"
+              onClick={onSaveEdit}
+              className="text-xs font-semibold text-[#42677f] hover:underline"
+            >
+              บันทึก
+            </button>
+            <button
+              type="button"
+              onClick={onCancelEdit}
+              className="text-xs font-semibold text-slate-400 hover:underline"
+            >
+              ยกเลิก
+            </button>
+          </div>
+        )}
+      </div>
+
+      {open && (
+        <div className="space-y-3 border-t border-slate-100 px-4 pb-4 pt-3">
+          {hasHistoryAnalysis && !isEditing && (
+            <p className="text-[11px] text-[#42677f]">✨ ค่าบางส่วนอัปเดตจากประวัติการซ้อมล่าสุด</p>
+          )}
+          {isSaved && !isEditing && (
+            <p className="text-[11px] text-green-600 font-semibold">✓ บันทึก{title}แล้ว</p>
+          )}
+          {isEditing ? renderEditable() : renderReadonly()}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function NumberInput({ placeholder, value, onChange }: { placeholder: string; value?: number; onChange: (value: number | undefined) => void }) {
+  return (
+    <input
+      className="control"
+      type="number"
+      placeholder={placeholder}
+      value={value ?? ""}
+      onChange={(e) => onChange(e.target.value ? Number(e.target.value) : undefined)}
+    />
+  );
+}
+
+function statusClass(tone: Status["tone"]) {
+  if (tone === "good") return "bg-green-50 text-green-700";
+  if (tone === "warn") return "bg-amber-50 text-amber-700";
+  if (tone === "bad") return "bg-red-50 text-red-700";
+  return "bg-slate-50 text-slate-600";
+}
+
+
+function toneLabel(t: string) {
+  return { friendly: "เป็นกันเอง", direct: "ตรงๆ", gentle: "นุ่มนวล", strict: "เข้มงวด" }[t] ?? t;
+}
+function detailLabel(d: string) {
+  return { short: "สั้น", medium: "กลาง", detailed: "ละเอียด" }[d] ?? d;
+}
+function langLabel(l: string) {
+  return { th: "ไทย", en: "English", mixed: "ผสม" }[l] ?? l;
+}
+function priorityLabel(g: string) {
+  return { finish: "จบให้ได้", time: "ทำเวลา", injury_free: "ไม่เจ็บ", consistency: "สม่ำเสมอ", fitness: "สุขภาพดี" }[g] ?? g;
+}
+function runTimeLabel(t: string) {
+  return { morning: "เช้า", evening: "เย็น", night: "กลางคืน", flexible: "ยืดหยุ่น" }[t] ?? t;
+}
+
+function StatCard({ label, value, note }: { label: string; value: string; note?: string }) {
+  return (
+    <div className="rounded-xl bg-slate-50 px-3 py-2.5">
+      <p className="text-[11px] text-slate-400">{label}</p>
+      <p className="text-sm font-semibold text-[#17201d]">{value}</p>
+      {note && <p className="mt-0.5 text-[10px] leading-tight text-slate-400">{note}</p>}
+    </div>
+  );
+}
+
+// Source-aware field wrapper: label + badge + children (the input)
+function SrcField({
+  label,
+  unit,
+  fieldKey,
+  sources,
+  children,
+}: {
+  label: string;
+  unit?: string;
+  fieldKey: string;
+  sources?: UserProfile["fieldSources"];
+  children: React.ReactNode;
+}) {
+  const src = sources?.[fieldKey];
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center gap-1.5">
+        <span className="text-xs font-semibold text-slate-500">
+          {label}
+          {unit && <span className="ml-1 font-normal text-slate-400">{unit}</span>}
+        </span>
+        {src === "history_analysis" && (
+          <span className="rounded-full bg-[#e7efea] px-1.5 py-0.5 text-[10px] font-bold text-[#42677f]">
+            จากประวัติ
+          </span>
+        )}
+        {src === "manual" && (
+          <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-500">
+            แก้เอง
+          </span>
+        )}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+
