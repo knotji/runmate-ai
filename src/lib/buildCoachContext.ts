@@ -24,11 +24,13 @@ export type WeekSleepRow = {
 };
 
 export type PainSummary = {
+  id: string;
   date: string;
   painLocation: string;
   painLevel: number;
   riskLevel: string;
   trainingImpact: string;
+  coachAdvice: string;
 };
 
 export type CoachContext = {
@@ -193,11 +195,13 @@ export function buildCoachContextFromData(input: {
   const recentPainLogs: PainSummary[] = painItems.map((item) => {
     const d = item.data as PainLog;
     return {
+      id: item.id,
       date: item.createdAt.slice(0, 10),
       painLocation: d?.painLocation ?? "ไม่ระบุ",
       painLevel: d?.painLevel ?? 0,
       riskLevel: d?.riskLevel ?? "unknown",
       trainingImpact: d?.trainingImpact ?? "unknown",
+      coachAdvice: d?.coachAdvice ?? "",
     };
   });
 

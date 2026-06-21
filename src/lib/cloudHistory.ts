@@ -89,6 +89,22 @@ export async function loadHistoryItems(types?: HistoryType[]): Promise<{ ok: tru
   return { ok: true, items };
 }
 
+export async function loadHistoryItemById(id: string): Promise<{ ok: true; item: LocalHistoryItem } | { ok: false; error: string }> {
+  const session = await ensureSupabaseProfileSession();
+  if (!session.ok) return { ok: false, error: sessionMessage(session) };
+
+  const { data, error } = await session.supabase
+    .from("history_items")
+    .select("id, type, created_at, data")
+    .eq("user_id", session.userId)
+    .eq("id", id)
+    .single();
+
+  if (error || !data) return { ok: false, error: error?.message ?? "ไม่พบข้อมูล" };
+  const row = data as HistoryRow;
+  return { ok: true, item: { id: row.id, type: row.type, createdAt: row.created_at, data: row.data } };
+}
+
 function sessionMessage(session: { reason: string; message?: string }) {
   return session.message ?? session.reason;
 }

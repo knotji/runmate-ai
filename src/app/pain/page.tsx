@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
 import { fileToDataUrl } from "@/lib/storage";
-import { createHistoryItem, saveHistoryItems } from "@/lib/cloudHistory";
+import { createHistoryItem, loadHistoryItemById, saveHistoryItems } from "@/lib/cloudHistory";
 import type { PainLog, PainAnalysisResult, PainSide, PainTriYesNo, PainRiskLevel, PainTrainingImpact } from "@/types/pain";
 
 // ── form field options ───────────────────────────────────────────────────────
@@ -79,6 +80,9 @@ function impactLabel(impact: PainTrainingImpact) {
 // ── component ────────────────────────────────────────────────────────────────
 
 export default function PainPage() {
+  const searchParams = useSearchParams();
+  const fromId = searchParams.get("from");
+
   // form
   const [painLocation, setPainLocation] = useState("");
   const [painSide, setPainSide] = useState<PainSide>("unknown");
@@ -96,10 +100,35 @@ export default function PainPage() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   // state
+  const [prefillComplete, setPrefillComplete] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<PainAnalysisResult | null>(null);
   const [saved, setSaved] = useState(false);
+
+  // Derive: show loading spinner while waiting for prefill (only when ?from is present)
+  const prefilling = fromId !== null && !prefillComplete;
+
+  // Prefill from existing pain log when ?from=[id] is present
+  useEffect(() => {
+    if (!fromId) return;
+    // Do not call setState synchronously here — only in the async callback below
+    loadHistoryItemById(fromId).then((res) => {
+      if (res.ok) {
+        const log = res.item.data as PainLog;
+        if (log?.painLocation) setPainLocation(log.painLocation);
+        if (log?.painSide)     setPainSide(log.painSide);
+        if (log?.painLevel != null) setPainLevel(log.painLevel);
+        if (log?.startedWhen) setStartedWhen(log.startedWhen);
+        if (Array.isArray(log?.painType))    setPainType(log.painType);
+        if (Array.isArray(log?.painfulWhen)) setPainfulWhen(log.painfulWhen);
+        if (log?.swellingOrRedness) setSwellingOrRedness(log.swellingOrRedness);
+        if (log?.canBearWeight)     setCanBearWeight(log.canBearWeight);
+        if (log?.notes) setNotes(log.notes);
+      }
+      setPrefillComplete(true);
+    });
+  }, [fromId]);
 
   function toggleMulti(list: string[], value: string, setter: (v: string[]) => void) {
     setter(list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
@@ -192,8 +221,19 @@ export default function PainPage() {
     if (inputRef.current) inputRef.current.value = "";
   }
 
+  if (prefilling) {
+    return (
+      <AppShell title={fromId ? "อัปเดตอาการ" : "แจ้งอาการเจ็บ"} subtitle="กำลังโหลดข้อมูล...">
+        <section className="card p-5 text-sm text-slate-500">กำลังโหลดข้อมูล...</section>
+      </AppShell>
+    );
+  }
+
   return (
-    <AppShell title="แจ้งอาการเจ็บ" subtitle="ประเมินผลกระทบต่อการซ้อม · ไม่ใช่การวินิจฉัยทางการแพทย์">
+    <AppShell
+      title={fromId ? "อัปเดตอาการ" : "แจ้งอาการเจ็บ"}
+      subtitle="ประเมินผลกระทบต่อการซ้อม · ไม่ใช่การวินิจฉัยทางการแพทย์"
+    >
 
       {/* Result card */}
       {result && saved && (

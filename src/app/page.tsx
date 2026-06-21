@@ -165,9 +165,9 @@ export default function TodayPage() {
         </section>
       )}
 
-      {/* ── Pain warning (medium / high risk today or yesterday) ─ */}
-      {coachCtx?.recentPainLogs && coachCtx.recentPainLogs.some((p) => p.riskLevel === "high" || p.riskLevel === "medium") && (
-        <RecentPainCard pains={coachCtx.recentPainLogs.filter((p) => p.riskLevel === "high" || p.riskLevel === "medium")} />
+      {/* ── Pain card (any recent pain log) ────────────────────── */}
+      {coachCtx?.recentPainLogs && coachCtx.recentPainLogs.length > 0 && (
+        <RecentPainCard pains={coachCtx.recentPainLogs} />
       )}
 
       {/* ── Today nutrition mini-card ─────────────────────────── */}
@@ -246,22 +246,55 @@ function todayProteinTarget(profile: Record<string, unknown> | null): number {
 function RecentPainCard({ pains }: { pains: PainSummary[] }) {
   const latest = pains[0];
   const isHighRisk = latest.riskLevel === "high";
+  const isMediumRisk = latest.riskLevel === "medium";
+  const isLowRisk = !isHighRisk && !isMediumRisk;
+
+  const borderClass = isHighRisk ? "border-red-200 bg-red-50"
+    : isMediumRisk ? "border-amber-200 bg-amber-50"
+    : "border-[#d9e8df] bg-[#f5faf7]";
+  const labelClass = isHighRisk ? "text-red-600" : isMediumRisk ? "text-amber-600" : "text-[#2a5a39]";
+  const badgeClass = isHighRisk ? "bg-red-100 text-red-700" : isMediumRisk ? "bg-amber-100 text-amber-700" : "bg-[#e7efea] text-[#2a5a39]";
+  const btnClass   = isHighRisk ? "bg-red-100 text-red-700 hover:bg-red-200"
+    : isMediumRisk ? "bg-amber-100 text-amber-700 hover:bg-amber-200"
+    : "bg-[#e7efea] text-[#2a5a39] hover:bg-[#d9e8df]";
+
+  const shortAdvice = latest.coachAdvice
+    ? latest.coachAdvice.split("。").join("。\n").split(/[.。]\s/)[0]
+    : isHighRisk ? "ควรพักและปรึกษาผู้เชี่ยวชาญก่อนซ้อม"
+    : isMediumRisk ? "แนะนำลดปริมาณซ้อม หลีกเลี่ยง speed work"
+    : "อาการยังเบา ฟังร่างกายอย่างใกล้ชิด";
+
   return (
-    <section className={`card px-5 py-4 space-y-2 border ${isHighRisk ? "border-red-200 bg-red-50" : "border-amber-200 bg-amber-50"}`}>
+    <section className={`card px-5 py-4 space-y-3 border ${borderClass}`}>
       <div className="flex items-center justify-between gap-3">
-        <p className={`text-xs font-bold uppercase tracking-[0.15em] ${isHighRisk ? "text-red-600" : "text-amber-600"}`}>
+        <p className={`text-xs font-bold uppercase tracking-[0.15em] ${labelClass}`}>
           🩹 มีอาการเจ็บ — {latest.painLocation}
         </p>
-        <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${isHighRisk ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>
+        <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-bold ${badgeClass}`}>
           {latest.painLevel}/10
         </span>
       </div>
-      <p className={`text-sm font-semibold ${isHighRisk ? "text-red-700" : "text-amber-700"}`}>
-        {isHighRisk ? "ควรพักและปรึกษาผู้เชี่ยวชาญก่อนซ้อม" : "แนะนำลดปริมาณซ้อม หลีกเลี่ยง speed work"}
-      </p>
-      <Link href="/pain" className={`block text-center rounded-full py-1.5 text-xs font-bold ${isHighRisk ? "bg-red-100 text-red-700 hover:bg-red-200" : "bg-amber-100 text-amber-700 hover:bg-amber-200"}`}>
-        แจ้งอาการใหม่ / ดูรายละเอียด
-      </Link>
+
+      {shortAdvice && (
+        <p className={`text-sm leading-5 ${isLowRisk ? "text-slate-600" : isHighRisk ? "text-red-700 font-semibold" : "text-amber-700 font-semibold"}`}>
+          {shortAdvice}
+        </p>
+      )}
+
+      <div className="grid grid-cols-2 gap-2">
+        <Link
+          href={`/pain/${encodeURIComponent(latest.id)}`}
+          className={`rounded-full py-2 text-center text-xs font-bold transition-colors ${btnClass}`}
+        >
+          ดูรายละเอียด
+        </Link>
+        <Link
+          href={`/pain?from=${encodeURIComponent(latest.id)}`}
+          className="rounded-full bg-[#17201d] py-2 text-center text-xs font-bold text-white hover:bg-[#2a3d35] transition-colors"
+        >
+          อัปเดตอาการ
+        </Link>
+      </div>
     </section>
   );
 }
