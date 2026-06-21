@@ -6,10 +6,11 @@ import { loadProfileFromSupabase, saveProfileToSupabase } from "@/lib/profileSto
 import { loadHistoryItems } from "@/lib/cloudHistory";
 import { invalidateCoachCache } from "@/lib/invalidateCoachCache";
 import {
-  getAutoSavableProfileUpdates,
+  buildAutoSaveDecisions,
   filterManualFields,
   buildSourceUpdates,
 } from "@/lib/profile/autoSaveHistorySuggestions";
+import type { SafeMergeDecision } from "@/lib/profile/autoSaveHistorySuggestions";
 import { calculateNutritionTargetsFromWeight } from "@/lib/nutritionTargets";
 import type { ProfileAnalysisResult, ProfileAnalysisSuggestions } from "@/lib/analyzeHistory";
 import type { UserProfile } from "@/types/profile";
@@ -119,6 +120,7 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
   const [savedKeys, setSavedKeys] = useState<string[]>([]);
   const [reviewItems, setReviewItems] = useState<ReviewItem[]>([]);
   const [manualItems, setManualItems] = useState<ManualItem[]>([]);
+  const [keptExisting, setKeptExisting] = useState<SafeMergeDecision[]>([]);
   const [nutritionSummary, setNutritionSummary] = useState<NutritionUpdateSummary | null>(null);
   const [error, setError] = useState("");
   const [currentProfile, setCurrentProfile] = useState<UserProfile | null>(null);
@@ -130,6 +132,7 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
     setSavedKeys([]);
     setReviewItems([]);
     setManualItems([]);
+    setKeptExisting([]);
     setNutritionSummary(null);
 
     try {
@@ -162,23 +165,31 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
         suggestions.maxHr = stats.maxObservedHR;
       }
 
-      // Compute auto-saveable updates
-      const allUpdates = getAutoSavableProfileUpdates({ suggestions, confidence });
-
-      // Filter out manual fields — don't overwrite what the user edited
-      const existingSources = profile?.fieldSources ?? {};
-      const { toSave, manualSkipped } = filterManualFields({ updates: allUpdates, existingSources });
+      // Safe merge — validates & coerces AI suggestions, guards against null-overwrite
+      const { toSave, manualSkipped, decisions } = buildAutoSaveDecisions({
+        suggestions,
+        confidence,
+        existingProfile: profile ?? undefined,
+        existingSources: profile?.fieldSources ?? {},
+      });
 
       const updatedKeys = Object.keys(toSave);
 
-      // Apply & persist
+      // Track current profile in a local var so the nutrition block sees the latest
+      // version without waiting for React state to flush (setCurrentProfile is async).
+      let latestSavedProfile: UserProfile = profile ?? ({ displayName: "นักวิ่ง" } as UserProfile);
+
+      // Apply & persist training stats
       if (updatedKeys.length > 0) {
-        const base = profile ?? { displayName: "นักวิ่ง" };
-        const merged = await applyAndPersist(base as UserProfile, toSave, buildSourceUpdates(updatedKeys), onProfileUpdated);
+        const merged = await applyAndPersist(latestSavedProfile, toSave, buildSourceUpdates(updatedKeys), onProfileUpdated);
         setCurrentProfile(merged);
+        latestSavedProfile = merged;  // keep local ref in sync immediately
       }
 
-      // Manual-skipped items (user had manually edited these)
+      // Fields where the AI had no valid suggestion but the user already had a value
+      const keptExistingDecisions = decisions.filter((d) => d.action === "kept_existing");
+
+      // Manual-skipped items (user had manually edited these; show override UI)
       const manualReview: ManualItem[] = manualSkipped
         .filter((k) => suggestions[k as keyof ProfileAnalysisSuggestions] != null)
         .map((k) => ({
@@ -241,10 +252,11 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
         });
 
         const nutritionKeys = Object.keys(nutritionToSave);
-        const baseProfile = (currentProfile ?? profile ?? { displayName: "นักวิ่ง" }) as UserProfile;
+        // Use latestSavedProfile (updated synchronously above) — not the stale React state
         if (nutritionKeys.length > 0) {
-          const merged = await applyAndPersist(baseProfile, nutritionToSave, buildSourceUpdates(nutritionKeys), onProfileUpdated);
+          const merged = await applyAndPersist(latestSavedProfile, nutritionToSave, buildSourceUpdates(nutritionKeys), onProfileUpdated);
           setCurrentProfile(merged);
+          latestSavedProfile = merged;
           setSavedKeys((prev) => [...new Set([...prev, ...nutritionKeys])]);
         }
 
@@ -257,9 +269,10 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
 
       setResult(data);
       setNutritionSummary(nutritionUpdate);
-      setSavedKeys((prev) => [...new Set([...prev, ...updatedKeys])]);  // updatedKeys = training stats auto-saved
+      setSavedKeys((prev) => [...new Set([...prev, ...updatedKeys])]);
       setReviewItems(review);
       setManualItems(manualReview);
+      setKeptExisting(keptExistingDecisions);
       setState("done");
     } catch (e) {
       setError(e instanceof Error ? e.message : "เกิดข้อผิดพลาด");
@@ -363,6 +376,21 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
                       ไม่ได้อัปเดต {nutritionSummary.skippedManual.map((k) => SHORT_LABEL_ALL[k] ?? k).join(", ")} เพราะคุณเคยแก้เอง
                     </p>
                   )}
+                </div>
+              )}
+
+              {/* Fields that could not be inferred — existing values preserved */}
+              {keptExisting.length > 0 && (
+                <div className="rounded-2xl bg-slate-50 p-3 space-y-1.5">
+                  <p className="text-xs font-bold text-slate-500">ใช้ค่าเดิมต่อ (ข้อมูลไม่พอสำหรับ)</p>
+                  {keptExisting.map((d) => (
+                    <p key={d.key} className="text-xs text-slate-500">
+                      · {SHORT_LABEL[d.key as keyof ProfileAnalysisSuggestions] ?? d.key} ยังวิเคราะห์ไม่ได้จากข้อมูลล่าสุด เลยใช้ค่าเดิมต่อ
+                      {d.existingValue != null && (
+                        <span className="ml-1 font-medium text-slate-600">({formatValue(d.existingValue)})</span>
+                      )}
+                    </p>
+                  ))}
                 </div>
               )}
 
