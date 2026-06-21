@@ -156,7 +156,7 @@ export function RaceGoalForm({ onCreated }: { onCreated: (goal: RaceGoal, plan: 
       <Field label="เป้าหมายเวลา (ไม่บังคับ)">
         <input
           className="control"
-          placeholder="เช่น 4:30 ชั่วโมง หรือ 55 นาที"
+          placeholder={targetTimePlaceholder(goal.raceDistance)}
           value={goal.targetTime ?? ""}
           onChange={(e) => update("targetTime", e.target.value)}
         />
@@ -231,6 +231,14 @@ export function RaceGoalForm({ onCreated }: { onCreated: (goal: RaceGoal, plan: 
       {loading && <LoadingState />}
     </form>
   );
+}
+
+function targetTimePlaceholder(distance: string): string {
+  if (distance === "5K") return "เช่น 25:00 หรือ 30 นาที";
+  if (distance === "10K") return "เช่น 55:00 หรือ 1:05 ชั่วโมง";
+  if (distance === "Half Marathon") return "เช่น 2:00 ชั่วโมง หรือ 1:55:00";
+  if (distance === "Full Marathon") return "เช่น 4:30 ชั่วโมง หรือ 4:15:00";
+  return "เช่น 55 นาที หรือ 1:30 ชั่วโมง";
 }
 
 function Field({ label, isAutoFilled, children }: { label: string; isAutoFilled?: boolean; children: React.ReactNode }) {
