@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { formatThaiDate } from "@/lib/date";
-import { buildCoachContextFromSupabase, type CoachContext, type NutritionDaySummary } from "@/lib/buildCoachContext";
+import { buildCoachContextFromSupabase, type CoachContext, type NutritionDaySummary, type PainSummary } from "@/lib/buildCoachContext";
 import { loadActiveRaceGoalAndPlan } from "@/lib/raceStorage";
 import type { RaceGoal } from "@/types/race";
 import type { DailyCoachInsight } from "@/types/ai";
@@ -14,6 +14,7 @@ const QUICK_ACTIONS = [
   { href: "/upload?type=meal",    icon: "🍱", label: "อาหาร" },
   { href: "/upload?type=workout", icon: "🏃", label: "วิ่ง" },
   { href: "/summary",             icon: "📋", label: "สรุปวัน" },
+  { href: "/pain",                icon: "🩹", label: "เจ็บ" },
 ] as const;
 
 export default function TodayPage() {
@@ -164,6 +165,11 @@ export default function TodayPage() {
         </section>
       )}
 
+      {/* ── Pain warning (medium / high risk today or yesterday) ─ */}
+      {coachCtx?.recentPainLogs && coachCtx.recentPainLogs.some((p) => p.riskLevel === "high" || p.riskLevel === "medium") && (
+        <RecentPainCard pains={coachCtx.recentPainLogs.filter((p) => p.riskLevel === "high" || p.riskLevel === "medium")} />
+      )}
+
       {/* ── Today nutrition mini-card ─────────────────────────── */}
       {coachCtx?.nutritionToday && (
         <TodayNutritionCard nutrition={coachCtx.nutritionToday} profile={coachCtx.profile} />
@@ -171,7 +177,7 @@ export default function TodayPage() {
 
       {/* ── Quick actions ─────────────────────────────────────── */}
       <section className="card p-4">
-        <div className="grid grid-cols-4 gap-1">
+        <div className="grid grid-cols-5 gap-1">
           {QUICK_ACTIONS.map(({ href, icon, label }) => (
             <Link
               key={href}
@@ -235,6 +241,29 @@ function todayProteinTarget(profile: Record<string, unknown> | null): number {
   const wt = Number(profile?.weightKg);
   if (Number.isFinite(wt) && wt > 0) return Math.round(wt * 1.6);
   return 90;
+}
+
+function RecentPainCard({ pains }: { pains: PainSummary[] }) {
+  const latest = pains[0];
+  const isHighRisk = latest.riskLevel === "high";
+  return (
+    <section className={`card px-5 py-4 space-y-2 border ${isHighRisk ? "border-red-200 bg-red-50" : "border-amber-200 bg-amber-50"}`}>
+      <div className="flex items-center justify-between gap-3">
+        <p className={`text-xs font-bold uppercase tracking-[0.15em] ${isHighRisk ? "text-red-600" : "text-amber-600"}`}>
+          🩹 มีอาการเจ็บ — {latest.painLocation}
+        </p>
+        <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${isHighRisk ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>
+          {latest.painLevel}/10
+        </span>
+      </div>
+      <p className={`text-sm font-semibold ${isHighRisk ? "text-red-700" : "text-amber-700"}`}>
+        {isHighRisk ? "ควรพักและปรึกษาผู้เชี่ยวชาญก่อนซ้อม" : "แนะนำลดปริมาณซ้อม หลีกเลี่ยง speed work"}
+      </p>
+      <Link href="/pain" className={`block text-center rounded-full py-1.5 text-xs font-bold ${isHighRisk ? "bg-red-100 text-red-700 hover:bg-red-200" : "bg-amber-100 text-amber-700 hover:bg-amber-200"}`}>
+        แจ้งอาการใหม่ / ดูรายละเอียด
+      </Link>
+    </section>
+  );
 }
 
 function TodayNutritionCard({ nutrition, profile }: { nutrition: NutritionDaySummary; profile: Record<string, unknown> | null }) {

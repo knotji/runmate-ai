@@ -153,4 +153,5 @@ const emptyContext: CoachContext = {
   latestBody: null,
   todayDate: "",
   contextNotes: [],
+  recentPainLogs: [],
 };

@@ -1,4 +1,4 @@
-export type HistoryType = "sleep" | "meal" | "workout" | "body" | "summary";
+export type HistoryType = "sleep" | "meal" | "workout" | "body" | "summary" | "pain";
 
 export type LocalHistoryItem = {
   id: string;

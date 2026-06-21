@@ -6,6 +6,7 @@ import { loadActiveRaceGoalAndPlan } from "@/lib/raceStorage";
 import { loadRaceResults } from "@/lib/raceResults";
 import type { LocalHistoryItem } from "@/lib/localHistory";
 import type { SleepAnalysis, WorkoutAnalysis, BodyCompositionAnalysis, MealAnalysis } from "@/types/logs";
+import type { PainLog } from "@/types/pain";
 import type { RaceResult } from "@/types/race";
 
 export type DayWorkoutSummary = {
@@ -20,6 +21,14 @@ export type WeekSleepRow = {
   durationH: string | null;
   score: number | null;
   readiness: number | null;
+};
+
+export type PainSummary = {
+  date: string;
+  painLocation: string;
+  painLevel: number;
+  riskLevel: string;
+  trainingImpact: string;
 };
 
 export type CoachContext = {
@@ -53,6 +62,7 @@ export type CoachContext = {
   latestBody: { weightKg: number | null; bodyFatPct: number | null; muscleKg: number | null } | null;
   todayDate: string;
   contextNotes: string[];
+  recentPainLogs: PainSummary[];
 };
 
 export type NutritionDaySummary = {
@@ -76,12 +86,13 @@ function dateBefore(days: number): string {
 }
 
 export function buildCoachContext(): CoachContext {
-  return buildCoachContextFromData({ items: [], profile: null, raceGoal: null, racePlan: null });
+  const ctx = buildCoachContextFromData({ items: [], profile: null, raceGoal: null, racePlan: null });
+  return ctx;
 }
 
 export async function buildCoachContextFromSupabase(): Promise<CoachContext> {
   const [historyResult, profileResult, raceResult, completedRaceResult] = await Promise.all([
-    loadHistoryItems(["sleep", "workout", "body", "meal"]),
+    loadHistoryItems(["sleep", "workout", "body", "meal", "pain"]),
     loadProfileFromSupabase(),
     loadActiveRaceGoalAndPlan(),
     loadRaceResults(5),
@@ -175,6 +186,21 @@ export function buildCoachContextFromData(input: {
   const runDays7d = workouts7d.filter((day) => day.runs.length > 0).length;
   const lastWorkoutDate = workouts7d[0]?.date ?? null;
 
+  // Pain logs — last 7 days, most recent first
+  const painItems = items
+    .filter((i) => i.type === "pain")
+    .filter((i) => i.createdAt.slice(0, 10) >= cutoff);
+  const recentPainLogs: PainSummary[] = painItems.map((item) => {
+    const d = item.data as PainLog;
+    return {
+      date: item.createdAt.slice(0, 10),
+      painLocation: d?.painLocation ?? "ไม่ระบุ",
+      painLevel: d?.painLevel ?? 0,
+      riskLevel: d?.riskLevel ?? "unknown",
+      trainingImpact: d?.trainingImpact ?? "unknown",
+    };
+  });
+
   const latestBodyItem = items.filter((i) => i.type === "body")[0];
   let latestBody: CoachContext["latestBody"] = null;
   if (latestBodyItem) {
@@ -216,6 +242,7 @@ export function buildCoachContextFromData(input: {
     lastRun,
     latestBody,
     todayDate: today,
+    recentPainLogs,
     contextNotes: buildContextNotes({
       raceGoal: input.raceGoal,
       racePlan: input.racePlan,
@@ -226,6 +253,7 @@ export function buildCoachContextFromData(input: {
       runDays7d,
       longestRun7dKm,
       lastWorkoutDate,
+      recentPainLogs,
     }),
   };
 }
@@ -297,6 +325,7 @@ function buildContextNotes(input: {
   workouts7d: DayWorkoutSummary[];
   totalRunKm: number;
   runDays7d: number;
+  recentPainLogs?: PainSummary[];
   longestRun7dKm: number | null;
   lastWorkoutDate: string | null;
 }): string[] {
@@ -321,6 +350,15 @@ function buildContextNotes(input: {
   if (input.totalRunKm > 0) notes.push(`Last 7 days running load: ${Math.round(input.totalRunKm * 10) / 10} km across ${input.runDays7d} run days.`);
   if (input.longestRun7dKm != null) notes.push(`Longest run in last 7 days: ${input.longestRun7dKm.toFixed(1)} km.`);
   if (input.lastWorkoutDate) notes.push(`Last workout date: ${input.lastWorkoutDate}.`);
+  if (input.recentPainLogs?.length) {
+    const highMedium = input.recentPainLogs.filter((p) => p.riskLevel === "high" || p.riskLevel === "medium");
+    for (const pain of input.recentPainLogs.slice(0, 3)) {
+      notes.push(`Pain report (${pain.date}): ${pain.painLocation} level ${pain.painLevel}/10 risk=${pain.riskLevel} impact=${pain.trainingImpact}.`);
+    }
+    if (highMedium.length > 0) {
+      notes.push("IMPORTANT: User has recent medium/high risk pain. Do NOT recommend hard training, speed work, or races. Prioritize easy/rest based on pain impact.");
+    }
+  }
   return notes;
 }
 
