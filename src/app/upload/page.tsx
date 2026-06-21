@@ -6,6 +6,7 @@ import { ImageUploader } from "@/components/ImageUploader";
 import { SleepResultCard } from "@/components/SleepResultCard";
 import { WorkoutResultCard } from "@/components/WorkoutResultCard";
 import { BodyResultCard } from "@/components/BodyResultCard";
+import { AIReadQualityNote } from "@/components/AIReadQualityNote";
 import { PostRunAnalysisCard } from "@/components/PostRunAnalysisCard";
 import { StrengthWorkoutCard } from "@/components/StrengthWorkoutCard";
 import { invalidateCoachCache } from "@/lib/invalidateCoachCache";
@@ -53,6 +54,12 @@ const MEAL_TYPE_LABELS: Record<string, string> = {
   "pre-run": "ก่อนวิ่ง",
   "post-run": "หลังวิ่ง",
 };
+
+const CONFIDENCE_LABELS = {
+  high: "ความมั่นใจสูง",
+  medium: "ความมั่นใจปานกลาง",
+  low: "ความมั่นใจต่ำ",
+} as const;
 
 export default function UploadPage() {
   const [type, setType] = useState<UploadType>("sleep");
@@ -410,7 +417,7 @@ export default function UploadPage() {
               onResult={handleAnalysisResult}
             />
             {saveStatus === "saving" && <p className="text-xs font-semibold text-slate-500">กำลังบันทึก...</p>}
-            {saveStatus === "saved" && <p className="text-xs font-semibold text-green-600">บันทึกแล้ว</p>}
+            {saveStatus === "saved" && <p className="text-xs font-semibold text-green-600">บันทึกเข้า Report แล้ว</p>}
             {saveStatus === "error" && <p className="text-xs font-semibold text-red-500">บันทึกไม่สำเร็จ กรุณาลองใหม่</p>}
             {!result && saveStatus !== "saving" && <UploadEmptyGuide />}
           </>
@@ -435,7 +442,12 @@ export default function UploadPage() {
         />
       )}
 
-      {result && type === "sleep" ? <SleepResultCard result={(result as { data: SleepAnalysis }).data} /> : null}
+      {result && type === "sleep" ? (
+        <>
+          <ReportSavedNote saveStatus={saveStatus} />
+          <SleepResultCard result={(result as { data: SleepAnalysis }).data} />
+        </>
+      ) : null}
       {result && type === "meal" && !mealSlotConflict ? (
         <MealReviewCard
           initialMeal={(result as { data: MealAnalysis }).data}
@@ -458,6 +470,7 @@ export default function UploadPage() {
       ) : null}
       {result && type === "workout" ? (
         <>
+          <ReportSavedNote saveStatus={saveStatus} />
           <WorkoutResultCard result={(result as { data: WorkoutAnalysis }).data} />
           {saveFeedback === "race_result" && (
             <div className="card flex items-center gap-3 px-5 py-4">
@@ -485,7 +498,12 @@ export default function UploadPage() {
           {!raceMatch && <PostRunAnalysisCard workout={(result as { data: WorkoutAnalysis }).data} />}
         </>
       ) : null}
-      {result && type === "body" ? <BodyResultCard result={(result as { data: BodyCompositionAnalysis }).data} /> : null}
+      {result && type === "body" ? (
+        <>
+          <ReportSavedNote saveStatus={saveStatus} />
+          <BodyResultCard result={(result as { data: BodyCompositionAnalysis }).data} />
+        </>
+      ) : null}
     </AppShell>
   );
 }
@@ -501,6 +519,19 @@ function UploadEmptyGuide() {
         <p><span className="font-semibold text-slate-700">รูปอาการเจ็บ</span> - ควรพักหรือขยับเบา ๆ ดี</p>
       </div>
     </div>
+  );
+}
+
+function ReportSavedNote({ saveStatus }: { saveStatus: "idle" | "saving" | "saved" | "error" }) {
+  return (
+    <section className="rounded-3xl border border-slate-100 bg-white/75 px-4 py-3 text-xs leading-5 text-slate-500 shadow-sm">
+      {saveStatus === "saved" ? (
+        <span className="font-bold text-green-700">บันทึกเข้า Report แล้ว</span>
+      ) : (
+        <span className="font-bold text-slate-700">ผลวิเคราะห์จาก AI</span>
+      )}
+      <span> ข้อมูลนี้ถูกบันทึกเป็น structured data เท่านั้น รูปต้นฉบับไม่ถูกเก็บถาวร</span>
+    </section>
   );
 }
 
@@ -687,6 +718,7 @@ function MealReviewSummary({ meal, profile, context }: { meal: MealAnalysis; pro
         <p className="text-xs font-semibold text-slate-400">{meal.mealType}</p>
         <p className="text-lg font-bold text-[#17201d]">{foods}</p>
       </div>
+      <AIReadQualityNote confidence={meal.confidence} unclearFields={meal.unclearFields} compact />
       {meal.errorLikeMessage ? (
         <p className="rounded-2xl bg-amber-50 p-3 text-xs font-semibold leading-5 text-amber-700">{meal.errorLikeMessage}</p>
       ) : null}
@@ -708,7 +740,7 @@ function MealReviewSummary({ meal, profile, context }: { meal: MealAnalysis; pro
         </p>
       ) : null}
       <p className="text-sm leading-6 text-slate-700">{meal.trainingFit?.coachNote ?? ""}</p>
-      <p className="text-xs text-slate-500">Confidence: {meal.confidence}</p>
+      <p className="text-xs text-slate-500">{CONFIDENCE_LABELS[meal.confidence ?? "low"]} · ตัวเลขเป็นการประเมินคร่าว ๆ จากรูปอาหาร</p>
     </div>
   );
 }
@@ -760,6 +792,7 @@ function normalizeMealAnalysis(meal: MealAnalysis): MealAnalysis {
     nutritionRange: ranges,
     trainingFit,
     confidence: meal.confidence ?? "low",
+    unclearFields: Array.isArray(meal.unclearFields) ? meal.unclearFields : [],
     needsReview: meal.needsReview ?? true,
     errorLikeMessage: meal.errorLikeMessage ?? null,
     createdAt: meal.createdAt,

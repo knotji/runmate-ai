@@ -26,6 +26,8 @@ const fallback: SleepAnalysis = {
     sleepFocus: "คืนนี้ลองเข้านอนให้เร็วขึ้น 30-45 นาที",
     warningNotes: "ถ้ามีอาการเจ็บ หน้ามืด หรือแน่นหน้าอก ควรหยุดซ้อมและปรึกษาผู้เชี่ยวชาญ",
   },
+  confidence: "low",
+  unclearFields: ["sleepDuration", "sleepScore", "energyScore", "restingHR", "hrv"],
 };
 
 export async function POST(request: Request) {
@@ -41,7 +43,15 @@ export async function POST(request: Request) {
     fallback,
   });
 
-  return NextResponse.json({ ...result, data: mergeWithFallback(result.data, fallback), imageUrl: body.imageUrl });
+  return NextResponse.json({ ...result, data: normalizeReadQuality(mergeWithFallback(result.data, fallback)) });
+}
+
+function normalizeReadQuality(data: SleepAnalysis): SleepAnalysis {
+  return {
+    ...data,
+    confidence: data.confidence ?? "low",
+    unclearFields: Array.isArray(data.unclearFields) ? data.unclearFields : [],
+  };
 }
 
 function buildAnalysisContext(context: unknown) {

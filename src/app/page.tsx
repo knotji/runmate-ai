@@ -149,6 +149,7 @@ export default function TodayPage() {
 
   const hasPace = !!(insight?.workoutTarget && insight.workoutTarget !== "-");
   const readinessScore = insight?.todayReadiness != null ? Math.round(insight.todayReadiness) : null;
+  const todayChecklist = buildTodayChecklist(coachCtx, dailySummaryItem);
 
   return (
     <AppShell title="โค้ชข้างทาง" subtitle={formatThaiDate()}>
@@ -228,6 +229,8 @@ export default function TodayPage() {
       </section>
 
       {/* ── Compact readiness strip ───────────────────────────── */}
+      <TodayChecklistCard items={todayChecklist} lowData={!hasHistory && !loading} />
+
       {insight && readinessScore != null && (
         <section className="card flex items-center gap-3 px-5 py-4">
           <div className={`grid h-12 w-12 shrink-0 place-items-center rounded-full text-sm font-bold text-white ${readinessBg(readinessScore)}`}>
@@ -311,6 +314,67 @@ export default function TodayPage() {
       )}
 
     </AppShell>
+  );
+}
+
+type TodayChecklistItem = {
+  label: string;
+  href: string;
+  done: boolean;
+};
+
+function buildTodayChecklist(ctx: CoachContext | null, summaryItem: LocalHistoryItem | null): TodayChecklistItem[] {
+  const today = ctx?.todayDate || bangkokDateKey();
+  const hasSleep = Boolean(ctx?.sleep7d.some((item) => item.date === today));
+  const hasMeal = Boolean(ctx?.nutritionToday && ctx.nutritionToday.mealCount > 0);
+  const hasWorkout = Boolean(ctx?.workouts7d.some((item) => item.date === today));
+  const hasPain = Boolean(ctx?.recentPainLogs?.some((item) => item.date === today));
+  const hasSummary = Boolean(summaryItem);
+
+  return [
+    { label: "อัปโหลดการนอน", href: "/upload?type=sleep", done: hasSleep },
+    { label: "บันทึกอาหาร", href: "/upload?type=meal", done: hasMeal },
+    { label: "บันทึกซ้อม/พัก", href: "/upload?type=workout", done: hasWorkout },
+    { label: "เช็กอาการเจ็บ", href: "/pain", done: hasPain },
+    { label: "สร้างสรุปท้ายวัน", href: "#end-of-day-summary", done: hasSummary },
+  ];
+}
+
+function TodayChecklistCard({ items, lowData }: { items: TodayChecklistItem[]; lowData: boolean }) {
+  const completed = items.filter((item) => item.done).length;
+
+  return (
+    <section className="card space-y-3 px-5 py-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">Daily check</p>
+          <h2 className="mt-1 text-lg font-bold text-[#17201d]">วันนี้เช็กครบหรือยัง?</h2>
+        </div>
+        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+          {completed}/{items.length}
+        </span>
+      </div>
+      {lowData ? (
+        <p className="rounded-2xl bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-700">
+          วันนี้ยังมีข้อมูลน้อย ลอง Upload ข้อมูลนอน อาหาร หรือซ้อม เพื่อให้คำแนะนำแม่นขึ้น
+        </p>
+      ) : null}
+      <div className="grid gap-2">
+        {items.map((item) => (
+          <Link
+            key={item.label}
+            href={item.href}
+            className="flex items-center justify-between rounded-2xl bg-slate-50 px-3 py-2.5 text-sm"
+          >
+            <span className="font-semibold text-[#17201d]">{item.label}</span>
+            <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${item.done ? "bg-green-50 text-green-700" : "bg-white text-slate-400"}`}>
+              {item.done ? "เสร็จแล้ว" : "ยังไม่เช็ก"}
+            </span>
+          </Link>
+        ))}
+      </div>
+      <p className="text-xs leading-5 text-slate-400">ไม่ต้องครบทุกข้อก็ได้ ใช้เป็นตัวช่วยเช็กข้อมูลประจำวัน</p>
+    </section>
   );
 }
 

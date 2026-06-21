@@ -1,13 +1,7 @@
 const CACHE_NAME = "runmate-cache-v1";
-const ASSETS_TO_CACHE = [
-  "/",
-  "/favicon.ico",
-  "/icon-192x192.png",
-  "/icon-512x512.png",
-];
 
 // Install event - caching basic shell
-self.addEventListener("install", (event) => {
+self.addEventListener("install", () => {
   self.skipWaiting();
 });
 

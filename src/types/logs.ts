@@ -1,4 +1,10 @@
 export type ReadinessLabel = "Low" | "Fair" | "Good" | "Excellent";
+export type AIConfidence = "low" | "medium" | "high";
+
+export type AIReadQuality = {
+  confidence?: AIConfidence;
+  unclearFields?: string[];
+};
 
 export type SleepAnalysis = {
   extracted: {
@@ -21,7 +27,7 @@ export type SleepAnalysis = {
     sleepFocus: string;
     warningNotes: string;
   };
-};
+} & AIReadQuality;
 
 export type MealType = "breakfast" | "lunch" | "dinner" | "snack" | "pre-run" | "post-run";
 
@@ -61,6 +67,7 @@ export type MealAnalysis = {
     coachNote: string;
   };
   confidence: "low" | "medium" | "high";
+  unclearFields?: string[];
   needsReview: boolean;
   errorLikeMessage?: string | null;
   imageUrl?: string | null;
@@ -137,7 +144,7 @@ export type WorkoutAnalysis = {
     nextWorkoutSuggestion: string;
     coachNote: string;
   };
-};
+} & AIReadQuality;
 
 export type BodyCompositionAnalysis = {
   extracted: {
@@ -159,7 +166,7 @@ export type BodyCompositionAnalysis = {
     cautionNotes: string;
     coachNote: string;
   };
-};
+} & AIReadQuality;
 
 export type DailySummary = {
   readinessScore: number | null;

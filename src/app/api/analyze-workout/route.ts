@@ -32,6 +32,8 @@ const fallback: WorkoutAnalysis = {
     nextWorkoutSuggestion: "ครั้งถัดไปเลือก easy หรือ strength เบา ๆ ตามความล้า",
     coachNote: "ซ้อมให้ต่อเนื่องและไม่ฝืนสำคัญกว่าตัวเลขสวยในวันเดียว",
   },
+  confidence: "low",
+  unclearFields: ["date", "distanceKm", "duration", "avgHR"],
 };
 
 export async function POST(request: Request) {
@@ -48,7 +50,15 @@ export async function POST(request: Request) {
     fallback,
   });
 
-  return NextResponse.json({ ...result, data: mergeWithFallback(result.data, fallback), imageUrls: body.imageUrls });
+  return NextResponse.json({ ...result, data: normalizeReadQuality(mergeWithFallback(result.data, fallback)) });
+}
+
+function normalizeReadQuality(data: WorkoutAnalysis): WorkoutAnalysis {
+  return {
+    ...data,
+    confidence: data.confidence ?? "low",
+    unclearFields: Array.isArray(data.unclearFields) ? data.unclearFields : [],
+  };
 }
 
 function buildAnalysisContext(context: unknown) {

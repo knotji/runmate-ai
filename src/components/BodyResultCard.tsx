@@ -1,4 +1,5 @@
 import type { BodyCompositionAnalysis } from "@/types/logs";
+import { AIReadQualityNote } from "@/components/AIReadQualityNote";
 import { DetailBlock, MetricGrid } from "@/components/ResultDetail";
 import { formatDecimal, formatPercent, formatCalories } from "@/lib/format";
 
@@ -7,6 +8,9 @@ export function BodyResultCard({ result }: { result: BodyCompositionAnalysis }) 
     <section className="card p-5">
       <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#6f8fa6]">Body Composition</p>
       <h2 className="mt-2 text-xl font-bold">{result.coach.bodySummary}</h2>
+      <div className="mt-3">
+        <AIReadQualityNote confidence={result.confidence} unclearFields={result.unclearFields} />
+      </div>
       <MetricGrid
         items={[
           { label: "Weight", value: result.extracted.weightKg != null ? `${formatDecimal(result.extracted.weightKg)} kg` : null },

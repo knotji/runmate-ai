@@ -59,7 +59,7 @@ export function StrengthRoutineManager() {
       } else {
         setSelectedRoutine(null);
       }
-    } catch (e) {
+    } catch {
       setError("โหลดข้อมูลเทมเพลตล้มเหลว");
     } finally {
       setLoading(false);
@@ -120,7 +120,7 @@ export function StrengthRoutineManager() {
       } else {
         throw new Error("วิเคราะห์ไม่สำเร็จ");
       }
-    } catch (e) {
+    } catch {
       setError("AI ปรับแผนไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
     } finally {
       setLoadingAI(false);
@@ -221,9 +221,10 @@ export function StrengthRoutineManager() {
             <button
               type="button"
               onClick={() => handleDelete(editingRoutine)}
+              disabled={deleting}
               className="text-xs font-bold text-red-600 hover:underline"
             >
-              ลบโปรแกรมนี้
+              {deleting ? "กำลังลบ..." : "ลบโปรแกรมนี้"}
             </button>
           )}
         </div>
@@ -422,9 +423,10 @@ export function StrengthRoutineManager() {
                     <button
                       type="button"
                       onClick={() => handleDelete(selectedRoutine)}
+                      disabled={deleting}
                       className="text-xs text-red-600 font-bold hover:underline"
                     >
-                      ลบ
+                      {deleting ? "กำลังลบ..." : "ลบ"}
                     </button>
                   </>
                 )}

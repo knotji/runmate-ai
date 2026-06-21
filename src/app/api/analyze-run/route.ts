@@ -41,5 +41,5 @@ export async function POST(request: Request) {
     fallback,
   });
 
-  return NextResponse.json({ ...result, data: mergeWithFallback(result.data, fallback), imageUrl: body.imageUrl });
+  return NextResponse.json({ ...result, data: mergeWithFallback(result.data, fallback) });
 }

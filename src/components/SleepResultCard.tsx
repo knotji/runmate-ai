@@ -1,4 +1,5 @@
 import type { SleepAnalysis } from "@/types/logs";
+import { AIReadQualityNote } from "@/components/AIReadQualityNote";
 import { DetailBlock, MetricGrid } from "@/components/ResultDetail";
 import { formatDuration, formatScore, formatHeartRate } from "@/lib/format";
 
@@ -16,6 +17,9 @@ export function SleepResultCard({ result }: { result: SleepAnalysis }) {
         <span className="rounded-full bg-[#b9d9c0] px-4 py-2 font-bold">{score}/100</span>
       </div>
       <p className="mt-3 text-sm leading-6 text-slate-600">{summary}</p>
+      <div className="mt-3">
+        <AIReadQualityNote confidence={result.confidence} unclearFields={result.unclearFields} />
+      </div>
       <MetricGrid
         items={[
           { label: "Sleep duration", value: result.extracted.sleepDuration ? formatDuration(result.extracted.sleepDuration) : null },

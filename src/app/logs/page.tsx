@@ -110,9 +110,14 @@ export default function ReportPage() {
       ) : error ? (
         <section className="card p-5 text-sm text-red-500">{error}</section>
       ) : days.length === 0 ? (
-        <section className="card space-y-1 p-5 text-sm text-slate-600">
-          <p className="font-bold text-[#17201d]">ยังไม่มีข้อมูลสำหรับสรุปผล</p>
-          <p>เริ่มจากอัปโหลดผลนอนหรือผลวิ่งวันนี้</p>
+        <section className="card space-y-3 p-5 text-sm text-slate-600">
+          <div>
+            <p className="font-bold text-[#17201d]">ยังไม่มี Report</p>
+            <p className="mt-1 leading-6">เริ่มจาก Upload รูปอาหาร ผลวิ่ง หรือ Sleep score เพื่อให้ AI ช่วยอ่านข้อมูลให้</p>
+          </div>
+          <Link href="/upload" className="btn-primary block py-3 text-center text-sm">
+            ไป Upload
+          </Link>
         </section>
       ) : (
         <>

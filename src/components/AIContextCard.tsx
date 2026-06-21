@@ -52,6 +52,14 @@ export function AIContextCard() {
 
   const sleepLatest = context.sleep7d[0];
   const lastWorkout = context.workouts7d[0];
+  const hasUsefulData =
+    context.sleep7d.length > 0 ||
+    context.workouts7d.length > 0 ||
+    context.recentPainLogs.length > 0 ||
+    Boolean(context.raceGoal) ||
+    Boolean(context.nutritionToday) ||
+    Boolean(context.latestBody);
+  const sourceSummary = buildSourceSummary(context);
   const runLine = context.lastRun
     ? `${Number(context.lastRun.km).toFixed(2)} กม. เมื่อ ${context.lastRun.date}${context.lastRun.avgHR ? `, HR เฉลี่ย ${context.lastRun.avgHR}` : ""}${context.lastRun.pace ? `, pace ${context.lastRun.pace}` : ""}`
     : "ยังไม่มีวิ่งใน 7 วันล่าสุด";
@@ -76,7 +84,7 @@ export function AIContextCard() {
             โค้ชใช้ข้อมูลล่าสุดจาก Report
           </p>
           <p className="mt-0.5 text-xs text-slate-400">
-            {context.raceGoal ? "มี Race Goal active" : `${context.runDays7d} วันวิ่งใน 7 วันล่าสุด`}
+            {sourceSummary}
           </p>
         </div>
         <span className="shrink-0 rounded-full bg-[#e7efea] px-3 py-1.5 text-xs font-bold text-[#17201d] group-open:hidden">ดูบริบท</span>
@@ -84,6 +92,17 @@ export function AIContextCard() {
       </summary>
 
       <div className="mt-3 space-y-2">
+        {!hasUsefulData ? (
+          <div className="rounded-2xl bg-amber-50/80 p-3 text-sm leading-6 text-amber-700">
+            <p className="font-bold">โค้ชยังมีข้อมูลน้อย</p>
+            <p>ลอง Upload ผลวิ่ง อาหาร หรือ Sleep score เพื่อให้คำแนะนำแม่นขึ้น</p>
+          </div>
+        ) : (
+          <div className="rounded-2xl bg-[#e7efea] p-3 text-sm leading-6 text-[#17201d]">
+            <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#42677f]">อ้างอิงจาก</p>
+            <p className="mt-1">{sourceSummary}</p>
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-2">
           <ContextMetric label="เป้าหมาย" value={context.raceGoal ? String(context.raceGoal.raceName ?? "มีเป้าหมายแข่ง") : "ยังไม่มี"} />
           <ContextMetric label="วิ่ง 7 วัน" value={`${context.totalRunKm} กม.`} sub={`${context.runDays7d} วัน`} />
@@ -224,6 +243,21 @@ function ContextBlock({ title, children }: { title: string; children: React.Reac
       <div className="mt-1 text-sm leading-6 text-slate-700">{children}</div>
     </div>
   );
+}
+
+function buildSourceSummary(context: CoachContext) {
+  const parts = [
+    context.avgReadiness != null && `Readiness ${context.avgReadiness}`,
+    context.recentPainLogs.length > 0 && `เจ็บ ${context.recentPainLogs[0].painLocation} ${context.recentPainLogs[0].painLevel}/10`,
+    context.runDays7d > 0 && `วิ่ง ${context.runDays7d} วันใน 7 วันล่าสุด`,
+    context.sleep7d.length > 0 && `Sleep ${context.sleep7d.length} รายการ`,
+    context.nutritionToday && `อาหารวันนี้ ${context.nutritionToday.mealCount} มื้อ`,
+    context.raceGoal && "Race Goal active",
+  ].filter(Boolean);
+
+  return parts.length
+    ? parts.join(", ")
+    : "โค้ชยังมีข้อมูลน้อย ลอง Upload ผลวิ่ง อาหาร หรือ Sleep score เพื่อให้คำแนะนำแม่นขึ้น";
 }
 
 function profileLine(profile: Record<string, unknown>) {

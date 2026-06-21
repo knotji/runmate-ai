@@ -75,7 +75,7 @@ export function StrengthWorkoutCard({
       } else {
         throw new Error("วิเคราะห์ไม่สำเร็จ");
       }
-    } catch (e) {
+    } catch {
       setError("AI ปรับแผนไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
     } finally {
       setLoadingAI(false);

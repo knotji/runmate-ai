@@ -36,6 +36,7 @@ const fallback: MealAnalysis = {
     coachNote: "ประเมินจากภาพได้ไม่ชัดเจน ตัวเลขโภชนาการเป็นเพียงค่าคร่าว ๆ จากสิ่งที่มองเห็น",
   },
   confidence: "low",
+  unclearFields: [],
   needsReview: true,
   errorLikeMessage: null,
 };
@@ -132,6 +133,7 @@ function normalizeMealResult(data: MealAnalysis): MealAnalysis {
     ...data,
     detectedFoods: Array.isArray(data.detectedFoods) ? data.detectedFoods : [],
     confidence: data.confidence ?? "low",
+    unclearFields: Array.isArray(data.unclearFields) ? data.unclearFields : [],
     needsReview: data.needsReview ?? true,
     errorLikeMessage: data.errorLikeMessage ?? (isNonFoodOrUnclear ? NON_FOOD_MESSAGE : null),
     trainingFit: {

@@ -25,6 +25,8 @@ const fallback: BodyCompositionAnalysis = {
     cautionNotes: "นี่เป็นค่าประเมินจากอุปกรณ์ ไม่ใช่การวินิจฉัยทางการแพทย์",
     coachNote: "อย่าให้ตัวเลขน้ำหนักวันเดียวกำหนดคุณภาพการซ้อม ดู trend และความรู้สึกควบคู่กัน",
   },
+  confidence: "low",
+  unclearFields: ["weightKg", "skeletalMuscleKg", "bodyFatPercent", "bmrCalories"],
 };
 
 export async function POST(request: Request) {
@@ -40,5 +42,13 @@ export async function POST(request: Request) {
     fallback,
   });
 
-  return NextResponse.json({ ...result, data: mergeWithFallback(result.data, fallback), imageUrls: body.imageUrls });
+  return NextResponse.json({ ...result, data: normalizeReadQuality(mergeWithFallback(result.data, fallback)) });
+}
+
+function normalizeReadQuality(data: BodyCompositionAnalysis): BodyCompositionAnalysis {
+  return {
+    ...data,
+    confidence: data.confidence ?? "low",
+    unclearFields: Array.isArray(data.unclearFields) ? data.unclearFields : [],
+  };
 }

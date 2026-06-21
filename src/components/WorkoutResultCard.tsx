@@ -1,4 +1,5 @@
 import type { WorkoutAnalysis } from "@/types/logs";
+import { AIReadQualityNote } from "@/components/AIReadQualityNote";
 import { DetailBlock, MetricGrid } from "@/components/ResultDetail";
 import {
   formatDistanceKm,
@@ -15,6 +16,9 @@ export function WorkoutResultCard({ result }: { result: WorkoutAnalysis }) {
     <section className="card p-5">
       <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#6f8fa6]">Workout Result</p>
       <h2 className="mt-2 text-xl font-bold">{formatSummaryText(result.coach.workoutSummary)}</h2>
+      <div className="mt-3">
+        <AIReadQualityNote confidence={result.confidence} unclearFields={result.unclearFields} />
+      </div>
       <MetricGrid
         items={[
           { label: "Type", value: result.extracted.workoutKind },
