@@ -131,8 +131,8 @@ export function ImageUploader({
       <label
         className={`flex min-h-[120px] cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed transition-colors ${
           files.length > 0
-            ? "border-[#42677f] bg-[#f5faf7]"
-            : "border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-white"
+            ? "border-[var(--primary)] bg-[var(--primary-soft)]"
+            : "border-[var(--border-warm)] bg-[var(--surface-muted)] hover:border-[var(--primary)]/60 hover:bg-[var(--surface)]"
         }`}
       >
         <input
@@ -146,20 +146,20 @@ export function ImageUploader({
         {files.length === 0 ? (
           <>
             <span className="text-3xl">📷</span>
-            <p className="text-sm font-semibold text-slate-600">กดเพื่อเลือกรูปภาพ</p>
-            <p className="text-xs text-slate-400">เลือกได้สูงสุด {maxFiles} รูป</p>
+            <p className="text-sm font-semibold text-[var(--foreground)]">กดเพื่อเลือกรูปภาพ</p>
+            <p className="text-xs text-[var(--muted-text)]">เลือกได้สูงสุด {maxFiles} รูป</p>
           </>
         ) : (
           <>
-            <span className="text-2xl text-[#42677f]">✓</span>
-            <p className="text-sm font-semibold text-[#17201d]">
+            <span className="text-2xl text-[var(--primary-strong)]">✓</span>
+            <p className="text-sm font-semibold text-[var(--foreground)]">
               {files.length === 1 ? files[0].name : `${files.length} รูปที่เลือกไว้`}
             </p>
-            <p className="text-xs text-[#42677f] underline underline-offset-2">เปลี่ยนรูป</p>
+            <p className="text-xs text-[var(--primary-strong)] underline underline-offset-2">เปลี่ยนรูป</p>
           </>
         )}
       </label>
-      <p className="text-center text-[11px] leading-5 text-slate-400">
+      <p className="text-center text-[11px] leading-5 text-[var(--muted-text)]/80">
         ระบบจะใช้รูปเพื่อให้ AI อ่านข้อมูลเท่านั้น และบันทึกเฉพาะผลลัพธ์เข้า Report
       </p>
       <button className="btn-primary w-full" type="submit" disabled={loading}>

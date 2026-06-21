@@ -77,18 +77,18 @@ export function AIContextCard() {
   const profile = context.profile as UserProfile | null;
 
   return (
-    <details className="group rounded-3xl bg-white/75 px-4 py-3 shadow-sm">
+    <details className="group rounded-3xl border border-[var(--border-warm)] bg-[var(--surface)]/75 px-4 py-3 shadow-sm">
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-[#17201d]">
+          <p className="truncate text-sm font-semibold text-[var(--foreground)]">
             โค้ชใช้ข้อมูลล่าสุดจาก Report
           </p>
-          <p className="mt-0.5 text-xs text-slate-400">
+          <p className="mt-0.5 text-xs text-[var(--muted-text)]">
             {sourceSummary}
           </p>
         </div>
-        <span className="shrink-0 rounded-full bg-[#e7efea] px-3 py-1.5 text-xs font-bold text-[#17201d] group-open:hidden">ดูบริบท</span>
-        <span className="hidden shrink-0 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-500 group-open:inline">ปิด</span>
+        <span className="shrink-0 rounded-full bg-[var(--primary-soft)] px-3 py-1.5 text-xs font-bold text-[var(--primary-strong)] group-open:hidden">ดูบริบท</span>
+        <span className="hidden shrink-0 rounded-full bg-[var(--surface-muted)] px-3 py-1.5 text-xs font-bold text-[var(--muted-text)] group-open:inline">ปิด</span>
       </summary>
 
       <div className="mt-3 space-y-2">
@@ -98,8 +98,8 @@ export function AIContextCard() {
             <p>ลอง Upload ผลวิ่ง อาหาร หรือ Sleep score เพื่อให้คำแนะนำแม่นขึ้น</p>
           </div>
         ) : (
-          <div className="rounded-2xl bg-[#e7efea] p-3 text-sm leading-6 text-[#17201d]">
-            <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#42677f]">อ้างอิงจาก</p>
+          <div className="rounded-2xl bg-[var(--primary-soft)] p-3 text-sm leading-6 text-[var(--foreground)]">
+            <p className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--primary-strong)]">อ้างอิงจาก</p>
             <p className="mt-1">{sourceSummary}</p>
           </div>
         )}
@@ -228,19 +228,19 @@ export function AIContextCard() {
 
 function ContextMetric({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="rounded-2xl bg-slate-50/80 p-3">
-      <p className="text-xs text-slate-400">{label}</p>
-      <p className="mt-1 truncate text-sm font-bold text-[#17201d]">{value}</p>
-      {sub ? <p className="text-xs text-slate-400">{sub}</p> : null}
+    <div className="rounded-2xl border border-[var(--border-warm)]/55 bg-[var(--surface-muted)]/80 p-3">
+      <p className="text-xs text-[var(--muted-text)]">{label}</p>
+      <p className="mt-1 truncate text-sm font-bold text-[var(--foreground)]">{value}</p>
+      {sub ? <p className="text-xs text-[var(--muted-text)]">{sub}</p> : null}
     </div>
   );
 }
 
 function ContextBlock({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl bg-slate-50/80 p-3">
-      <p className="text-xs font-bold text-[#6f8fa6]">{title}</p>
-      <div className="mt-1 text-sm leading-6 text-slate-700">{children}</div>
+    <div className="rounded-2xl border border-[var(--border-warm)]/55 bg-[var(--surface-muted)]/80 p-3">
+      <p className="text-xs font-bold text-[var(--recovery-blue)]">{title}</p>
+      <div className="mt-1 text-sm leading-6 text-[var(--foreground)]">{children}</div>
     </div>
   );
 }

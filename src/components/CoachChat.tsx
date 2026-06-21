@@ -222,8 +222,8 @@ export function CoachChat() {
     <section id="coach-chat" className="flex flex-1 flex-col gap-3 scroll-mt-6">
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-3">
-          <p className="text-sm font-semibold text-slate-600">ถามเร็ว</p>
-          <button type="button" onClick={clearChat} className="shrink-0 text-xs font-semibold text-slate-400 hover:text-slate-600">
+          <p className="text-sm font-semibold text-[var(--muted-text)]">ถามเร็ว</p>
+          <button type="button" onClick={clearChat} className="shrink-0 text-xs font-semibold text-[var(--muted-text)]/80 hover:text-[var(--foreground)]">
             ล้างแชท
           </button>
         </div>
@@ -231,7 +231,7 @@ export function CoachChat() {
           {quickQuestions.map((item) => (
             <button
               key={item.label}
-              className="rounded-full bg-white/85 px-3 py-2.5 text-xs font-bold text-[#17201d] shadow-sm transition hover:bg-[#e7efea]"
+              className="rounded-full border border-[var(--border-warm)] bg-[var(--surface)]/85 px-3 py-2.5 text-xs font-bold text-[var(--foreground)] shadow-sm transition hover:bg-[var(--primary-soft)]"
               onClick={() => ask(item.prompt)}
             >
               {item.label}
@@ -240,12 +240,12 @@ export function CoachChat() {
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col gap-3 rounded-3xl bg-white/70 p-3 shadow-sm">
+      <div className="flex flex-1 flex-col gap-3 rounded-3xl border border-[var(--border-warm)] bg-[var(--surface)]/70 p-3 shadow-sm">
         {messages.map((message, index) => (
           <div
             key={`${message.role}-${index}`}
             className={`max-w-[88%] rounded-3xl px-4 py-3 text-sm leading-6 ${
-              message.role === "user" ? "ml-auto bg-[#17201d] text-white" : "bg-slate-50/90 text-slate-700"
+              message.role === "user" ? "ml-auto bg-[var(--primary)] text-white" : "bg-[var(--surface-muted)]/90 text-[var(--foreground)]"
             }`}
           >
             {message.imageUrl && (
@@ -265,7 +265,7 @@ export function CoachChat() {
 
       {/* Image Preview & Intent Chips */}
       {previewUrl && (
-        <div className="space-y-2 rounded-2xl bg-white/85 p-3 shadow-sm border border-slate-100/50">
+        <div className="space-y-2 rounded-2xl border border-[var(--border-warm)] bg-[var(--surface)]/85 p-3 shadow-sm">
           <div className="flex items-center gap-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -274,19 +274,19 @@ export function CoachChat() {
               className="h-16 w-16 object-cover rounded-2xl border border-slate-200 shadow-sm"
             />
             <div className="text-xs flex-1">
-              <p className="font-bold text-[#17201d]">เลือกรูปภาพเรียบร้อย</p>
+              <p className="font-bold text-[var(--foreground)]">เลือกรูปภาพเรียบร้อย</p>
               <button
                 type="button"
                 onClick={() => clearImage()}
-                className="mt-1 text-red-500 font-bold hover:underline"
+                className="mt-1 font-bold text-[var(--status-rest)] hover:underline"
               >
                 ลบรูปภาพ
               </button>
             </div>
           </div>
           
-          <div className="space-y-1.5 border-t border-slate-100 pt-2">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+          <div className="space-y-1.5 border-t border-[var(--border-warm)]/70 pt-2">
+            <span className="text-[10px] font-bold text-[var(--muted-text)] uppercase tracking-wider block">
               แท็กประเภทรูปภาพเพื่อแนะนำคำถามและปรับบทวิเคราะห์:
             </span>
             <div className="flex flex-wrap gap-1.5">
@@ -297,8 +297,8 @@ export function CoachChat() {
                   onClick={() => setImageIntent(opt.key)}
                   className={`rounded-full px-3 py-1.5 text-xs font-semibold border transition-all ${
                     imageIntent === opt.key
-                      ? "bg-[#42677f] text-white border-[#42677f]"
-                      : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                      ? "border-[var(--primary)] bg-[var(--primary)] text-white"
+                      : "border-[var(--border-warm)] bg-[var(--surface-muted)] text-[var(--muted-text)] hover:bg-[var(--primary-soft)]"
                   }`}
                 >
                   {opt.label}
@@ -309,7 +309,7 @@ export function CoachChat() {
         </div>
       )}
 
-      <form onSubmit={submit} className="flex gap-2 rounded-3xl bg-white/90 p-2 shadow-sm">
+      <form onSubmit={submit} className="flex gap-2 rounded-3xl border border-[var(--border-warm)] bg-[var(--surface)]/90 p-2 shadow-sm">
         <input
           type="file"
           ref={fileInputRef}
@@ -322,25 +322,25 @@ export function CoachChat() {
           aria-label="แนบรูปเพื่อถามโค้ช"
           title="แนบรูปเพื่อถามโค้ช"
           onClick={() => fileInputRef.current?.click()}
-          className="rounded-2xl bg-slate-100 hover:bg-slate-200 p-3 text-sm transition-colors text-slate-600 shrink-0 flex items-center justify-center"
+          className="flex shrink-0 items-center justify-center rounded-2xl bg-[var(--surface-muted)] p-3 text-sm text-[var(--muted-text)] transition-colors hover:bg-[var(--primary-soft)]"
         >
           📷
         </button>
         <input
-          className="min-w-0 flex-1 rounded-2xl border-0 bg-slate-50 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#17201d]/10"
+          className="min-w-0 flex-1 rounded-2xl border-0 bg-[var(--surface-muted)] px-4 py-3 text-sm text-[var(--foreground)] outline-none focus:ring-2 focus:ring-[var(--primary)]/20"
           value={input}
           onChange={(event) => setInput(event.target.value)}
           placeholder={previewUrl ? `แท็ก "${imageIntent}": พิมพ์ถาม หรือกด "ส่ง" เพื่อใช้คำถามแนะนำ...` : "ถามโค้ชเรื่องวันนี้..."}
         />
         <button
-          className="rounded-2xl bg-[#17201d] px-5 py-3 text-sm font-bold text-white disabled:opacity-40 transition-opacity"
+          className="rounded-2xl bg-[var(--primary)] px-5 py-3 text-sm font-bold text-white transition-opacity disabled:opacity-40"
           type="submit"
           disabled={loading || (!input.trim() && !previewUrl)}
         >
           ส่ง
         </button>
       </form>
-      <p className="text-center text-[10px] text-slate-400/80 mt-1.5 font-medium">
+      <p className="mt-1.5 text-center text-[10px] font-medium text-[var(--muted-text)]/80">
         รูปที่ส่งในแชทใช้ถามชั่วคราว ไม่บันทึกเข้า Report หรือคลังรูป
       </p>
     </section>

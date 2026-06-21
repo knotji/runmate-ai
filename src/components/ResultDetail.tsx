@@ -2,15 +2,15 @@ export function MetricGrid({ items }: { items: { label: string; value: string | 
   const visibleItems = items.filter((item) => hasValue(item.value));
 
   if (!visibleItems.length) {
-    return <p className="mt-4 rounded-2xl bg-slate-50 p-3 text-sm text-slate-500">ยังไม่มี metric ที่อ่านได้ชัดจากรูปชุดนี้</p>;
+    return <p className="mt-4 rounded-2xl bg-[var(--surface-muted)] p-3 text-sm text-[var(--muted-text)]">ยังไม่มี metric ที่อ่านได้ชัดจากรูปชุดนี้</p>;
   }
 
   return (
     <div className="mt-4 grid grid-cols-2 gap-2">
       {visibleItems.map((item) => (
-        <div key={item.label} className="rounded-2xl bg-slate-50 p-3">
-          <p className="text-xs text-slate-500">{item.label}</p>
-          <p className="mt-1 break-words text-sm font-bold text-[#17201d]">{formatValue(item.value)}</p>
+        <div key={item.label} className="rounded-2xl border border-[var(--border-warm)]/55 bg-[var(--surface-muted)] p-3">
+          <p className="text-xs text-[var(--muted-text)]">{item.label}</p>
+          <p className="mt-1 break-words text-sm font-bold text-[var(--foreground)]">{formatValue(item.value)}</p>
         </div>
       ))}
     </div>
@@ -20,10 +20,10 @@ export function MetricGrid({ items }: { items: { label: string; value: string | 
 export function DetailBlock({ title, children, tone = "plain" }: { title: string; children: React.ReactNode; tone?: "plain" | "green" | "amber" }) {
   const toneClass =
     tone === "green"
-      ? "bg-[#e7efea] text-[#17201d]"
+      ? "bg-[var(--primary-soft)] text-[var(--foreground)]"
       : tone === "amber"
-        ? "bg-amber-50 text-amber-900"
-        : "bg-slate-50 text-slate-700";
+        ? "bg-[#fff6df] text-[#7b5d25]"
+        : "bg-[var(--surface-muted)] text-[var(--foreground)]";
 
   return (
     <div className={`mt-3 rounded-2xl p-3 text-sm leading-6 ${toneClass}`}>

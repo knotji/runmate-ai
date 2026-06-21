@@ -160,7 +160,7 @@ export default function TodayPage() {
 
         {loading && (
           <div className="flex items-center gap-3 py-2">
-            <div className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-slate-200 border-t-[#42677f]" />
+            <div className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-[#e4d8c8] border-t-[var(--primary)]" />
             <p className="text-sm text-slate-400">กำลังวิเคราะห์ข้อมูล…</p>
           </div>
         )}
@@ -196,7 +196,7 @@ export default function TodayPage() {
             </div>
 
             {insight.coachMessage && (
-              <p className="rounded-2xl bg-[#e7efea] px-4 py-3 text-sm font-medium leading-relaxed text-[#17201d]">
+                <p className="rounded-2xl bg-[var(--primary-soft)] px-4 py-3 text-sm font-medium leading-relaxed text-[var(--foreground)]">
                 {insight.coachMessage}
               </p>
             )}
@@ -216,7 +216,7 @@ export default function TodayPage() {
             <button
               type="button"
               onClick={() => void generateInsight(true)}
-              className="shrink-0 rounded-full bg-[#42677f] px-4 py-1.5 text-xs font-bold text-white"
+              className="shrink-0 rounded-full bg-[var(--primary)] px-4 py-1.5 text-xs font-bold text-white"
             >
               วิเคราะห์
             </button>
@@ -355,7 +355,7 @@ function TodayChecklistCard({ items, lowData }: { items: TodayChecklistItem[]; l
         </span>
       </div>
       {lowData ? (
-        <p className="rounded-2xl bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-700">
+        <p className="rounded-2xl bg-[#fff6df] px-3 py-2 text-xs leading-5 text-[#8a6729]">
           วันนี้ยังมีข้อมูลน้อย ลอง Upload ข้อมูลนอน อาหาร หรือซ้อม เพื่อให้คำแนะนำแม่นขึ้น
         </p>
       ) : null}
@@ -367,7 +367,7 @@ function TodayChecklistCard({ items, lowData }: { items: TodayChecklistItem[]; l
             className="flex items-center justify-between rounded-2xl bg-slate-50 px-3 py-2.5 text-sm"
           >
             <span className="font-semibold text-[#17201d]">{item.label}</span>
-            <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${item.done ? "bg-green-50 text-green-700" : "bg-white text-slate-400"}`}>
+            <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${item.done ? "bg-[#eef7f0] text-[var(--status-ready)]" : "bg-[var(--surface)] text-[var(--muted-text)]"}`}>
               {item.done ? "เสร็จแล้ว" : "ยังไม่เช็ก"}
             </span>
           </Link>
@@ -379,17 +379,17 @@ function TodayChecklistCard({ items, lowData }: { items: TodayChecklistItem[]; l
 }
 
 function readinessBg(score: number): string {
-  if (score >= 80) return "bg-green-500";
-  if (score >= 65) return "bg-[#42677f]";
-  if (score >= 50) return "bg-amber-400";
-  return "bg-red-400";
+  if (score >= 80) return "bg-[var(--status-ready)]";
+  if (score >= 65) return "bg-[var(--primary)]";
+  if (score >= 50) return "bg-[var(--status-caution)]";
+  return "bg-[var(--status-rest)]";
 }
 
 function readinessText(score: number): string {
-  if (score >= 80) return "text-green-600";
-  if (score >= 65) return "text-[#42677f]";
-  if (score >= 50) return "text-amber-600";
-  return "text-red-500";
+  if (score >= 80) return "text-[var(--status-ready)]";
+  if (score >= 65) return "text-[var(--primary-strong)]";
+  if (score >= 50) return "text-[#9b742c]";
+  return "text-[var(--status-rest)]";
 }
 
 function bangkokDateKey(date = new Date()): string {
@@ -440,7 +440,7 @@ function EndOfDaySummaryCard({
           <SummaryLine label="สิ่งที่ควรระวัง" text={summary.recoveryReview || summary.whatToImprove} />
           <SummaryLine label="แผนพรุ่งนี้" text={summary.tomorrowPlan} />
           {summary.coachMessage && (
-            <p className="rounded-2xl bg-[#e7efea] px-3 py-2 text-sm font-semibold leading-6 text-[#17201d]">
+            <p className="rounded-2xl bg-[var(--primary-soft)] px-3 py-2 text-sm font-semibold leading-6 text-[var(--foreground)]">
               {summary.coachMessage}
             </p>
           )}

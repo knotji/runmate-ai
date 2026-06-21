@@ -142,7 +142,7 @@ export default function SettingsPage() {
 
       {activeTab === "account" && (
         <div className="space-y-4">
-          <button type="button" onClick={logout} className="w-full rounded-full bg-red-50 px-6 py-3 text-center text-sm font-bold text-red-500 transition-colors hover:text-red-700">
+          <button type="button" onClick={logout} className="w-full rounded-full bg-[#fff0ee] px-6 py-3 text-center text-sm font-bold text-[var(--status-rest)] transition-colors hover:bg-[#ffe5e1]">
             ออกจากระบบ
           </button>
         </div>
@@ -156,7 +156,9 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
     <button
       type="button"
       className={`flex-1 rounded-xl py-2 text-center text-xs font-bold transition-all ${
-        active ? "bg-[#17201d] text-white shadow-sm" : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+        active
+          ? "bg-[var(--primary)] text-white shadow-sm"
+          : "text-[var(--muted-text)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)]"
       }`}
       onClick={onClick}
     >

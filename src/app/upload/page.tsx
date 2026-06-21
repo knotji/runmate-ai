@@ -368,7 +368,7 @@ export default function UploadPage() {
         </p>
         <div className="grid grid-cols-4 gap-2">
           {(["sleep", "meal", "workout", "body"] as UploadType[]).map((item) => (
-            <button key={item} className={`rounded-2xl px-3 py-3 text-sm font-bold ${type === item ? "bg-[#17201d] text-white" : "bg-slate-50 text-slate-600"}`} onClick={() => selectUploadType(item)}>
+            <button key={item} className={`rounded-2xl px-3 py-3 text-sm font-bold ${type === item ? "bg-[var(--primary)] text-white shadow-sm" : "bg-[var(--surface-muted)] text-[var(--muted-text)]"}`} onClick={() => selectUploadType(item)}>
               {UPLOAD_LABELS[item]}
             </button>
           ))}
@@ -380,7 +380,7 @@ export default function UploadPage() {
                 key={m}
                 type="button"
                 onClick={() => setMealType(m)}
-                className={`rounded-full px-3 py-1.5 text-sm font-semibold transition-colors ${mealType === m ? "bg-[#17201d] text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+                className={`rounded-full px-3 py-1.5 text-sm font-semibold transition-colors ${mealType === m ? "bg-[var(--primary)] text-white" : "bg-[var(--surface-muted)] text-[var(--muted-text)] hover:bg-[var(--primary-soft)]"}`}
               >
                 {MEAL_TYPE_LABELS[m]}
               </button>
@@ -399,7 +399,7 @@ export default function UploadPage() {
                   setSaveStatus("idle");
                   setSaveFeedback("");
                 }}
-                className={`rounded-full px-3 py-1.5 text-sm font-semibold transition-colors ${workoutSubtype === sub ? "bg-[#17201d] text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+                className={`rounded-full px-3 py-1.5 text-sm font-semibold transition-colors ${workoutSubtype === sub ? "bg-[var(--primary)] text-white" : "bg-[var(--surface-muted)] text-[var(--muted-text)] hover:bg-[var(--primary-soft)]"}`}
               >
                 {sub === "run" ? "วิ่ง" : sub === "strength" ? "เวท" : sub === "walk" ? "เดิน" : "อื่น ๆ"}
               </button>
@@ -417,8 +417,8 @@ export default function UploadPage() {
               onResult={handleAnalysisResult}
             />
             {saveStatus === "saving" && <p className="text-xs font-semibold text-slate-500">กำลังบันทึก...</p>}
-            {saveStatus === "saved" && <p className="text-xs font-semibold text-green-600">บันทึกเข้า Report แล้ว</p>}
-            {saveStatus === "error" && <p className="text-xs font-semibold text-red-500">บันทึกไม่สำเร็จ กรุณาลองใหม่</p>}
+            {saveStatus === "saved" && <p className="text-xs font-semibold text-[var(--status-ready)]">บันทึกเข้า Report แล้ว</p>}
+            {saveStatus === "error" && <p className="text-xs font-semibold text-[var(--status-rest)]">บันทึกไม่สำเร็จ กรุณาลองใหม่</p>}
             {!result && saveStatus !== "saving" && <UploadEmptyGuide />}
           </>
         ) : null}
@@ -474,13 +474,13 @@ export default function UploadPage() {
           <WorkoutResultCard result={(result as { data: WorkoutAnalysis }).data} />
           {saveFeedback === "race_result" && (
             <div className="card flex items-center gap-3 px-5 py-4">
-              <span className="text-green-600 text-lg">🏁</span>
+              <span className="text-[var(--status-ready)] text-lg">🏁</span>
               <p className="text-sm font-bold text-[#17201d]">บันทึก Race Result แล้ว</p>
             </div>
           )}
           {saveFeedback === "workout" && (
             <div className="card flex items-center gap-3 px-5 py-4">
-              <span className="text-[#42677f] text-lg">✓</span>
+              <span className="text-[var(--primary-strong)] text-lg">✓</span>
               <p className="text-sm font-bold text-[#17201d]">บันทึกเป็น Workout แล้ว</p>
             </div>
           )}
@@ -640,7 +640,7 @@ function MealReviewCard({
                 key={m}
                 type="button"
                 onClick={() => setMeal((current) => ({ ...current, mealType: m }))}
-                className={`rounded-full px-3 py-1.5 text-sm font-semibold transition-colors ${meal.mealType === m ? "bg-[#17201d] text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+                className={`rounded-full px-3 py-1.5 text-sm font-semibold transition-colors ${meal.mealType === m ? "bg-[var(--primary)] text-white" : "bg-[var(--surface-muted)] text-[var(--muted-text)] hover:bg-[var(--primary-soft)]"}`}
               >
                 {MEAL_TYPE_LABELS[m]}
               </button>

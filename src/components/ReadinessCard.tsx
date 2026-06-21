@@ -7,22 +7,22 @@ import type { UserProfile } from "@/types/profile";
 
 const colorMap = {
   green: {
-    bg: "bg-emerald-500",
-    text: "text-emerald-700",
-    textLight: "text-emerald-600",
-    bgLight: "bg-emerald-50/50 border-emerald-100",
+    bg: "bg-[var(--status-ready)]",
+    text: "text-[var(--status-ready)]",
+    textLight: "text-[var(--status-ready)]",
+    bgLight: "bg-[#eef7f0] border-[#cfe4d5]",
   },
   yellow: {
-    bg: "bg-amber-400",
-    text: "text-amber-700",
-    textLight: "text-amber-600",
-    bgLight: "bg-amber-50/50 border-amber-100",
+    bg: "bg-[var(--status-caution)]",
+    text: "text-[#9b742c]",
+    textLight: "text-[#9b742c]",
+    bgLight: "bg-[#fff6df] border-[#ead9a9]",
   },
   red: {
-    bg: "bg-rose-500",
-    text: "text-rose-700",
-    textLight: "text-rose-600",
-    bgLight: "bg-rose-50/50 border-rose-100",
+    bg: "bg-[var(--status-rest)]",
+    text: "text-[var(--status-rest)]",
+    textLight: "text-[var(--status-rest)]",
+    bgLight: "bg-[#fff0ee] border-[#e8c1bd]",
   },
 };
 
@@ -86,10 +86,10 @@ export function ReadinessCard() {
 
   if (loading) {
     return (
-      <div className="flex h-32 items-center justify-center rounded-3xl bg-slate-50 border border-slate-100 p-5">
+      <div className="flex h-32 items-center justify-center rounded-3xl border border-[var(--border-warm)] bg-[var(--surface-muted)] p-5">
         <div className="flex flex-col items-center gap-2">
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-200 border-t-slate-500" />
-          <p className="text-xs text-slate-400">กำลังประเมินความพร้อมร่างกาย...</p>
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#e4d8c8] border-t-[var(--primary)]" />
+          <p className="text-xs text-[var(--muted-text)]">กำลังประเมินความพร้อมร่างกาย...</p>
         </div>
       </div>
     );
@@ -122,21 +122,21 @@ export function ReadinessCard() {
   const colors = colorMap[result.level];
 
   return (
-    <section className="card rounded-3xl bg-white/80 border border-slate-100 p-5 shadow-sm transition-all duration-300">
+    <section className="card rounded-3xl p-5 transition-all duration-300">
       {/* Header Info */}
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#6f8fa6]">
+            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--recovery-blue)]">
               ประเมินความพร้อมวันนี้
             </span>
             {restingHrDelta !== null && (
-              <span className="rounded bg-slate-50 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
+              <span className="rounded bg-[var(--surface-muted)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--muted-text)]">
                 ชีพจร {(restingHrDelta >= 0 ? "+" : "") + restingHrDelta} bpm
               </span>
             )}
             {hrvDelta !== null && (
-              <span className="rounded bg-slate-50 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
+              <span className="rounded bg-[var(--surface-muted)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--muted-text)]">
                 HRV {(hrvDelta >= 0 ? "+" : "") + hrvDelta} ms
               </span>
             )}
@@ -144,7 +144,7 @@ export function ReadinessCard() {
           <h2 className={`mt-1.5 text-lg font-extrabold ${colors.text}`}>
             {result.label}
           </h2>
-          <p className="mt-1 text-sm font-semibold text-[#17201d]">
+          <p className="mt-1 text-sm font-semibold text-[var(--foreground)]">
             {result.summary}
           </p>
         </div>
@@ -158,18 +158,18 @@ export function ReadinessCard() {
 
       {/* Dynamic Recommendation Box */}
       <div className={`mt-4 rounded-2xl border p-4 ${colors.bgLight}`}>
-        <p className="text-xs font-bold uppercase tracking-wider text-slate-500">คำแนะนำการซ้อม</p>
-        <p className="mt-1 text-sm font-medium leading-relaxed text-slate-700">
+        <p className="text-xs font-bold uppercase tracking-wider text-[var(--muted-text)]">คำแนะนำการซ้อม</p>
+        <p className="mt-1 text-sm font-medium leading-relaxed text-[var(--foreground)]">
           {result.recommendation}
         </p>
 
         {/* Reasons list */}
         {result.reasons.length > 0 && (
-          <div className="mt-3 border-t border-slate-100 pt-2">
-            <p className="text-[11px] font-bold text-slate-400">ปัจจัยวิเคราะห์:</p>
+          <div className="mt-3 border-t border-black/5 pt-2">
+            <p className="text-[11px] font-bold text-[var(--muted-text)]/80">ปัจจัยวิเคราะห์:</p>
             <ul className="mt-1 space-y-1">
               {result.reasons.map((reason, idx) => (
-                <li key={idx} className="text-xs text-slate-500 flex items-start gap-1.5">
+                <li key={idx} className="text-xs text-[var(--muted-text)] flex items-start gap-1.5">
                   <span className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${colors.bg}`} />
                   <span>{reason}</span>
                 </li>
@@ -180,28 +180,28 @@ export function ReadinessCard() {
       </div>
 
       {/* Adjust Factors Panel */}
-      <div className="mt-4 border-t border-slate-100 pt-3">
+      <div className="mt-4 border-t border-[var(--border-warm)]/70 pt-3">
         <button
           type="button"
           onClick={() => setShowConfig(!showConfig)}
-          className="flex w-full items-center justify-between gap-3 text-left text-xs font-bold text-slate-500 transition-colors hover:text-slate-700"
+          className="flex w-full items-center justify-between gap-3 text-left text-xs font-bold text-[var(--muted-text)] transition-colors hover:text-[var(--foreground)]"
         >
           <span>ปรับปัจจัยการฟื้นตัววันนี้</span>
-          <span className="text-slate-400">{showConfig ? "⌃" : "⌄"}</span>
+          <span className="text-[var(--primary)]">{showConfig ? "⌃" : "⌄"}</span>
         </button>
         {injuryFlag && (
-          <p className="mt-2 text-xs leading-5 text-rose-500">
+          <p className="mt-2 text-xs leading-5 text-[var(--status-rest)]">
             ตอนนี้มีอาการเจ็บ ระบบจึงให้พักฟื้นเป็นหลัก
           </p>
         )}
 
         {showConfig && (
-          <div className="mt-3 space-y-4 rounded-2xl bg-slate-50/50 p-4 border border-slate-100">
+          <div className="mt-3 space-y-4 rounded-2xl border border-[var(--border-warm)] bg-[var(--surface-muted)]/70 p-4">
             {/* Slide: Sleep Score */}
             <div className="space-y-1">
-              <div className="flex items-center justify-between text-xs font-bold text-slate-600">
+              <div className="flex items-center justify-between text-xs font-bold text-[var(--muted-text)]">
                 <span>คะแนนการนอนเมื่อคืน</span>
-                <span className="text-[#42677f]">{sleepScore !== null ? `${sleepScore}/100` : "ไม่มีข้อมูล"}</span>
+                <span className="text-[var(--primary-strong)]">{sleepScore !== null ? `${sleepScore}/100` : "ไม่มีข้อมูล"}</span>
               </div>
               <input
                 type="range"
@@ -209,15 +209,15 @@ export function ReadinessCard() {
                 max="100"
                 value={sleepScore ?? 70}
                 onChange={(e) => setSleepScore(Number(e.target.value))}
-                className="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#42677f]"
+                className="h-1 w-full cursor-pointer appearance-none rounded-lg bg-[#e4d8c8] accent-[var(--primary)]"
               />
             </div>
 
             {/* Slide: Energy Score */}
             <div className="space-y-1">
-              <div className="flex items-center justify-between text-xs font-bold text-slate-600">
+              <div className="flex items-center justify-between text-xs font-bold text-[var(--muted-text)]">
                 <span>ระดับพลังงาน (Energy Level)</span>
-                <span className="text-[#42677f]">{energyScore !== null ? `${energyScore}/100` : "ไม่มีข้อมูล"}</span>
+                <span className="text-[var(--primary-strong)]">{energyScore !== null ? `${energyScore}/100` : "ไม่มีข้อมูล"}</span>
               </div>
               <input
                 type="range"
@@ -225,13 +225,13 @@ export function ReadinessCard() {
                 max="100"
                 value={energyScore ?? 70}
                 onChange={(e) => setEnergyScore(Number(e.target.value))}
-                className="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#42677f]"
+                className="h-1 w-full cursor-pointer appearance-none rounded-lg bg-[#e4d8c8] accent-[var(--primary)]"
               />
             </div>
 
             {/* Chips: Yesterday's Load */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-slate-600">ความหนักของการซ้อมเมื่อวาน</label>
+              <label className="block text-xs font-bold text-[var(--muted-text)]">ความหนักของการซ้อมเมื่อวาน</label>
               <div className="flex gap-2">
                 {(
                   [
@@ -246,8 +246,8 @@ export function ReadinessCard() {
                     onClick={() => setYesterdayLoad(item.key)}
                     className={`rounded-full px-3 py-1.5 text-xs font-semibold border transition-all ${
                       yesterdayLoad === item.key
-                        ? "bg-[#17201d] text-white border-[#17201d]"
-                        : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                        ? "border-[var(--primary)] bg-[var(--primary-soft)] text-[var(--primary-strong)]"
+                        : "border-[var(--border-warm)] bg-[var(--surface)] text-[var(--muted-text)] hover:bg-[var(--surface-muted)]"
                     }`}
                   >
                     {item.label}
@@ -258,7 +258,7 @@ export function ReadinessCard() {
 
             {/* Chips: Muscle Soreness */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-slate-600">ความตึงล้ากล้ามเนื้อวันนี้</label>
+              <label className="block text-xs font-bold text-[var(--muted-text)]">ความตึงล้ากล้ามเนื้อวันนี้</label>
               <div className="flex gap-2">
                 {(
                   [
@@ -273,8 +273,8 @@ export function ReadinessCard() {
                     onClick={() => setMuscleSoreness(item.key)}
                     className={`rounded-full px-3 py-1.5 text-xs font-semibold border transition-all ${
                       muscleSoreness === item.key
-                        ? "bg-[#17201d] text-white border-[#17201d]"
-                        : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                        ? "border-[var(--primary)] bg-[var(--primary-soft)] text-[var(--primary-strong)]"
+                        : "border-[var(--border-warm)] bg-[var(--surface)] text-[var(--muted-text)] hover:bg-[var(--surface-muted)]"
                     }`}
                   >
                     {item.label}
@@ -284,10 +284,10 @@ export function ReadinessCard() {
             </div>
 
             {/* Injury Toggle */}
-            <div className="flex items-center justify-between border-t border-slate-200/60 pt-3">
+            <div className="flex items-center justify-between border-t border-[var(--border-warm)]/70 pt-3">
               <div className="space-y-0.5">
-                <span className="block text-xs font-bold text-slate-700">แจ้งอาการบาดเจ็บ</span>
-                <span className="block text-[10px] text-slate-400">ข้ามปัจจัยอื่นและปรับเป็นสีแดง (ควรพักฟื้น) ทันที</span>
+                <span className="block text-xs font-bold text-[var(--foreground)]">แจ้งอาการบาดเจ็บ</span>
+                <span className="block text-[10px] text-[var(--muted-text)]">ข้ามปัจจัยอื่นและปรับเป็นสีแดง (ควรพักฟื้น) ทันที</span>
               </div>
               <label className="relative inline-flex cursor-pointer items-center">
                 <input
@@ -296,7 +296,7 @@ export function ReadinessCard() {
                   onChange={(e) => setInjuryFlag(e.target.checked)}
                   className="peer sr-only"
                 />
-                <div className="peer h-6 w-11 rounded-full bg-slate-200 after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-slate-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-rose-500 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none" />
+                <div className="peer h-6 w-11 rounded-full bg-[#e4d8c8] after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-[#d6c9b8] after:bg-white after:transition-all after:content-[''] peer-checked:bg-[var(--status-rest)] peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none" />
               </label>
             </div>
           </div>

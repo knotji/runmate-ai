@@ -7,9 +7,9 @@ const confidenceLabels: Record<AIConfidence, string> = {
 };
 
 const confidenceStyles: Record<AIConfidence, string> = {
-  high: "bg-green-50 text-green-700",
-  medium: "bg-amber-50 text-amber-700",
-  low: "bg-red-50 text-red-600",
+  high: "bg-[#eef7f0] text-[var(--status-ready)]",
+  medium: "bg-[#fff6df] text-[#9b742c]",
+  low: "bg-[#fff0ee] text-[var(--status-rest)]",
 };
 
 export function AIReadQualityNote({
@@ -25,15 +25,15 @@ export function AIReadQualityNote({
   const fields = (unclearFields ?? []).filter(Boolean);
 
   return (
-    <div className={`rounded-2xl ${compact ? "bg-white p-3" : "bg-slate-50 p-3"}`}>
+    <div className={`rounded-2xl border border-[var(--border-warm)]/60 ${compact ? "bg-[var(--surface)] p-3" : "bg-[var(--surface-muted)] p-3"}`}>
       <div className="flex flex-wrap items-center gap-2">
         <span className={`rounded-full px-3 py-1 text-xs font-bold ${confidenceStyles[level]}`}>
           {confidenceLabels[level]}
         </span>
-        <span className="text-xs text-slate-400">AI อ่านจากรูป อาจต้องตรวจทานก่อนใช้ตัดสินใจ</span>
+        <span className="text-xs text-[var(--muted-text)]">AI อ่านจากรูป อาจต้องตรวจทานก่อนใช้ตัดสินใจ</span>
       </div>
       {fields.length > 0 ? (
-        <p className="mt-2 text-xs font-semibold leading-5 text-amber-700">
+        <p className="mt-2 text-xs font-semibold leading-5 text-[#9b742c]">
           บางข้อมูลอ่านไม่ชัด: {fields.join(", ")}
         </p>
       ) : null}
