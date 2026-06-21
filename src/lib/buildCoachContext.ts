@@ -22,6 +22,9 @@ export type WeekSleepRow = {
   durationH: string | null;
   score: number | null;
   readiness: number | null;
+  restingHR: number | null;
+  hrv: number | null;
+  energyScore: number | null;
 };
 
 export type PainSummary = {
@@ -132,6 +135,9 @@ export function buildCoachContextFromData(input: {
       durationH: d?.extracted?.sleepDuration ?? null,
       score: d?.extracted?.sleepScore ?? null,
       readiness: d?.coach?.readinessScore ?? null,
+      restingHR: d?.extracted?.restingHR ?? null,
+      hrv: d?.extracted?.hrv ?? null,
+      energyScore: d?.extracted?.energyScore ?? null,
     };
   });
 

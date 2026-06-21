@@ -10,6 +10,9 @@ import {
 import { defaultProfile, type UserProfile } from "@/types/profile";
 import { calculateAgeFromBirthDate } from "@/lib/profile/age";
 import { calculateNutritionTargetsFromWeight, suggestedProteinTargetG } from "@/lib/nutritionTargets";
+import { formatBpm } from "@/lib/format";
+import { validateHrValues, hasBlockingHrErrors } from "@/lib/hrValidation";
+import { getCoachStylePreview } from "@/lib/coachStylePreview";
 
 type Status = { tone: "idle" | "good" | "warn" | "bad"; text: string };
 
@@ -31,12 +34,6 @@ const SECTION_KEYS: Record<string, (keyof UserProfile)[]> = {
 
 const TODAY = new Date().toISOString().slice(0, 10);
 const IS_DEV = process.env.NODE_ENV === "development";
-
-function formatBpm(val: string | number | null | undefined): string {
-  if (val == null || val === "") return "—";
-  const s = String(val).trim();
-  return s.toLowerCase().endsWith("bpm") ? s : `${s} bpm`;
-}
 
 function getEasyHrNumber(val: string | undefined | null): number | null {
   if (!val) return null;
@@ -81,6 +78,32 @@ export function ProfileSetupForm({
   const [snapshot, setSnapshot] = useState<UserProfile | null>(null);
   const [savedSections, setSavedSections] = useState<Record<string, boolean>>({});
 
+  const hrValidationIssues = validateHrValues({
+    restingHr: profile.normalRestingHr,
+    maxHr: profile.maxHr,
+    ltHr: profile.lactateThresholdHr,
+    easyHrCap: profile.easyHrCap,
+  });
+
+  const renderFieldIssues = (fieldName: "restingHr" | "maxHr" | "ltHr" | "easyHrCap") => {
+    const issues = hrValidationIssues.filter((issue) => issue.field === fieldName);
+    if (issues.length === 0) return null;
+    return (
+      <div className="mt-1 space-y-0.5">
+        {issues.map((issue, idx) => (
+          <p
+            key={idx}
+            className={`text-xs font-semibold ${
+              issue.severity === "error" ? "text-red-500" : "text-amber-500"
+            }`}
+          >
+            {issue.severity === "error" ? "🛑 " : "⚠️ "} {issue.message}
+          </p>
+        ))}
+      </div>
+    );
+  };
+
   function startSectionEdit(section: string) {
     setSnapshot({ ...profile });
     setEditingSection(section);
@@ -96,6 +119,27 @@ export function ProfileSetupForm({
   }
 
   function saveSectionEdit(section: string) {
+    const errors = validateHrValues({
+      restingHr: profile.normalRestingHr,
+      maxHr: profile.maxHr,
+      ltHr: profile.lactateThresholdHr,
+      easyHrCap: profile.easyHrCap,
+    }).filter((issue) => issue.severity === "error");
+
+    const sectionFields = SECTION_KEYS[section] || [];
+    const hasSectionError = errors.some((err) => {
+      if (err.field === "restingHr" && sectionFields.includes("normalRestingHr")) return true;
+      if (err.field === "maxHr" && sectionFields.includes("maxHr")) return true;
+      if (err.field === "ltHr" && sectionFields.includes("lactateThresholdHr")) return true;
+      if (err.field === "easyHrCap" && sectionFields.includes("easyHrCap")) return true;
+      return false;
+    });
+
+    if (hasSectionError) {
+      alert("กรุณากรอกข้อมูลอัตราการเต้นของหัวใจให้ถูกต้องและไม่มีข้อผิดพลาดก่อนบันทึก");
+      return;
+    }
+
     if (snapshot) {
       const keys = SECTION_KEYS[section];
       if (keys) {
@@ -174,6 +218,15 @@ export function ProfileSetupForm({
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (birthDateError) return;
+    if (hasBlockingHrErrors({
+      restingHr: profile.normalRestingHr,
+      maxHr: profile.maxHr,
+      ltHr: profile.lactateThresholdHr,
+      easyHrCap: profile.easyHrCap,
+    })) {
+      setStatus({ tone: "bad", text: "กรุณาแก้ไขข้อผิดพลาดในข้อมูลอัตราการเต้นของหัวใจก่อนบันทึก" });
+      return;
+    }
     invalidateCoachCache();
 
     // In onboarding mode, mark every filled field as "manual" before saving.
@@ -529,10 +582,12 @@ export function ProfileSetupForm({
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-500">Easy HR cap <span className="font-normal text-slate-400">bpm</span></label>
                 <input className="control" placeholder="เช่น 140–145 bpm" value={profile.easyHrCap ?? ""} onChange={(e) => update("easyHrCap", e.target.value)} />
+                {renderFieldIssues("easyHrCap")}
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-500">Max HR <span className="font-normal text-slate-400">bpm</span></label>
                 <NumberInput placeholder="เช่น 188" value={profile.maxHr} onChange={(v) => update("maxHr", v)} />
+                {renderFieldIssues("maxHr")}
               </div>
             </div>
           </>
@@ -712,6 +767,7 @@ export function ProfileSetupForm({
             <div className="grid grid-cols-2 gap-2">
               <SrcField label="Resting HR" unit="bpm" fieldKey="normalRestingHr" sources={profile.fieldSources}>
                 <NumberInput placeholder="เช่น 52" value={profile.normalRestingHr} onChange={(v) => update("normalRestingHr", v)} />
+                {renderFieldIssues("restingHr")}
               </SrcField>
               <SrcField label="HRV ปกติ" fieldKey="normalHrv" sources={profile.fieldSources}>
                 <NumberInput placeholder="เช่น 45" value={profile.normalHrv} onChange={(v) => update("normalHrv", v)} />
@@ -739,62 +795,88 @@ export function ProfileSetupForm({
         onSaveEdit={() => saveSectionEdit("coaching")}
         onCancelEdit={cancelSectionEdit}
         isSaved={savedSections.coaching}
-        renderReadonly={() => (
-          <div className="grid grid-cols-3 gap-2">
-            <StatCard label="สไตล์การพูด" value={profile.coachingTone ? toneLabel(profile.coachingTone) : "—"} />
-            <StatCard label="ความละเอียดคำตอบ" value={profile.responseDetail ? detailLabel(profile.responseDetail) : "—"} />
-            <StatCard label="ภาษา" value={profile.language ? langLabel(profile.language) : "—"} />
-          </div>
-        )}
-        renderEditable={() => (
-          <>
-            <div>
-              <p className="mb-1 text-xs font-semibold text-slate-500">สไตล์การพูด</p>
-              <div className="grid grid-cols-2 gap-2">
-                {(["friendly", "direct", "gentle", "strict"] as const).map((t) => (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => update("coachingTone", t)}
-                    className={`rounded-2xl border py-2 text-sm font-semibold ${profile.coachingTone === t ? "border-[#17201d] bg-[#17201d] text-white" : "border-slate-200 text-slate-600"}`}
-                  >
-                    {toneLabel(t)}
-                  </button>
-                ))}
+        renderReadonly={() => {
+          const previewText = getCoachStylePreview({
+            tone: profile.coachingTone,
+            length: profile.responseDetail,
+            language: profile.language,
+            easyHrCap: profile.easyHrCap,
+          });
+          return (
+            <div className="space-y-3">
+              <div className="grid grid-cols-3 gap-2">
+                <StatCard label="สไตล์การพูด" value={profile.coachingTone ? toneLabel(profile.coachingTone) : "—"} />
+                <StatCard label="ความละเอียดคำตอบ" value={profile.responseDetail ? detailLabel(profile.responseDetail) : "—"} />
+                <StatCard label="ภาษา" value={profile.language ? langLabel(profile.language) : "—"} />
+              </div>
+              <div className="rounded-2xl border border-slate-100 bg-[#f8fafc] p-4">
+                <p className="text-xs font-bold uppercase tracking-wider text-[#6f8fa6]">ตัวอย่างโค้ชของคุณ</p>
+                <p className="mt-2 text-sm leading-relaxed text-slate-700 italic">“{previewText}”</p>
               </div>
             </div>
-            <div>
-              <p className="mb-1 text-xs font-semibold text-slate-500">ความละเอียดคำตอบ</p>
-              <div className="flex gap-2">
-                {(["short", "medium", "detailed"] as const).map((d) => (
-                  <button
-                    key={d}
-                    type="button"
-                    onClick={() => update("responseDetail", d)}
-                    className={`flex-1 rounded-2xl border py-2 text-sm font-semibold ${profile.responseDetail === d ? "border-[#17201d] bg-[#17201d] text-white" : "border-slate-200 text-slate-600"}`}
-                  >
-                    {detailLabel(d)}
-                  </button>
-                ))}
+          );
+        }}
+        renderEditable={() => {
+          const previewText = getCoachStylePreview({
+            tone: profile.coachingTone,
+            length: profile.responseDetail,
+            language: profile.language,
+            easyHrCap: profile.easyHrCap,
+          });
+          return (
+            <>
+              <div>
+                <p className="mb-1 text-xs font-semibold text-slate-500">สไตล์การพูด</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {(["friendly", "direct", "gentle", "strict"] as const).map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => update("coachingTone", t)}
+                      className={`rounded-2xl border py-2 text-sm font-semibold ${profile.coachingTone === t ? "border-[#17201d] bg-[#17201d] text-white" : "border-slate-200 text-slate-600"}`}
+                    >
+                      {toneLabel(t)}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-            <div>
-              <p className="mb-1 text-xs font-semibold text-slate-500">ภาษา</p>
-              <div className="flex gap-2">
-                {(["th", "en", "mixed"] as const).map((l) => (
-                  <button
-                    key={l}
-                    type="button"
-                    onClick={() => update("language", l)}
-                    className={`flex-1 rounded-2xl border py-2 text-sm font-semibold ${profile.language === l ? "border-[#17201d] bg-[#17201d] text-white" : "border-slate-200 text-slate-600"}`}
-                  >
-                    {langLabel(l)}
-                  </button>
-                ))}
+              <div>
+                <p className="mb-1 text-xs font-semibold text-slate-500">ความละเอียดคำตอบ</p>
+                <div className="flex gap-2">
+                  {(["short", "medium", "detailed"] as const).map((d) => (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => update("responseDetail", d)}
+                      className={`flex-1 rounded-2xl border py-2 text-sm font-semibold ${profile.responseDetail === d ? "border-[#17201d] bg-[#17201d] text-white" : "border-slate-200 text-slate-600"}`}
+                    >
+                      {detailLabel(d)}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-          </>
-        )}
+              <div>
+                <p className="mb-1 text-xs font-semibold text-slate-500">ภาษา</p>
+                <div className="flex gap-2">
+                  {(["th", "en", "mixed"] as const).map((l) => (
+                    <button
+                      key={l}
+                      type="button"
+                      onClick={() => update("language", l)}
+                      className={`flex-1 rounded-2xl border py-2 text-sm font-semibold ${profile.language === l ? "border-[#17201d] bg-[#17201d] text-white" : "border-slate-200 text-slate-600"}`}
+                    >
+                      {langLabel(l)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-2xl border border-slate-100 bg-[#f8fafc] p-4">
+                <p className="text-xs font-bold uppercase tracking-wider text-[#6f8fa6]">ตัวอย่างโค้ชของคุณ</p>
+                <p className="mt-2 text-sm leading-relaxed text-slate-700 italic">“{previewText}”</p>
+              </div>
+            </>
+          );
+        }}
       />
 
       {/* ── 8. Advanced ── */}
@@ -887,6 +969,7 @@ export function ProfileSetupForm({
               <div className="space-y-1">
                 <span className="text-xs font-semibold text-slate-500">LT HR</span>
                 <NumberInput placeholder="LT HR" value={profile.lactateThresholdHr} onChange={(v) => update("lactateThresholdHr", v)} />
+                {renderFieldIssues("ltHr")}
               </div>
               <div className="space-y-1">
                 <span className="text-xs font-semibold text-slate-500">VO2max</span>

@@ -13,6 +13,18 @@ import {
 import { calculateNutritionTargetsFromWeight } from "@/lib/nutritionTargets";
 import type { ProfileAnalysisResult, ProfileAnalysisSuggestions } from "@/lib/analyzeHistory";
 import type { UserProfile } from "@/types/profile";
+import { formatBpm } from "@/lib/format";
+
+export type SuggestedValueStatus = "idle" | "applied" | "ignored" | "edited";
+
+export function getSuggestedValueLabel(status: SuggestedValueStatus): string {
+  switch (status) {
+    case "applied": return "ใช้ค่าแนะนำแล้ว";
+    case "ignored": return "ใช้ค่าปัจจุบัน";
+    case "edited": return "แก้ไขเอง";
+    default: return "ค่าแนะนำ";
+  }
+}
 
 
 type State = "idle" | "loading" | "done" | "error";
@@ -83,8 +95,7 @@ function formatValueWithUnit(key: string, v: unknown): string {
     return `${strVal} ชม.`;
   }
   if (key === "easyHrCap" || key === "maxHr" || key === "normalRestingHr") {
-    const s = strVal.trim();
-    return s.toLowerCase().endsWith("bpm") ? s : `${s} bpm`;
+    return formatBpm(strVal);
   }
   return strVal;
 }
@@ -129,6 +140,9 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
   const [manualItems, setManualItems] = useState<ManualItem[]>([]);
   const [error, setError] = useState("");
   const [currentProfile, setCurrentProfile] = useState<UserProfile | null>(null);
+  const [statusMap, setStatusMap] = useState<Record<string, SuggestedValueStatus>>({});
+  const [editingKey, setEditingKey] = useState<string | null>(null);
+  const [editVal, setEditVal] = useState<string>("");
 
   async function analyze() {
     setState("loading");
@@ -251,6 +265,11 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
       setResult(data);
       setSavedKeys((prev) => [...new Set([...prev, ...updatedKeys])]);
       setManualItems(manualReview);  // includes both AI and nutrition manual items
+      const initStatuses: Record<string, SuggestedValueStatus> = {};
+      for (const item of manualReview) {
+        initStatuses[item.key] = "idle";
+      }
+      setStatusMap(initStatuses);
       setState("done");
     } catch (e) {
       setError(e instanceof Error ? e.message : "เกิดข้อผิดพลาด");
@@ -263,7 +282,56 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
     const updates = { [key]: suggestedValue } as Partial<UserProfile>;
     const merged = await applyAndPersist(base as UserProfile, updates, buildSourceUpdates([key]), onProfileUpdated);
     setCurrentProfile(merged);
-    setManualItems((prev) => prev.filter((i) => i.key !== key));
+    setStatusMap((prev) => ({ ...prev, [key]: "applied" }));
+  }
+
+  function keepCurrent(key: string) {
+    setStatusMap((prev) => ({ ...prev, [key]: "ignored" }));
+  }
+
+  function startInlineEdit(key: string, currentVal: unknown) {
+    setEditingKey(key);
+    setEditVal(currentVal != null ? String(currentVal) : "");
+  }
+
+  async function saveInlineEdit(key: string) {
+    let parsed: string | number = editVal;
+    const numericKeys = [
+      "maxHr",
+      "normalRestingHr",
+      "lactateThresholdHr",
+      "proteinTargetG",
+      "carbTargetRestDayG",
+      "carbTargetEasyDayG",
+      "carbTargetHardDayG",
+      "weightKg",
+      "heightCm",
+      "weeklyMileageKm",
+      "currentLongestRunKm",
+      "runningDaysPerWeek",
+      "weeklyTrainingDays",
+      "averageSleepHours",
+      "normalSleepScore",
+      "normalEnergyScore",
+      "normalHrv",
+      "vo2max",
+      "averageCadence",
+    ];
+    if (numericKeys.includes(key)) {
+      const num = Number(editVal);
+      if (Number.isNaN(num)) {
+        alert("กรุณากรอกตัวเลขที่ถูกต้อง");
+        return;
+      }
+      parsed = num;
+    }
+
+    const base = currentProfile ?? { displayName: "นักวิ่ง" };
+    const updates = { [key]: parsed } as Partial<UserProfile>;
+    const merged = await applyAndPersist(base as UserProfile, updates, buildSourceUpdates([key]), onProfileUpdated);
+    setCurrentProfile(merged);
+    setStatusMap((prev) => ({ ...prev, [key]: "edited" }));
+    setEditingKey(null);
   }
 
   function reset() {
@@ -335,29 +403,89 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
                     ระบบแนะนำ แต่ยังไม่ทับค่าที่คุณแก้เอง
                   </p>
                   <div className="divide-y divide-slate-100">
-                    {manualItems.map((item) => (
-                      <div key={item.key} className="py-3 first:pt-0 last:pb-0 space-y-2">
-                        <p className="text-xs font-bold text-slate-800">{item.label}</p>
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="text-xs space-y-0.5">
-                            <p className="text-slate-500">
-                              ค่าที่ใช้อยู่: <span className="font-semibold text-slate-700">{formatValueWithUnit(item.key, item.currentValue)}</span>
-                              <span className="ml-1.5 rounded bg-slate-100 px-1 py-0.5 text-[10px] font-medium text-slate-500">แก้เอง</span>
+                    {manualItems.map((item) => {
+                      const status = statusMap[item.key] ?? "idle";
+                      const isEditing = editingKey === item.key;
+                      return (
+                        <div key={item.key} className="py-3 first:pt-0 last:pb-0 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs font-bold text-slate-800">
+                              Suggested {item.label}
                             </p>
-                            <p className="text-slate-500">
-                              ระบบแนะนำ: <span className="font-semibold text-[#42677f]">{formatValueWithUnit(item.key, item.suggestedValue)}</span>
-                            </p>
+                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                              status === "applied" ? "bg-green-100 text-green-700" :
+                              status === "ignored" ? "bg-slate-100 text-slate-600" :
+                              status === "edited" ? "bg-amber-100 text-amber-700" :
+                              "bg-blue-100 text-blue-700"
+                            }`}>
+                              {getSuggestedValueLabel(status)}
+                            </span>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => void overrideManual(item.key, item.suggestedValue)}
-                            className="shrink-0 rounded-full bg-[#e7efea] px-3.5 py-2 text-xs font-bold text-[#2a5a39] hover:bg-[#d4e8db] transition-colors"
-                          >
-                            ใช้ค่าระบบแทน
-                          </button>
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="text-xs space-y-0.5">
+                              <p className="text-slate-500">
+                                ค่าที่ใช้อยู่: <span className="font-semibold text-slate-700">{formatValueWithUnit(item.key, currentProfile?.[item.key as keyof UserProfile] ?? item.currentValue)}</span>
+                                <span className="ml-1.5 rounded bg-slate-100 px-1 py-0.5 text-[10px] font-medium text-slate-500">แก้เอง</span>
+                              </p>
+                              <p className="text-slate-500">
+                                ค่าแนะนำ: <span className="font-semibold text-[#42677f]">{formatValueWithUnit(item.key, item.suggestedValue)}</span>
+                              </p>
+                              <p className="text-[10px] text-slate-400 italic">
+                                อิงจากประวัติการวิ่งล่าสุด ยังสามารถแก้เองได้
+                              </p>
+                            </div>
+                          </div>
+                          {isEditing ? (
+                            <div className="flex items-center gap-2 pt-1">
+                              <input
+                                className="control min-w-0 flex-1 px-3 py-1.5 text-xs rounded-full border border-slate-200 focus:outline-none focus:ring-1 focus:ring-[#17201d]"
+                                value={editVal}
+                                onChange={(e) => setEditVal(e.target.value)}
+                                placeholder="ใส่ค่าใหม่..."
+                              />
+                              <button
+                                type="button"
+                                onClick={() => void saveInlineEdit(item.key)}
+                                className="rounded-full bg-[#17201d] px-3.5 py-1.5 text-[11px] font-bold text-white hover:bg-slate-800 transition-colors"
+                              >
+                                Save
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setEditingKey(null)}
+                                className="rounded-full bg-slate-100 px-3.5 py-1.5 text-[11px] font-bold text-slate-500 hover:bg-slate-200 transition-colors"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex flex-wrap gap-2 pt-1">
+                              <button
+                                type="button"
+                                onClick={() => void overrideManual(item.key, item.suggestedValue)}
+                                className="rounded-full bg-[#e7efea] px-3.5 py-1.5 text-[11px] font-bold text-[#2a5a39] hover:bg-[#d4e8db] transition-colors"
+                              >
+                                Apply suggested
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => keepCurrent(item.key)}
+                                className="rounded-full bg-slate-50 border border-slate-200 px-3.5 py-1.5 text-[11px] font-bold text-slate-600 hover:bg-slate-100 transition-colors"
+                              >
+                                Keep current
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => startInlineEdit(item.key, currentProfile?.[item.key as keyof UserProfile] ?? item.currentValue)}
+                                className="rounded-full bg-slate-50 border border-slate-200 px-3.5 py-1.5 text-[11px] font-bold text-slate-600 hover:bg-slate-100 transition-colors"
+                              >
+                                Edit manually
+                              </button>
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}

@@ -61,6 +61,13 @@ export function formatHeartRate(value: unknown): string {
   return `${Math.round(num)} bpm`;
 }
 
+export function formatBpm(value: number | string | null | undefined): string {
+  if (value === null || value === undefined || value === "") return "-";
+  const text = String(value).trim();
+  if (/bpm$/i.test(text)) return text;
+  return `${text} bpm`;
+}
+
 export function formatElevation(value: unknown): string {
   if (isInvalid(value)) return "-";
   const num = Number(value);

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
 import { AIContextCard } from "@/components/AIContextCard";
+import { ReadinessCard } from "@/components/ReadinessCard";
 import { CoachChat } from "@/components/CoachChat";
 
 export default function CoachPage() {
@@ -15,6 +16,7 @@ export default function CoachPage() {
         </Link>
       </div>
       <AIContextCard />
+      <ReadinessCard />
       <CoachChat />
     </AppShell>
   );
