@@ -248,7 +248,7 @@ function ContextBlock({ title, children }: { title: string; children: React.Reac
 function buildSourceSummary(context: CoachContext) {
   const parts = [
     context.avgReadiness != null && `Readiness ${context.avgReadiness}`,
-    context.recentPainLogs.length > 0 && `เจ็บ ${context.recentPainLogs[0].painLocation} ${context.recentPainLogs[0].painLevel}/10`,
+    (context.latestPain || context.recentPainLogs.length > 0) && `เจ็บ ${(context.latestPain ?? context.recentPainLogs[0]).painLocation} ${(context.latestPain ?? context.recentPainLogs[0]).painLevel}/10`,
     context.runDays7d > 0 && `วิ่ง ${context.runDays7d} วันใน 7 วันล่าสุด`,
     context.sleep7d.length > 0 && `Sleep ${context.sleep7d.length} รายการ`,
     context.nutritionToday && `อาหารวันนี้ ${context.nutritionToday.mealCount} มื้อ`,
@@ -303,4 +303,6 @@ const emptyContext: CoachContext = {
   todayDate: "",
   contextNotes: [],
   recentPainLogs: [],
+  latestPain: null,
+  recentMaxPain: null,
 };

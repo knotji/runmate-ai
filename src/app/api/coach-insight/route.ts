@@ -26,6 +26,8 @@ export async function POST(request: Request) {
         raceDate: ctx.raceDate ?? null,
         isRaceToday: Boolean(ctx.isRaceToday),
         isRaceTomorrow: Boolean(ctx.isRaceTomorrow),
+        latestPain: ctx.latestPain ? { date: ctx.latestPain.date, painLevel: ctx.latestPain.painLevel } : null,
+        recentMaxPain: ctx.recentMaxPain ? { date: ctx.recentMaxPain.date, painLevel: ctx.recentMaxPain.painLevel } : null,
       });
     }
     const profileCtx = buildRunnerProfileContext(ctx.profile);
@@ -37,7 +39,10 @@ export async function POST(request: Request) {
       fallback: FALLBACK,
     });
 
-    return NextResponse.json(result);
+    return NextResponse.json({
+      ...result,
+      data: applyTodayPainGuard(result.data, ctx),
+    });
   } catch (error) {
     if (process.env.NODE_ENV === "development") {
       console.warn("[today-analysis-error]", error);
@@ -56,6 +61,15 @@ function buildUserPrompt(ctx: CoachContext): string {
   }
 
   lines.push(`วันนี้: ${ctx.todayDate}`);
+
+  if (ctx.latestPain) {
+    lines.push(`\nPain status for Today Focus:`);
+    lines.push(`- latestPain/current: ${ctx.latestPain.painLocation} ${ctx.latestPain.painLevel}/10 on ${ctx.latestPain.date}, risk=${ctx.latestPain.riskLevel}, impact=${ctx.latestPain.trainingImpact}`);
+    if (ctx.recentMaxPain && ctx.recentMaxPain.painLevel > ctx.latestPain.painLevel) {
+      lines.push(`- recentMaxPain/safety only: ${ctx.recentMaxPain.painLocation} ${ctx.recentMaxPain.painLevel}/10 on ${ctx.recentMaxPain.date}`);
+    }
+    lines.push("- Rule: Today Focus current pain wording must use latestPain. recentMaxPain is history/safety context only.");
+  }
 
   if (ctx.profile) {
     const p = ctx.profile as Record<string, string>;
@@ -135,6 +149,89 @@ function buildUserPrompt(ctx: CoachContext): string {
   return lines.join("\n");
 }
 
+function applyTodayPainGuard(insight: DailyCoachInsight, ctx: CoachContext): DailyCoachInsight {
+  const cleaned: DailyCoachInsight = {
+    ...FALLBACK,
+    ...insight,
+    workoutTarget: cleanWorkoutTarget(insight.workoutTarget),
+  };
+
+  const latest = ctx.latestPain ?? ctx.recentPainLogs?.[0] ?? null;
+  if (!latest) return cleaned;
+
+  const recentMax = ctx.recentMaxPain ?? latest;
+  const hasRecentSafetyHistory = recentMax.painLevel >= 3 && recentMax.painLevel > latest.painLevel;
+  const painLine = hasRecentSafetyHistory
+    ? `ล่าสุด${latest.painLocation} ${latest.painLevel}/10 แต่ในช่วง 3 วันที่ผ่านมาเคยขึ้นถึง ${recentMax.painLevel}/10`
+    : `ล่าสุด${latest.painLocation} ${latest.painLevel}/10`;
+  const sleepLine = buildSleepContextLine(ctx);
+  const contextLine = sleepLine ? `${sleepLine} แต่${painLine}` : painLine;
+
+  if (latest.painLevel <= 1 && hasRecentSafetyHistory) {
+    return {
+      ...cleaned,
+      workoutRec: "Recovery / Walk + Mobility",
+      workoutTarget: "ไม่เน้น HR วันนี้ · เดินเบา ๆ, mobility และประคบเย็นถ้ายังระบม",
+      keyObservation: painLine,
+      coachMessage: `${contextLine} จึงยังให้ลดโหลดก่อน อาการดีขึ้นแล้ว แต่ควรคุมโหลดเพื่อไม่ให้กลับมาเจ็บซ้ำ Easy run ทำได้เฉพาะถ้าเดินและวอร์มอัปแล้วไม่เจ็บครับ`,
+    };
+  }
+
+  if (latest.painLevel === 2) {
+    return {
+      ...cleaned,
+      workoutRec: "Recovery / Walk + Mobility",
+      workoutTarget: "เน้นฟื้นตัว · เดินเบา ๆ ถ้าไม่เจ็บ",
+      keyObservation: painLine,
+      coachMessage: `${contextLine} วันนี้ให้ conservative ไว้ก่อน ลดแรงกระแทกและดูอาการระหว่างวัน วิ่งได้เฉพาะแบบสั้นเบามากถ้าเดินกับวอร์มอัปแล้วไม่เจ็บครับ`,
+    };
+  }
+
+  if (latest.painLevel >= 3 && latest.painLevel <= 4) {
+    return {
+      ...cleaned,
+      workoutRec: "Rest / Recovery",
+      workoutTarget: "Recovery Day · ไม่ต้องจับ pace",
+      keyObservation: painLine,
+      coachMessage: `${contextLine} วันนี้ไม่ควรวางวิ่งเป็น default ให้พักจากแรงกระแทกก่อน เลือก mobility เบา ๆ หรือเดินสั้น ๆ เฉพาะถ้าไม่ทำให้อาการเพิ่มครับ`,
+    };
+  }
+
+  if (latest.painLevel >= 5) {
+    return {
+      ...cleaned,
+      workoutRec: "งดวิ่ง / พักและประเมินอาการ",
+      workoutTarget: "ไม่เน้น HR วันนี้ · พักจากการวิ่ง",
+      keyObservation: painLine,
+      coachMessage: `${contextLine} วันนี้งดวิ่งก่อนครับ ถ้าอาการยังไม่ดีขึ้น แย่ลง บวม แดง ชา หรือลงน้ำหนักลำบาก ควรพบแพทย์หรือนักกายภาพ`,
+    };
+  }
+
+  return cleaned;
+}
+
+function cleanWorkoutTarget(value: string | null | undefined): string {
+  const original = (value ?? "").trim();
+  if (!original || original === "-") return "Recovery Day · ไม่ต้องจับ pace";
+  const cleaned = original
+    .replace(/\bHR\s*N\/A\b[,\s·-]*/gi, "")
+    .replace(/\bPace\s*N\/A\b[,\s·-]*/gi, "")
+    .replace(/\s*,\s*,/g, ", ")
+    .replace(/^[,\s·-]+|[,\s·-]+$/g, "")
+    .trim();
+  return cleaned || "Recovery Day · ไม่ต้องจับ pace";
+}
+
+function buildSleepContextLine(ctx: CoachContext): string {
+  const latestSleep = ctx.sleep7d.find((sleep) => sleep.date === ctx.todayDate) ?? ctx.sleep7d[0];
+  const readiness = latestSleep?.readiness ?? ctx.avgReadiness;
+  if (readiness == null) return "";
+  if (readiness < 50) return "การนอน/readiness ล่าสุดยังต่ำ";
+  if (readiness < 65) return "การนอนล่าสุดและ readiness อยู่ระดับ Fair";
+  if (readiness < 80) return "การนอนล่าสุดและ readiness อยู่ระดับ Good";
+  return "การนอนล่าสุดและ readiness อยู่ระดับ Excellent";
+}
+
 const SYSTEM_PROMPT = `คุณคือ RunMate AI โค้ชวิ่งส่วนตัวที่วิเคราะห์ข้อมูลสุขภาพจริงจาก Samsung Health
 พูดภาษาไทย กระชับ ตรงประเด็น เป็นกันเอง ไม่เป็นทางการมากเกินไป
 
@@ -154,4 +251,11 @@ const SYSTEM_PROMPT = `คุณคือ RunMate AI โค้ชวิ่งส
 - ถ้า readiness < 65 หรือนอนน้อย → แนะนำ easy/recovery ไม่ใช่ hard session
 - ถ้าวิ่งติดกัน 3+ วัน → เตือนให้ rest หรือ cross-train
 - ถ้าไม่มีข้อมูล workout → ให้ insight จาก sleep อย่างเดียว
-- coachMessage ต้องมี why เสมอ ไม่ใช่แค่สั่ง`;
+- coachMessage ต้องมี why เสมอ ไม่ใช่แค่สั่ง
+- latestPain คืออาการเจ็บปัจจุบัน ต้องใช้ค่านี้เมื่อต้องพูดว่า "ล่าสุด/ตอนนี้เจ็บกี่คะแนน"
+- recentMaxPain เป็นบริบทความเสี่ยงย้อนหลังเท่านั้น ห้ามเขียนเหมือนเป็นอาการปัจจุบัน
+- ถ้า latestPain 0-1 แต่ recentMaxPain >= 3 ให้แนะนำ Recovery / Walk + Mobility และอธิบายว่าอาการดีขึ้นแต่ยังลดโหลดก่อน
+- ถ้า latestPain 2 ให้ conservative: walk/mobility/recovery และวิ่งได้เฉพาะถ้าเดินกับวอร์มอัปไม่เจ็บ
+- ถ้า latestPain 3-4 ให้ Rest / Recovery เป็นค่าเริ่มต้น ไม่แนะนำวิ่งเป็น default
+- ถ้า latestPain >= 5 ให้งดวิ่งและแนะนำพบแพทย์/นักกายภาพถ้าไม่ดีขึ้นหรือแย่ลง
+- ถ้าไม่มี HR หรือ pace target วันนี้ ให้ใช้ภาษาธรรมชาติ เช่น "Recovery Day · ไม่ต้องจับ pace" ห้ามตอบ "HR N/A" หรือ "Pace N/A"`;

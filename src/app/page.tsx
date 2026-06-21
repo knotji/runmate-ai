@@ -13,8 +13,8 @@ import type { RaceGoal } from "@/types/race";
 import type { DailyCoachInsight } from "@/types/ai";
 
 function getRecommendedSubtype(insight: DailyCoachInsight | null, ctx: CoachContext | null): "run" | "strength" | "walk" | "other" {
-  if (ctx && ctx.recentPainLogs && ctx.recentPainLogs.length > 0) {
-    const p = ctx.recentPainLogs[0];
+  if (ctx && (ctx.latestPain || ctx.recentPainLogs?.length)) {
+    const p = ctx.latestPain ?? ctx.recentPainLogs[0];
     if (p.riskLevel === "high" || p.riskLevel === "medium") return "walk";
   }
   if (ctx && ctx.recentRaceResults && ctx.recentRaceResults.length > 0) {
@@ -119,7 +119,7 @@ export default function TodayPage() {
     }
   }
 
-  const hasPace = !!(insight?.workoutTarget && insight.workoutTarget !== "-");
+  const hasPace = isMeaningfulWorkoutTarget(insight?.workoutTarget);
   const readinessScore = insight?.todayReadiness != null ? Math.round(insight.todayReadiness) : null;
   const todayChecklist = buildTodayChecklist(coachCtx, dailySummaryItem);
 
@@ -214,8 +214,8 @@ export default function TodayPage() {
       </section>
 
       {/* E. Compact detail sections */}
-      {coachCtx?.recentPainLogs && coachCtx.recentPainLogs.length > 0 && (
-        <CompactPainCard pains={coachCtx.recentPainLogs} />
+      {(coachCtx?.latestPain || (coachCtx?.recentPainLogs && coachCtx.recentPainLogs.length > 0)) && (
+        <CompactPainCard pains={coachCtx.latestPain ? [coachCtx.latestPain, ...coachCtx.recentPainLogs.filter((pain) => pain.id !== coachCtx.latestPain?.id)] : coachCtx.recentPainLogs} />
       )}
 
       {coachCtx?.nutritionToday && (
@@ -361,6 +361,13 @@ function readinessChipClass(score: number): string {
   if (score >= 65) return "bg-[#e7f0fa] text-[#42677f]";
   if (score >= 50) return "bg-[#fff6df] text-[#9b742c]";
   return "bg-red-50 text-[var(--status-rest)]";
+}
+
+function isMeaningfulWorkoutTarget(value: string | null | undefined): boolean {
+  if (!value) return false;
+  const normalized = value.trim();
+  if (!normalized || normalized === "-") return false;
+  return !/\b(HR|Pace)\s*N\/A\b/i.test(normalized);
 }
 
 // ─── Compact Pain Card ─────────────────────────────────────────────────────────

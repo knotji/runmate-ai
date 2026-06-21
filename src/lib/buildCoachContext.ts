@@ -74,6 +74,8 @@ export type CoachContext = {
   todayDate: string;
   contextNotes: string[];
   recentPainLogs: PainSummary[];
+  latestPain: PainSummary | null;
+  recentMaxPain: PainSummary | null;
 };
 
 export type NutritionDaySummary = {
@@ -217,7 +219,8 @@ export function buildCoachContextFromData(input: {
   // Pain logs — last 7 days, most recent first
   const painItems = items
     .filter((i) => i.type === "pain")
-    .filter((i) => i.createdAt.slice(0, 10) >= cutoff);
+    .filter((i) => i.createdAt.slice(0, 10) >= cutoff)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const recentPainLogs: PainSummary[] = painItems.map((item) => {
     const d = item.data as PainLog;
     return {
@@ -235,6 +238,11 @@ export function buildCoachContextFromData(input: {
       painType: Array.isArray(d?.painType) ? d.painType : [],
     };
   });
+  const recentPainCutoff3d = dateBefore(3);
+  const latestPain = recentPainLogs[0] ?? null;
+  const recentMaxPain = recentPainLogs
+    .filter((pain) => pain.date >= recentPainCutoff3d)
+    .reduce<PainSummary | null>((max, pain) => (!max || pain.painLevel > max.painLevel ? pain : max), null);
 
   const latestBodyItem = items.filter((i) => i.type === "body")[0];
   let latestBody: CoachContext["latestBody"] = null;
@@ -278,6 +286,8 @@ export function buildCoachContextFromData(input: {
     latestBody,
     todayDate: today,
     recentPainLogs,
+    latestPain,
+    recentMaxPain,
     contextNotes: buildContextNotes({
       raceGoal: input.raceGoal,
       racePlan: input.racePlan,
@@ -289,6 +299,8 @@ export function buildCoachContextFromData(input: {
       longestRun7dKm,
       lastWorkoutDate,
       recentPainLogs,
+      latestPain,
+      recentMaxPain,
       strengthCount: items.filter((i) => i.type === "strength" && i.createdAt.slice(0, 10) >= cutoff).length,
     }),
   };
@@ -362,6 +374,8 @@ function buildContextNotes(input: {
   totalRunKm: number;
   runDays7d: number;
   recentPainLogs?: PainSummary[];
+  latestPain?: PainSummary | null;
+  recentMaxPain?: PainSummary | null;
   longestRun7dKm: number | null;
   lastWorkoutDate: string | null;
   strengthCount?: number;
@@ -392,7 +406,15 @@ function buildContextNotes(input: {
   }
   if (input.recentPainLogs?.length) {
     const recentCutoff3d = new Date(Date.now() + TZ_OFFSET_MS - 3 * 86400000).toISOString().slice(0, 10);
+    const latest = input.latestPain ?? input.recentPainLogs[0];
+    const recentMax = input.recentMaxPain ?? input.recentPainLogs
+      .filter((pain) => pain.date >= recentCutoff3d)
+      .reduce<PainSummary | null>((max, pain) => (!max || pain.painLevel > max.painLevel ? pain : max), null);
     const highMedium = input.recentPainLogs.filter((p) => p.riskLevel === "high" || p.riskLevel === "medium");
+    notes.push(`CURRENT PAIN STATUS: latest ${latest.painLocation} level ${latest.painLevel}/10 on ${latest.date}. Use this as current pain wording.`);
+    if (recentMax && recentMax.painLevel > latest.painLevel) {
+      notes.push(`RECENT MAX PAIN SAFETY CONTEXT: ${recentMax.painLocation} reached ${recentMax.painLevel}/10 within the last 3 days. Mention only as history/safety context, not current pain.`);
+    }
     for (const pain of input.recentPainLogs.slice(0, 3)) {
       const flags: string[] = [];
       if (pain.swellingOrRedness === "yes") flags.push("swelling/redness");
@@ -403,13 +425,17 @@ function buildContextNotes(input: {
       notes.push(`Pain report (${pain.date}): ${pain.painLocation}${sideStr} level ${pain.painLevel}/10 risk=${pain.riskLevel} impact=${pain.trainingImpact}${flagStr}.`);
     }
     if (highMedium.length > 0) {
-      notes.push("IMPORTANT: User has recent medium/high risk pain. Do NOT recommend hard training, speed work, or races. Prioritize rest or low-impact recovery.");
+      notes.push("IMPORTANT: User has recent medium/high risk pain history. Do NOT recommend hard training, speed work, or races. Prioritize rest or low-impact recovery.");
     }
     const activePain = input.recentPainLogs.filter((p) => p.date >= recentCutoff3d && p.painLevel >= 3);
     if (activePain.length > 0) {
-      const worst = activePain.reduce((max, p) => p.painLevel > max.painLevel ? p : max, activePain[0]);
-      notes.push(`INJURY CONSTRAINT: Active ${worst.painLocation} injury (level ${worst.painLevel}/10). Tomorrow plan MUST prioritize Rest/Recovery. Do NOT recommend 'Easy Run' as default. Easy run only as conditional: 'ถ้าอาการหายและเดินไม่เจ็บ ค่อยกลับไป easy run สั้น ๆ ได้'.`);
-      if (worst.canBearWeight === "no" || worst.swellingOrRedness === "yes") {
+      const safetyPain = latest.painLevel >= 3 ? latest : (recentMax ?? activePain[0]);
+      if (latest.painLevel >= 3) {
+        notes.push(`INJURY CONSTRAINT: Current ${latest.painLocation} pain is level ${latest.painLevel}/10. Today/tomorrow plan MUST prioritize Rest/Recovery. Do NOT recommend 'Easy Run' as default. Easy run only as conditional if walking and warm-up are pain-free.`);
+      } else {
+        notes.push(`INJURY SAFETY HISTORY: Current pain is mild (${latest.painLocation} ${latest.painLevel}/10), but recent max was ${safetyPain.painLevel}/10. Today/tomorrow plan should still reduce load and avoid hard training.`);
+      }
+      if (safetyPain.canBearWeight === "no" || safetyPain.swellingOrRedness === "yes") {
         notes.push("RED FLAG: Injury with swelling/redness or inability to bear weight. Do NOT recommend any running. Recommend rest and professional evaluation if worsening.");
       }
     }
