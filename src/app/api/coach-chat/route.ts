@@ -40,9 +40,10 @@ export async function POST(request: Request) {
     const responseDetail = profile?.responseDetail as string | undefined;
     const coachingTone = profile?.coachingTone as string | undefined;
     const imageDataUrl = body.imageDataUrl as string | undefined;
+    const imageIntent = body.imageIntent as string | undefined;
 
     let basePrompt = coachChatPrompt;
-    let chatInstructions = buildCoachResponseFormatInstruction(profile?.language, responseDetail, Boolean(imageDataUrl));
+    let chatInstructions = buildCoachResponseFormatInstruction(profile?.language, responseDetail, Boolean(imageDataUrl), imageIntent);
 
     if (responseDetail === "short" || responseDetail === "สั้น") {
       // Filter out instructions to include check-in time, ข้อมูลที่ใช้ประเมิน, and สิ่งที่ยังไม่รู้
@@ -84,11 +85,21 @@ Use a strict, structured, and disciplined Thai coaching tone (เข้มงว
 `;
     }
 
+    const imageIntentInstruction = imageIntent ? `
+IMAGE INTENT DETECTED: The user has explicitly labeled the attached image as "${imageIntent}". Focus your analysis accordingly:
+- If "อาหาร" (food/drink): Analyze as a running lifestyle nutrition coach. Focus on carbs, proteins, hydration, fats, and timing (before/after run vs. rest day).
+- If "ฉลาก" (nutrition label): Extract and explain visible nutrition facts (macros, sodium, sugar, serving sizes) if readable in the image.
+- If "ผลวิ่ง" (running result): Focus strictly on running performance metrics visible: distance, pace, duration, HR, zones, splits. Explain what they imply.
+- If "Recovery/Sleep" (sleep/recovery): Focus strictly on recovery indicators: sleep score, duration, deep sleep, HRV, resting HR.
+- If "เจ็บ/ปวด" (injury/pain): Focus on safety. Do NOT diagnose the medical condition. Give conservative training guidance and red flags/stop rules.
+` : "";
+
     const profileCtx = buildRunnerProfileContext(profile);
     const systemExtra = [
       `วันที่และเวลาปัจจุบัน: ${dateTimeStr}`,
       profileCtx,
       `Context:\n${JSON.stringify(context)}`,
+      imageIntentInstruction,
     ].filter(Boolean).join("\n\n");
 
     const result = await textFromAI({

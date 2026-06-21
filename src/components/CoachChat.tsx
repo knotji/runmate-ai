@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import { LoadingState } from "@/components/LoadingState";
 import { buildCoachContextFromSupabase } from "@/lib/buildCoachContext";
 import { fileToDataUrl, uploadImage } from "@/lib/storage";
+import { compressImage } from "@/lib/imageCompression";
 
 type ChatMessage = { role: "user" | "assistant"; content: string; imageUrl?: string };
 
@@ -31,14 +32,35 @@ const quickQuestions = [
   },
 ];
 
+const INTENT_OPTIONS = [
+  { key: "อาหาร", label: "อาหาร" },
+  { key: "ฉลาก", label: "ฉลาก" },
+  { key: "ผลวิ่ง", label: "ผลวิ่ง" },
+  { key: "Recovery/Sleep", label: "Recovery/Sleep" },
+  { key: "เจ็บ/ปวด", label: "เจ็บ/ปวด" },
+  { key: "อื่น ๆ", label: "อื่น ๆ" },
+] as const;
+
+type ImageIntentType = (typeof INTENT_OPTIONS)[number]["key"];
+
+const intentDefaultQuestions: Record<ImageIntentType, string> = {
+  "อาหาร": "อันนี้กินได้มั้ยครับ สำหรับเป้าหมายวิ่ง/ลดไขมัน",
+  "ฉลาก": "ช่วยดูฉลากนี้ให้หน่อยครับ เหมาะกับก่อน/หลังวิ่งไหม",
+  "ผลวิ่ง": "ช่วยวิเคราะห์ผลวิ่งนี้และแนะนำซ้อมถัดไปครับ",
+  "Recovery/Sleep": "ช่วยดู recovery วันนี้ว่าควรซ้อมยังไงครับ",
+  "เจ็บ/ปวด": "ช่วยประเมินเชิงการซ้อมจากรูปนี้ครับ ไม่ต้องวินิจฉัยโรค",
+  "อื่น ๆ": "ช่วยวิเคราะห์รูปนี้ในมุมการซ้อมและสุขภาพให้หน่อยครับ",
+};
+
 export function CoachChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([INITIAL_MESSAGE]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Image Upload states
+  // Memory-efficient preview state
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [imageIntent, setImageIntent] = useState<ImageIntentType | null>(null);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -46,6 +68,15 @@ export function CoachChat() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
+
+  // Clean up object URLs to avoid memory leaks
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -59,26 +90,31 @@ export function CoachChat() {
         return;
       }
       setSelectedFile(file);
-      try {
-        const url = await fileToDataUrl(file);
-        setImageDataUrl(url);
-      } catch (err) {
-        console.error("Failed to convert file to data URL", err);
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
       }
+      const localUrl = URL.createObjectURL(file);
+      setPreviewUrl(localUrl);
+      setImageIntent("อื่น ๆ"); // Default intent
     }
   };
 
   const clearImage = () => {
     setSelectedFile(null);
-    setImageDataUrl(null);
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setPreviewUrl(null);
+    setImageIntent(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
   };
 
-  async function ask(content: string, customImageDataUrl?: string | null) {
-    const activeDataUrl = customImageDataUrl !== undefined ? customImageDataUrl : imageDataUrl;
-    const fileToUpload = selectedFile;
+  async function ask(content: string) {
+    const fileToProcess = selectedFile;
+    const activeIntent = imageIntent;
+    const activePreviewUrl = previewUrl;
 
     // Clear input states early so UI feels responsive
     setInput("");
@@ -87,20 +123,34 @@ export function CoachChat() {
 
     try {
       let uploadedUrl: string | null = null;
-      if (fileToUpload) {
+      let base64DataUrl: string | undefined = undefined;
+
+      if (fileToProcess) {
         try {
-          uploadedUrl = await uploadImage("workout", fileToUpload);
+          // 1. Compress image client-side before sending
+          const compressedBlob = await compressImage(fileToProcess);
+          const compressedFile = new File([compressedBlob], fileToProcess.name, {
+            type: "image/jpeg",
+          });
+
+          // 2. Convert compressed file to base64 dynamically for current request
+          base64DataUrl = await fileToDataUrl(compressedFile);
+
+          // 3. Upload compressed image to Supabase
+          uploadedUrl = await uploadImage("workout", compressedFile);
         } catch (err) {
-          console.error("Failed to upload image to Supabase", err);
+          console.error("Failed to compress or upload image", err);
         }
       }
 
+      // Add to message history. Uses Supabase imageUrl or local object URL preview,
+      // avoiding storing large base64 strings in history state.
       const nextMessages: ChatMessage[] = [
         ...messages,
         {
           role: "user",
           content,
-          imageUrl: uploadedUrl || activeDataUrl || undefined,
+          imageUrl: uploadedUrl || activePreviewUrl || undefined,
         },
       ];
       setMessages(nextMessages);
@@ -123,7 +173,8 @@ export function CoachChat() {
         body: JSON.stringify({
           messages: nextMessages,
           context,
-          imageDataUrl: activeDataUrl || undefined,
+          imageDataUrl: base64DataUrl,
+          imageIntent: activeIntent || undefined,
         }),
       });
 
@@ -152,8 +203,9 @@ export function CoachChat() {
 
   function submit(event: FormEvent) {
     event.preventDefault();
-    if (!input.trim() && !imageDataUrl) return;
-    const prompt = input.trim() || "ช่วยวิเคราะห์รูปนี้หน่อยครับ";
+    if (!input.trim() && !previewUrl) return;
+    const intent = imageIntent || "อื่น ๆ";
+    const prompt = input.trim() || intentDefaultQuestions[intent] || "ช่วยวิเคราะห์รูปนี้หน่อยครับ";
     void ask(prompt);
   }
 
@@ -208,21 +260,49 @@ export function CoachChat() {
         <div ref={bottomRef} />
       </div>
 
-      {imageDataUrl && (
-        <div className="relative inline-block ml-2 mb-2">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={imageDataUrl}
-            alt="Upload preview"
-            className="h-20 w-20 object-cover rounded-2xl border border-slate-200 shadow-sm"
-          />
-          <button
-            type="button"
-            onClick={clearImage}
-            className="absolute -top-1.5 -right-1.5 h-6 w-6 bg-slate-800 hover:bg-slate-900 text-white rounded-full flex items-center justify-center text-sm font-bold shadow-md transition-colors"
-          >
-            ×
-          </button>
+      {/* Image Preview & Intent Chips */}
+      {previewUrl && (
+        <div className="space-y-2 rounded-2xl bg-white/85 p-3 shadow-sm border border-slate-100/50">
+          <div className="flex items-center gap-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={previewUrl}
+              alt="Upload preview"
+              className="h-16 w-16 object-cover rounded-2xl border border-slate-200 shadow-sm"
+            />
+            <div className="text-xs flex-1">
+              <p className="font-bold text-[#17201d]">เลือกรูปภาพเรียบร้อย</p>
+              <button
+                type="button"
+                onClick={clearImage}
+                className="mt-1 text-red-500 font-bold hover:underline"
+              >
+                ลบรูปภาพ
+              </button>
+            </div>
+          </div>
+          
+          <div className="space-y-1.5 border-t border-slate-100 pt-2">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+              แท็กประเภทรูปภาพเพื่อแนะนำคำถามและปรับบทวิเคราะห์:
+            </span>
+            <div className="flex flex-wrap gap-1.5">
+              {INTENT_OPTIONS.map((opt) => (
+                <button
+                  key={opt.key}
+                  type="button"
+                  onClick={() => setImageIntent(opt.key)}
+                  className={`rounded-full px-3 py-1.5 text-xs font-semibold border transition-all ${
+                    imageIntent === opt.key
+                      ? "bg-[#42677f] text-white border-[#42677f]"
+                      : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
@@ -245,12 +325,12 @@ export function CoachChat() {
           className="min-w-0 flex-1 rounded-2xl border-0 bg-slate-50 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#17201d]/10"
           value={input}
           onChange={(event) => setInput(event.target.value)}
-          placeholder={imageDataUrl ? "พิมพ์ถามคำถามเกี่ยวกับรูปนี้..." : "ถามโค้ช..."}
+          placeholder={previewUrl ? `แท็ก "${imageIntent}": พิมพ์ถาม หรือกด "ส่ง" เพื่อใช้คำถามแนะนำ...` : "ถามโค้ช..."}
         />
         <button
           className="rounded-2xl bg-[#17201d] px-5 py-3 text-sm font-bold text-white disabled:opacity-40 transition-opacity"
           type="submit"
-          disabled={loading || (!input.trim() && !imageDataUrl)}
+          disabled={loading || (!input.trim() && !previewUrl)}
         >
           ส่ง
         </button>

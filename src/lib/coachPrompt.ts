@@ -1,13 +1,19 @@
-export function buildCoachResponseFormatInstruction(language?: string, length?: string, hasImage?: boolean): string {
+export function buildCoachResponseFormatInstruction(
+  language?: string,
+  length?: string,
+  hasImage?: boolean,
+  imageIntent?: string | null
+): string {
   const isThai = language === "th" || language === "ไทย" || language === "mixed";
   const isShort = length === "short" || length === "สั้น";
 
   if (hasImage) {
     if (isThai && isShort) {
-      return `
+      if (imageIntent === "อาหาร" || imageIntent === "ฉลาก" || !imageIntent) {
+        return `
 CRITICAL MULTIMODAL RESPONSE FORMAT INSTRUCTION (Thai + Short):
 - You MUST respond in Thai, keeping it extremely brief.
-- If the image appears to show food, drink, a menu, or a nutrition label, you MUST follow this exact 5-line format (do not add blank lines, headings, numbers, or other text):
+- If the image shows food, drink, a menu, or a nutrition label, you MUST follow this exact 5-line format (do not add blank lines, headings, numbers, or other text):
   Line 1: คำวินิจฉัย (กินได้ / ควรเลี่ยง / กินได้แต่ปรับนิด) และระบุว่าเหมาะกับช่วงไหน (เช่น ก่อนวิ่ง/หลังวิ่ง/วันพัก)
   Line 2: จุดที่ดีของมื้อนี้
   Line 3: จุดที่ควรระวัง
@@ -16,6 +22,14 @@ CRITICAL MULTIMODAL RESPONSE FORMAT INSTRUCTION (Thai + Short):
 - If the image shows a running, sleep, or recovery screenshot, summarize key metrics and give a short 2-3 sentence recommendation (do not output a long analysis).
 - Never duplicate heart rate units (do not write "bpm bpm", write only "bpm" once).
 `;
+      } else {
+        return `
+CRITICAL MULTIMODAL RESPONSE FORMAT INSTRUCTION (Thai + Short):
+- You MUST respond in Thai, keeping it extremely brief.
+- Summarize key metrics and give a short 2-3 sentence recommendation (do not output a long analysis, maximum 3-5 short bullets or short paragraphs).
+- Never duplicate heart rate units (do not write "bpm bpm", write only "bpm" once).
+`;
+      }
     }
 
     return `
