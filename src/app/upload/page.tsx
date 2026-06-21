@@ -210,6 +210,11 @@ export default function UploadPage() {
         return;
       }
     }
+    if (type === "body") {
+      setResult(next);
+      setSaveStatus("idle");
+      return;
+    }
     await store(next);
   }
 
@@ -500,8 +505,8 @@ export default function UploadPage() {
       ) : null}
       {result && type === "body" ? (
         <>
-          <ReportSavedNote saveStatus={saveStatus} />
           <BodyResultCard result={(result as { data: BodyCompositionAnalysis }).data} />
+          <BodySaveBar saveStatus={saveStatus} onSave={() => void store(result)} />
         </>
       ) : null}
     </AppShell>
@@ -751,6 +756,26 @@ function ReviewMetric({ label, value }: { label: string; value: string }) {
       <p className="text-xs text-slate-400">{label}</p>
       <p className="mt-1 font-bold text-[#17201d]">{value}</p>
     </div>
+  );
+}
+
+function BodySaveBar({ saveStatus, onSave }: { saveStatus: "idle" | "saving" | "saved" | "error"; onSave: () => void }) {
+  return (
+    <section className="card space-y-2 p-5">
+      {saveStatus === "saved" ? (
+        <p className="text-center text-sm font-bold text-[var(--status-ready)]">บันทึกเข้า Report แล้ว</p>
+      ) : (
+        <button
+          type="button"
+          disabled={saveStatus === "saving"}
+          onClick={onSave}
+          className="btn-primary w-full py-3 text-sm disabled:opacity-60"
+        >
+          {saveStatus === "saving" ? "กำลังบันทึก..." : saveStatus === "error" ? "บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง" : "บันทึกเข้า Report"}
+        </button>
+      )}
+      <p className="text-center text-xs text-slate-400">ข้อมูล structured data เท่านั้น รูปต้นฉบับไม่ถูกเก็บ</p>
+    </section>
   );
 }
 

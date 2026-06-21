@@ -487,9 +487,13 @@ function MealNutritionDaySummary({ summary, mealCount, proteinTarget }: { summar
 }
 
 function BodyDetail({ item }: { item: LocalHistoryItem }) {
-  const d = item.data as { extracted?: Record<string, unknown>; coach?: Record<string, unknown> };
+  const d = item.data as BodyCompositionAnalysis;
   const ext = d?.extracted ?? {};
   const coach = d?.coach ?? {};
+  const confidenceLabel =
+    d?.confidence === "high" ? "ความมั่นใจสูง"
+    : d?.confidence === "medium" ? "ความมั่นใจปานกลาง"
+    : null;
 
   return (
     <div className="rounded-2xl bg-slate-50 p-4">
@@ -501,6 +505,9 @@ function BodyDetail({ item }: { item: LocalHistoryItem }) {
       </div>
       {typeof coach.bodySummary === "string" && coach.bodySummary && (
         <p className="text-sm leading-6 text-slate-700">{truncate(coach.bodySummary, 140)}</p>
+      )}
+      {confidenceLabel && (
+        <p className="mt-2 text-xs text-slate-400">{confidenceLabel}</p>
       )}
     </div>
   );
