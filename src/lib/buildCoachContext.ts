@@ -31,10 +31,15 @@ export type PainSummary = {
   id: string;
   date: string;
   painLocation: string;
+  painSide: string;
   painLevel: number;
   riskLevel: string;
   trainingImpact: string;
   coachAdvice: string;
+  swellingOrRedness: string;
+  canBearWeight: string;
+  redFlags: string[];
+  painType: string[];
 };
 
 export type CoachContext = {
@@ -219,10 +224,15 @@ export function buildCoachContextFromData(input: {
       id: item.id,
       date: item.createdAt.slice(0, 10),
       painLocation: d?.painLocation ?? "ไม่ระบุ",
+      painSide: d?.painSide ?? "unknown",
       painLevel: d?.painLevel ?? 0,
       riskLevel: d?.riskLevel ?? "unknown",
       trainingImpact: d?.trainingImpact ?? "unknown",
       coachAdvice: d?.coachAdvice ?? "",
+      swellingOrRedness: d?.swellingOrRedness ?? "unknown",
+      canBearWeight: d?.canBearWeight ?? "unknown",
+      redFlags: Array.isArray(d?.redFlags) ? d.redFlags : [],
+      painType: Array.isArray(d?.painType) ? d.painType : [],
     };
   });
 
@@ -381,12 +391,27 @@ function buildContextNotes(input: {
     notes.push(`Strength training in last 7 days: completed ${input.strengthCount} strength session(s).`);
   }
   if (input.recentPainLogs?.length) {
+    const recentCutoff3d = new Date(Date.now() + TZ_OFFSET_MS - 3 * 86400000).toISOString().slice(0, 10);
     const highMedium = input.recentPainLogs.filter((p) => p.riskLevel === "high" || p.riskLevel === "medium");
     for (const pain of input.recentPainLogs.slice(0, 3)) {
-      notes.push(`Pain report (${pain.date}): ${pain.painLocation} level ${pain.painLevel}/10 risk=${pain.riskLevel} impact=${pain.trainingImpact}.`);
+      const flags: string[] = [];
+      if (pain.swellingOrRedness === "yes") flags.push("swelling/redness");
+      if (pain.canBearWeight === "no") flags.push("cannot bear weight");
+      if (pain.redFlags?.length) flags.push(`redFlags: ${pain.redFlags.slice(0, 3).join(", ")}`);
+      const sideStr = pain.painSide !== "unknown" ? ` (${pain.painSide})` : "";
+      const flagStr = flags.length ? ` [${flags.join("; ")}]` : "";
+      notes.push(`Pain report (${pain.date}): ${pain.painLocation}${sideStr} level ${pain.painLevel}/10 risk=${pain.riskLevel} impact=${pain.trainingImpact}${flagStr}.`);
     }
     if (highMedium.length > 0) {
-      notes.push("IMPORTANT: User has recent medium/high risk pain. Do NOT recommend hard training, speed work, or races. Prioritize easy/rest based on pain impact.");
+      notes.push("IMPORTANT: User has recent medium/high risk pain. Do NOT recommend hard training, speed work, or races. Prioritize rest or low-impact recovery.");
+    }
+    const activePain = input.recentPainLogs.filter((p) => p.date >= recentCutoff3d && p.painLevel >= 3);
+    if (activePain.length > 0) {
+      const worst = activePain.reduce((max, p) => p.painLevel > max.painLevel ? p : max, activePain[0]);
+      notes.push(`INJURY CONSTRAINT: Active ${worst.painLocation} injury (level ${worst.painLevel}/10). Tomorrow plan MUST prioritize Rest/Recovery. Do NOT recommend 'Easy Run' as default. Easy run only as conditional: 'ถ้าอาการหายและเดินไม่เจ็บ ค่อยกลับไป easy run สั้น ๆ ได้'.`);
+      if (worst.canBearWeight === "no" || worst.swellingOrRedness === "yes") {
+        notes.push("RED FLAG: Injury with swelling/redness or inability to bear weight. Do NOT recommend any running. Recommend rest and professional evaluation if worsening.");
+      }
     }
   }
   return notes;
