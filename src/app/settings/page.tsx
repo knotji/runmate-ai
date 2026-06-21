@@ -68,11 +68,12 @@ export default function SettingsPage() {
 
   async function copyBuildInfo() {
     const text = [
-      `RunMate AI v${buildMeta.version}`,
+      buildMeta.version === "dev" ? "RunMate AI" : `RunMate AI v${buildMeta.version}`,
+      buildMeta.version === "dev" ? "Version: dev" : null,
       `Build: ${buildMeta.fullSha}`,
       `Environment: ${buildMeta.environment}`,
-      `Updated: ${buildMeta.rawBuildTime}`,
-    ].join("\n");
+      buildMeta.hasBuildTime ? `Updated: ${buildMeta.rawBuildTime}` : "Updated: unknown",
+    ].filter(Boolean).join("\n");
     try {
       await navigator.clipboard.writeText(text);
       setVersionCopied(true);
@@ -170,11 +171,14 @@ export default function SettingsPage() {
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">เกี่ยวกับแอป</p>
-            <p className="mt-1 font-semibold text-[var(--foreground)]">RunMate AI v{buildMeta.version}</p>
+            <p className="mt-1 font-semibold text-[var(--foreground)]">
+              {buildMeta.version === "dev" ? "RunMate AI" : `RunMate AI v${buildMeta.version}`}
+            </p>
+            {buildMeta.version === "dev" && <p className="mt-0.5">Version dev</p>}
             <p className="mt-0.5">
               Build {buildMeta.shortSha} · {buildMeta.environment}
             </p>
-            <p className="mt-0.5">Updated {buildMeta.displayBuildTime}</p>
+            {buildMeta.hasBuildTime && <p className="mt-0.5">Updated {buildMeta.displayBuildTime}</p>}
           </div>
           <button
             type="button"
@@ -195,6 +199,7 @@ type BuildMetadata = {
   shortSha: string;
   rawBuildTime: string;
   displayBuildTime: string;
+  hasBuildTime: boolean;
   environment: string;
 };
 
@@ -202,13 +207,15 @@ function getBuildMetadata(): BuildMetadata {
   const version = cleanMeta(process.env.NEXT_PUBLIC_APP_VERSION) || "dev";
   const fullSha = cleanMeta(process.env.NEXT_PUBLIC_GIT_SHA) || "local";
   const deployEnv = cleanMeta(process.env.NEXT_PUBLIC_DEPLOY_ENV) || "local";
-  const rawBuildTime = cleanMeta(process.env.NEXT_PUBLIC_BUILD_TIME) || "-";
+  const rawBuildTime = cleanMeta(process.env.NEXT_PUBLIC_BUILD_TIME);
+  const hasBuildTime = Boolean(rawBuildTime && rawBuildTime !== "local" && rawBuildTime !== "-");
   return {
     version,
     fullSha,
     shortSha: fullSha === "local" ? "local" : fullSha.slice(0, 7),
-    rawBuildTime,
+    rawBuildTime: rawBuildTime || "unknown",
     displayBuildTime: formatBuildTime(rawBuildTime),
+    hasBuildTime,
     environment: formatDeployEnv(deployEnv),
   };
 }
