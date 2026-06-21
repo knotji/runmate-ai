@@ -3,8 +3,10 @@
 import { loadHistoryItems } from "@/lib/cloudHistory";
 import { loadProfileFromSupabase } from "@/lib/profileStorage";
 import { loadActiveRaceGoalAndPlan } from "@/lib/raceStorage";
+import { loadRaceResults } from "@/lib/raceResults";
 import type { LocalHistoryItem } from "@/lib/localHistory";
 import type { SleepAnalysis, WorkoutAnalysis, BodyCompositionAnalysis, MealAnalysis } from "@/types/logs";
+import type { RaceResult } from "@/types/race";
 
 export type DayWorkoutSummary = {
   date: string;
@@ -40,6 +42,8 @@ export type CoachContext = {
   workouts7d: DayWorkoutSummary[];
   nutritionToday: NutritionDaySummary | null;
   nutrition7d: NutritionDaySummary[];
+  latestCompletedRace: RaceResult | null;
+  recentRaceResults: RaceResult[];
   totalRunKm: number;
   totalSessions: number;
   runDays7d: number;
@@ -76,10 +80,11 @@ export function buildCoachContext(): CoachContext {
 }
 
 export async function buildCoachContextFromSupabase(): Promise<CoachContext> {
-  const [historyResult, profileResult, raceResult] = await Promise.all([
+  const [historyResult, profileResult, raceResult, completedRaceResult] = await Promise.all([
     loadHistoryItems(["sleep", "workout", "body", "meal"]),
     loadProfileFromSupabase(),
     loadActiveRaceGoalAndPlan(),
+    loadRaceResults(5),
   ]);
 
   return buildCoachContextFromData({
@@ -87,6 +92,7 @@ export async function buildCoachContextFromSupabase(): Promise<CoachContext> {
     profile: profileResult.ok ? profileResult.profile ?? null : null,
     raceGoal: raceResult.ok ? raceResult.goal : null,
     racePlan: raceResult.ok ? raceResult.plan : null,
+    raceResults: completedRaceResult.ok ? completedRaceResult.results : [],
   });
 }
 
@@ -95,6 +101,7 @@ export function buildCoachContextFromData(input: {
   profile: Record<string, unknown> | null;
   raceGoal: Record<string, unknown> | null;
   racePlan: Record<string, unknown> | null;
+  raceResults?: RaceResult[];
 }): CoachContext {
   const today = todayBangkok();
   const cutoff = dateBefore(7);
@@ -163,6 +170,8 @@ export function buildCoachContextFromData(input: {
   const workouts7d = [...dayMap.values()].sort((a, b) => b.date.localeCompare(a.date));
   const nutrition7d = buildNutritionSummaries(items, cutoff);
   const nutritionToday = nutrition7d.find((day) => day.date === today) ?? null;
+  const recentRaceResults = (input.raceResults ?? []).map(compactRaceResult);
+  const latestCompletedRace = recentRaceResults[0] ?? null;
   const runDays7d = workouts7d.filter((day) => day.runs.length > 0).length;
   const lastWorkoutDate = workouts7d[0]?.date ?? null;
 
@@ -197,6 +206,8 @@ export function buildCoachContextFromData(input: {
     workouts7d,
     nutritionToday,
     nutrition7d,
+    latestCompletedRace,
+    recentRaceResults,
     totalRunKm: Math.round(totalRunKm * 10) / 10,
     totalSessions,
     runDays7d,
@@ -208,6 +219,7 @@ export function buildCoachContextFromData(input: {
     contextNotes: buildContextNotes({
       raceGoal: input.raceGoal,
       racePlan: input.racePlan,
+      raceResults: recentRaceResults,
       sleep7d,
       workouts7d,
       totalRunKm,
@@ -256,9 +268,31 @@ function sumMeals(meals: MealAnalysis[], key: keyof MealAnalysis["nutrition"]): 
   return found ? Math.round(total) : null;
 }
 
+function compactRaceResult(result: RaceResult): RaceResult {
+  return {
+    id: result.id,
+    raceGoalId: result.raceGoalId,
+    linkedHistoryItemId: result.linkedHistoryItemId,
+    raceName: result.raceName,
+    raceDate: result.raceDate,
+    raceDistance: result.raceDistance,
+    goalType: result.goalType,
+    targetTime: result.targetTime,
+    actualDistanceKm: result.actualDistanceKm,
+    actualTime: result.actualTime,
+    actualPace: result.actualPace,
+    avgHr: result.avgHr,
+    maxHr: result.maxHr,
+    goalResult: result.goalResult,
+    coachSummary: result.coachSummary,
+    resultStatus: result.resultStatus,
+  };
+}
+
 function buildContextNotes(input: {
   raceGoal: Record<string, unknown> | null;
   racePlan: Record<string, unknown> | null;
+  raceResults: RaceResult[];
   sleep7d: WeekSleepRow[];
   workouts7d: DayWorkoutSummary[];
   totalRunKm: number;
@@ -270,9 +304,16 @@ function buildContextNotes(input: {
   if (!input.raceGoal) notes.push("No active race goal is set. Do not infer an upcoming race from old imported memories.");
   if (input.raceGoal) {
     const race = buildRaceContext(input.raceGoal, todayBangkok());
-    if (race.isRaceToday) notes.push(`Race day today: ${race.raceName ?? "race"} ${race.raceDistance ?? ""} target ${race.targetTime ?? race.raceGoalType ?? "not set"}. Prioritize warm-up, pacing, hydration, and recovery. Do not suggest heavy extra training.`);
+    const raceCompletedToday = input.raceResults.some((result) => result.raceDate === todayBangkok());
+    if (raceCompletedToday) notes.push("Race result was saved today. Treat today as post-race recovery; do not recommend pre-race plans or extra hard training.");
+    else if (race.isRaceToday) notes.push(`Race day today: ${race.raceName ?? "race"} ${race.raceDistance ?? ""} target ${race.targetTime ?? race.raceGoalType ?? "not set"}. Prioritize warm-up, pacing, hydration, and recovery. Do not suggest heavy extra training.`);
     else if (race.isRaceTomorrow) notes.push(`Race is tomorrow: ${race.raceName ?? "race"} ${race.raceDistance ?? ""}. Avoid long run/heavy workout; keep legs fresh.`);
     else if (race.isRaceWeek) notes.push(`Race is within 7 days (${race.daysUntilRace} days). Be conservative with training load.`);
+  }
+  if (input.raceResults[0]) {
+    const latest = input.raceResults[0];
+    notes.push(`Latest completed race: ${latest.raceName ?? "race"} ${latest.raceDistance ?? ""} target ${latest.targetTime ?? "none"} actual ${latest.actualTime ?? "unknown"} result ${latest.goalResult ?? "unknown"}.`);
+    if (latest.coachSummary) notes.push(`Race coach summary: ${latest.coachSummary}`);
   }
   if (!input.racePlan) notes.push("No active weekly/race plan is set. For tomorrow questions, state that the plan is inferred from recent data.");
   if (input.sleep7d.length === 0) notes.push("No sleep data in the last 7 days.");

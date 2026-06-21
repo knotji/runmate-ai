@@ -131,5 +131,7 @@ function hasImminentSub25Race(context: unknown) {
   if (!raceSignals) return false;
 
   const ctx = context as Record<string, unknown>;
+  const latestRace = ctx.latestCompletedRace as { raceDate?: unknown } | null;
+  if (latestRace?.raceDate && latestRace.raceDate === ctx.todayDate) return false;
   return Boolean(ctx.isRaceToday || ctx.isRaceTomorrow);
 }

@@ -71,6 +71,11 @@ export function AIContextCard() {
 
         <ContextBlock title="ซ้อมล่าสุด">{workoutLine}</ContextBlock>
         <ContextBlock title="วิ่งล่าสุด">{runLine}</ContextBlock>
+        {context.latestCompletedRace ? (
+          <ContextBlock title="Race ล่าสุด">
+            {`${context.latestCompletedRace.raceName ?? "Race"}: target ${context.latestCompletedRace.targetTime ?? "-"} · actual ${context.latestCompletedRace.actualTime ?? "-"} · ${context.latestCompletedRace.goalResult ?? "completed"}`}
+          </ContextBlock>
+        ) : null}
 
         {context.contextNotes.length > 0 && (
           <div className="rounded-2xl bg-amber-50/80 p-3">
@@ -137,6 +142,8 @@ const emptyContext: CoachContext = {
   workouts7d: [],
   nutritionToday: null,
   nutrition7d: [],
+  latestCompletedRace: null,
+  recentRaceResults: [],
   totalRunKm: 0,
   totalSessions: 0,
   runDays7d: 0,

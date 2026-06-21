@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { loadHistoryItems } from "@/lib/cloudHistory";
+import { loadRaceResults } from "@/lib/raceResults";
 import type { LocalHistoryItem } from "@/lib/localHistory";
 import type { SleepAnalysis, WorkoutAnalysis, MealAnalysis, DailySummary, BodyCompositionAnalysis } from "@/types/logs";
+import type { RaceResult } from "@/types/race";
 import {
   formatDistanceKm,
   formatDuration,
@@ -21,6 +23,7 @@ import {
 
 export default function ReportPage() {
   const [items, setItems] = useState<LocalHistoryItem[]>([]);
+  const [raceResults, setRaceResults] = useState<RaceResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -28,10 +31,11 @@ export default function ReportPage() {
     let alive = true;
     async function load() {
       setLoading(true);
-      const result = await loadHistoryItems();
+      const [result, raceResult] = await Promise.all([loadHistoryItems(), loadRaceResults(50)]);
       if (!alive) return;
       if (result.ok) {
         setItems(result.items);
+        if (raceResult.ok) setRaceResults(raceResult.results);
         setError("");
       } else {
         setError(result.error);
@@ -49,6 +53,7 @@ export default function ReportPage() {
     };
   }, []);
 
+  const raceResultsByDate = groupRaceResultsByDate(raceResults);
   const days = groupByDay(items);
   const dashboard = buildDashboard(items);
 
@@ -66,7 +71,7 @@ export default function ReportPage() {
       ) : (
         <>
           <WeeklyDashboard dashboard={dashboard} />
-          {days.map((day) => <DayCard key={day.date} day={day} />)}
+          {days.map((day) => <DayCard key={day.date} day={day} raceResults={raceResultsByDate.get(day.date) ?? []} />)}
         </>
       )}
     </AppShell>
@@ -110,7 +115,7 @@ function DashboardMetric({ label, value, sub, compact = false }: { label: string
 
 // ─── Day card ─────────────────────────────────────────────────────────────────
 
-function DayCard({ day }: { day: DayGroup }) {
+function DayCard({ day, raceResults }: { day: DayGroup; raceResults: RaceResult[] }) {
   const [expanded, setExpanded] = useState(false);
 
   const sleeps = day.items.filter((i) => i.type === "sleep");
@@ -143,6 +148,7 @@ function DayCard({ day }: { day: DayGroup }) {
               {workouts.some((w) => !isRun(w) && !isWalk(w)) && <Badge icon="💪" label="เวท" color="blue" />}
               {mealCount > 0 && <Badge icon="🍱" label={`${mealCount} มื้อ`} color="orange" />}
               {mealNutrition.caloriesKcal != null && <Badge icon="🔥" label={formatCalories(mealNutrition.caloriesKcal)} color="orange" />}
+              {raceResults.length > 0 && <Badge icon="🏁" label="Race Result" color="green" />}
               {bodies.length > 0 && <Badge icon="⚖️" label="ชั่งน้ำหนัก" />}
               {summaries.length > 0 && sleeps.length === 0 && workouts.length === 0 && <Badge icon="💬" label="บทสนทนา" />}
             </div>
@@ -171,6 +177,7 @@ function DayCard({ day }: { day: DayGroup }) {
       {expanded && (
         <div className="border-t border-slate-100 space-y-3 px-4 pb-4 pt-3">
           {sleeps.map((item) => <SleepDetail key={item.id} item={item} />)}
+          {raceResults.map((result) => <RaceResultDetail key={result.id ?? `${result.raceDate}-${result.raceName}`} result={result} />)}
           {workouts.map((item) => <WorkoutDetail key={item.id} item={item} />)}
           {mealCount > 0 && <MealNutritionDaySummary summary={mealNutrition} mealCount={mealCount} />}
           {meals.map((item) => <MealDetail key={item.id} item={item} />)}
@@ -190,6 +197,21 @@ function DayCard({ day }: { day: DayGroup }) {
         </div>
       )}
     </section>
+  );
+}
+
+function RaceResultDetail({ result }: { result: RaceResult }) {
+  return (
+    <div className="rounded-2xl bg-[#e7efea] p-4">
+      <p className="mb-1 text-xs font-bold uppercase tracking-wide text-[#2a5a39]">🏁 Race Day</p>
+      <p className="font-bold text-[#17201d]">{result.raceName || "Race Result"}</p>
+      <div className="mt-3 grid grid-cols-3 gap-2">
+        <Metric label="Time" value={result.actualTime ?? "-"} />
+        <Metric label="Pace" value={result.actualPace ? `${result.actualPace}/km` : "-"} />
+        <Metric label="Result" value={raceResultLabel(result.goalResult)} />
+      </div>
+      {result.coachSummary ? <p className="mt-3 text-sm leading-6 text-slate-700">{truncate(result.coachSummary, 160)}</p> : null}
+    </div>
   );
 }
 
@@ -449,6 +471,24 @@ function groupByDay(items: LocalHistoryItem[]): DayGroup[] {
       label: formatDayLabel(date),
       items: dayItems.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
     }));
+}
+
+function groupRaceResultsByDate(results: RaceResult[]) {
+  const map = new Map<string, RaceResult[]>();
+  for (const result of results) {
+    if (!result.raceDate) continue;
+    const list = map.get(result.raceDate) ?? [];
+    list.push(result);
+    map.set(result.raceDate, list);
+  }
+  return map;
+}
+
+function raceResultLabel(value: RaceResult["goalResult"]) {
+  if (value === "achieved") return "Achieved";
+  if (value === "missed") return "Missed";
+  if (value === "completed") return "Completed";
+  return "Race";
 }
 
 function formatDayLabel(dateStr: string): string {

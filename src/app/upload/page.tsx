@@ -11,8 +11,11 @@ import { invalidateCoachCache } from "@/lib/invalidateCoachCache";
 import { createHistoryItem, saveHistoryItems } from "@/lib/cloudHistory";
 import { loadProfileFromSupabase } from "@/lib/profileStorage";
 import { buildCoachContextFromSupabase, type CoachContext } from "@/lib/buildCoachContext";
+import { buildRaceResultFromWorkout, detectRaceMatch, saveRaceResult, type RaceMatch } from "@/lib/raceResults";
+import { loadActiveRaceGoalAndPlan } from "@/lib/raceStorage";
 import { formatCalories, formatMacro } from "@/lib/format";
 import { buildNutritionTargetSummary } from "@/lib/nutritionTargets";
+import type { LocalHistoryItem } from "@/lib/localHistory";
 import type { BodyCompositionAnalysis, MealAnalysis, MealType, SleepAnalysis, WorkoutAnalysis } from "@/types/logs";
 import type { UserProfile } from "@/types/profile";
 
@@ -39,6 +42,8 @@ export default function UploadPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [coachContext, setCoachContext] = useState<CoachContext | null>(null);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [raceMatch, setRaceMatch] = useState<RaceMatch | null>(null);
+  const [raceResultError, setRaceResultError] = useState("");
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -66,7 +71,7 @@ export default function UploadPage() {
           ? "/api/analyze-workout"
           : "/api/analyze-body";
 
-  async function store(next: unknown, overrideType: UploadType = type) {
+  async function store(next: unknown, overrideType: UploadType = type): Promise<LocalHistoryItem> {
     setSaveStatus("saving");
     const data = (next as { data?: unknown }).data ?? next;
     const extractedDate = (data as { extracted?: { date?: string | null } }).extracted?.date;
@@ -85,9 +90,12 @@ export default function UploadPage() {
     setResult(next);
     setSaveStatus("saved");
     invalidateCoachCache();
+    return saved;
   }
 
-  function handleAnalysisResult(next: unknown) {
+  async function handleAnalysisResult(next: unknown) {
+    setRaceMatch(null);
+    setRaceResultError("");
     if (type === "meal") {
       const data = ((next as { data?: MealAnalysis }).data ?? next) as MealAnalysis;
       const imageUrl = (next as { imageUrl?: string | null }).imageUrl ?? data.imageUrl ?? null;
@@ -96,7 +104,18 @@ export default function UploadPage() {
       setSaveStatus("idle");
       return;
     }
-    return store(next);
+    if (type === "workout") {
+      const data = ((next as { data?: WorkoutAnalysis }).data ?? next) as WorkoutAnalysis;
+      const raceResult = await loadActiveRaceGoalAndPlan();
+      const match = detectRaceMatch(data, raceResult.ok ? raceResult.goal : null);
+      if (match) {
+        setResult({ data });
+        setRaceMatch(match);
+        setSaveStatus("idle");
+        return;
+      }
+    }
+    await store(next);
   }
 
   async function saveMeal(nextMeal: MealAnalysis) {
@@ -108,6 +127,32 @@ export default function UploadPage() {
     setType(nextType);
     setResult(null);
     setSaveStatus("idle");
+    setRaceMatch(null);
+    setRaceResultError("");
+  }
+
+  async function saveWorkoutOnly(workout: WorkoutAnalysis) {
+    setRaceMatch(null);
+    setRaceResultError("");
+    await store({ data: workout }, "workout");
+  }
+
+  async function saveAsRaceResult(workout: WorkoutAnalysis, match: RaceMatch) {
+    setRaceResultError("");
+    const saved = await store({ data: workout }, "workout");
+    const racePayload = buildRaceResultFromWorkout({
+      workout,
+      goal: match.goal,
+      linkedHistoryItemId: saved.id,
+    });
+    const raceSave = await saveRaceResult(racePayload);
+    if (!raceSave.ok) {
+      setRaceResultError("บันทึก workout แล้ว แต่บันทึก Race Result ไม่สำเร็จ");
+      return;
+    }
+    setRaceMatch(null);
+    setSaveStatus("saved");
+    invalidateCoachCache({ clearChat: true });
   }
 
   return (
@@ -152,11 +197,64 @@ export default function UploadPage() {
       {result && type === "workout" ? (
         <>
           <WorkoutResultCard result={(result as { data: WorkoutAnalysis }).data} />
+          {raceMatch ? (
+            <RaceResultConfirmCard
+              match={raceMatch}
+              workout={(result as { data: WorkoutAnalysis }).data}
+              error={raceResultError}
+              saving={saveStatus === "saving"}
+              onSaveRace={(workout) => void saveAsRaceResult(workout, raceMatch)}
+              onWorkoutOnly={(workout) => void saveWorkoutOnly(workout)}
+            />
+          ) : null}
           <PostRunAnalysisCard workout={(result as { data: WorkoutAnalysis }).data} />
         </>
       ) : null}
       {result && type === "body" ? <BodyResultCard result={(result as { data: BodyCompositionAnalysis }).data} /> : null}
     </AppShell>
+  );
+}
+
+function RaceResultConfirmCard({
+  match,
+  workout,
+  error,
+  saving,
+  onSaveRace,
+  onWorkoutOnly,
+}: {
+  match: RaceMatch;
+  workout: WorkoutAnalysis;
+  error: string;
+  saving: boolean;
+  onSaveRace: (workout: WorkoutAnalysis) => void;
+  onWorkoutOnly: (workout: WorkoutAnalysis) => void;
+}) {
+  return (
+    <section className="card space-y-3 border border-[#d9e8df] bg-[#f5faf7] p-5">
+      <div>
+        <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#6f8fa6]">Race Result</p>
+        <h2 className="mt-2 text-xl font-bold text-[#17201d]">ผลวิ่งนี้ตรงกับวัน Race Goal</h2>
+        <p className="mt-1 text-sm leading-6 text-slate-600">
+          {match.goal.raceName} · {match.goal.raceDistance} · {match.workoutDate}
+        </p>
+      </div>
+      <p className="text-sm font-semibold text-[#17201d]">ต้องการบันทึกเป็น Race Result ไหม?</p>
+      {!match.distanceMatches ? (
+        <p className="rounded-2xl bg-amber-50 p-3 text-xs leading-5 text-amber-700">
+          ระยะทางอาจไม่ตรงกับระยะ race แบบเป๊ะ ๆ ระบบยังให้บันทึกได้ แต่แนะนำตรวจผลก่อนกดบันทึก
+        </p>
+      ) : null}
+      {error ? <p className="rounded-2xl bg-red-50 p-3 text-xs font-semibold text-red-600">{error}</p> : null}
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <button className="btn-primary py-3 text-sm" type="button" disabled={saving} onClick={() => onSaveRace(workout)}>
+          บันทึกเป็น Race Result
+        </button>
+        <button className="btn-secondary py-3 text-sm" type="button" disabled={saving} onClick={() => onWorkoutOnly(workout)}>
+          เก็บเป็น Workout ปกติ
+        </button>
+      </div>
+    </section>
   );
 }
 

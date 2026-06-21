@@ -8,8 +8,9 @@ import { TrainingPhaseCard } from "@/components/TrainingPhaseCard";
 import { WeeklyPlanCard } from "@/components/WeeklyPlanCard";
 import { invalidateCoachCache } from "@/lib/invalidateCoachCache";
 import { buildCoachContextFromSupabase } from "@/lib/buildCoachContext";
+import { loadRaceResults } from "@/lib/raceResults";
 import { deleteRaceGoalAndPlan, loadActiveRaceGoalAndPlan, saveRaceGoalAndPlan } from "@/lib/raceStorage";
-import type { RaceGoal, RacePlan } from "@/types/race";
+import type { RaceGoal, RacePlan, RaceResult } from "@/types/race";
 
 export default function RaceGoalPage() {
   const [goal, setGoal] = useState<RaceGoal | null>(null);
@@ -17,13 +18,15 @@ export default function RaceGoalPage() {
   const [mounted, setMounted] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshError, setRefreshError] = useState(false);
+  const [raceResults, setRaceResults] = useState<RaceResult[]>([]);
 
   useEffect(() => {
-    loadActiveRaceGoalAndPlan().then((result) => {
+    Promise.all([loadActiveRaceGoalAndPlan(), loadRaceResults(10)]).then(([result, completed]) => {
       if (result.ok) {
         setGoal(result.goal);
         setPlan(result.plan);
       }
+      if (completed.ok) setRaceResults(completed.results);
       setMounted(true);
     });
   }, []);
@@ -95,6 +98,54 @@ export default function RaceGoalPage() {
           </button>
         </>
       )}
+      {raceResults.length > 0 ? <CompletedRaceSection results={raceResults} /> : null}
     </AppShell>
   );
+}
+
+function CompletedRaceSection({ results }: { results: RaceResult[] }) {
+  return (
+    <section className="card space-y-3 p-5">
+      <div>
+        <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#6f8fa6]">Race History</p>
+        <h2 className="mt-2 text-xl font-bold text-[#17201d]">รายการแข่งที่บันทึกแล้ว</h2>
+      </div>
+      <div className="space-y-3">
+        {results.map((result) => (
+          <div key={result.id ?? `${result.raceDate}-${result.raceName}`} className="rounded-2xl bg-slate-50 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="font-bold text-[#17201d]">{result.raceName || "Race"}</p>
+                <p className="text-xs text-slate-500">{result.raceDate} · {result.raceDistance}</p>
+              </div>
+              <span className="rounded-full bg-[#e7efea] px-3 py-1 text-xs font-bold text-[#2a5a39]">
+                {resultBadge(result.goalResult)}
+              </span>
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <MiniResult label="Time" value={result.actualTime ?? "-"} />
+              <MiniResult label="Pace" value={result.actualPace ? `${result.actualPace}/km` : "-"} />
+            </div>
+            {result.coachSummary ? <p className="mt-3 text-sm leading-6 text-slate-700">{result.coachSummary}</p> : null}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function MiniResult({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl bg-white p-3">
+      <p className="text-xs text-slate-400">{label}</p>
+      <p className="mt-1 font-bold text-[#17201d]">{value}</p>
+    </div>
+  );
+}
+
+function resultBadge(value: RaceResult["goalResult"]) {
+  if (value === "achieved") return "Achieved";
+  if (value === "missed") return "Missed";
+  if (value === "completed") return "Completed";
+  return "Race Result";
 }
