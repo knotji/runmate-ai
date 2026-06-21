@@ -24,6 +24,7 @@ import {
   formatSummaryText,
 } from "@/lib/format";
 import { extractMealData, normalizeMealNutrition } from "@/lib/mealMerge";
+import { polishSleepInsightText } from "@/lib/sleepInsight";
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -368,9 +369,9 @@ function SleepDetail({ item }: { item: LocalHistoryItem }) {
         {ext.hrv != null && <Metric label="HRV" value={formatScore(ext.hrv)} sub="ms" />}
         {ext.restingHR != null && <Metric label="Resting HR" value={formatScore(ext.restingHR)} sub="bpm" />}
       </div>
-      {coach.aiSummary && <p className="text-sm leading-6 text-slate-700">{coach.aiSummary}</p>}
+      {coach.aiSummary && <p className="text-sm leading-6 text-slate-700">{polishSleepInsightText(coach.aiSummary)}</p>}
       {coach.todayRecommendation && (
-        <p className="mt-2 text-sm font-bold text-[#17201d]">→ {coach.todayRecommendation}</p>
+        <p className="mt-2 text-sm font-bold text-[#17201d]">→ {polishSleepInsightText(coach.todayRecommendation)}</p>
       )}
     </div>
   );

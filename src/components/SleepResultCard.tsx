@@ -2,12 +2,13 @@ import type { SleepAnalysis } from "@/types/logs";
 import { AIReadQualityNote } from "@/components/AIReadQualityNote";
 import { DetailBlock, MetricGrid } from "@/components/ResultDetail";
 import { formatDuration, formatScore, formatHeartRate } from "@/lib/format";
+import { polishSleepInsightText } from "@/lib/sleepInsight";
 
 export function SleepResultCard({ result }: { result: SleepAnalysis }) {
   const score = result.coach.readinessScore != null ? formatScore(result.coach.readinessScore) : "-";
   const label = result.coach.readinessLabel || "ประเมินความพร้อม";
-  const summary = result.coach.aiSummary || "โค้ชอ่านข้อมูลการนอนแล้ว แต่ยังสรุปบางค่าได้ไม่ครบ";
-  const recommendation = result.coach.todayRecommendation || "ถ้าวันนี้รู้สึกล้า แนะนำให้ซ้อมเบาหรือพักก่อน";
+  const summary = polishSleepInsightText(result.coach.aiSummary) || "โค้ชอ่านข้อมูลการนอนแล้ว แต่ยังสรุปบางค่าได้ไม่ครบ";
+  const recommendation = polishSleepInsightText(result.coach.todayRecommendation) || "ถ้าวันนี้รู้สึกล้า แนะนำให้ซ้อมเบาหรือพักก่อน";
 
   return (
     <section className="card p-5">
@@ -32,11 +33,11 @@ export function SleepResultCard({ result }: { result: SleepAnalysis }) {
       />
       <DetailBlock title="Training Recommendation" tone="green">{recommendation}</DetailBlock>
       <DetailBlock title="Why">{summary}</DetailBlock>
-      <DetailBlock title="Nutrition Focus">{result.coach.nutritionFocus}</DetailBlock>
-      <DetailBlock title="Recovery Focus">{result.coach.recoveryFocus}</DetailBlock>
-      <DetailBlock title="Sleep Focus">{result.coach.sleepFocus}</DetailBlock>
+      <DetailBlock title="Nutrition Focus">{polishSleepInsightText(result.coach.nutritionFocus)}</DetailBlock>
+      <DetailBlock title="Recovery Focus">{polishSleepInsightText(result.coach.recoveryFocus)}</DetailBlock>
+      <DetailBlock title="Sleep Focus">{polishSleepInsightText(result.coach.sleepFocus)}</DetailBlock>
       <DetailBlock title="Visible Notes">{result.extracted.visibleNotes || "ไม่มี note เพิ่มเติมที่อ่านได้ชัดเจน"}</DetailBlock>
-      <DetailBlock title="Safety Notes" tone="amber">{result.coach.warningNotes}</DetailBlock>
+      <DetailBlock title="Safety Notes" tone="amber">{polishSleepInsightText(result.coach.warningNotes)}</DetailBlock>
     </section>
   );
 }
