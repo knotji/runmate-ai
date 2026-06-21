@@ -6,7 +6,7 @@ import { CoachChat } from "@/components/CoachChat";
 
 export default function CoachPage() {
   return (
-    <AppShell title="Coach Chat" subtitle="คุยกับโค้ชเรื่องซ้อม กิน นอน และ recovery">
+    <AppShell title="Coach Chat" subtitle="ถามโค้ชโดยใช้ข้อมูลล่าสุดจาก Report เป็นบริบท">
       <div className="flex justify-end">
         <Link
           href="/pain"
@@ -15,6 +15,9 @@ export default function CoachPage() {
           🩹 แจ้งอาการเจ็บ
         </Link>
       </div>
+      <section className="rounded-3xl border border-slate-100 bg-white/70 px-4 py-3 text-xs leading-5 text-slate-500 shadow-sm">
+        Coach ใช้ข้อมูลจาก Report, โปรไฟล์ และ Race Goal เพื่อช่วยตอบ แต่ข้อความแชทจะไม่ถูกบันทึกเข้า Report อัตโนมัติ
+      </section>
       <AIContextCard />
       <ReadinessCard />
       <CoachChat />

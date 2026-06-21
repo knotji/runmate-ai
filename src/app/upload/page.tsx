@@ -341,8 +341,11 @@ export default function UploadPage() {
   }
 
   return (
-    <AppShell title="Upload" subtitle="อัปโหลดภาพ แล้วให้โค้ชอ่านข้อมูลให้">
+    <AppShell title="Upload" subtitle="อัปโหลดภาพเพื่อสร้างบันทึกใน Report ให้โค้ชใช้เป็นบริบท">
       <section className="card space-y-3 p-5">
+        <p className="text-xs leading-5 text-slate-500">
+          เมื่อวิเคราะห์และกดบันทึก ข้อมูลจะเข้า Report และถูกใช้เป็นบริบทให้ Coach Chat
+        </p>
         <div className="grid grid-cols-4 gap-2">
           {(["sleep", "meal", "workout", "body"] as UploadType[]).map((item) => (
             <button key={item} className={`rounded-2xl px-3 py-3 text-sm font-bold ${type === item ? "bg-[#17201d] text-white" : "bg-slate-50 text-slate-600"}`} onClick={() => selectUploadType(item)}>
@@ -477,7 +480,8 @@ export default function UploadPage() {
 function UploadEmptyGuide() {
   return (
     <div className="rounded-2xl bg-slate-50/80 px-4 py-3 text-sm text-slate-600">
-      <p className="font-bold text-[#17201d]">ลองอัปโหลดเพื่อถามโค้ช</p>
+      <p className="font-bold text-[#17201d]">ลองอัปโหลดเพื่อสร้าง Report</p>
+      <p className="mt-1 text-xs leading-5 text-slate-500">รายการที่บันทึกไว้จะช่วยให้โค้ชตอบได้แม่นขึ้นใน Coach Chat</p>
       <div className="mt-2 space-y-1.5 text-xs leading-5">
         <p><span className="font-semibold text-slate-700">รูปอาหาร</span> - กินได้มั้ย / ก่อนวิ่งได้ไหม</p>
         <p><span className="font-semibold text-slate-700">รูปผลวิ่ง</span> - HR สูงไปไหม / รอบหน้าซ้อมอะไร</p>

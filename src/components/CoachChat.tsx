@@ -336,7 +336,7 @@ export function CoachChat() {
         </button>
       </form>
       <p className="text-center text-[10px] text-slate-400/80 mt-1.5 font-medium">
-        ⚠️ แชทนี้ใช้วิเคราะห์เท่านั้น ไม่บันทึกเข้า report อัตโนมัติ
+        แชทนี้ใช้ Report เป็นบริบท แต่ไม่บันทึกข้อความเข้า Report อัตโนมัติ
       </p>
     </section>
   );

@@ -104,7 +104,7 @@ export default function ReportPage() {
   const visibleDays = showOlderDays ? filteredDays : recentDays;
 
   return (
-    <AppShell title="Report" subtitle="บันทึกสะสมรายวัน">
+    <AppShell title="Report" subtitle="บันทึกจาก Upload ที่ Coach Chat ใช้เป็นบริบท">
       {loading ? (
         <section className="card p-5 text-sm text-slate-500">กำลังโหลดข้อมูล...</section>
       ) : error ? (
@@ -116,6 +116,9 @@ export default function ReportPage() {
         </section>
       ) : (
         <>
+          <section className="rounded-3xl border border-slate-100 bg-white/70 px-4 py-3 text-xs leading-5 text-slate-500 shadow-sm">
+            Report คือประวัติจริงจาก Upload และการบันทึกกิจกรรม ส่วนข้อความใน Coach Chat จะไม่ถูกเพิ่มเข้าหน้านี้อัตโนมัติ
+          </section>
           <WeeklyDashboard dashboard={dashboard} proteinTarget={pTarget} />
 
           {/* Filter Pills */}
