@@ -144,14 +144,37 @@ export function ProfileSetupForm({
     update("birthDate", value || undefined);
   }
 
+  // Fields present in the onboarding form — mark as "manual" on first save so the
+  // history analyzer never silently overwrites what the user explicitly provided.
+  const ONBOARDING_MANUAL_FIELDS: (keyof UserProfile)[] = [
+    "displayName", "birthDate", "mainGoal",
+    "currentLongestRunKm", "runningDaysPerWeek", "weeklyTrainingDays",
+    "easyPace", "easyHrCap", "preferredLongRunDay",
+    "injuryHistory", "injuryNotes", "coachingTone",
+  ];
+
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (birthDateError) return;
     invalidateCoachCache();
 
+    // In onboarding mode, mark every filled field as "manual" before saving.
+    // (Full mode marks fields via saveSectionEdit() when the user edits each section.)
+    let profileToSave = profile;
+    if (mode === "onboarding") {
+      const newSources = { ...(profile.fieldSources ?? {}) };
+      for (const key of ONBOARDING_MANUAL_FIELDS) {
+        const val = profile[key];
+        if (val != null && val !== "" && newSources[key] !== "manual") {
+          newSources[key] = "manual";
+        }
+      }
+      profileToSave = { ...profile, fieldSources: newSources };
+    }
+
     setSaving(true);
     setStatus({ tone: "idle", text: "กำลังบันทึก..." });
-    const result = await saveProfileToSupabase(profile);
+    const result = await saveProfileToSupabase(profileToSave);
     setSaving(false);
     if (result.ok) {
       setStatus({ tone: "good", text: "บันทึกแล้ว" });

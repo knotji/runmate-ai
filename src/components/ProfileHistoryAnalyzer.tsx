@@ -34,7 +34,7 @@ type ReviewItem = {
 };
 
 type ManualItem = {
-  key: keyof ProfileAnalysisSuggestions;
+  key: string;
   label: string;
   currentValue: unknown;
   suggestedValue: unknown;
@@ -189,11 +189,11 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
       // Fields where the AI had no valid suggestion but the user already had a value
       const keptExistingDecisions = decisions.filter((d) => d.action === "kept_existing");
 
-      // Manual-skipped items (user had manually edited these; show override UI)
+      // Manual-skipped items from AI analysis (user had manually edited these; show override UI)
       const manualReview: ManualItem[] = manualSkipped
         .filter((k) => suggestions[k as keyof ProfileAnalysisSuggestions] != null)
         .map((k) => ({
-          key: k as keyof ProfileAnalysisSuggestions,
+          key: k,
           label: fieldLabel(k as keyof ProfileAnalysisSuggestions),
           currentValue: (profile as Record<string, unknown>)?.[k],
           suggestedValue: suggestions[k as keyof ProfileAnalysisSuggestions],
@@ -260,6 +260,15 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
           setSavedKeys((prev) => [...new Set([...prev, ...nutritionKeys])]);
         }
 
+        // Build override items for nutrition fields the user had manually set
+        const nutritionManualItems: ManualItem[] = nutritionManualSkipped.map((k) => ({
+          key: k,
+          label: SHORT_LABEL_ALL[k] ?? k,
+          currentValue: (profile as Record<string, unknown>)?.[k],
+          suggestedValue: (nutritionFieldUpdates as Record<string, unknown>)[k],
+        }));
+        manualReview.push(...nutritionManualItems);
+
         nutritionUpdate = {
           weightKg: stats.latestWeightKg,
           ...targets,
@@ -271,7 +280,7 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
       setNutritionSummary(nutritionUpdate);
       setSavedKeys((prev) => [...new Set([...prev, ...updatedKeys])]);
       setReviewItems(review);
-      setManualItems(manualReview);
+      setManualItems(manualReview);  // includes both AI and nutrition manual items
       setKeptExisting(keptExistingDecisions);
       setState("done");
     } catch (e) {
@@ -280,7 +289,7 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
     }
   }
 
-  async function overrideManual(key: keyof ProfileAnalysisSuggestions, suggestedValue: unknown) {
+  async function overrideManual(key: string, suggestedValue: unknown) {
     const base = currentProfile ?? { displayName: "นักวิ่ง" };
     const updates = { [key]: suggestedValue } as Partial<UserProfile>;
     const merged = await applyAndPersist(base as UserProfile, updates, buildSourceUpdates([key]), onProfileUpdated);
@@ -371,11 +380,6 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
                   <p className="text-[11px] text-slate-400 leading-4">
                     คำนวณจากน้ำหนักล่าสุด {nutritionSummary.weightKg} kg · protein {nutritionSummary.proteinMultiplier} g/kg/day · ค่าแนะนำเบื้องต้นสำหรับการซ้อมและ recovery
                   </p>
-                  {nutritionSummary.skippedManual.length > 0 && (
-                    <p className="text-[11px] text-amber-600">
-                      ไม่ได้อัปเดต {nutritionSummary.skippedManual.map((k) => SHORT_LABEL_ALL[k] ?? k).join(", ")} เพราะคุณเคยแก้เอง
-                    </p>
-                  )}
                 </div>
               )}
 
@@ -406,29 +410,28 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
                 </div>
               )}
 
-              {/* Manual-overrideable items */}
+              {/* Manual-overrideable items — AI suggestions + nutrition targets */}
               {manualItems.length > 0 && (
                 <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-3">
                   <p className="text-xs font-bold text-slate-600">
-                    ค่าที่คุณแก้เองอยู่ — ต้องการแทนที่ด้วยค่าจากประวัติไหม?
+                    ค่าที่คุณแก้เองอยู่ — ระบบแนะนำค่าใหม่จากประวัติ
                   </p>
                   {manualItems.map((item) => (
-                    <div key={item.key} className="flex items-center gap-3">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold text-slate-600">{item.label}</p>
-                        <div className="flex items-center gap-2 mt-0.5 text-xs">
-                          <span className="text-slate-400">ปัจจุบัน: {formatValue(item.currentValue)}</span>
-                          <span className="text-slate-300">→</span>
-                          <span className="font-medium text-[#42677f]">{formatValue(item.suggestedValue)}</span>
+                    <div key={item.key} className="space-y-2">
+                      <p className="text-xs font-semibold text-slate-600">{item.label}</p>
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="text-xs space-y-0.5">
+                          <p className="text-slate-400">ค่าของคุณ: <span className="font-medium text-slate-600">{formatValue(item.currentValue)}</span></p>
+                          <p className="text-slate-400">ระบบแนะนำ: <span className="font-medium text-[#42677f]">{formatValue(item.suggestedValue)}</span></p>
                         </div>
+                        <button
+                          type="button"
+                          onClick={() => void overrideManual(item.key, item.suggestedValue)}
+                          className="shrink-0 rounded-full bg-[#e7efea] px-3 py-1.5 text-xs font-semibold text-[#2a5a39] hover:bg-[#d4e8db]"
+                        >
+                          ใช้ค่าที่ระบบแนะนำแทน
+                        </button>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => void overrideManual(item.key, item.suggestedValue)}
-                        className="shrink-0 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-200"
-                      >
-                        แทนที่
-                      </button>
                     </div>
                   ))}
                 </div>
