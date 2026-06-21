@@ -5,7 +5,10 @@ import { useCallback, useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { formatThaiDate } from "@/lib/date";
 import { buildCoachContextFromSupabase, type CoachContext, type NutritionDaySummary, type PainSummary } from "@/lib/buildCoachContext";
+import { createHistoryItem, loadHistoryItems, saveHistoryItems } from "@/lib/cloudHistory";
 import { loadActiveRaceGoalAndPlan } from "@/lib/raceStorage";
+import type { LocalHistoryItem } from "@/lib/localHistory";
+import type { DailySummary } from "@/types/logs";
 import type { RaceGoal } from "@/types/race";
 import type { DailyCoachInsight } from "@/types/ai";
 
@@ -47,6 +50,17 @@ export default function TodayPage() {
   const [loading, setLoading] = useState(false);
   const [insightError, setInsightError] = useState(false);
   const [hasHistory, setHasHistory] = useState(false);
+  const [dailySummaryItem, setDailySummaryItem] = useState<LocalHistoryItem | null>(null);
+  const [dailySummaryLoading, setDailySummaryLoading] = useState(false);
+  const [dailySummaryError, setDailySummaryError] = useState("");
+  const [dailySummaryMessage, setDailySummaryMessage] = useState("");
+
+  const loadTodaysSummary = useCallback(async () => {
+    const result = await loadHistoryItems(["summary"]);
+    if (result.ok) {
+      setDailySummaryItem(findTodaysSummary(result.items));
+    }
+  }, []);
 
   const generateInsight = useCallback(async (force = false) => {
     void force;
@@ -84,13 +98,54 @@ export default function TodayPage() {
       if (result.ok) setGoal(result.goal);
     });
     queueMicrotask(() => void generateInsight());
-  }, [generateInsight]);
+    queueMicrotask(() => void loadTodaysSummary());
+  }, [generateInsight, loadTodaysSummary]);
 
   useEffect(() => {
-    const onDataUpdated = () => { setInsight(null); void generateInsight(true); };
+    const onDataUpdated = () => {
+      setInsight(null);
+      void generateInsight(true);
+      void loadTodaysSummary();
+    };
     window.addEventListener("runmate:cloud-data-updated", onDataUpdated);
     return () => window.removeEventListener("runmate:cloud-data-updated", onDataUpdated);
-  }, [generateInsight]);
+  }, [generateInsight, loadTodaysSummary]);
+
+  async function generateDailySummary() {
+    setDailySummaryLoading(true);
+    setDailySummaryError("");
+    setDailySummaryMessage("");
+    try {
+      const context = await buildCoachContextFromSupabase();
+      const existingResult = await loadHistoryItems(["summary"]);
+      const existingItem = existingResult.ok ? findTodaysSummary(existingResult.items) : dailySummaryItem;
+
+      const response = await fetch("/api/generate-daily-summary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(context),
+      });
+      if (!response.ok) throw new Error("summary api failed");
+      const result = await response.json() as { data?: DailySummary };
+      if (!result.data) throw new Error("missing summary data");
+
+      const item = existingItem
+        ? { ...existingItem, data: result.data }
+        : createHistoryItem("summary", result.data);
+      const saveResult = await saveHistoryItems([item]);
+      if (!saveResult.ok) throw new Error(saveResult.error ?? "save failed");
+
+      setDailySummaryItem(item);
+      setDailySummaryMessage(existingItem ? "อัปเดตสรุปท้ายวันใน Report แล้ว" : "บันทึกสรุปท้ายวันเข้า Report แล้ว");
+    } catch (error) {
+      if (process.env.NODE_ENV === "development") {
+        console.warn("[end-of-day-summary-error]", error);
+      }
+      setDailySummaryError("สร้างสรุปท้ายวันไม่สำเร็จ กรุณาลองใหม่");
+    } finally {
+      setDailySummaryLoading(false);
+    }
+  }
 
   const hasPace = !!(insight?.workoutTarget && insight.workoutTarget !== "-");
   const readinessScore = insight?.todayReadiness != null ? Math.round(insight.todayReadiness) : null;
@@ -199,6 +254,14 @@ export default function TodayPage() {
         <TodayNutritionCard nutrition={coachCtx.nutritionToday} profile={coachCtx.profile} />
       )}
 
+      <EndOfDaySummaryCard
+        item={dailySummaryItem}
+        loading={dailySummaryLoading}
+        error={dailySummaryError}
+        message={dailySummaryMessage}
+        onGenerate={() => void generateDailySummary()}
+      />
+
       {/* ── Quick actions ─────────────────────────────────────── */}
       <section className="card p-4">
         <div className="grid grid-cols-5 gap-1">
@@ -207,7 +270,7 @@ export default function TodayPage() {
             { href: "/upload?type=meal",    icon: "🍱", label: "อาหาร" },
             { href: `/upload?type=workout&subtype=${getRecommendedSubtype(insight, coachCtx)}`, icon: "🏃", label: "ซ้อม" },
             { href: "/pain",                icon: "🩹", label: "เจ็บ" },
-            { href: "/summary",             icon: "📋", label: "สรุปวัน" },
+            { href: "#end-of-day-summary",  icon: "📋", label: "สรุปวัน" },
           ].map(({ href, icon, label }) => (
             <Link
               key={href}
@@ -263,6 +326,88 @@ function readinessText(score: number): string {
   if (score >= 65) return "text-[#42677f]";
   if (score >= 50) return "text-amber-600";
   return "text-red-500";
+}
+
+function bangkokDateKey(date = new Date()): string {
+  return new Date(date.getTime() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
+function historyItemBangkokDate(item: LocalHistoryItem): string {
+  const date = new Date(item.createdAt);
+  if (Number.isNaN(date.getTime())) return item.createdAt.slice(0, 10);
+  return bangkokDateKey(date);
+}
+
+function findTodaysSummary(items: LocalHistoryItem[]): LocalHistoryItem | null {
+  const today = bangkokDateKey();
+  return items.find((item) => item.type === "summary" && historyItemBangkokDate(item) === today) ?? null;
+}
+
+function EndOfDaySummaryCard({
+  item,
+  loading,
+  error,
+  message,
+  onGenerate,
+}: {
+  item: LocalHistoryItem | null;
+  loading: boolean;
+  error: string;
+  message: string;
+  onGenerate: () => void;
+}) {
+  const summary = item?.data as DailySummary | undefined;
+  const hasSummary = Boolean(summary);
+
+  return (
+    <section id="end-of-day-summary" className="card scroll-mt-6 space-y-3 px-5 py-4">
+      <div>
+        <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">สรุปท้ายวัน</p>
+        <h2 className="mt-1 text-lg font-bold text-[#17201d]">สรุปท้ายวัน</h2>
+        <p className="mt-1 text-sm leading-6 text-slate-500">
+          กดก่อนนอนเพื่อให้ AI สรุปวันนี้และวางแผนพรุ่งนี้จากข้อมูลใน Report
+        </p>
+      </div>
+
+      {summary && (
+        <div className="space-y-2 rounded-2xl bg-slate-50 p-3">
+          <p className="text-sm font-bold leading-6 text-[#17201d]">{summary.overallSummary}</p>
+          <SummaryLine label="วันนี้" text={summary.trainingReview} />
+          <SummaryLine label="สิ่งที่ควรระวัง" text={summary.recoveryReview || summary.whatToImprove} />
+          <SummaryLine label="แผนพรุ่งนี้" text={summary.tomorrowPlan} />
+          {summary.coachMessage && (
+            <p className="rounded-2xl bg-[#e7efea] px-3 py-2 text-sm font-semibold leading-6 text-[#17201d]">
+              {summary.coachMessage}
+            </p>
+          )}
+        </div>
+      )}
+
+      {message && <p className="text-xs font-semibold text-green-600">{message}</p>}
+      {error && <p className="rounded-2xl bg-red-50 px-3 py-2 text-xs font-bold text-red-500">{error}</p>}
+
+      <button
+        type="button"
+        disabled={loading}
+        onClick={onGenerate}
+        className="btn-primary w-full py-3 text-sm font-bold disabled:opacity-50"
+      >
+        {loading
+          ? hasSummary ? "กำลังอัปเดตสรุป..." : "กำลังสร้างสรุป..."
+          : hasSummary ? "อัปเดตสรุปท้ายวัน" : "สร้างสรุปท้ายวัน"}
+      </button>
+    </section>
+  );
+}
+
+function SummaryLine({ label, text }: { label: string; text?: string }) {
+  if (!text) return null;
+  return (
+    <div className="text-sm leading-6 text-slate-700">
+      <span className="font-bold text-[#17201d]">{label}: </span>
+      {text}
+    </div>
+  );
 }
 
 function todayProteinTarget(profile: Record<string, unknown> | null): number {

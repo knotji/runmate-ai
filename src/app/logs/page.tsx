@@ -315,7 +315,7 @@ function DayCard({ day, raceResults, proteinTarget }: { day: DayGroup; raceResul
             summaries.map((item) => <SummaryDetail key={item.id} item={item} />)}
           {summaries.length > 0 && (sleeps.length + workouts.length + meals.length + bodies.length + pains.length + strengths.length > 0) && (
             <div className="rounded-2xl bg-slate-50 p-3">
-              <p className="text-xs font-bold text-slate-500 mb-1">บันทึกโค้ช ({summaries.length})</p>
+              <p className="text-xs font-bold text-slate-500 mb-1">สรุปท้ายวัน ({summaries.length})</p>
               {summaries.slice(0, 2).map((item) => (
                 <p key={item.id} className="text-sm text-slate-700 leading-5 mt-1">
                   {truncate(getSummaryText(item), 120)}
@@ -506,7 +506,7 @@ function SummaryDetail({ item }: { item: LocalHistoryItem }) {
 
   return (
     <div className="rounded-2xl bg-slate-50 p-4">
-      <p className="text-xs font-bold uppercase tracking-wide text-[#6f8fa6] mb-1">💬 บันทึกโค้ช</p>
+      <p className="text-xs font-bold uppercase tracking-wide text-[#6f8fa6] mb-1">💬 สรุปท้ายวัน</p>
       <p className="text-sm leading-6 text-slate-700 whitespace-pre-line">
         {truncate(d?.coachMessage ?? d?.overallSummary ?? "", 240)}
       </p>
