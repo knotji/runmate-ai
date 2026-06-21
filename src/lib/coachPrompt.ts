@@ -14,12 +14,20 @@ export function buildCoachResponseFormatInstruction(
         return `
 CRITICAL MULTIMODAL RESPONSE FORMAT INSTRUCTION (Thai + Short):
 - You MUST respond in Thai, keeping it extremely brief.
-- If the image shows food, drink, a menu, or a nutrition label, you MUST follow this exact 5-line format (do not add blank lines, headings, numbers, or other text):
-  Line 1: คำวินิจฉัย (กินได้ / ควรเลี่ยง / กินได้แต่ปรับนิด) และระบุว่าเหมาะกับช่วงไหน (เช่น ก่อนวิ่ง/หลังวิ่ง/วันพัก)
-  Line 2: จุดที่ดีของมื้อนี้
-  Line 3: จุดที่ควรระวัง
-  Line 4: แนะนำให้ปรับอย่างไรแบบเป็นรูปธรรม (เช่น เพิ่มโปรตีน หรือลดปริมาณ)
-  Line 5: แนะนำเพิ่มเติมหรือทางเลือกสำรอง
+- If the image shows food, drink, a menu, or a nutrition label:
+  FIRST check the user's message for food choice keywords (เลือก, เมนูไหนดี, อันไหนดี, ช่วยเลือก, กินอะไรดี, เอาอะไรดี, รูปนี้กินอะไรดี):
+  → FOOD CHOICE (3-4 lines, no extra text):
+    Line 1: "เลือก [เมนู] ครับ/ค่ะ" — one clear pick
+    Line 2: เหมาะกับวันนี้เพราะ... (short reason)
+    Line 3: ถ้าอยากปรับ... (optional adjustment)
+    Line 4: ระวัง... (optional caution)
+    ✗ Do NOT say "กินได้ครับ" without picking one. ✗ Do NOT add workout sections.
+  → FOOD ANALYSIS (5 lines, no choice keywords in message):
+    Line 1: คำวินิจฉัย (กินได้ / ควรเลี่ยง / กินได้แต่ปรับนิด) + ช่วงที่เหมาะ
+    Line 2: จุดที่ดีของมื้อนี้
+    Line 3: จุดที่ควรระวัง
+    Line 4: แนะนำให้ปรับอย่างไรแบบเป็นรูปธรรม
+    Line 5: แนะนำเพิ่มเติมหรือทางเลือกสำรอง
 - If the image shows a running, sleep, or recovery screenshot, summarize key metrics and give a short 2-3 sentence recommendation (do not output a long analysis).
 - Never duplicate heart rate units (do not write "bpm bpm", write only "bpm" once).
 `;
@@ -55,12 +63,22 @@ RESPONSE FORMAT INSTRUCTION (Thai + Short):
 Respond in Thai. Keep it short and natural — 3-5 lines for most answers.
 
 STEP 1: Identify intent from the user's message:
-• food/nutrition: อาหาร, กินได้ไหม, กินอะไรดี, เครื่องดื่ม → use FOOD FORMAT
+• food_choice (PRIORITY): เลือก, เลือกให้, กินอะไรดี, เอาอะไรดี, เมนูไหนดี, อันไหนดี, ช่วยเลือก → use FOOD CHOICE FORMAT
+• food/nutrition: อาหาร, กินได้ไหม, วิเคราะห์มื้อนี้, เครื่องดื่ม → use FOOD FORMAT
 • sleep/recovery: อยากนอน, ง่วง, พักอีกได้ไหม, นอนต่อ → use SLEEP FORMAT
 • workout/training: ควรซ้อมอะไร, วิ่งได้ไหม, ควรพักไหม, ขอแผน → use WORKOUT FORMAT
 • casual/other: short question or follow-up → answer in 1-3 lines naturally
 
 STEP 2: Apply the matching format:
+
+FOOD CHOICE FORMAT (3-4 lines — pick first, PRIORITY over FOOD FORMAT):
+  Line 1: "เลือก [เมนู] ครับ/ค่ะ" — one clear pick
+  Line 2: เหมาะกับวันนี้เพราะ... (short reason)
+  Line 3: ถ้าอยากปรับ... (optional adjustment)
+  Line 4: ระวัง... (optional caution)
+  ✗ Do NOT say "กินได้ครับ" without picking one.
+  ✗ Do NOT add workout sections. ✗ Do NOT write "วันนี้ควรซ้อมอะไร".
+  ✓ Active injury: 1 short line only if relevant to recovery choice.
 
 FOOD FORMAT (3-5 lines — no workout sections):
   Line 1: กินได้/เลี่ยง + ช่วงที่เหมาะ (ก่อนวิ่ง/หลังวิ่ง/วันพัก)
@@ -95,6 +113,7 @@ Never duplicate units (e.g. "bpm bpm" → "bpm").
 INTENT-FIRST RESPONSE RULE:
 Identify the user's intent before responding. Use the matching format.
 
+For food_choice (เลือก, เมนูไหนดี, ช่วยเลือก, อันไหนดี): make a clear pick first — "เลือก [เมนู] ครับ/ค่ะ" — then short reason, adjustment, caution. Do NOT say "กินได้ครับ" without naming a choice. PRIORITY over generic food format.
 For food/nutrition: food coaching format — diagnosis → timing → pros → cons → adjustments.
   Active injury: brief note at end only, not the main answer.
 For sleep/recovery: answer naturally and directly. Injury/low readiness can recommend more rest.
