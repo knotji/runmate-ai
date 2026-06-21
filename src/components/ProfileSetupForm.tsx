@@ -128,7 +128,11 @@ export function ProfileSetupForm({
   }, [externalProfile, mode]);
 
   function update<K extends keyof UserProfile>(key: K, value: UserProfile[K]) {
-    setProfile((current) => ({ ...current, [key]: value }));
+    setProfile((current) => {
+      const nextSources = { ...(current.fieldSources ?? {}) };
+      nextSources[key] = "manual";
+      return { ...current, [key]: value, fieldSources: nextSources };
+    });
   }
 
 

@@ -166,8 +166,18 @@ export default function TodayPage() {
       )}
 
       {/* ── Pain card (any recent pain log) ────────────────────── */}
-      {coachCtx?.recentPainLogs && coachCtx.recentPainLogs.length > 0 && (
+      {coachCtx?.recentPainLogs && coachCtx.recentPainLogs.length > 0 ? (
         <RecentPainCard pains={coachCtx.recentPainLogs} />
+      ) : (
+        <section className="card flex items-center justify-between px-5 py-3.5">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">🩹</span>
+            <span className="text-sm font-semibold text-slate-700">มีอาการเจ็บ?</span>
+          </div>
+          <Link href="/pain" className="text-xs font-bold text-[#42677f] hover:underline">
+            แจ้งอาการ
+          </Link>
+        </section>
       )}
 
       {/* ── Today nutrition mini-card ─────────────────────────── */}

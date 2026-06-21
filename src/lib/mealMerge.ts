@@ -24,28 +24,36 @@ export function safeAddNutritionValue(a: unknown, b: unknown): number | null {
   return Math.round(((na ?? 0) + (nb ?? 0)) * 10) / 10;
 }
 
-/**
- * Normalize nutrition from any known storage shape.
- * Handles: data.nutrition.*, data.*, legacy flat keys.
- */
-export function normalizeMealNutrition(data: Record<string, unknown>): NormalizedNutrition {
+export function normalizeMealNutrition(data: any): NormalizedNutrition {
+  if (!data) {
+    return { caloriesKcal: null, proteinG: null, carbsG: null, fatG: null, fiberG: null };
+  }
   const n = (typeof data.nutrition === "object" && data.nutrition !== null
     ? data.nutrition
     : {}) as Record<string, unknown>;
   return {
-    caloriesKcal: cleanNumber(n.caloriesKcal ?? data.caloriesKcal ?? data.kcal),
-    proteinG:     cleanNumber(n.proteinG     ?? data.proteinG     ?? data.protein),
-    carbsG:       cleanNumber(n.carbsG       ?? data.carbsG       ?? data.carbs),
-    fatG:         cleanNumber(n.fatG         ?? data.fatG         ?? data.fat),
-    fiberG:       cleanNumber(n.fiberG       ?? data.fiberG       ?? data.fiber),
+    caloriesKcal: cleanNumber(n.caloriesKcal ?? n.calories ?? data.caloriesKcal ?? data.calories ?? data.kcal),
+    proteinG:     cleanNumber(n.proteinG     ?? n.protein      ?? data.proteinG     ?? data.protein),
+    carbsG:       cleanNumber(n.carbsG       ?? n.carbs        ?? data.carbsG       ?? data.carbs),
+    fatG:         cleanNumber(n.fatG         ?? n.fat          ?? data.fatG         ?? data.fat),
+    fiberG:       cleanNumber(n.fiberG       ?? n.fiber        ?? data.fiberG       ?? data.fiber),
   };
 }
 
-/**
- * Unwrap meal data from a history item.
- * Handles the old wrapped format { data: MealAnalysis } produced by the
- * pre-fix merge path, and the current direct MealAnalysis format.
- */
+/** Merge two meal nutrition datasets safely. */
+export function mergeMealNutrition(existing: any, incoming: any): NormalizedNutrition {
+  const existNutr = normalizeMealNutrition(existing);
+  const incomNutr = normalizeMealNutrition(incoming);
+  return {
+    caloriesKcal: safeAddNutritionValue(existNutr.caloriesKcal, incomNutr.caloriesKcal),
+    proteinG:     safeAddNutritionValue(existNutr.proteinG,     incomNutr.proteinG),
+    carbsG:       safeAddNutritionValue(existNutr.carbsG,       incomNutr.carbsG),
+    fatG:         safeAddNutritionValue(existNutr.fatG,         incomNutr.fatG),
+    fiberG:       safeAddNutritionValue(existNutr.fiberG,       incomNutr.fiberG),
+  };
+}
+
+/** Unwrap meal data from a history item. */
 export function extractMealData(item: LocalHistoryItem): MealAnalysis {
   const d = item.data as Record<string, unknown>;
   if (d?.data && typeof d.data === "object" && !Array.isArray(d.data)) {
@@ -91,13 +99,7 @@ export function buildMergedMeal(existing: MealAnalysis, incoming: MealAnalysis):
     ...incoming,
     mealType: existing.mealType || incoming.mealType,
     detectedFoods: mergedFoods,
-    nutrition: {
-      caloriesKcal: safeAddNutritionValue(existNutr.caloriesKcal, incomNutr.caloriesKcal),
-      proteinG:     safeAddNutritionValue(existNutr.proteinG,     incomNutr.proteinG),
-      carbsG:       safeAddNutritionValue(existNutr.carbsG,       incomNutr.carbsG),
-      fatG:         safeAddNutritionValue(existNutr.fatG,         incomNutr.fatG),
-      fiberG:       safeAddNutritionValue(existNutr.fiberG,       incomNutr.fiberG),
-    },
+    nutrition: mergeMealNutrition(existing, incoming),
     entries,
     imageCount: entries.length,
     entriesMerged: entries.length,

@@ -100,39 +100,41 @@ export default function SettingsPage() {
             <SamsungHealthImport />
           </section>
 
-          <section className="card p-5 space-y-3">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">Deployment Debug</p>
-              <h2 className="mt-1 text-xl font-bold text-[#17201d]">ตรวจ Supabase Runtime</h2>
-              <p className="mt-1 text-sm leading-6 text-slate-500">
-                ใช้เช็คว่า Vercel อ่าน env ถูกชุดไหม โดยไม่แสดงค่า secret
-              </p>
-            </div>
-            <div className="space-y-2 rounded-2xl bg-slate-50 p-4 text-xs">
-              <p className="font-semibold text-slate-600">
-                Runtime: {envDebug?.runtime.vercel ? `Vercel (${envDebug.runtime.vercelEnv ?? "unknown"})` : "Local browser"}
-              </p>
-              {envDebug ? (
-                <div className="space-y-1 text-slate-500">
-                  {Object.entries(envDebug.env).map(([name, info]) => (
-                    <div key={name} className="flex items-center justify-between gap-3">
-                      <span className="font-mono text-[10px]">{name}</span>
-                      <span className={info.exists ? "font-bold text-green-600" : "font-bold text-red-500"}>
-                        {info.exists ? "มีค่า" : "ไม่มีค่า"}
-                      </span>
-                    </div>
-                  ))}
-                  {envDebug.env.NEXT_PUBLIC_SUPABASE_URL?.value && (
-                    <p className="break-all pt-2 font-mono text-[10px] text-slate-400">
-                      Supabase URL (dev): {envDebug.env.NEXT_PUBLIC_SUPABASE_URL.value}
-                    </p>
-                  )}
-                </div>
-              ) : (
-                <p className="text-slate-400">กำลังตรวจ env...</p>
-              )}
-            </div>
-          </section>
+          {process.env.NODE_ENV === "development" && (
+            <section className="card p-5 space-y-3">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">Deployment Debug</p>
+                <h2 className="mt-1 text-xl font-bold text-[#17201d]">ตรวจ Supabase Runtime</h2>
+                <p className="mt-1 text-sm leading-6 text-slate-500">
+                  ใช้เช็คว่า Vercel อ่าน env ถูกชุดไหม โดยไม่แสดงค่า secret
+                </p>
+              </div>
+              <div className="space-y-2 rounded-2xl bg-slate-50 p-4 text-xs">
+                <p className="font-semibold text-slate-600">
+                  Runtime: {envDebug?.runtime.vercel ? `Vercel (${envDebug.runtime.vercelEnv ?? "unknown"})` : "Local browser"}
+                </p>
+                {envDebug ? (
+                  <div className="space-y-1 text-slate-500">
+                    {Object.entries(envDebug.env).map(([name, info]) => (
+                      <div key={name} className="flex items-center justify-between gap-3">
+                        <span className="font-mono text-[10px]">{name}</span>
+                        <span className={info.exists ? "font-bold text-green-600" : "font-bold text-red-500"}>
+                          {info.exists ? "มีค่า" : "ไม่มีค่า"}
+                        </span>
+                      </div>
+                    ))}
+                    {envDebug.env.NEXT_PUBLIC_SUPABASE_URL?.value && (
+                      <p className="break-all pt-2 font-mono text-[10px] text-slate-400">
+                        Supabase URL (dev): {envDebug.env.NEXT_PUBLIC_SUPABASE_URL.value}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-slate-400">กำลังตรวจ env...</p>
+                )}
+              </div>
+            </section>
+          )}
         </div>
       )}
 

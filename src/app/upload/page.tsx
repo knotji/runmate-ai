@@ -7,6 +7,7 @@ import { SleepResultCard } from "@/components/SleepResultCard";
 import { WorkoutResultCard } from "@/components/WorkoutResultCard";
 import { BodyResultCard } from "@/components/BodyResultCard";
 import { PostRunAnalysisCard } from "@/components/PostRunAnalysisCard";
+import { StrengthWorkoutCard } from "@/components/StrengthWorkoutCard";
 import { invalidateCoachCache } from "@/lib/invalidateCoachCache";
 import { createHistoryItem, findMealSlotByDateAndType, saveHistoryItems } from "@/lib/cloudHistory";
 import { buildMergedMeal, extractMealData, normalizeMealNutrition } from "@/lib/mealMerge";
@@ -51,6 +52,7 @@ export default function UploadPage() {
     existing: import("@/lib/localHistory").LocalHistoryItem;
     newMeal: MealAnalysis;
   } | null>(null);
+  const [workoutSubtype, setWorkoutSubtype] = useState<"run" | "strength" | "walk" | "other">("run");
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -257,6 +259,7 @@ export default function UploadPage() {
 
   function selectUploadType(nextType: UploadType) {
     setType(nextType);
+    setWorkoutSubtype("run");
     setResult(null);
     setSaveStatus("idle");
     setRaceMatch(null);
@@ -328,7 +331,7 @@ export default function UploadPage() {
             </button>
           ))}
         </div>
-        {type === "meal" ? (
+        {type === "meal" && (
           <div className="flex flex-wrap gap-1.5">
             {(["breakfast", "lunch", "dinner", "snack", "pre-run", "post-run"] as const).map((m) => (
               <button
@@ -341,19 +344,53 @@ export default function UploadPage() {
               </button>
             ))}
           </div>
+        )}
+        {type === "workout" && (
+          <div className="flex flex-wrap gap-1.5">
+            {(["run", "strength", "walk", "other"] as const).map((sub) => (
+              <button
+                key={sub}
+                type="button"
+                onClick={() => {
+                  setWorkoutSubtype(sub);
+                  setResult(null);
+                  setSaveStatus("idle");
+                  setSaveFeedback("");
+                }}
+                className={`rounded-full px-3 py-1.5 text-sm font-semibold transition-colors ${workoutSubtype === sub ? "bg-[#17201d] text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+              >
+                {sub === "run" ? "วิ่ง" : sub === "strength" ? "เวท" : sub === "walk" ? "เดิน" : "อื่น ๆ"}
+              </button>
+            ))}
+          </div>
+        )}
+        {!(type === "workout" && workoutSubtype === "strength") ? (
+          <>
+            <ImageUploader
+              key={type + (type === "workout" ? `-${workoutSubtype}` : "")}
+              kind={type}
+              endpoint={endpoint}
+              maxFiles={type === "meal" ? 1 : type === "sleep" ? 3 : 4}
+              extraFields={{ ...(type === "meal" ? { mealType } : {}), profile, context: coachContext }}
+              onResult={handleAnalysisResult}
+            />
+            {saveStatus === "saving" && <p className="text-xs font-semibold text-slate-500">กำลังบันทึก...</p>}
+            {saveStatus === "saved" && <p className="text-xs font-semibold text-green-600">บันทึกแล้ว</p>}
+            {saveStatus === "error" && <p className="text-xs font-semibold text-red-500">บันทึกไม่สำเร็จ กรุณาลองใหม่</p>}
+          </>
         ) : null}
-        <ImageUploader
-          key={type}
-          kind={type}
-          endpoint={endpoint}
-          maxFiles={type === "meal" ? 1 : type === "sleep" ? 3 : 4}
-          extraFields={{ ...(type === "meal" ? { mealType } : {}), profile, context: coachContext }}
-          onResult={handleAnalysisResult}
-        />
-        {saveStatus === "saving" && <p className="text-xs font-semibold text-slate-500">กำลังบันทึก...</p>}
-        {saveStatus === "saved" && <p className="text-xs font-semibold text-green-600">บันทึกแล้ว</p>}
-        {saveStatus === "error" && <p className="text-xs font-semibold text-red-500">บันทึกไม่สำเร็จ กรุณาลองใหม่</p>}
       </section>
+
+      {type === "workout" && workoutSubtype === "strength" && (
+        <StrengthWorkoutCard
+          context={coachContext}
+          onLogCompleted={() => {
+            setSaveStatus("saved");
+            setTimeout(() => setSaveStatus("idle"), 3000);
+          }}
+        />
+      )}
+
       {result && type === "sleep" ? <SleepResultCard result={(result as { data: SleepAnalysis }).data} /> : null}
       {result && type === "meal" && !mealSlotConflict ? (
         <MealReviewCard

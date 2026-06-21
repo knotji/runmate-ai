@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
 import { fileToDataUrl } from "@/lib/storage";
@@ -79,7 +79,7 @@ function impactLabel(impact: PainTrainingImpact) {
 
 // ── component ────────────────────────────────────────────────────────────────
 
-export default function PainPage() {
+function PainPageContent() {
   const searchParams = useSearchParams();
   const fromId = searchParams.get("from");
 
@@ -109,9 +109,27 @@ export default function PainPage() {
   // Derive: show loading spinner while waiting for prefill (only when ?from is present)
   const prefilling = fromId !== null && !prefillComplete;
 
-  // Prefill from existing pain log when ?from=[id] is present
+  // Prefill from existing pain log when ?from=[id] is present or reset if not
   useEffect(() => {
-    if (!fromId) return;
+    if (!fromId) {
+      setPainLocation("");
+      setPainSide("unknown");
+      setPainLevel(3);
+      setStartedWhen("unknown");
+      setPainType([]);
+      setPainfulWhen([]);
+      setSwellingOrRedness("unknown");
+      setCanBearWeight("unknown");
+      setNotes("");
+      setImageFile(null);
+      setImagePreview(null);
+      setResult(null);
+      setSaved(false);
+      setError("");
+      setPrefillComplete(false);
+      return;
+    }
+    setPrefillComplete(false);
     // Do not call setState synchronously here — only in the async callback below
     loadHistoryItemById(fromId).then((res) => {
       if (res.ok) {
@@ -450,5 +468,17 @@ export default function PainPage() {
         </form>
       )}
     </AppShell>
+  );
+}
+
+export default function PainPage() {
+  return (
+    <Suspense fallback={
+      <AppShell title="วิเคราะห์อาการเจ็บ" subtitle="กำลังโหลด...">
+        <section className="card p-5 text-sm text-slate-500">กำลังโหลด...</section>
+      </AppShell>
+    }>
+      <PainPageContent />
+    </Suspense>
   );
 }

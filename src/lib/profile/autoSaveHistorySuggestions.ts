@@ -120,7 +120,8 @@ export function buildAutoSaveDecisions({
     const existing = existingProfile?.[key as keyof UserProfile];
 
     // Manual field — user explicitly set this; don't overwrite
-    if (existingSources?.[key] === "manual") {
+    const isManual = existingSources?.[key] === "manual" || (existing !== undefined && existing !== null && existingSources?.[key] !== "history_analysis");
+    if (isManual) {
       manualSkipped.push(key);
       decisions.push({ key, existingValue: existing, suggestedValue: normalized, confidence, action: "skipped_manual" });
       continue;
@@ -177,17 +178,19 @@ export function getAutoSavableProfileUpdates({
 export function filterManualFields({
   updates,
   existingSources,
+  existingProfile,
 }: {
   updates: Partial<UserProfile>;
   existingSources: UserProfile["fieldSources"];
+  existingProfile?: Partial<UserProfile>;
 }): { toSave: Partial<UserProfile>; manualSkipped: string[] } {
-  if (!existingSources) return { toSave: updates, manualSkipped: [] };
-
   const toSave: Partial<Record<string, unknown>> = {};
   const manualSkipped: string[] = [];
 
   for (const [key, val] of Object.entries(updates)) {
-    if (existingSources[key] === "manual") {
+    const existing = existingProfile?.[key as keyof UserProfile];
+    const isManual = existingSources?.[key] === "manual" || (existing !== undefined && existing !== null && existingSources?.[key] !== "history_analysis");
+    if (isManual) {
       manualSkipped.push(key);
     } else {
       toSave[key] = val;

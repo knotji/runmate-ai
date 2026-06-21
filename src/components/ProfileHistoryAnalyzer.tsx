@@ -245,6 +245,7 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
         const { toSave: nutritionToSave, manualSkipped: nutritionManualSkipped } = filterManualFields({
           updates: nutritionFieldUpdates,
           existingSources: profile?.fieldSources ?? {},
+          existingProfile: profile ?? undefined,
         });
 
         console.info("[nutrition-target-debug]", {

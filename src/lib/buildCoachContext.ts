@@ -8,6 +8,7 @@ import type { LocalHistoryItem } from "@/lib/localHistory";
 import type { SleepAnalysis, WorkoutAnalysis, BodyCompositionAnalysis, MealAnalysis } from "@/types/logs";
 import type { PainLog } from "@/types/pain";
 import type { RaceResult } from "@/types/race";
+import type { StrengthLog } from "@/types/strength";
 
 export type DayWorkoutSummary = {
   date: string;
@@ -94,7 +95,7 @@ export function buildCoachContext(): CoachContext {
 
 export async function buildCoachContextFromSupabase(): Promise<CoachContext> {
   const [historyResult, profileResult, raceResult, completedRaceResult] = await Promise.all([
-    loadHistoryItems(["sleep", "workout", "body", "meal", "pain"]),
+    loadHistoryItems(["sleep", "workout", "body", "meal", "pain", "strength"]),
     loadProfileFromSupabase(),
     loadActiveRaceGoalAndPlan(),
     loadRaceResults(5),
@@ -141,6 +142,10 @@ export function buildCoachContextFromData(input: {
     .filter((i) => i.type === "workout")
     .filter((i) => i.createdAt.slice(0, 10) >= cutoff);
 
+  const strengthItems = items
+    .filter((i) => i.type === "strength")
+    .filter((i) => i.createdAt.slice(0, 10) >= cutoff);
+
   const dayMap = new Map<string, DayWorkoutSummary>();
   const ensureDay = (date: string) => {
     if (!dayMap.has(date)) dayMap.set(date, { date, runs: [], walks: [], other: [] });
@@ -178,6 +183,16 @@ export function buildCoachContextFromData(input: {
       const label = ext.workoutKind === "strength" ? "เวท" : ext.workoutKind === "cycling" ? "ปั่นจักรยาน" : "ออกกำลังกาย";
       day.other.push({ label, durationMin });
     }
+  }
+
+  for (const item of strengthItems) {
+    const date = item.createdAt.slice(0, 10);
+    const d = item.data as StrengthLog;
+    if (!d) continue;
+
+    const day = ensureDay(date);
+    totalSessions++;
+    day.other.push({ label: `เวท (${d.routineName})`, durationMin: d.durationMin || 15 });
   }
 
   const workouts7d = [...dayMap.values()].sort((a, b) => b.date.localeCompare(a.date));
@@ -258,6 +273,7 @@ export function buildCoachContextFromData(input: {
       longestRun7dKm,
       lastWorkoutDate,
       recentPainLogs,
+      strengthCount: items.filter((i) => i.type === "strength" && i.createdAt.slice(0, 10) >= cutoff).length,
     }),
   };
 }
@@ -332,6 +348,7 @@ function buildContextNotes(input: {
   recentPainLogs?: PainSummary[];
   longestRun7dKm: number | null;
   lastWorkoutDate: string | null;
+  strengthCount?: number;
 }): string[] {
   const notes: string[] = [];
   if (!input.raceGoal) notes.push("No active race goal is set. Do not infer an upcoming race from old imported memories.");
@@ -354,6 +371,9 @@ function buildContextNotes(input: {
   if (input.totalRunKm > 0) notes.push(`Last 7 days running load: ${Math.round(input.totalRunKm * 10) / 10} km across ${input.runDays7d} run days.`);
   if (input.longestRun7dKm != null) notes.push(`Longest run in last 7 days: ${input.longestRun7dKm.toFixed(1)} km.`);
   if (input.lastWorkoutDate) notes.push(`Last workout date: ${input.lastWorkoutDate}.`);
+  if (input.strengthCount && input.strengthCount > 0) {
+    notes.push(`Strength training in last 7 days: completed ${input.strengthCount} strength session(s).`);
+  }
   if (input.recentPainLogs?.length) {
     const highMedium = input.recentPainLogs.filter((p) => p.riskLevel === "high" || p.riskLevel === "medium");
     for (const pain of input.recentPainLogs.slice(0, 3)) {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
 import { loadHistoryItems } from "@/lib/cloudHistory";
 import { loadRaceResults } from "@/lib/raceResults";
@@ -9,6 +10,8 @@ import type { LocalHistoryItem } from "@/lib/localHistory";
 import type { SleepAnalysis, WorkoutAnalysis, MealAnalysis, DailySummary, BodyCompositionAnalysis } from "@/types/logs";
 import type { RaceResult } from "@/types/race";
 import type { UserProfile } from "@/types/profile";
+import type { PainLog } from "@/types/pain";
+import type { StrengthLog } from "@/types/strength";
 import {
   formatDistanceKm,
   formatDuration,
@@ -140,6 +143,8 @@ function DayCard({ day, raceResults, proteinTarget }: { day: DayGroup; raceResul
   const meals = day.items.filter((i) => i.type === "meal");
   const summaries = day.items.filter((i) => i.type === "summary");
   const bodies = day.items.filter((i) => i.type === "body");
+  const pains = day.items.filter((i) => i.type === "pain");
+  const strengths = day.items.filter((i) => i.type === "strength");
 
   const readiness = getReadiness(sleeps);
   const totalKm = getTotalKm(workouts);
@@ -164,17 +169,24 @@ function DayCard({ day, raceResults, proteinTarget }: { day: DayGroup; raceResul
           <div className="min-w-0">
             <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">{day.label}</p>
             <div className="mt-2 space-y-1.5">
-              {/* Activity row */}
+              {/* Activity row (Row 1) */}
               <div className="flex flex-wrap gap-1.5">
                 {sleeps.length > 0 && <Badge icon="🌙" label="นอน" />}
                 {workouts.some((w) => isRun(w)) && <Badge icon="🏃" label={runKm ? formatDistanceKm(runKm) : "วิ่ง"} color="green" />}
-                {workouts.some((w) => isWalk(w)) && <Badge icon="🚶" label={walkKm ? formatDistanceKm(walkKm) : "เดิน"} />}
-                {workouts.some((w) => !isRun(w) && !isWalk(w)) && <Badge icon="💪" label="เวท" color="blue" />}
                 {raceResults.length > 0 && <Badge icon="🏁" label="Race Result" color="green" />}
+                {(strengths.length > 0 || workouts.some((w) => !isRun(w) && !isWalk(w) && (w.data as WorkoutAnalysis)?.extracted?.workoutKind === "strength")) && (
+                  <Badge icon="🏋️" label="เวท" color="blue" />
+                )}
+                {pains.length > 0 && (
+                  <Badge icon="🩹" label={`เจ็บ ${(pains[0].data as any)?.painLevel ?? (pains[0] as any)?.painLevel}/10`} color="red" />
+                )}
+                {workouts.some((w) => isWalk(w)) && <Badge icon="🚶" label={walkKm ? formatDistanceKm(walkKm) : "เดิน"} />}
                 {bodies.length > 0 && <Badge icon="⚖️" label="ชั่งน้ำหนัก" />}
-                {summaries.length > 0 && sleeps.length === 0 && workouts.length === 0 && <Badge icon="💬" label="บทสนทนา" />}
+                {summaries.length > 0 && sleeps.length === 0 && workouts.length === 0 && pains.length === 0 && strengths.length === 0 && (
+                  <Badge icon="💬" label="บทสนทนา" />
+                )}
               </div>
-              {/* Nutrition row */}
+              {/* Nutrition row (Row 2) */}
               {mealCount > 0 && (
                 <div className="flex flex-wrap gap-1.5">
                   <Badge icon="🍽" label={`${mealCount} มื้อ`} color="orange" />
@@ -214,14 +226,16 @@ function DayCard({ day, raceResults, proteinTarget }: { day: DayGroup; raceResul
       {expanded && (
         <div className="border-t border-slate-100 space-y-3 px-4 pb-4 pt-3">
           {sleeps.map((item) => <SleepDetail key={item.id} item={item} />)}
+          {pains.map((item) => <PainDetail key={item.id} item={item} />)}
+          {strengths.map((item) => <StrengthDetail key={item.id} item={item} />)}
           {raceResults.map((result) => <RaceResultDetail key={result.id ?? `${result.raceDate}-${result.raceName}`} result={result} />)}
           {workouts.map((item) => <WorkoutDetail key={item.id} item={item} />)}
           {mealCount > 0 && <MealNutritionDaySummary summary={mealNutrition} mealCount={mealCount} proteinTarget={proteinTarget} />}
           {meals.map((item) => <MealDetail key={item.id} item={item} />)}
           {bodies.map((item) => <BodyDetail key={item.id} item={item} />)}
-          {summaries.length > 0 && (sleeps.length + workouts.length + meals.length + bodies.length === 0) &&
+          {summaries.length > 0 && (sleeps.length + workouts.length + meals.length + bodies.length + pains.length + strengths.length === 0) &&
             summaries.map((item) => <SummaryDetail key={item.id} item={item} />)}
-          {summaries.length > 0 && (sleeps.length + workouts.length + meals.length + bodies.length > 0) && (
+          {summaries.length > 0 && (sleeps.length + workouts.length + meals.length + bodies.length + pains.length + strengths.length > 0) && (
             <div className="rounded-2xl bg-slate-50 p-3">
               <p className="text-xs font-bold text-slate-500 mb-1">บันทึกโค้ช ({summaries.length})</p>
               {summaries.slice(0, 2).map((item) => (
@@ -424,11 +438,204 @@ function SummaryDetail({ item }: { item: LocalHistoryItem }) {
 
 // ─── Small components ─────────────────────────────────────────────────────────
 
-function Badge({ icon, label, color }: { icon?: string; label: string; color?: "green" | "blue" | "orange" }) {
+function PainDetail({ item }: { item: LocalHistoryItem }) {
+  const painLog = item.data as PainLog;
+  if (!painLog) return null;
+
+  const SIDE_LABELS: Record<string, string> = {
+    left: "ซ้าย", right: "ขวา", both: "ทั้งสองข้าง", unknown: "ไม่แน่ใจ",
+  };
+  const STARTED_LABELS: Record<string, string> = {
+    before_run: "ก่อนวิ่ง", during_run: "ระหว่างวิ่ง",
+    after_run: "หลังวิ่ง", next_morning: "เช้าวันถัดไป", unknown: "ไม่แน่ใจ",
+  };
+  const PAIN_TYPE_LABELS: Record<string, string> = {
+    dull: "ตื้อๆ", sharp: "แหลมคม", tight: "ตึง",
+    numb: "ชา", swollen: "บวม", other: "อื่นๆ",
+  };
+  const PAINFUL_WHEN_LABELS: Record<string, string> = {
+    walking: "เดิน", stairs: "ขึ้นลงบันได", running: "วิ่ง",
+    weight_bearing: "รับน้ำหนัก", stretching: "ยืด", resting: "นั่งพัก",
+  };
+  const TRI_LABELS: Record<string, string> = { yes: "ใช่", no: "ไม่มี", unknown: "ไม่แน่ใจ" };
+  const BEAR_LABELS: Record<string, string> = { yes: "รับได้ปกติ", no: "รับไม่ได้", unknown: "ไม่แน่ใจ" };
+
+  function riskBadgeClass(risk: string) {
+    if (risk === "high")   return "bg-red-100 text-red-700";
+    if (risk === "medium") return "bg-amber-100 text-amber-700";
+    return "bg-[#e7efea] text-[#2a5a39]";
+  }
+  function cardClass(risk: string) {
+    if (risk === "high")   return "border-red-200 bg-red-50";
+    if (risk === "medium") return "border-amber-200 bg-amber-50";
+    return "border-[#d9e8df] bg-[#f5faf7]";
+  }
+  function riskLabel(risk: string) {
+    if (risk === "high")   return "ต้องระวังสูง";
+    if (risk === "medium") return "ควรระวัง";
+    return "ระดับต่ำ";
+  }
+  function impactLabel(impact: string) {
+    if (impact === "seek_professional") return "ปรึกษาผู้เชี่ยวชาญก่อนซ้อม";
+    if (impact === "rest")              return "พักทั้งหมด";
+    if (impact === "reduce_load")       return "ลดปริมาณซ้อม 24–48 ชม.";
+    return "Easy run ได้ถ้าอาการไม่แย่ลง";
+  }
+
+  return (
+    <div className={`rounded-2xl border p-4 space-y-3 ${cardClass(painLog.riskLevel)}`}>
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wide text-slate-500">🩹 อาการเจ็บ</p>
+          <h4 className="mt-1 text-sm font-bold text-[#17201d]">
+            {painLog.painLocation}
+            {painLog.painSide && painLog.painSide !== "unknown" && (
+              <span className="ml-1 text-xs font-normal text-slate-500">
+                ({SIDE_LABELS[painLog.painSide] ?? painLog.painSide})
+              </span>
+            )}
+          </h4>
+        </div>
+        <div className="shrink-0 text-right">
+          <p className={`text-lg font-bold ${painLog.riskLevel === "high" ? "text-red-600" : painLog.riskLevel === "medium" ? "text-amber-600" : "text-[#2a5a39]"}`}>
+            {painLog.painLevel}<span className="text-xs font-normal">/10</span>
+          </p>
+          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${riskBadgeClass(painLog.riskLevel)}`}>
+            {riskLabel(painLog.riskLevel)}
+          </span>
+        </div>
+      </div>
+
+      <div className="rounded-xl bg-white/60 px-3 py-2">
+        <p className="text-[10px] text-slate-400">ผลกระทบต่อการซ้อม</p>
+        <p className="text-xs font-semibold text-[#17201d]">{impactLabel(painLog.trainingImpact)}</p>
+      </div>
+
+      {painLog.coachAdvice && (
+        <p className="text-xs leading-5 text-slate-700">{painLog.coachAdvice}</p>
+      )}
+
+      {Array.isArray(painLog.redFlags) && painLog.redFlags.length > 0 && (
+        <div className="rounded-xl bg-red-100/70 px-3 py-2 space-y-0.5">
+          <p className="text-[10px] font-bold text-red-700">สัญญาณที่ควรระวัง</p>
+          {painLog.redFlags.map((f, i) => (
+            <p key={i} className="text-[10px] text-red-600">· {f}</p>
+          ))}
+        </div>
+      )}
+
+      <div className="text-[10px] text-slate-500 space-y-1 pt-1 border-t border-slate-100/50">
+        <p>
+          <span className="font-semibold">เริ่มเจ็บตอน:</span> {STARTED_LABELS[painLog.startedWhen] ?? painLog.startedWhen} |{" "}
+          <span className="font-semibold">บวม/แดง:</span> {TRI_LABELS[painLog.swellingOrRedness] ?? painLog.swellingOrRedness} |{" "}
+          <span className="font-semibold">รับน้ำหนัก:</span> {BEAR_LABELS[painLog.canBearWeight] ?? painLog.canBearWeight}
+        </p>
+        {Array.isArray(painLog.painType) && painLog.painType.length > 0 && (
+          <p>
+            <span className="font-semibold">ลักษณะ:</span> {painLog.painType.map((t) => PAIN_TYPE_LABELS[t] ?? t).join(", ")}
+          </p>
+        )}
+        {Array.isArray(painLog.painfulWhen) && painLog.painfulWhen.length > 0 && (
+          <p>
+            <span className="font-semibold">เจ็บเมื่อ:</span> {painLog.painfulWhen.map((w) => PAINFUL_WHEN_LABELS[w] ?? w).join(", ")}
+          </p>
+        )}
+        {painLog.notes && (
+          <p>
+            <span className="font-semibold">หมายเหตุ:</span> {painLog.notes}
+          </p>
+        )}
+      </div>
+      <div className="flex gap-2 pt-1">
+        <Link
+          href={`/pain/${encodeURIComponent(item.id)}`}
+          className="text-xs text-[#42677f] font-semibold hover:underline"
+        >
+          ดูรายละเอียด →
+        </Link>
+        <span className="text-slate-300">|</span>
+        <Link
+          href={`/pain?from=${encodeURIComponent(item.id)}`}
+          className="text-xs text-[#42677f] font-semibold hover:underline"
+        >
+          อัปเดตอาการ
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+function StrengthDetail({ item }: { item: LocalHistoryItem }) {
+  const log = item.data as StrengthLog;
+  if (!log) return null;
+
+  const INTENSITY_LABELS: Record<string, string> = {
+    easy: "เบา (Easy)",
+    moderate: "ปานกลาง (Moderate)",
+    hard: "หนัก (Hard)"
+  };
+
+  const SOURCE_LABELS: Record<string, string> = {
+    saved_routine: "เทมเพลตที่บันทึกไว้",
+    ai_prescription: "AI ปรับแนะนำประจำวัน",
+    custom: "ปรับแต่งเอง"
+  };
+
+  return (
+    <div className="rounded-2xl bg-blue-50/70 border border-blue-100 p-4 space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wide text-blue-600">🏋️ เวทเทรนนิ่ง</p>
+          <h4 className="mt-1 text-sm font-bold text-[#17201d]">
+            {log.routineName}
+          </h4>
+        </div>
+        <div className="shrink-0 text-right">
+          <p className="text-sm font-bold text-slate-700">{log.durationMin} นาที</p>
+          <span className="text-[10px] text-slate-500">{SOURCE_LABELS[log.source] ?? log.source}</span>
+        </div>
+      </div>
+
+      {log.coachReason && (
+        <div className="rounded-xl bg-white/60 p-2 text-xs text-slate-700">
+          <p className="font-semibold text-slate-800">คำแนะนำจากโค้ช AI:</p>
+          <p>{log.coachReason}</p>
+        </div>
+      )}
+
+      {Array.isArray(log.exercises) && log.exercises.length > 0 && (
+        <div className="space-y-1 bg-white/40 p-2 rounded-xl">
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">ท่าที่ฝึกซ้อม</p>
+          <div className="divide-y divide-slate-100/50">
+            {log.exercises.map((ex, i) => (
+              <div key={i} className="flex justify-between py-1 text-xs text-slate-700">
+                <span className="font-medium">{ex.name}</span>
+                <span className="text-slate-500 shrink-0 ml-2">
+                  {ex.sets} เซต × {ex.reps} ครั้ง {ex.durationSec ? `(${ex.durationSec} วิ)` : ""}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {log.notes && (
+        <p className="text-xs text-slate-600 italic">หมายเหตุ: {log.notes}</p>
+      )}
+
+      <div className="text-[10px] text-slate-400">
+        ความเหนื่อย: {INTENSITY_LABELS[log.intensity] ?? log.intensity}
+      </div>
+    </div>
+  );
+}
+
+function Badge({ icon, label, color }: { icon?: string; label: string; color?: "green" | "blue" | "orange" | "red" }) {
   const bg =
     color === "green" ? "bg-[#e7efea] text-[#2a5a39]"
     : color === "blue" ? "bg-blue-50 text-blue-700"
     : color === "orange" ? "bg-orange-50 text-orange-700"
+    : color === "red" ? "bg-red-50 text-red-700"
     : "bg-slate-100 text-slate-600";
   return (
     <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold ${bg}`}>
