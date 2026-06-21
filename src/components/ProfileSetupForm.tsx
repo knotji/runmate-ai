@@ -32,6 +32,20 @@ const SECTION_KEYS: Record<string, (keyof UserProfile)[]> = {
 const TODAY = new Date().toISOString().slice(0, 10);
 const IS_DEV = process.env.NODE_ENV === "development";
 
+function formatBpm(val: string | number | null | undefined): string {
+  if (val == null || val === "") return "—";
+  const s = String(val).trim();
+  return s.toLowerCase().endsWith("bpm") ? s : `${s} bpm`;
+}
+
+function getEasyHrNumber(val: string | undefined | null): number | null {
+  if (!val) return null;
+  const matches = String(val).match(/\d+/g);
+  if (!matches || matches.length === 0) return null;
+  const num = Number(matches[matches.length - 1]);
+  return Number.isFinite(num) ? num : null;
+}
+
 export function ProfileSetupForm({
   profile: externalProfile,
   onProfileSaved,
@@ -460,13 +474,24 @@ export function ProfileSetupForm({
               </p>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <StatCard label="Easy HR cap" value={profile.easyHrCap ? `${profile.easyHrCap} bpm` : "—"} />
+              <StatCard
+                label="Easy HR cap"
+                value={formatBpm(profile.easyHrCap)}
+                note={
+                  (() => {
+                    const num = getEasyHrNumber(profile.easyHrCap);
+                    return num !== null && num > 150
+                      ? "ถ้าต้องการ recovery/easy แบบปลอดภัย อาจตั้งไว้ 140–145 bpm ได้"
+                      : undefined;
+                  })()
+                }
+              />
               <div className="rounded-xl bg-slate-50 px-3 py-2.5">
                 <p className="text-[11px] text-slate-400">Max HR</p>
                 <p className="text-sm font-semibold text-[#17201d]">
-                  {profile.maxHr != null ? `${profile.maxHr} bpm` : "ยังไม่มีข้อมูล"}
+                  {profile.maxHr != null ? formatBpm(profile.maxHr) : "ยังไม่มีข้อมูล"}
                 </p>
-                {profile.maxHr != null && profile.fieldSources?.maxHr === "history_analysis" && (
+                {profile.maxHr != null && (
                   <p className="mt-0.5 text-[10px] leading-tight text-slate-400">
                     observed max จากประวัติ ไม่ใช่ max จริงทางสรีรวิทยา
                   </p>
@@ -662,7 +687,7 @@ export function ProfileSetupForm({
               <StatCard label="Energy score" value={profile.normalEnergyScore != null ? String(profile.normalEnergyScore) : "—"} />
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <StatCard label="Resting HR" value={profile.normalRestingHr ? `${profile.normalRestingHr} bpm` : "—"} />
+              <StatCard label="Resting HR" value={formatBpm(profile.normalRestingHr)} />
               <StatCard label="HRV ปกติ" value={profile.normalHrv ? String(profile.normalHrv) : "—"} />
             </div>
             <div className="rounded-xl bg-slate-50 px-3 py-2.5">
@@ -797,7 +822,7 @@ export function ProfileSetupForm({
               <p className="text-sm font-semibold text-[#17201d]">{profile.timezone || "—"}</p>
             </div>
             <div className="grid grid-cols-3 gap-2">
-              <StatCard label="LT HR" value={profile.lactateThresholdHr != null ? `${profile.lactateThresholdHr} bpm` : "—"} />
+              <StatCard label="LT HR" value={formatBpm(profile.lactateThresholdHr)} />
               <StatCard label="VO2max" value={profile.vo2max != null ? String(profile.vo2max) : "—"} />
               <StatCard label="Cadence" value={profile.averageCadence != null ? `${profile.averageCadence} spm` : "—"} />
             </div>

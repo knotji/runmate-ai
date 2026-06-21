@@ -83,7 +83,8 @@ function formatValueWithUnit(key: string, v: unknown): string {
     return `${strVal} ชม.`;
   }
   if (key === "easyHrCap" || key === "maxHr" || key === "normalRestingHr") {
-    return `${strVal} bpm`;
+    const s = strVal.trim();
+    return s.toLowerCase().endsWith("bpm") ? s : `${s} bpm`;
   }
   return strVal;
 }
