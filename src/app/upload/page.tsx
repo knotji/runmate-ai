@@ -149,6 +149,9 @@ export default function UploadPage() {
     setResult(next);
     setSaveStatus("saved");
     invalidateCoachCache();
+    if (overrideType === "sleep") {
+      void buildCoachContextFromSupabase().then((context) => setCoachContext(context));
+    }
     return saved;
   }
 
