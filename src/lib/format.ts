@@ -36,7 +36,22 @@ export function formatCalories(value: unknown): string {
   if (isInvalid(value)) return "-";
   const num = Number(value);
   if (isNaN(num)) return "-";
-  return `${Math.round(num)} Cal`;
+  return `${Math.round(num)} kcal`;
+}
+
+export function formatMacro(value: unknown, unit = "g"): string {
+  if (isInvalid(value)) return "-";
+  const num = Number(value);
+  if (!Number.isFinite(num)) return "-";
+  return `${Math.round(num)} ${unit}`;
+}
+
+export function formatNutritionRange(min: unknown, max: unknown, unit = "g"): string {
+  if (isInvalid(min) || isInvalid(max)) return "-";
+  const minNum = Number(min);
+  const maxNum = Number(max);
+  if (!Number.isFinite(minNum) || !Number.isFinite(maxNum)) return "-";
+  return `${Math.round(minNum)}–${Math.round(maxNum)} ${unit}`;
 }
 
 export function formatHeartRate(value: unknown): string {

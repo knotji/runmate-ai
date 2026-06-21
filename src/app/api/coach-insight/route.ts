@@ -112,6 +112,17 @@ function buildUserPrompt(ctx: CoachContext): string {
     }
   }
 
+  if (ctx.nutritionToday) {
+    const n = ctx.nutritionToday;
+    lines.push(`\nNutrition today (rough estimates from meal photos):`);
+    lines.push(`- Meals logged: ${n.mealCount}`);
+    lines.push(`- Estimated calories: ${n.caloriesKcal ?? "unknown"} kcal`);
+    lines.push(`- Protein: ${n.proteinG ?? "unknown"} g`);
+    lines.push(`- Carbs: ${n.carbsG ?? "unknown"} g`);
+    lines.push(`- Fat: ${n.fatG ?? "unknown"} g`);
+    for (const note of n.notes) lines.push(`- Note: ${note}`);
+  }
+
   if (ctx.latestBody) {
     const b = ctx.latestBody;
     lines.push(`\nส่วนประกอบร่างกาย (ล่าสุด):`);

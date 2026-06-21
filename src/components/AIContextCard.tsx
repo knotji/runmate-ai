@@ -135,6 +135,8 @@ const emptyContext: CoachContext = {
   sleep7d: [],
   avgReadiness: null,
   workouts7d: [],
+  nutritionToday: null,
+  nutrition7d: [],
   totalRunKm: 0,
   totalSessions: 0,
   runDays7d: 0,

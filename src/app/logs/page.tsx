@@ -12,6 +12,8 @@ import {
   formatScore,
   formatPercent,
   formatDecimal,
+  formatCalories,
+  formatMacro,
   formatSummaryText,
 } from "@/lib/format";
 
@@ -84,6 +86,8 @@ function WeeklyDashboard({ dashboard }: { dashboard: Dashboard }) {
         <DashboardMetric label="Longest run" value={dashboard.longestRunKm != null ? formatDistanceKm(dashboard.longestRunKm) : "-"} sub="last 7 days" />
         <DashboardMetric label="Readiness avg" value={dashboard.avgReadiness != null ? formatScore(dashboard.avgReadiness) : "-"} sub={dashboard.readinessTrend} />
         <DashboardMetric label="Sleep avg" value={dashboard.avgSleepHours != null ? `${formatDecimal(dashboard.avgSleepHours)} h` : "-"} sub={`${dashboard.sleepCount} nights`} />
+        <DashboardMetric label="Meal kcal avg" value={dashboard.avgMealCalories != null ? formatCalories(dashboard.avgMealCalories) : "-"} sub="ประเมินจากรูปอาหาร" />
+        <DashboardMetric label="Protein avg" value={dashboard.avgMealProtein != null ? formatMacro(dashboard.avgMealProtein) : "-"} sub="meals logged" />
       </div>
       <div className="grid grid-cols-3 gap-2">
         <DashboardMetric label="Weight" value={dashboard.latestBody?.weightKg != null ? `${formatDecimal(dashboard.latestBody.weightKg)} kg` : "-"} compact />
@@ -120,6 +124,7 @@ function DayCard({ day }: { day: DayGroup }) {
   const runKm = getTotalKm(workouts.filter(isRun));
   const walkKm = getTotalKm(workouts.filter(isWalk));
   const mealCount = meals.length;
+  const mealNutrition = getMealNutrition(meals);
 
   return (
     <section className="card overflow-hidden">
@@ -137,6 +142,7 @@ function DayCard({ day }: { day: DayGroup }) {
               {workouts.some((w) => isWalk(w)) && <Badge icon="🚶" label={walkKm ? formatDistanceKm(walkKm) : "เดิน"} />}
               {workouts.some((w) => !isRun(w) && !isWalk(w)) && <Badge icon="💪" label="เวท" color="blue" />}
               {mealCount > 0 && <Badge icon="🍱" label={`${mealCount} มื้อ`} color="orange" />}
+              {mealNutrition.caloriesKcal != null && <Badge icon="🔥" label={formatCalories(mealNutrition.caloriesKcal)} color="orange" />}
               {bodies.length > 0 && <Badge icon="⚖️" label="ชั่งน้ำหนัก" />}
               {summaries.length > 0 && sleeps.length === 0 && workouts.length === 0 && <Badge icon="💬" label="บทสนทนา" />}
             </div>
@@ -166,6 +172,7 @@ function DayCard({ day }: { day: DayGroup }) {
         <div className="border-t border-slate-100 space-y-3 px-4 pb-4 pt-3">
           {sleeps.map((item) => <SleepDetail key={item.id} item={item} />)}
           {workouts.map((item) => <WorkoutDetail key={item.id} item={item} />)}
+          {mealCount > 0 && <MealNutritionDaySummary summary={mealNutrition} mealCount={mealCount} />}
           {meals.map((item) => <MealDetail key={item.id} item={item} />)}
           {bodies.map((item) => <BodyDetail key={item.id} item={item} />)}
           {summaries.length > 0 && (sleeps.length + workouts.length + meals.length + bodies.length === 0) &&
@@ -255,23 +262,42 @@ function WorkoutDetail({ item }: { item: LocalHistoryItem }) {
 
 function MealDetail({ item }: { item: LocalHistoryItem }) {
   const d = item.data as MealAnalysis;
-  const ext = d?.extracted ?? {};
-  const coach = d?.coach ?? {};
+  const foodNames = d.detectedFoods?.map((food) => food.name).filter(Boolean).join(", ") || d?.extracted?.detectedFood || "";
+  const note = d.trainingFit?.coachNote ?? d?.coach?.aiSummary ?? d?.coach?.suggestion ?? "";
 
   return (
     <div className="rounded-2xl bg-orange-50 p-4">
       <p className="text-xs font-bold uppercase tracking-wide text-orange-600 mb-1">🍱 มื้ออาหาร</p>
-      {ext.detectedFood && (
-        <p className="text-sm font-bold text-[#17201d] mb-2">{truncate(ext.detectedFood, 100)}</p>
+      {foodNames && (
+        <p className="text-sm font-bold text-[#17201d] mb-2">{truncate(foodNames, 100)}</p>
       )}
-      <div className="flex gap-2 flex-wrap mb-2">
-        {ext.proteinLevel && <NutriBadge label="โปรตีน" level={ext.proteinLevel} />}
-        {ext.carbLevel && <NutriBadge label="คาร์บ" level={ext.carbLevel} />}
-        {ext.fatLevel && <NutriBadge label="ไขมัน" level={fatLevelMap(ext.fatLevel)} />}
+      <div className="grid grid-cols-4 gap-2 mb-2">
+        <Metric label="kcal" value={formatCalories(d.nutrition?.caloriesKcal)} />
+        <Metric label="Protein" value={formatMacro(d.nutrition?.proteinG)} />
+        <Metric label="Carbs" value={formatMacro(d.nutrition?.carbsG)} />
+        <Metric label="Fat" value={formatMacro(d.nutrition?.fatG)} />
       </div>
-      {coach.aiSummary && (
-        <p className="text-sm leading-6 text-slate-700">{truncate(coach.aiSummary, 140)}</p>
+      <p className="mb-2 text-xs text-orange-700">ประเมินจากรูปอาหาร</p>
+      {note && (
+        <p className="text-sm leading-6 text-slate-700">{truncate(note, 140)}</p>
       )}
+    </div>
+  );
+}
+
+function MealNutritionDaySummary({ summary, mealCount }: { summary: MealNutritionSummary; mealCount: number }) {
+  return (
+    <div className="rounded-2xl bg-orange-50 p-4">
+      <p className="text-xs font-bold uppercase tracking-wide text-orange-600 mb-2">Nutrition Summary</p>
+      <div className="grid grid-cols-4 gap-2">
+        <Metric label="Calories" value={formatCalories(summary.caloriesKcal)} />
+        <Metric label="Protein" value={formatMacro(summary.proteinG)} />
+        <Metric label="Carbs" value={formatMacro(summary.carbsG)} />
+        <Metric label="Fat" value={formatMacro(summary.fatG)} />
+      </div>
+      <p className="mt-2 text-xs text-orange-700">
+        {mealCount} meals · ประเมินจากรูปอาหาร
+      </p>
     </div>
   );
 }
@@ -334,18 +360,6 @@ function Metric({ label, value, sub }: { label: string; value: string; sub?: str
   );
 }
 
-function NutriBadge({ label, level }: { label: string; level: string }) {
-  const color =
-    level === "good" ? "bg-green-100 text-green-700"
-    : level === "high" ? "bg-red-100 text-red-700"
-    : "bg-slate-100 text-slate-500";
-  return (
-    <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${color}`}>
-      {label} {level}
-    </span>
-  );
-}
-
 // ─── Data helpers ─────────────────────────────────────────────────────────────
 
 type DayGroup = { date: string; label: string; items: LocalHistoryItem[] };
@@ -359,7 +373,16 @@ type Dashboard = {
   avgSleepHours: number | null;
   sleepCount: number;
   latestBody: { weightKg: number | null; bodyFatPct: number | null; muscleKg: number | null } | null;
+  avgMealCalories: number | null;
+  avgMealProtein: number | null;
   coachNote: string;
+};
+
+type MealNutritionSummary = {
+  caloriesKcal: number | null;
+  proteinG: number | null;
+  carbsG: number | null;
+  fatG: number | null;
 };
 
 function buildDashboard(items: LocalHistoryItem[]): Dashboard {
@@ -367,7 +390,12 @@ function buildDashboard(items: LocalHistoryItem[]): Dashboard {
   const recent = items.filter((item) => item.createdAt.slice(0, 10) >= cutoff);
   const runs = recent.filter((item) => item.type === "workout" && isRun(item));
   const sleeps = recent.filter((item) => item.type === "sleep");
+  const meals = recent.filter((item) => item.type === "meal");
   const bodies = items.filter((item) => item.type === "body");
+  const mealDays = groupByDay(meals);
+  const mealSummaries = mealDays.map((day) => getMealNutrition(day.items));
+  const calorieDays = mealSummaries.map((summary) => summary.caloriesKcal).filter((value): value is number => value != null);
+  const proteinDays = mealSummaries.map((summary) => summary.proteinG).filter((value): value is number => value != null);
 
   const runKm = getTotalKm(runs) ?? 0;
   const longestRunKm = runs.reduce<number | null>((max, item) => {
@@ -399,6 +427,8 @@ function buildDashboard(items: LocalHistoryItem[]): Dashboard {
     avgSleepHours,
     sleepCount: sleepHours.length,
     latestBody: bodies[0] ? bodySummary(bodies[0]) : null,
+    avgMealCalories: calorieDays.length ? average(calorieDays) : null,
+    avgMealProtein: proteinDays.length ? average(proteinDays) : null,
     coachNote: dashboardNote({ runKm, runSessions: runs.length, avgReadiness, avgSleepHours, longestRunKm }),
   };
 }
@@ -448,6 +478,33 @@ function getTotalKm(workouts: LocalHistoryItem[]): number | null {
   return found ? total : null;
 }
 
+function getMealNutrition(meals: LocalHistoryItem[]): MealNutritionSummary {
+  const totals = {
+    caloriesKcal: sumNutrition(meals, "caloriesKcal"),
+    proteinG: sumNutrition(meals, "proteinG"),
+    carbsG: sumNutrition(meals, "carbsG"),
+    fatG: sumNutrition(meals, "fatG"),
+  };
+  return totals;
+}
+
+function sumNutrition(meals: LocalHistoryItem[], key: keyof MealAnalysis["nutrition"]): number | null {
+  let total = 0;
+  let found = false;
+  for (const meal of meals) {
+    const value = Number((meal.data as MealAnalysis)?.nutrition?.[key]);
+    if (Number.isFinite(value)) {
+      total += value;
+      found = true;
+    }
+  }
+  return found ? Math.round(total) : null;
+}
+
+function average(values: number[]) {
+  return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
+}
+
 function isRun(item: LocalHistoryItem): boolean {
   const kind = (item.data as WorkoutAnalysis)?.extracted?.workoutKind;
   return kind === "outdoor_run" || kind === "treadmill";
@@ -468,10 +525,6 @@ function readinessColor(score: number): string {
   if (score >= 65) return "text-[#42677f]";
   if (score >= 50) return "text-amber-600";
   return "text-red-500";
-}
-
-function fatLevelMap(level: string): string {
-  return level === "high" ? "high" : level === "moderate" ? "moderate" : "low";
 }
 
 function truncate(text: string, max: number): string {

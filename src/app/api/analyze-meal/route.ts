@@ -6,18 +6,31 @@ import { buildRunnerProfileContext } from "@/lib/buildRunnerProfileContext";
 import type { MealAnalysis } from "@/types/logs";
 
 const fallback: MealAnalysis = {
-  extracted: {
-    detectedFood: "ประเมินจากภาพไม่ได้ชัดเจน",
-    proteinLevel: "moderate",
-    carbLevel: "moderate",
-    fatLevel: "moderate",
-    hydrationSuggestion: "ดื่มน้ำเพิ่มเล็กน้อย โดยเฉพาะถ้ามีซ้อมวันนี้",
-    trainingFit: "เป็นการประเมินคร่าว ๆ จากภาพ ไม่ใช่การนับแคลอรี่แบบแม่นยำ",
+  mealType: "meal",
+  detectedFoods: [],
+  nutrition: {
+    caloriesKcal: null,
+    proteinG: null,
+    carbsG: null,
+    fatG: null,
+    fiberG: null,
   },
-  coach: {
-    aiSummary: "มื้อนี้ดูพอเป็นมื้อสมดุลแบบคร่าว ๆ แต่ยังต้องดูบริบทการซ้อมทั้งวัน",
-    suggestion: "ถ้าก่อนวิ่งให้เน้นคาร์บย่อยง่าย ถ้าหลังวิ่งให้เติมโปรตีนและคาร์บร่วมกัน",
+  nutritionRange: {
+    caloriesKcal: null,
+    proteinG: null,
+    carbsG: null,
+    fatG: null,
   },
+  trainingFit: {
+    bestFor: [],
+    carbAdequacy: "unknown",
+    proteinAdequacy: "unknown",
+    fatLoad: "unknown",
+    hydrationNote: "ดื่มน้ำตามกระหาย และดูบริบทการซ้อมร่วมด้วย",
+    coachNote: "ประเมินจากภาพได้ไม่ชัดเจน ตัวเลขโภชนาการเป็นเพียงค่าคร่าว ๆ จากสิ่งที่มองเห็น",
+  },
+  confidence: "low",
+  needsReview: true,
 };
 
 export async function POST(request: Request) {
@@ -27,7 +40,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "missing imageDataUrl" }, { status: 400 });
     }
     const profileCtx = buildRunnerProfileContext(body.profile ?? null);
-    const system = profileCtx ? `${mealPrompt}\n\n${profileCtx}` : mealPrompt;
+    const contextCtx = buildMealContext(body.context);
+    const system = [mealPrompt, profileCtx, contextCtx].filter(Boolean).join("\n\n");
 
     const result = await jsonFromAI<MealAnalysis>({
       system,
@@ -36,11 +50,28 @@ export async function POST(request: Request) {
       fallback,
     });
 
-    return NextResponse.json({ ...result, data: mergeWithFallback(result.data, fallback), imageUrl: body.imageUrl });
+    const data = mergeWithFallback(result.data, { ...fallback, mealType: body.mealType || "meal" });
+    return NextResponse.json({ ...result, data, imageUrl: body.imageUrl });
   } catch (error) {
     if (process.env.NODE_ENV === "development") {
       console.warn("[meal-analysis-error]", error);
     }
     return NextResponse.json({ error: "วิเคราะห์รูปอาหารไม่สำเร็จ ลองเลือกรูปใหม่อีกครั้ง" }, { status: 500 });
   }
+}
+
+function buildMealContext(context: unknown) {
+  if (!context || typeof context !== "object") return "";
+  const ctx = context as Record<string, unknown>;
+  return [
+    "Current running context for meal analysis:",
+    `todayDate: ${ctx.todayDate ?? "unknown"}`,
+    `isRaceToday: ${Boolean(ctx.isRaceToday)}`,
+    `isRaceTomorrow: ${Boolean(ctx.isRaceTomorrow)}`,
+    `raceDistance: ${ctx.raceDistance ?? "none"}`,
+    `targetTime: ${ctx.targetTime ?? "none"}`,
+    `recentRunDistance: ${typeof (ctx.lastRun as { km?: unknown } | null)?.km === "number" ? (ctx.lastRun as { km: number }).km : "unknown"}`,
+    `lastWorkoutDate: ${ctx.lastWorkoutDate ?? "unknown"}`,
+    `avgReadiness: ${ctx.avgReadiness ?? "unknown"}`,
+  ].join("\n");
 }

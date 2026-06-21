@@ -26,17 +26,48 @@ export type SleepAnalysis = {
 export type MealType = "breakfast" | "lunch" | "dinner" | "snack" | "pre-run" | "post-run";
 
 export type MealAnalysis = {
-  extracted: {
-    detectedFood: string;
-    proteinLevel: "low" | "moderate" | "good";
-    carbLevel: "low" | "moderate" | "good";
-    fatLevel: "low" | "moderate" | "high";
-    hydrationSuggestion: string;
-    trainingFit: string;
+  mealType: string;
+  detectedFoods: {
+    name: string;
+    portionEstimate: string;
+    confidence: "low" | "medium" | "high";
+  }[];
+  nutrition: {
+    caloriesKcal: number | null;
+    proteinG: number | null;
+    carbsG: number | null;
+    fatG: number | null;
+    fiberG: number | null;
   };
-  coach: {
-    aiSummary: string;
-    suggestion: string;
+  nutritionRange: {
+    caloriesKcal: { min: number; max: number } | null;
+    proteinG: { min: number; max: number } | null;
+    carbsG: { min: number; max: number } | null;
+    fatG: { min: number; max: number } | null;
+  };
+  trainingFit: {
+    bestFor: string[];
+    carbAdequacy: "low" | "ok" | "good" | "high" | "unknown";
+    proteinAdequacy: "low" | "ok" | "good" | "high" | "unknown";
+    fatLoad: "low" | "moderate" | "high" | "unknown";
+    hydrationNote: string;
+    coachNote: string;
+  };
+  confidence: "low" | "medium" | "high";
+  needsReview: boolean;
+  imageUrl?: string | null;
+  createdAt?: string;
+  extracted?: {
+    detectedFood?: string;
+    proteinLevel?: "low" | "moderate" | "good";
+    carbLevel?: "low" | "moderate" | "good";
+    fatLevel?: "low" | "moderate" | "high";
+    hydrationSuggestion?: string;
+    trainingFit?: string;
+  };
+  coach?: {
+    aiSummary?: string;
+    suggestion?: string;
   };
 };
 

@@ -4,7 +4,7 @@ import { loadHistoryItems } from "@/lib/cloudHistory";
 import { loadProfileFromSupabase } from "@/lib/profileStorage";
 import { loadActiveRaceGoalAndPlan } from "@/lib/raceStorage";
 import type { LocalHistoryItem } from "@/lib/localHistory";
-import type { SleepAnalysis, WorkoutAnalysis, BodyCompositionAnalysis } from "@/types/logs";
+import type { SleepAnalysis, WorkoutAnalysis, BodyCompositionAnalysis, MealAnalysis } from "@/types/logs";
 
 export type DayWorkoutSummary = {
   date: string;
@@ -38,6 +38,8 @@ export type CoachContext = {
   sleep7d: WeekSleepRow[];
   avgReadiness: number | null;
   workouts7d: DayWorkoutSummary[];
+  nutritionToday: NutritionDaySummary | null;
+  nutrition7d: NutritionDaySummary[];
   totalRunKm: number;
   totalSessions: number;
   runDays7d: number;
@@ -47,6 +49,16 @@ export type CoachContext = {
   latestBody: { weightKg: number | null; bodyFatPct: number | null; muscleKg: number | null } | null;
   todayDate: string;
   contextNotes: string[];
+};
+
+export type NutritionDaySummary = {
+  date: string;
+  mealCount: number;
+  caloriesKcal: number | null;
+  proteinG: number | null;
+  carbsG: number | null;
+  fatG: number | null;
+  notes: string[];
 };
 
 const TZ_OFFSET_MS = 7 * 60 * 60 * 1000;
@@ -65,7 +77,7 @@ export function buildCoachContext(): CoachContext {
 
 export async function buildCoachContextFromSupabase(): Promise<CoachContext> {
   const [historyResult, profileResult, raceResult] = await Promise.all([
-    loadHistoryItems(["sleep", "workout", "body"]),
+    loadHistoryItems(["sleep", "workout", "body", "meal"]),
     loadProfileFromSupabase(),
     loadActiveRaceGoalAndPlan(),
   ]);
@@ -149,6 +161,8 @@ export function buildCoachContextFromData(input: {
   }
 
   const workouts7d = [...dayMap.values()].sort((a, b) => b.date.localeCompare(a.date));
+  const nutrition7d = buildNutritionSummaries(items, cutoff);
+  const nutritionToday = nutrition7d.find((day) => day.date === today) ?? null;
   const runDays7d = workouts7d.filter((day) => day.runs.length > 0).length;
   const lastWorkoutDate = workouts7d[0]?.date ?? null;
 
@@ -181,6 +195,8 @@ export function buildCoachContextFromData(input: {
     sleep7d,
     avgReadiness,
     workouts7d,
+    nutritionToday,
+    nutrition7d,
     totalRunKm: Math.round(totalRunKm * 10) / 10,
     totalSessions,
     runDays7d,
@@ -200,6 +216,44 @@ export function buildCoachContextFromData(input: {
       lastWorkoutDate,
     }),
   };
+}
+
+function buildNutritionSummaries(items: LocalHistoryItem[], cutoff: string): NutritionDaySummary[] {
+  const mealItems = items
+    .filter((item) => item.type === "meal")
+    .filter((item) => item.createdAt.slice(0, 10) >= cutoff);
+  const byDate = new Map<string, MealAnalysis[]>();
+  for (const item of mealItems) {
+    const date = item.createdAt.slice(0, 10);
+    const list = byDate.get(date) ?? [];
+    list.push(item.data as MealAnalysis);
+    byDate.set(date, list);
+  }
+
+  return [...byDate.entries()]
+    .map(([date, meals]) => ({
+      date,
+      mealCount: meals.length,
+      caloriesKcal: sumMeals(meals, "caloriesKcal"),
+      proteinG: sumMeals(meals, "proteinG"),
+      carbsG: sumMeals(meals, "carbsG"),
+      fatG: sumMeals(meals, "fatG"),
+      notes: meals.map((meal) => meal.trainingFit?.coachNote).filter((note): note is string => Boolean(note)).slice(0, 2),
+    }))
+    .sort((a, b) => b.date.localeCompare(a.date));
+}
+
+function sumMeals(meals: MealAnalysis[], key: keyof MealAnalysis["nutrition"]): number | null {
+  let total = 0;
+  let found = false;
+  for (const meal of meals) {
+    const value = Number(meal.nutrition?.[key]);
+    if (Number.isFinite(value)) {
+      total += value;
+      found = true;
+    }
+  }
+  return found ? Math.round(total) : null;
 }
 
 function buildContextNotes(input: {
