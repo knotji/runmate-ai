@@ -184,10 +184,16 @@ export function ReadinessCard() {
         <button
           type="button"
           onClick={() => setShowConfig(!showConfig)}
-          className="flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-slate-700 transition-colors"
+          className="flex w-full items-center justify-between gap-3 text-left text-xs font-bold text-slate-500 transition-colors hover:text-slate-700"
         >
-          <span>{showConfig ? "🔼 ซ่อนปัจจัยการฟื้นตัว" : "⚙️ ปรับแต่งปัจจัยการฟื้นตัววันนี้"}</span>
+          <span>ปรับปัจจัยการฟื้นตัววันนี้</span>
+          <span className="text-slate-400">{showConfig ? "⌃" : "⌄"}</span>
         </button>
+        {injuryFlag && (
+          <p className="mt-2 text-xs leading-5 text-rose-500">
+            ตอนนี้มีอาการเจ็บ ระบบจึงให้พักฟื้นเป็นหลัก
+          </p>
+        )}
 
         {showConfig && (
           <div className="mt-3 space-y-4 rounded-2xl bg-slate-50/50 p-4 border border-slate-100">

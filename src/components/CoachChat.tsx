@@ -216,10 +216,10 @@ export function CoachChat() {
   }
 
   return (
-    <section className="flex flex-1 flex-col gap-3">
+    <section id="coach-chat" className="flex flex-1 flex-col gap-3 scroll-mt-6">
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-3">
-          <p className="text-sm font-semibold text-slate-600">อยากถามเรื่องไหนก่อน?</p>
+          <p className="text-sm font-semibold text-slate-600">ถามเร็ว</p>
           <button type="button" onClick={clearChat} className="shrink-0 text-xs font-semibold text-slate-400 hover:text-slate-600">
             ล้างแชท
           </button>
@@ -316,6 +316,8 @@ export function CoachChat() {
         />
         <button
           type="button"
+          aria-label="แนบรูปเพื่อถามโค้ช"
+          title="แนบรูปเพื่อถามโค้ช"
           onClick={() => fileInputRef.current?.click()}
           className="rounded-2xl bg-slate-100 hover:bg-slate-200 p-3 text-sm transition-colors text-slate-600 shrink-0 flex items-center justify-center"
         >
@@ -325,7 +327,7 @@ export function CoachChat() {
           className="min-w-0 flex-1 rounded-2xl border-0 bg-slate-50 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#17201d]/10"
           value={input}
           onChange={(event) => setInput(event.target.value)}
-          placeholder={previewUrl ? `แท็ก "${imageIntent}": พิมพ์ถาม หรือกด "ส่ง" เพื่อใช้คำถามแนะนำ...` : "ถามโค้ช..."}
+          placeholder={previewUrl ? `แท็ก "${imageIntent}": พิมพ์ถาม หรือกด "ส่ง" เพื่อใช้คำถามแนะนำ...` : "ถามโค้ชเรื่องวันนี้..."}
         />
         <button
           className="rounded-2xl bg-[#17201d] px-5 py-3 text-sm font-bold text-white disabled:opacity-40 transition-opacity"
@@ -336,7 +338,7 @@ export function CoachChat() {
         </button>
       </form>
       <p className="text-center text-[10px] text-slate-400/80 mt-1.5 font-medium">
-        แชทนี้ใช้ Report เป็นบริบท แต่ไม่บันทึกข้อความเข้า Report อัตโนมัติ
+        แชทและรูปที่ส่งในหน้านี้ใช้ถามชั่วคราว ไม่บันทึกเข้า Report อัตโนมัติ
       </p>
     </section>
   );

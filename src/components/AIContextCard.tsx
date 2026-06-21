@@ -73,7 +73,7 @@ export function AIContextCard() {
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-[#17201d]">
-            โค้ชใช้ข้อมูลล่าสุดจากโปรไฟล์และประวัติซ้อม
+            โค้ชใช้ข้อมูลล่าสุดจาก Report
           </p>
           <p className="mt-0.5 text-xs text-slate-400">
             {context.raceGoal ? "มี Race Goal active" : `${context.runDays7d} วันวิ่งใน 7 วันล่าสุด`}
