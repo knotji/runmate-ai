@@ -72,7 +72,16 @@ export default function RaceGoalPage() {
   return (
     <AppShell title="Race Goal" subtitle="วางแผนจากวันนี้ไปถึงวันแข่ง">
       {!goal || !plan ? (
-        <RaceGoalForm onCreated={(nextGoal, nextPlan) => { setGoal(nextGoal); setPlan(nextPlan); }} />
+        <>
+          {raceResults.length > 0 && (
+            <div className="card px-5 py-4 space-y-1">
+              <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">ยินดีด้วย!</p>
+              <p className="text-base font-bold text-[#17201d]">Race Goal ล่าสุดเสร็จสมบูรณ์แล้ว</p>
+              <p className="text-sm text-slate-500">พร้อมตั้ง Race Goal ถัดไปหรือยัง?</p>
+            </div>
+          )}
+          <RaceGoalForm onCreated={(nextGoal, nextPlan) => { setGoal(nextGoal); setPlan(nextPlan); }} />
+        </>
       ) : (
         <>
           <RaceCountdownCard goal={goal} phase={plan.currentPhase} />

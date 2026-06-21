@@ -21,6 +21,8 @@ type RaceGoalRow = {
   preferred_long_run_day: string | null;
   injury_notes: string | null;
   plan_preference: string | null;
+  status: string | null;
+  completed_at: string | null;
 };
 
 type TrainingPlanRow = {
@@ -46,6 +48,7 @@ export async function loadActiveRaceGoalAndPlan(): Promise<
     .from("race_goals")
     .select("*")
     .eq("user_id", session.userId)
+    .not("status", "eq", "completed")
     .order("race_date", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -143,6 +146,23 @@ export async function saveRaceGoalAndPlan(goal: RaceGoal, plan: RacePlan): Promi
   logSupabaseSyncSuccess({ table: "training_plans", operation: "insert", userId: session.userId, count: 1 });
   window.dispatchEvent(new Event("runmate:cloud-data-updated"));
   return { ok: true, goal: savedGoalObj, plan };
+}
+
+export async function markRaceGoalCompleted(goalId: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await ensureSupabaseProfileSession();
+  if (!session.ok) return { ok: false, error: sessionMessage(session) };
+  const { error } = await session.supabase
+    .from("race_goals")
+    .update({ status: "completed", completed_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+    .eq("id", goalId)
+    .eq("user_id", session.userId);
+  if (error) {
+    logSupabaseSyncError({ table: "race_goals", operation: "update", userId: session.userId, error });
+    return { ok: false, error: friendlySupabaseError(error) };
+  }
+  logSupabaseSyncSuccess({ table: "race_goals", operation: "update", userId: session.userId, count: 1 });
+  window.dispatchEvent(new Event("runmate:cloud-data-updated"));
+  return { ok: true };
 }
 
 export async function deleteRaceGoalAndPlan(goalId: string): Promise<{ ok: boolean; error?: string }> {

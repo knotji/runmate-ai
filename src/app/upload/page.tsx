@@ -12,7 +12,7 @@ import { createHistoryItem, findMealSlotByDateAndType, saveHistoryItems } from "
 import { loadProfileFromSupabase } from "@/lib/profileStorage";
 import { buildCoachContextFromSupabase, type CoachContext } from "@/lib/buildCoachContext";
 import { buildRaceResultFromWorkout, detectRaceMatch, getWorkoutLocalDate, normalizeLocalDate, saveRaceResult, type RaceMatch } from "@/lib/raceResults";
-import { loadActiveRaceGoalAndPlan } from "@/lib/raceStorage";
+import { loadActiveRaceGoalAndPlan, markRaceGoalCompleted } from "@/lib/raceStorage";
 import { formatCalories, formatMacro, formatNutritionRange } from "@/lib/format";
 import { buildNutritionTargetSummary } from "@/lib/nutritionTargets";
 import type { LocalHistoryItem } from "@/lib/localHistory";
@@ -44,6 +44,8 @@ export default function UploadPage() {
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [raceMatch, setRaceMatch] = useState<RaceMatch | null>(null);
   const [raceResultError, setRaceResultError] = useState("");
+  const [workoutSavedItem, setWorkoutSavedItem] = useState<import("@/lib/localHistory").LocalHistoryItem | null>(null);
+  const [saveFeedback, setSaveFeedback] = useState<"" | "workout" | "race_result">("");
   const [mealSlotConflict, setMealSlotConflict] = useState<{
     existing: import("@/lib/localHistory").LocalHistoryItem;
     newMeal: MealAnalysis;
@@ -106,6 +108,8 @@ export default function UploadPage() {
   async function handleAnalysisResult(next: unknown) {
     setRaceMatch(null);
     setRaceResultError("");
+    setWorkoutSavedItem(null);
+    setSaveFeedback("");
     if (type === "meal") {
       const data = ((next as { data?: MealAnalysis }).data ?? next) as MealAnalysis;
       if (process.env.NODE_ENV === "development") {
@@ -234,39 +238,59 @@ export default function UploadPage() {
     setRaceMatch(null);
     setRaceResultError("");
     setMealSlotConflict(null);
+    setWorkoutSavedItem(null);
+    setSaveFeedback("");
+  }
+
+  async function saveWorkoutOnce(workout: WorkoutAnalysis): Promise<import("@/lib/localHistory").LocalHistoryItem> {
+    if (workoutSavedItem) {
+      if (process.env.NODE_ENV === "development") {
+        console.info("[race-result-flow]", { alreadySavedWorkout: true, historyItemId: workoutSavedItem.id });
+      }
+      return workoutSavedItem;
+    }
+    const saved = await store({ data: workout }, "workout");
+    setWorkoutSavedItem(saved);
+    return saved;
   }
 
   async function saveWorkoutOnly(workout: WorkoutAnalysis) {
-    setRaceMatch(null);
     setRaceResultError("");
-    await store({ data: workout }, "workout");
+    if (process.env.NODE_ENV === "development") {
+      console.info("[race-result-flow]", { chosenAction: "workout_only", alreadySavedWorkout: !!workoutSavedItem });
+    }
+    await saveWorkoutOnce(workout);
+    setRaceMatch(null);
+    setSaveFeedback("workout");
   }
 
   async function saveAsRaceResult(workout: WorkoutAnalysis, match: RaceMatch) {
     setRaceResultError("");
-    const saved = await store({ data: workout }, "workout");
     if (process.env.NODE_ENV === "development") {
-      console.info("[race-result-save]", { historyItemId: saved.id, raceGoalId: match.goal.id, workoutDate: match.workoutDate });
+      console.info("[race-result-flow]", { chosenAction: "race_result", raceGoalId: match.goal.id, workoutDate: match.workoutDate, alreadySavedWorkout: !!workoutSavedItem });
     }
-    const racePayload = buildRaceResultFromWorkout({
-      workout,
-      goal: match.goal,
-      linkedHistoryItemId: saved.id,
-    });
+    const saved = await saveWorkoutOnce(workout);
+    const racePayload = buildRaceResultFromWorkout({ workout, goal: match.goal, linkedHistoryItemId: saved.id });
     const raceSave = await saveRaceResult(racePayload);
     if (process.env.NODE_ENV === "development") {
       if (raceSave.ok) {
-        console.info("[race-result-save] success", { raceResultId: raceSave.result.id });
+        console.info("[race-result-flow] race_result insert ok", { raceResultId: raceSave.result.id });
       } else {
-        console.warn("[race-result-save] error", { error: raceSave.error });
+        console.warn("[race-result-flow] race_result insert error", { error: raceSave.error });
       }
     }
     if (!raceSave.ok) {
       setRaceResultError("บันทึก workout แล้ว แต่บันทึก Race Result ไม่สำเร็จ");
       return;
     }
+    if (match.goal.id) {
+      const goalUpdate = await markRaceGoalCompleted(match.goal.id);
+      if (process.env.NODE_ENV === "development") {
+        console.info("[race-result-flow] race_goal completed update", { goalId: match.goal.id, ok: goalUpdate.ok, error: goalUpdate.error });
+      }
+    }
     setRaceMatch(null);
-    setSaveStatus("saved");
+    setSaveFeedback("race_result");
     invalidateCoachCache({ clearChat: true });
   }
 
@@ -323,7 +347,19 @@ export default function UploadPage() {
       {result && type === "workout" ? (
         <>
           <WorkoutResultCard result={(result as { data: WorkoutAnalysis }).data} />
-          {raceMatch ? (
+          {saveFeedback === "race_result" && (
+            <div className="card flex items-center gap-3 px-5 py-4">
+              <span className="text-green-600 text-lg">🏁</span>
+              <p className="text-sm font-bold text-[#17201d]">บันทึก Race Result แล้ว</p>
+            </div>
+          )}
+          {saveFeedback === "workout" && (
+            <div className="card flex items-center gap-3 px-5 py-4">
+              <span className="text-[#42677f] text-lg">✓</span>
+              <p className="text-sm font-bold text-[#17201d]">บันทึกเป็น Workout แล้ว</p>
+            </div>
+          )}
+          {raceMatch && !saveFeedback ? (
             <RaceResultConfirmCard
               match={raceMatch}
               workout={(result as { data: WorkoutAnalysis }).data}
@@ -331,9 +367,10 @@ export default function UploadPage() {
               saving={saveStatus === "saving"}
               onSaveRace={(workout) => void saveAsRaceResult(workout, raceMatch)}
               onWorkoutOnly={(workout) => void saveWorkoutOnly(workout)}
+              onCancel={() => { setRaceMatch(null); }}
             />
           ) : null}
-          <PostRunAnalysisCard workout={(result as { data: WorkoutAnalysis }).data} />
+          {!raceMatch && <PostRunAnalysisCard workout={(result as { data: WorkoutAnalysis }).data} />}
         </>
       ) : null}
       {result && type === "body" ? <BodyResultCard result={(result as { data: BodyCompositionAnalysis }).data} /> : null}
@@ -348,6 +385,7 @@ function RaceResultConfirmCard({
   saving,
   onSaveRace,
   onWorkoutOnly,
+  onCancel,
 }: {
   match: RaceMatch;
   workout: WorkoutAnalysis;
@@ -355,6 +393,7 @@ function RaceResultConfirmCard({
   saving: boolean;
   onSaveRace: (workout: WorkoutAnalysis) => void;
   onWorkoutOnly: (workout: WorkoutAnalysis) => void;
+  onCancel: () => void;
 }) {
   return (
     <section className="card space-y-3 border border-[#d9e8df] bg-[#f5faf7] p-5">
@@ -365,19 +404,22 @@ function RaceResultConfirmCard({
           {match.goal.raceName} · {match.goal.raceDistance} · {match.workoutDate}
         </p>
       </div>
-      <p className="text-sm font-semibold text-[#17201d]">ต้องการบันทึกเป็น Race Result ไหม?</p>
+      <p className="text-sm text-slate-600">ต้องการบันทึกผลวิ่งนี้เป็น Race Result หรือเก็บเป็น Workout ปกติ?</p>
       {!match.distanceMatches ? (
         <p className="rounded-2xl bg-amber-50 p-3 text-xs leading-5 text-amber-700">
           ระยะทางอาจไม่ตรงกับระยะ race แบบเป๊ะ ๆ ระบบยังให้บันทึกได้ แต่แนะนำตรวจผลก่อนกดบันทึก
         </p>
       ) : null}
       {error ? <p className="rounded-2xl bg-red-50 p-3 text-xs font-semibold text-red-600">{error}</p> : null}
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-        <button className="btn-primary py-3 text-sm" type="button" disabled={saving} onClick={() => onSaveRace(workout)}>
+      <div className="space-y-2">
+        <button className="btn-primary w-full py-3 text-sm" type="button" disabled={saving} onClick={() => onSaveRace(workout)}>
           บันทึกเป็น Race Result
         </button>
-        <button className="btn-secondary py-3 text-sm" type="button" disabled={saving} onClick={() => onWorkoutOnly(workout)}>
+        <button className="btn-secondary w-full py-3 text-sm" type="button" disabled={saving} onClick={() => onWorkoutOnly(workout)}>
           เก็บเป็น Workout ปกติ
+        </button>
+        <button className="w-full rounded-full py-2.5 text-sm text-slate-400" type="button" disabled={saving} onClick={onCancel}>
+          ยกเลิก
         </button>
       </div>
     </section>

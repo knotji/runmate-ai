@@ -96,6 +96,8 @@ create table if not exists public.race_goals (
   preferred_long_run_day text null,
   injury_notes text null,
   plan_preference text null,
+  status text default 'active',
+  completed_at timestamptz null,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );

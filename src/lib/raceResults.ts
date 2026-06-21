@@ -127,6 +127,19 @@ export async function saveRaceResult(result: RaceResult): Promise<{ ok: true; re
     updated_at: new Date().toISOString(),
   };
 
+  // Check for existing race result for this history item (idempotent save)
+  if (payload.linked_history_item_id) {
+    const { data: existing } = await session.supabase
+      .from("race_results")
+      .select("*")
+      .eq("user_id", session.userId)
+      .eq("linked_history_item_id", payload.linked_history_item_id)
+      .maybeSingle();
+    if (existing) {
+      return { ok: true, result: rowToRaceResult(existing as RaceResultRow) };
+    }
+  }
+
   logSupabaseSyncStart({ table: "race_results", operation: "insert", userId: session.userId, count: 1 });
   const { data, error } = await session.supabase.from("race_results").insert(payload).select("*").single();
   if (error) {
