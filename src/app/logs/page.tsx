@@ -235,7 +235,7 @@ function DayCard({ day, raceResults, proteinTarget }: { day: DayGroup; raceResul
                   <Badge icon="🏋️" label="เวท" color="blue" />
                 )}
                 {pains.length > 0 && (
-                  <Badge icon="🩹" label={`เจ็บ ${(pains[0].data as any)?.painLevel ?? (pains[0] as any)?.painLevel}/10`} color="red" />
+                  <Badge icon="🩹" label={`เจ็บ ${getPainLevel(pains[0])}/10`} color="red" />
                 )}
                 {workouts.some((w) => isWalk(w)) && <Badge icon="🚶" label={walkKm ? formatDistanceKm(walkKm) : "เดิน"} />}
                 {bodies.length > 0 && <Badge icon="⚖️" label="ชั่งน้ำหนัก" />}
@@ -835,6 +835,12 @@ function getReadiness(sleeps: LocalHistoryItem[]): number | null {
     if (score != null && score > 0) return score;
   }
   return null;
+}
+
+function getPainLevel(item: LocalHistoryItem): number | string {
+  const data = item.data as { painLevel?: unknown };
+  const painLevel = Number(data?.painLevel);
+  return Number.isFinite(painLevel) ? painLevel : "-";
 }
 
 function getTotalKm(workouts: LocalHistoryItem[]): number | null {

@@ -191,6 +191,8 @@ export default function PainDetailPage() {
           </section>
 
           {/* ── Actions ──────────────────────────────────── */}
+          <SelfCareGuideCard painLog={painLog} />
+
           <div className="space-y-2">
             <Link
               href={`/pain?from=${encodeURIComponent(id)}`}
@@ -209,6 +211,168 @@ export default function PainDetailPage() {
       )}
     </AppShell>
   );
+}
+
+function SelfCareGuideCard({ painLog }: { painLog: PainLog }) {
+  const guidance = buildSelfCareGuidance(painLog);
+
+  return (
+    <section className="card p-5 space-y-4">
+      <div>
+        <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">Self-care</p>
+        <h2 className="mt-1 text-xl font-bold text-[#17201d]">วิธีดูแลตัวเองวันนี้</h2>
+        <p className="mt-1 text-xs leading-5 text-slate-500">
+          คำแนะนำจาก AI สำหรับการดูแลเบื้องต้น ไม่ใช่การวินิจฉัยทางการแพทย์
+        </p>
+      </div>
+
+      <GuideBlock title="การซ้อมวันนี้" items={guidance.training} />
+      <GuideBlock title="ประคบเย็น" items={guidance.coldTherapy} tone="blue" />
+
+      {guidance.elevation.length > 0 ? (
+        <GuideBlock title="ลดบวม / พยุงบริเวณที่เจ็บ" items={guidance.elevation} tone="amber" />
+      ) : null}
+
+      {guidance.mobility.length > 0 ? (
+        <GuideBlock title="ขยับเบา ๆ" items={guidance.mobility} tone="green" />
+      ) : null}
+
+      {guidance.redFlags.length > 0 ? (
+        <div className="rounded-2xl bg-red-50 p-4">
+          <p className="text-sm font-bold text-red-700">สัญญาณที่ควรพบแพทย์/นักกายภาพ</p>
+          <ul className="mt-2 space-y-1 text-sm leading-6 text-red-700">
+            {guidance.redFlags.map((item) => (
+              <li key={item}>- {item}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      <p className="text-[11px] leading-5 text-slate-400">
+        ใช้เป็นแนวทางดูแลตัวเองและปรับโหลดซ้อมแบบระมัดระวัง หากอาการรุนแรงหรือกังวล ควรปรึกษาผู้เชี่ยวชาญ
+      </p>
+    </section>
+  );
+}
+
+function GuideBlock({ title, items, tone = "slate" }: { title: string; items: string[]; tone?: "slate" | "blue" | "amber" | "green" }) {
+  const toneClass =
+    tone === "blue" ? "bg-blue-50 text-blue-800"
+    : tone === "amber" ? "bg-amber-50 text-amber-800"
+    : tone === "green" ? "bg-[#e7efea] text-[#2a5a39]"
+    : "bg-slate-50 text-slate-700";
+
+  return (
+    <div className={`rounded-2xl p-4 ${toneClass}`}>
+      <p className="text-sm font-bold">{title}</p>
+      <ul className="mt-2 space-y-1 text-sm leading-6">
+        {items.map((item) => (
+          <li key={item}>- {item}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function buildSelfCareGuidance(painLog: PainLog) {
+  return {
+    training: buildTrainingGuidance(painLog),
+    coldTherapy: buildColdTherapyGuidance(painLog),
+    elevation: buildElevationGuidance(painLog),
+    mobility: buildMobilityGuidance(painLog),
+    redFlags: buildSelfCareRedFlags(painLog),
+  };
+}
+
+function buildTrainingGuidance(painLog: PainLog) {
+  if (painLog.painLevel >= 7 || painLog.trainingImpact === "seek_professional") {
+    return [
+      "งดวิ่งวันนี้ และหลีกเลี่ยงกิจกรรมที่ลงแรงกระแทกซ้ำ",
+      "ถ้าลงน้ำหนักแล้วปวด หรือเดินกะเผลก ควรให้แพทย์/นักกายภาพประเมินก่อนกลับไปวิ่ง",
+    ];
+  }
+
+  if (painLog.painLevel >= 4 || painLog.trainingImpact === "reduce_load" || painLog.trainingImpact === "rest") {
+    return [
+      "ลดปริมาณซ้อม 24-48 ชม. และดูแนวโน้มอาการก่อนเพิ่มโหลด",
+      "งด interval, tempo, hill, long run และการกระแทกซ้ำ ๆ",
+      "เดินเบา ๆ หรือ low-impact ได้เฉพาะถ้าอาการไม่แย่ลงระหว่างทำ",
+    ];
+  }
+
+  return [
+    "ลดความเข้มวันนี้ และสังเกตอาการระหว่างวัน",
+    "ถ้าเริ่มเจ็บระหว่างวิ่ง ให้เลี่ยง speedwork หรือ hard session ก่อน",
+    "ถ้าอาการเพิ่มขึ้น ให้หยุดและเปลี่ยนเป็นเดินเบา ๆ หรือพัก",
+  ];
+}
+
+function buildColdTherapyGuidance(painLog: PainLog) {
+  const shouldUseCold =
+    painLog.swellingOrRedness !== "no" ||
+    ["during_run", "after_run", "next_morning"].includes(painLog.startedWhen) ||
+    painLog.painfulWhen.includes("running") ||
+    painLog.painfulWhen.includes("walking");
+
+  const firstLine = shouldUseCold
+    ? "ประคบเย็นหรือแช่น้ำเย็นเฉพาะจุด 10-20 นาที/ครั้ง ทุก 2-3 ชม. ถ้ายังปวดหรือบวมในช่วง 24-48 ชม. แรก"
+    : "ถ้ามีปวดหลังใช้งาน ให้ประคบเย็นเฉพาะจุด 10-20 นาที/ครั้ง แล้วประเมินอาการ";
+
+  return [
+    firstLine,
+    "อย่าให้น้ำแข็งสัมผัสผิวตรง ๆ ใช้ผ้าบาง ๆ คั่นไว้",
+    "ไม่ควรเกิน 20 นาทีต่อครั้ง และหยุดทันทีถ้าชา แสบ หรือสีผิวเปลี่ยน",
+  ];
+}
+
+function buildElevationGuidance(painLog: PainLog) {
+  if (painLog.swellingOrRedness === "no") return [];
+  return [
+    "ยกบริเวณที่เจ็บให้สูงขึ้น 10-15 นาทีหลังทำกิจกรรม",
+    "ใช้ผ้ายืดหรือ compression เบา ๆ ได้ถ้ารู้สึกสบาย",
+    "อย่าพันแน่นจนชา ปวดเพิ่ม สีผิวเปลี่ยน หรือปลายเท้าเย็น",
+  ];
+}
+
+function buildMobilityGuidance(painLog: PainLog) {
+  if (painLog.canBearWeight !== "yes" || painLog.painLevel > 5) return [];
+
+  const area = painLog.painLocation.toLowerCase();
+  const movement =
+    area.includes("ข้อเท้า") || area.includes("เท้า") ? "หมุนข้อเท้าเบา ๆ, กระดกปลายเท้า, ยกส้น/ปลายเท้าแบบไม่ฝืน"
+    : area.includes("น่อง") ? "กระดกข้อเท้าเบา ๆ และ calf pump ช้า ๆ"
+    : area.includes("เข่า") ? "งอ-เหยียดเข่าเบา ๆ ในช่วงที่ไม่เจ็บ และเกร็งต้นขาเบา ๆ"
+    : area.includes("สะโพก") || area.includes("ขาหนีบ") ? "หมุนสะโพกเบา ๆ และขยับช่วงสะโพกในมุมที่ไม่เจ็บ"
+    : "ขยับช่วงข้อรอบ ๆ บริเวณที่เจ็บแบบช้า ๆ และไม่ฝืน";
+
+  return [
+    movement,
+    "ทำเฉพาะช่วงที่ไม่ปวด และหยุดถ้าอาการเพิ่มขึ้น",
+    "หลีกเลี่ยงการยืดแรง ๆ เข้าไปในจุดที่เจ็บ",
+  ];
+}
+
+function buildSelfCareRedFlags(painLog: PainLog) {
+  const flags: string[] = [];
+  const hasSharp = painLog.painType.includes("sharp");
+  const hasNumb = painLog.painType.includes("numb");
+  const painChangesForm =
+    painLog.canBearWeight === "no" ||
+    (painLog.painfulWhen.includes("running") && painLog.painLevel >= 5) ||
+    Boolean((painLog.notes ?? "").match(/กะเผลก|ท่าวิ่ง|ลงน้ำหนักไม่ได้|แย่ลง|หนักขึ้น/));
+
+  if (painLog.painLevel >= 7) flags.push("ปวดระดับสูง หรือปวดจนทำกิจกรรมปกติยาก");
+  if (painLog.swellingOrRedness === "yes") flags.push("มีอาการบวมแดงเพิ่ม หรือร้อนบริเวณที่เจ็บ");
+  if (painLog.canBearWeight === "no") flags.push("ลงน้ำหนักไม่ได้ หรือเดินแล้วปวดมาก");
+  if (hasSharp) flags.push("ปวดแปลบหรือเจ็บคมชัด");
+  if (hasNumb) flags.push("มีอาการชา");
+  if (painChangesForm) flags.push("เจ็บจนท่าวิ่งหรือการเดินเปลี่ยน");
+
+  if (flags.length > 0) {
+    flags.push("ถ้าอาการไม่ดีขึ้นใน 48-72 ชม. ควรพบแพทย์/นักกายภาพ");
+  }
+
+  return [...new Set(flags)];
 }
 
 function DetailItem({ label, value }: { label: string; value: string }) {

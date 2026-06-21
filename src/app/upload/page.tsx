@@ -22,6 +22,7 @@ import type { BodyCompositionAnalysis, MealAnalysis, MealType, SleepAnalysis, Wo
 import type { UserProfile } from "@/types/profile";
 
 type UploadType = "sleep" | "meal" | "workout" | "body";
+type WorkoutSubtype = "run" | "strength" | "walk" | "other";
 
 const UPLOAD_LABELS: Record<UploadType, string> = {
   sleep: "นอน",
@@ -52,7 +53,7 @@ export default function UploadPage() {
     existing: import("@/lib/localHistory").LocalHistoryItem;
     newMeal: MealAnalysis;
   } | null>(null);
-  const [workoutSubtype, setWorkoutSubtype] = useState<"run" | "strength" | "walk" | "other">("run");
+  const [workoutSubtype, setWorkoutSubtype] = useState<WorkoutSubtype>("run");
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -69,8 +70,8 @@ export default function UploadPage() {
       queueMicrotask(() => setType(resolved));
       if (resolved === "workout") {
         const sub = params.get("subtype") ?? "";
-        if (["run", "strength", "walk", "other"].includes(sub)) {
-          queueMicrotask(() => setWorkoutSubtype(sub as any));
+        if (isWorkoutSubtype(sub)) {
+          queueMicrotask(() => setWorkoutSubtype(sub));
         }
       }
     }
@@ -121,7 +122,7 @@ export default function UploadPage() {
       const savedItem = await store({ data: workout }, "workout");
       setResult({ data: workout });
       setWorkoutSavedItem(savedItem);
-    } catch (e) {
+    } catch {
       // error is set inside store()
     }
   }
@@ -158,8 +159,8 @@ export default function UploadPage() {
       try {
         const raceResult = await loadActiveRaceGoalAndPlan();
         if (raceResult.ok) raceGoalForMatch = raceResult.goal;
-      } catch (e) {
-        if (process.env.NODE_ENV === "development") console.warn("[race-match-debug] loadActiveRaceGoalAndPlan error", e);
+      } catch (error) {
+        if (process.env.NODE_ENV === "development") console.warn("[race-match-debug] loadActiveRaceGoalAndPlan error", error);
       }
 
       if (process.env.NODE_ENV === "development") {
@@ -727,6 +728,10 @@ function cleanNumber(value: unknown): number | null {
   if (typeof value === "string" && value.trim() === "") return null;
   const numberValue = Number(value);
   return Number.isFinite(numberValue) ? numberValue : null;
+}
+
+function isWorkoutSubtype(value: string): value is WorkoutSubtype {
+  return value === "run" || value === "strength" || value === "walk" || value === "other";
 }
 
 function midpointFromRange(range?: { min: number; max: number } | null): number | null {

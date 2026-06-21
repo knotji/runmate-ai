@@ -112,24 +112,26 @@ function PainPageContent() {
   // Prefill from existing pain log when ?from=[id] is present or reset if not
   useEffect(() => {
     if (!fromId) {
-      setPainLocation("");
-      setPainSide("unknown");
-      setPainLevel(3);
-      setStartedWhen("unknown");
-      setPainType([]);
-      setPainfulWhen([]);
-      setSwellingOrRedness("unknown");
-      setCanBearWeight("unknown");
-      setNotes("");
-      setImageFile(null);
-      setImagePreview(null);
-      setResult(null);
-      setSaved(false);
-      setError("");
-      setPrefillComplete(false);
+      queueMicrotask(() => {
+        setPainLocation("");
+        setPainSide("unknown");
+        setPainLevel(3);
+        setStartedWhen("unknown");
+        setPainType([]);
+        setPainfulWhen([]);
+        setSwellingOrRedness("unknown");
+        setCanBearWeight("unknown");
+        setNotes("");
+        setImageFile(null);
+        setImagePreview(null);
+        setResult(null);
+        setSaved(false);
+        setError("");
+        setPrefillComplete(false);
+      });
       return;
     }
-    setPrefillComplete(false);
+    queueMicrotask(() => setPrefillComplete(false));
     // Do not call setState synchronously here — only in the async callback below
     loadHistoryItemById(fromId).then((res) => {
       if (res.ok) {

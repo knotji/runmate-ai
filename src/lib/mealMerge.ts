@@ -24,7 +24,9 @@ export function safeAddNutritionValue(a: unknown, b: unknown): number | null {
   return Math.round(((na ?? 0) + (nb ?? 0)) * 10) / 10;
 }
 
-export function normalizeMealNutrition(data: any): NormalizedNutrition {
+type MealLike = Record<string, unknown> | null | undefined;
+
+export function normalizeMealNutrition(data: MealLike): NormalizedNutrition {
   if (!data) {
     return { caloriesKcal: null, proteinG: null, carbsG: null, fatG: null, fiberG: null };
   }
@@ -41,7 +43,7 @@ export function normalizeMealNutrition(data: any): NormalizedNutrition {
 }
 
 /** Merge two meal nutrition datasets safely. */
-export function mergeMealNutrition(existing: any, incoming: any): NormalizedNutrition {
+export function mergeMealNutrition(existing: MealLike, incoming: MealLike): NormalizedNutrition {
   const existNutr = normalizeMealNutrition(existing);
   const incomNutr = normalizeMealNutrition(incoming);
   return {
