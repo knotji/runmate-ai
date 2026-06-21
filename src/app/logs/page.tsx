@@ -20,6 +20,7 @@ import {
   formatMacro,
   formatSummaryText,
 } from "@/lib/format";
+import { extractMealData, normalizeMealNutrition } from "@/lib/mealMerge";
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -146,6 +147,10 @@ function DayCard({ day, raceResults, proteinTarget }: { day: DayGroup; raceResul
   const walkKm = getTotalKm(workouts.filter(isWalk));
   const mealCount = meals.length;
   const mealNutrition = getMealNutrition(meals);
+  const totalMealImages = meals.reduce((sum, item) => {
+    const d = extractMealData(item);
+    return sum + (d.imageCount ?? d.entries?.length ?? 1);
+  }, 0);
   const proteinStatus = mealNutrition.proteinG != null ? calcProteinStatus(mealNutrition.proteinG, proteinTarget) : null;
 
   return (
@@ -173,6 +178,7 @@ function DayCard({ day, raceResults, proteinTarget }: { day: DayGroup; raceResul
               {mealCount > 0 && (
                 <div className="flex flex-wrap gap-1.5">
                   <Badge icon="🍽" label={`${mealCount} มื้อ`} color="orange" />
+                  {totalMealImages > mealCount && <Badge icon="" label={`${totalMealImages} รูป`} color="orange" />}
                   {mealNutrition.caloriesKcal != null && <Badge icon="🔥" label={formatCalories(mealNutrition.caloriesKcal)} color="orange" />}
                   {mealNutrition.proteinG != null && (
                     <Badge icon="💪" label={`${mealNutrition.proteinG}/${proteinTarget}g`} color="orange" />
@@ -314,21 +320,28 @@ function WorkoutDetail({ item }: { item: LocalHistoryItem }) {
 }
 
 function MealDetail({ item }: { item: LocalHistoryItem }) {
-  const d = item.data as MealAnalysis;
+  const d = extractMealData(item);
+  const n = normalizeMealNutrition(d as unknown as Record<string, unknown>);
   const foodNames = d.detectedFoods?.map((food) => food.name).filter(Boolean).join(", ") || d?.extracted?.detectedFood || "";
-  const note = d.trainingFit?.coachNote ?? d?.coach?.aiSummary ?? d?.coach?.suggestion ?? "";
+  const note = d.trainingFit?.coachNote ?? d.coachNote ?? d?.coach?.aiSummary ?? d?.coach?.suggestion ?? "";
+  const imageCount = d.imageCount ?? d.entries?.length ?? 1;
 
   return (
     <div className="rounded-2xl bg-orange-50 p-4">
-      <p className="text-xs font-bold uppercase tracking-wide text-orange-600 mb-1">🍱 มื้ออาหาร</p>
+      <div className="flex items-center gap-1.5 mb-1">
+        <p className="text-xs font-bold uppercase tracking-wide text-orange-600">🍱 มื้ออาหาร</p>
+        {imageCount > 1 && (
+          <span className="rounded-full bg-orange-200 px-2 py-0.5 text-[10px] font-bold text-orange-700">{imageCount} รูป</span>
+        )}
+      </div>
       {foodNames && (
         <p className="text-sm font-bold text-[#17201d] mb-2">{truncate(foodNames, 100)}</p>
       )}
       <div className="grid grid-cols-4 gap-2 mb-2">
-        <Metric label="kcal" value={formatCalories(d.nutrition?.caloriesKcal)} />
-        <Metric label="Protein" value={formatMacro(d.nutrition?.proteinG)} />
-        <Metric label="Carbs" value={formatMacro(d.nutrition?.carbsG)} />
-        <Metric label="Fat" value={formatMacro(d.nutrition?.fatG)} />
+        <Metric label="kcal" value={formatCalories(n.caloriesKcal)} />
+        <Metric label="Protein" value={formatMacro(n.proteinG)} />
+        <Metric label="Carbs" value={formatMacro(n.carbsG)} />
+        <Metric label="Fat" value={formatMacro(n.fatG)} />
       </div>
       <p className="mb-2 text-xs text-orange-700">ประเมินจากรูปอาหาร</p>
       {note && (
@@ -604,8 +617,10 @@ function sumNutrition(meals: LocalHistoryItem[], key: keyof MealAnalysis["nutrit
   let total = 0;
   let found = false;
   for (const meal of meals) {
-    const value = Number((meal.data as MealAnalysis)?.nutrition?.[key]);
-    if (Number.isFinite(value)) {
+    const d = extractMealData(meal);
+    const n = normalizeMealNutrition(d as unknown as Record<string, unknown>);
+    const value = n[key];
+    if (typeof value === "number" && Number.isFinite(value)) {
       total += value;
       found = true;
     }

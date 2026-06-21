@@ -9,6 +9,7 @@ import { BodyResultCard } from "@/components/BodyResultCard";
 import { PostRunAnalysisCard } from "@/components/PostRunAnalysisCard";
 import { invalidateCoachCache } from "@/lib/invalidateCoachCache";
 import { createHistoryItem, findMealSlotByDateAndType, saveHistoryItems } from "@/lib/cloudHistory";
+import { buildMergedMeal, extractMealData, normalizeMealNutrition } from "@/lib/mealMerge";
 import { loadProfileFromSupabase } from "@/lib/profileStorage";
 import { buildCoachContextFromSupabase, type CoachContext } from "@/lib/buildCoachContext";
 import { buildRaceResultFromWorkout, detectRaceMatch, getWorkoutLocalDate, normalizeLocalDate, saveRaceResult, type RaceMatch } from "@/lib/raceResults";
@@ -211,13 +212,36 @@ export default function UploadPage() {
       return;
     }
 
-    const existingMeal = (existing.data as { data?: MealAnalysis }).data ?? (existing.data as MealAnalysis);
-    const updatedMeal = action === "merge" ? mergeMealData(existingMeal, newMeal) : newMeal;
-    const updatedItem = { ...existing, data: { data: updatedMeal } };
+    const existingMeal = extractMealData(existing);
+    const updatedMeal = action === "merge" ? buildMergedMeal(existingMeal, newMeal) : newMeal;
+
+    // Store as direct MealAnalysis — same shape as initial save, so report page reads it correctly.
+    const updatedItem = { ...existing, data: updatedMeal };
+
+    if (process.env.NODE_ENV === "development") {
+      const existNutr = normalizeMealNutrition(existingMeal as unknown as Record<string, unknown>);
+      const newNutr   = normalizeMealNutrition(newMeal     as unknown as Record<string, unknown>);
+      console.info("[meal-merge-debug]", {
+        existingMealId: existing.id,
+        existingNutrition: existNutr,
+        newNutrition: newNutr,
+        mergedNutrition: updatedMeal.nutrition,
+        entriesCountBefore: existingMeal.entries?.length ?? 1,
+        entriesCountAfter: updatedMeal.entries?.length ?? 1,
+        updatePayloadKeys: Object.keys(updatedMeal),
+        action,
+      });
+    }
 
     setSaveStatus("saving");
     const saveResult = await saveHistoryItems([updatedItem]);
-    if (!saveResult.ok) { setSaveStatus("error"); return; }
+    if (!saveResult.ok) {
+      if (process.env.NODE_ENV === "development") {
+        console.warn("[meal-merge-debug] Supabase update error:", saveResult.error);
+      }
+      setSaveStatus("error");
+      return;
+    }
 
     if (process.env.NODE_ENV === "development") {
       console.info("[meal-slot-debug]", {
@@ -672,33 +696,6 @@ function hasAnyNutrition(meal: MealAnalysis) {
 function toBangkokDate(date: Date): string {
   const bangkokMs = date.getTime() + 7 * 60 * 60 * 1000;
   return new Date(bangkokMs).toISOString().slice(0, 10);
-}
-
-function sumNullable(a: number | null, b: number | null): number | null {
-  if (a == null && b == null) return null;
-  return Math.round(((a ?? 0) + (b ?? 0)) * 10) / 10;
-}
-
-function mergeMealData(existing: MealAnalysis, incoming: MealAnalysis): MealAnalysis {
-  const seen = new Set<string>();
-  const mergedFoods = [...(existing.detectedFoods ?? []), ...(incoming.detectedFoods ?? [])].filter((f) => {
-    if (seen.has(f.name)) return false;
-    seen.add(f.name);
-    return true;
-  });
-  return {
-    ...incoming,
-    detectedFoods: mergedFoods,
-    nutrition: {
-      caloriesKcal: sumNullable(existing.nutrition.caloriesKcal, incoming.nutrition.caloriesKcal),
-      proteinG: sumNullable(existing.nutrition.proteinG, incoming.nutrition.proteinG),
-      carbsG: sumNullable(existing.nutrition.carbsG, incoming.nutrition.carbsG),
-      fatG: sumNullable(existing.nutrition.fatG, incoming.nutrition.fatG),
-      fiberG: sumNullable(existing.nutrition.fiberG, incoming.nutrition.fiberG),
-    },
-    imageUrl: existing.imageUrl ?? incoming.imageUrl,
-    needsReview: false,
-  };
 }
 
 function MealSlotConflictCard({

@@ -25,6 +25,13 @@ export type SleepAnalysis = {
 
 export type MealType = "breakfast" | "lunch" | "dinner" | "snack" | "pre-run" | "post-run";
 
+export type MealEntry = {
+  detectedFoods: { name: string; portionEstimate?: string; confidence?: "low" | "medium" | "high" }[];
+  nutrition: { caloriesKcal: number | null; proteinG: number | null; carbsG: number | null; fatG: number | null; fiberG: number | null };
+  imageUrl?: string | null;
+  createdAt?: string;
+};
+
 export type MealAnalysis = {
   mealType: string;
   detectedFoods: {
@@ -70,6 +77,13 @@ export type MealAnalysis = {
     aiSummary?: string;
     suggestion?: string;
   };
+  entries?: MealEntry[];
+  imageCount?: number;
+  entriesMerged?: number;
+  updatedAt?: string;
+  localDate?: string;
+  mealGroupKey?: string;
+  coachNote?: string;
 };
 
 export type RunAnalysis = {
