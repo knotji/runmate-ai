@@ -174,17 +174,18 @@ export default function TodayPage() {
 
       {/* ── Compact readiness strip ───────────────────────────── */}
       {insight && readinessScore != null && (
-        <section className="card flex items-center gap-4 px-5 py-3">
-          <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-full text-sm font-bold text-white ${readinessBg(readinessScore)}`}>
+        <section className="card flex items-center gap-3 px-5 py-4">
+          <div className={`grid h-12 w-12 shrink-0 place-items-center rounded-full text-sm font-bold text-white ${readinessBg(readinessScore)}`}>
             {readinessScore}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-xs text-slate-400">ความพร้อมวันนี้</p>
-            <p className={`text-sm font-bold ${readinessText(readinessScore)}`}>{insight.readinessLabel}</p>
+            <p className={`text-sm font-extrabold ${readinessText(readinessScore)}`}>
+              Readiness {insight.readinessLabel}
+            </p>
+            {insight.readinessNote && (
+              <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">{insight.readinessNote}</p>
+            )}
           </div>
-          {insight.readinessNote && (
-            <p className="line-clamp-2 text-right text-xs text-slate-400">{insight.readinessNote}</p>
-          )}
         </section>
       )}
 

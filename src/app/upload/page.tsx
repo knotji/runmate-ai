@@ -396,6 +396,7 @@ export default function UploadPage() {
             {saveStatus === "saving" && <p className="text-xs font-semibold text-slate-500">กำลังบันทึก...</p>}
             {saveStatus === "saved" && <p className="text-xs font-semibold text-green-600">บันทึกแล้ว</p>}
             {saveStatus === "error" && <p className="text-xs font-semibold text-red-500">บันทึกไม่สำเร็จ กรุณาลองใหม่</p>}
+            {!result && saveStatus !== "saving" && <UploadEmptyGuide />}
           </>
         ) : null}
       </section>
@@ -470,6 +471,19 @@ export default function UploadPage() {
       ) : null}
       {result && type === "body" ? <BodyResultCard result={(result as { data: BodyCompositionAnalysis }).data} /> : null}
     </AppShell>
+  );
+}
+
+function UploadEmptyGuide() {
+  return (
+    <div className="rounded-2xl bg-slate-50/80 px-4 py-3 text-sm text-slate-600">
+      <p className="font-bold text-[#17201d]">ลองอัปโหลดเพื่อถามโค้ช</p>
+      <div className="mt-2 space-y-1.5 text-xs leading-5">
+        <p><span className="font-semibold text-slate-700">รูปอาหาร</span> - กินได้มั้ย / ก่อนวิ่งได้ไหม</p>
+        <p><span className="font-semibold text-slate-700">รูปผลวิ่ง</span> - HR สูงไปไหม / รอบหน้าซ้อมอะไร</p>
+        <p><span className="font-semibold text-slate-700">รูปอาการเจ็บ</span> - ควรพักหรือขยับเบา ๆ ดี</p>
+      </div>
+    </div>
   );
 }
 

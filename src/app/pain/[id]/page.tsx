@@ -86,7 +86,7 @@ export default function PainDetailPage() {
   }, [id]);
 
   return (
-    <AppShell title="รายละเอียดอาการเจ็บ" subtitle="บันทึกที่ผ่านมา">
+    <AppShell title="รายละเอียดอาการเจ็บ" subtitle="บันทึกที่ผ่านมา" medicalDisclaimer>
       {loading && (
         <section className="card p-5 text-sm text-slate-500">กำลังโหลดข้อมูล...</section>
       )}

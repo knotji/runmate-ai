@@ -23,7 +23,7 @@ const quickQuestions = [
     prompt: "สรุปวันนี้ให้หน่อยครับ ขอวันที่เวลา ข้อมูลที่ใช้ประเมิน readiness, sleep, workout ล่าสุด, แปลภาษาคน และแผนวันนี้แบบมี option เบากว่าถ้าล้า",
   },
   {
-    label: "Recovery",
+    label: "ควรพักไหม",
     prompt: "วันนี้ควร recovery ยังไงดีครับ ดูจาก sleep, readiness, workout ล่าสุด, weekly load และให้ checklist สั้นๆ สำหรับคืนนี้",
   },
   {

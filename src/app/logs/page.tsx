@@ -34,6 +34,7 @@ export default function ReportPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeFilter, setActiveFilter] = useState<"all" | "run" | "meal" | "strength" | "pain">("all");
+  const [showOlderDays, setShowOlderDays] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -98,6 +99,9 @@ export default function ReportPage() {
     }
     return true;
   });
+  const recentDays = filteredDays.slice(0, 7);
+  const olderDays = filteredDays.slice(7);
+  const visibleDays = showOlderDays ? filteredDays : recentDays;
 
   return (
     <AppShell title="Report" subtitle="บันทึกสะสมรายวัน">
@@ -128,7 +132,10 @@ export default function ReportPage() {
               <button
                 key={f.id}
                 type="button"
-                onClick={() => setActiveFilter(f.id)}
+                onClick={() => {
+                  setActiveFilter(f.id);
+                  setShowOlderDays(false);
+                }}
                 className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition-all border ${activeFilter === f.id ? "bg-[#17201d] text-white border-[#17201d]" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"}`}
               >
                 {f.label}
@@ -145,9 +152,20 @@ export default function ReportPage() {
           {filteredDays.length === 0 ? (
             <section className="card p-5 text-sm text-slate-500 text-center">ไม่พบรายการที่ตรงกับตัวกรอง</section>
           ) : (
-            filteredDays.map((day) => (
-              <DayCard key={day.date} day={day} raceResults={raceResultsByDate.get(day.date) ?? []} proteinTarget={pTarget} />
-            ))
+            <>
+              {visibleDays.map((day) => (
+                <DayCard key={day.date} day={day} raceResults={raceResultsByDate.get(day.date) ?? []} proteinTarget={pTarget} />
+              ))}
+              {olderDays.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowOlderDays((value) => !value)}
+                  className="w-full rounded-2xl border border-slate-200 bg-white/75 px-4 py-3 text-sm font-bold text-slate-600"
+                >
+                  {showOlderDays ? "ซ่อนรายการก่อนหน้า" : `ดูรายการก่อนหน้า (${olderDays.length} วัน)`}
+                </button>
+              )}
+            </>
           )}
         </>
       )}

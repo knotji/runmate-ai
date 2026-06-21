@@ -15,7 +15,7 @@ export function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/92 px-3 pb-3 pt-2 backdrop-blur">
+    <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/92 px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-2 backdrop-blur">
       <div className="mx-auto grid max-w-md grid-cols-5 gap-1">
         {items.map((item) => {
           const active = pathname === item.href;

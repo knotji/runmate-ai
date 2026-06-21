@@ -132,7 +132,7 @@ export function ReadinessCard() {
             </span>
             {restingHrDelta !== null && (
               <span className="rounded bg-slate-50 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
-                Pulse {(restingHrDelta >= 0 ? "+" : "") + restingHrDelta} bpm
+                ชีพจร {(restingHrDelta >= 0 ? "+" : "") + restingHrDelta} bpm
               </span>
             )}
             {hrvDelta !== null && (
@@ -152,7 +152,7 @@ export function ReadinessCard() {
         {/* Readiness Circular Score */}
         <div className={`flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-full text-white ${colors.bg} shadow-sm transition-colors duration-300`}>
           <span className="text-xl font-black leading-none">{result.score}</span>
-          <span className="text-[9px] font-bold uppercase tracking-wider opacity-90 mt-0.5">SCORE</span>
+          <span className="text-[9px] font-bold tracking-wider opacity-90 mt-0.5">คะแนน</span>
         </div>
       </div>
 

@@ -243,7 +243,7 @@ function PainPageContent() {
 
   if (prefilling) {
     return (
-      <AppShell title={fromId ? "อัปเดตอาการ" : "แจ้งอาการเจ็บ"} subtitle="กำลังโหลดข้อมูล...">
+      <AppShell title={fromId ? "อัปเดตอาการ" : "แจ้งอาการเจ็บ"} subtitle="กำลังโหลดข้อมูล..." medicalDisclaimer>
         <section className="card p-5 text-sm text-slate-500">กำลังโหลดข้อมูล...</section>
       </AppShell>
     );
@@ -253,6 +253,7 @@ function PainPageContent() {
     <AppShell
       title={fromId ? "อัปเดตอาการ" : "แจ้งอาการเจ็บ"}
       subtitle="ประเมินผลกระทบต่อการซ้อม · ไม่ใช่การวินิจฉัยทางการแพทย์"
+      medicalDisclaimer
     >
 
       {/* Result card */}
@@ -476,7 +477,7 @@ function PainPageContent() {
 export default function PainPage() {
   return (
     <Suspense fallback={
-      <AppShell title="วิเคราะห์อาการเจ็บ" subtitle="กำลังโหลด...">
+      <AppShell title="วิเคราะห์อาการเจ็บ" subtitle="กำลังโหลด..." medicalDisclaimer>
         <section className="card p-5 text-sm text-slate-500">กำลังโหลด...</section>
       </AppShell>
     }>

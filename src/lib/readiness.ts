@@ -22,7 +22,7 @@ export function calculateReadiness(input: ReadinessInput): ReadinessResult {
     return {
       score: 15,
       level: "red",
-      label: "ควรพักฟื้น (Injury Rest)",
+      label: "ควรพักฟื้นจากอาการเจ็บ",
       recommendation: "งดซ้อมวิ่งและกิจกรรมที่ลงน้ำหนักเท้า เพื่อให้ร่างกายฟื้นฟูจากอาการเจ็บปวด ควรรักษากับแพทย์หรือนักกายภาพบำบัด",
       summary: "พบรายงานอาการบาดเจ็บ จำเป็นต้องงดซ้อมและพักฟื้นร่างกาย",
       reasons: ["แจ้งอาการบาดเจ็บ (Injury Status Active)"],

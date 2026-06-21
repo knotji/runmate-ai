@@ -9,13 +9,15 @@ export function AppShell({
   children,
   title,
   subtitle,
+  medicalDisclaimer = false,
 }: {
   children: ReactNode;
   title?: string;
   subtitle?: string;
+  medicalDisclaimer?: boolean;
 }) {
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-4 pb-28 pt-5">
+    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-4 pb-[calc(8rem+env(safe-area-inset-bottom))] pt-5">
       <header className="mb-5 flex items-start justify-between gap-3">
         <Link href="/" className="min-w-0">
           <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#6f8fa6]">{appName}</p>
@@ -32,7 +34,7 @@ export function AppShell({
         <MotionPage>{children}</MotionPage>
       </main>
       <footer className="mt-6">
-        <Disclaimer />
+        <Disclaimer compact={!medicalDisclaimer} />
       </footer>
       <BottomNav />
     </div>
