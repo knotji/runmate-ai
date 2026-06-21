@@ -5,6 +5,17 @@ import { loadRoutinesFromSupabase, saveRoutineToSupabase, logCompletedStrength }
 import type { StrengthRoutine, AIPrescription, StrengthExercise } from "@/types/strength";
 import type { CoachContext } from "@/lib/buildCoachContext";
 
+function formatRepsDuration(ex: StrengthExercise) {
+  if (ex.durationSec) {
+    return `${ex.sets} เซ็ต × ${ex.durationSec} วิ`;
+  }
+  const reps = String(ex.reps || "");
+  if (reps.includes("ครั้ง") || reps.includes("วิ")) {
+    return `${ex.sets} เซ็ต × ${reps}`;
+  }
+  return `${ex.sets} เซ็ต × ${reps} ครั้ง`;
+}
+
 export function StrengthWorkoutCard({
   context,
   onLogCompleted
@@ -106,7 +117,7 @@ export function StrengthWorkoutCard({
     }
   }
 
-  function handleUpdateExercise(index: number, key: keyof StrengthExercise, value: any) {
+  function handleUpdateExercise(index: number, key: keyof StrengthExercise, value: string | number | undefined) {
     if (!editingRoutine) return;
     const updatedExercises = [...editingRoutine.exercises];
     updatedExercises[index] = { ...updatedExercises[index], [key]: value };
@@ -265,8 +276,13 @@ export function StrengthWorkoutCard({
               <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-wrap"><strong>โค้ชวิเคราะห์:</strong> {prescription.reason}</p>
               
               {prescription.warnings && prescription.warnings.length > 0 && (
-                <div className="bg-red-50 p-2.5 rounded-xl space-y-1">
-                  {prescription.warnings.map((w, i) => <p key={i} className="text-[10px] font-semibold text-red-700">⚠️ {w}</p>)}
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 space-y-1">
+                  {prescription.warnings.map((w, i) => (
+                    <p key={i} className="text-[10px] font-semibold text-amber-800 flex items-start gap-1">
+                      <span className="shrink-0">⚠️</span>
+                      <span>{w}</span>
+                    </p>
+                  ))}
                 </div>
               )}
 
@@ -275,10 +291,14 @@ export function StrengthWorkoutCard({
                   <div key={i} className="text-xs flex justify-between items-start border-b border-slate-100/50 pb-1.5 last:border-0">
                     <div>
                       <p className="font-semibold text-slate-800">{ex.name}</p>
-                      {ex.modificationNote && <p className="text-[10px] text-green-700 mt-0.5">💡 {ex.modificationNote}</p>}
+                      {ex.modificationNote && (
+                        <p className="text-[10px] text-slate-500 mt-0.5 italic">
+                          💡 {ex.modificationNote}
+                        </p>
+                      )}
                     </div>
-                    <p className="text-slate-500 font-medium shrink-0">
-                      {ex.sets} เซ็ต × {ex.reps} {ex.durationSec ? `(${ex.durationSec} วิ)` : ""}
+                    <p className="text-slate-500 font-medium shrink-0 ml-2">
+                      {formatRepsDuration(ex)}
                     </p>
                   </div>
                 ))}
@@ -291,14 +311,14 @@ export function StrengthWorkoutCard({
                   onClick={() => handleLogWorkout("ai_prescription")}
                   className="btn-primary py-2 text-xs"
                 >
-                  {loggingWorkout ? "กำลังบันทึก…" : "บันทึกการซ้อม (AI)"}
+                  {loggingWorkout ? "กำลังบันทึก…" : "บันทึกวันนี้"}
                 </button>
                 <button
                   type="button"
                   onClick={() => setPrescription(null)}
                   className="btn-secondary py-2 text-xs"
                 >
-                  กลับไปแผนปกติ
+                  ใช้แผนปกติ
                 </button>
               </div>
             </div>
@@ -309,8 +329,8 @@ export function StrengthWorkoutCard({
                 {selectedRoutine.exercises.map((ex, i) => (
                   <div key={i} className="text-xs flex justify-between items-center border-b border-slate-100 pb-2 last:border-0">
                     <p className="font-semibold text-slate-700">{ex.name}</p>
-                    <p className="text-slate-500 font-medium shrink-0">
-                      {ex.sets} เซ็ต × {ex.reps} {ex.durationSec ? `(${ex.durationSec} วิ)` : ""}
+                    <p className="text-slate-500 font-medium shrink-0 ml-2">
+                      {formatRepsDuration(ex)}
                     </p>
                   </div>
                 ))}

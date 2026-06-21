@@ -16,7 +16,11 @@ function formatRepsDuration(ex: StrengthExercise) {
   if (ex.durationSec) {
     return `${ex.sets} เซ็ต × ${ex.durationSec} วิ`;
   }
-  return `${ex.sets} เซ็ต × ${ex.reps} ครั้ง`;
+  const reps = String(ex.reps || "");
+  if (reps.includes("ครั้ง") || reps.includes("วิ")) {
+    return `${ex.sets} เซ็ต × ${reps}`;
+  }
+  return `${ex.sets} เซ็ต × ${reps} ครั้ง`;
 }
 
 export function StrengthRoutineManager() {
@@ -172,7 +176,7 @@ export function StrengthRoutineManager() {
     });
   }
 
-  function handleUpdateExercise(index: number, key: keyof StrengthExercise, value: any) {
+  function handleUpdateExercise(index: number, key: keyof StrengthExercise, value: string | number | undefined) {
     if (!editingRoutine) return;
     const updatedExercises = [...editingRoutine.exercises];
     updatedExercises[index] = { ...updatedExercises[index], [key]: value };
@@ -455,8 +459,13 @@ export function StrengthRoutineManager() {
                 <p className="text-xs text-slate-600 leading-relaxed"><strong>คำวิเคราะห์จากโค้ช AI:</strong> {prescription.reason}</p>
 
                 {prescription.warnings && prescription.warnings.length > 0 && (
-                  <div className="bg-red-50 p-2 rounded-xl space-y-0.5">
-                    {prescription.warnings.map((w, i) => <p key={i} className="text-[10px] font-semibold text-red-700">⚠️ {w}</p>)}
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 space-y-1">
+                    {prescription.warnings.map((w, i) => (
+                      <p key={i} className="text-[10px] font-semibold text-amber-800 flex items-start gap-1">
+                        <span className="shrink-0">⚠️</span>
+                        <span>{w}</span>
+                      </p>
+                    ))}
                   </div>
                 )}
 
@@ -465,7 +474,11 @@ export function StrengthRoutineManager() {
                     <div key={i} className="text-xs flex justify-between items-start border-b border-slate-100/50 pb-1.5 last:border-0">
                       <div>
                         <p className="font-semibold text-slate-800">{ex.name}</p>
-                        {ex.modificationNote && <p className="text-[10px] text-green-700 mt-0.5">💡 {ex.modificationNote}</p>}
+                        {ex.modificationNote && (
+                          <p className="text-[10px] text-slate-500 mt-0.5 italic">
+                            💡 {ex.modificationNote}
+                          </p>
+                        )}
                       </div>
                       <p className="text-slate-500 font-medium shrink-0 ml-2">
                         {formatRepsDuration(ex)}
@@ -488,7 +501,7 @@ export function StrengthRoutineManager() {
                     onClick={() => setPrescription(null)}
                     className="btn-secondary flex-1 py-2.5 text-xs font-bold"
                   >
-                    กลับแผนปกติ
+                    ใช้แผนปกติ
                   </button>
                 </div>
               </div>

@@ -15,37 +15,45 @@ const STRING_SUGGESTION_FIELDS = new Set<keyof ProfileAnalysisSuggestions>([
   "trainingPreferenceSummary",
 ]);
 
-// Objective, data-backed fields — safe at medium or high confidence
-const MEDIUM_SAVE_FIELDS: Array<keyof ProfileAnalysisSuggestions> = [
-  "currentLongestRunKm",
-  "weeklyMileageKm",
-  "runningDaysPerWeek",
+// Protected manual fields (Rule 2)
+export const PROTECTED_FIELDS = new Set<string>([
+  "proteinTargetG",
+  "carbTargetRestDayG",
+  "carbTargetEasyDayG",
+  "carbTargetHardDayG",
+  "nutritionGoal",
+  "foodPreferences",
+  "allergiesOrRestrictions",
+  "caffeineHabit",
+  "supplementNotes",
   "easyPace",
   "easyHrCap",
   "maxHr",
+  "weightKg",
+  "injuryHistory",
+  "currentPainNotes",
+  "coachingTone",
+  "responseDetail",
+  "language"
+]);
+
+// Safe auto-update fields (Rule 3)
+export const SAFE_AUTO_UPDATE_FIELDS = new Set<string>([
+  "currentLevel",
+  "currentLongestRunKm",
+  "weeklyMileageKm",
+  "runningDaysPerWeek",
   "averageCadence",
-  "averageSleepHours",
+  "vo2max",
   "normalSleepScore",
+  "averageSleepHours",
   "normalEnergyScore",
   "normalRestingHr",
   "normalHrv",
-];
-
-// Behavioral / pattern fields — save only at high confidence
-const HIGH_ONLY_FIELDS: Array<keyof ProfileAnalysisSuggestions> = [
-  "preferredTrainingDays",
-  "preferredLongRunDay",
-  "recoveryRules",
-  "riskNotes",
-];
-
-// Fields never auto-saved — always show for review
-export const REVIEW_ONLY_FIELDS: Array<keyof ProfileAnalysisSuggestions> = [
-  "currentLevel",
-  "vo2max",
-  "injuryHistory",
-  "trainingPreferenceSummary",
-];
+  "weightKg",
+  "bodyFatPercent",
+  "muscleKg"
+]);
 
 /**
  * Returns true only for values that are safe to write into a profile field.
@@ -53,15 +61,18 @@ export const REVIEW_ONLY_FIELDS: Array<keyof ProfileAnalysisSuggestions> = [
  */
 export function isValidSuggestionValue(val: unknown): boolean {
   if (val == null) return false;
-  if (typeof val === "number") return Number.isFinite(val);
-  if (typeof val === "string") return val.trim().length > 0;
+  if (typeof val === "number") {
+    return !Number.isNaN(val) && Number.isFinite(val);
+  }
+  if (typeof val === "string") {
+    return val.trim().length > 0 && val !== "NaN";
+  }
   if (Array.isArray(val)) return val.length > 0;
   return false;
 }
 
 /**
  * Coerces AI suggestion values so they survive profileToRow's type guards.
- * e.g. if AI returns easyHrCap as a number (152), convert to "152" so cleanText() doesn't null it.
  */
 function normalizeSuggestion(key: keyof ProfileAnalysisSuggestions, val: unknown): unknown {
   if (STRING_SUGGESTION_FIELDS.has(key) && typeof val === "number" && Number.isFinite(val)) {
@@ -70,7 +81,7 @@ function normalizeSuggestion(key: keyof ProfileAnalysisSuggestions, val: unknown
   return val;
 }
 
-export type SafeMergeAction = "updated" | "kept_existing" | "no_existing" | "skipped_manual" | "skipped_invalid";
+export type SafeMergeAction = "updated" | "kept_existing" | "no_existing" | "skipped_manual" | "skipped_invalid" | "skipped_low_confidence" | "skipped_protected_field";
 
 export type SafeMergeDecision = {
   key: string;
@@ -103,60 +114,124 @@ export function buildAutoSaveDecisions({
   manualSkipped: string[];
   decisions: SafeMergeDecision[];
 } {
-  if (confidence === "low") return { toSave: {}, manualSkipped: [], decisions: [] };
-
-  const allowed: Array<keyof ProfileAnalysisSuggestions> =
-    confidence === "high"
-      ? [...MEDIUM_SAVE_FIELDS, ...HIGH_ONLY_FIELDS]
-      : MEDIUM_SAVE_FIELDS;
-
   const toSave: Partial<Record<string, unknown>> = {};
   const manualSkipped: string[] = [];
   const decisions: SafeMergeDecision[] = [];
+  const finalConfidence = confidence || "low";
 
-  for (const key of allowed) {
-    const rawSuggested = suggestions[key];
-    const normalized = normalizeSuggestion(key, rawSuggested);
+  for (const [key, rawSuggested] of Object.entries(suggestions)) {
+    const normalized = normalizeSuggestion(key as keyof ProfileAnalysisSuggestions, rawSuggested);
     const existing = existingProfile?.[key as keyof UserProfile];
 
-    // Manual field — user explicitly set this; don't overwrite
-    const isManual = existingSources?.[key] === "manual" || (existing !== undefined && existing !== null && existingSources?.[key] !== "history_analysis");
-    if (isManual) {
-      manualSkipped.push(key);
-      decisions.push({ key, existingValue: existing, suggestedValue: normalized, confidence, action: "skipped_manual" });
-      continue;
-    }
+    const isManual = existingSources?.[key] === "manual" ||
+      (existing !== undefined && existing !== null && existing !== "" && existingSources?.[key] !== "history_analysis");
 
+    // 4. Never overwrite with invalid values
     if (!isValidSuggestionValue(normalized)) {
-      const hasExisting = isValidSuggestionValue(existing);
       decisions.push({
         key,
         existingValue: existing,
         suggestedValue: rawSuggested,
-        confidence,
-        action: hasExisting ? "kept_existing" : "no_existing",
+        confidence: finalConfidence,
+        action: "skipped_invalid"
       });
+      if (process.env.NODE_ENV === "development") {
+        console.info(`[profile-safe-sync]`, {
+          fieldName: key,
+          currentValue: existing,
+          suggestedValue: rawSuggested,
+          fieldSource: existingSources?.[key] || "none",
+          action: "skipped_invalid"
+        });
+      }
+      continue;
+    }
+
+    if (isManual) {
+      manualSkipped.push(key);
+      decisions.push({
+        key,
+        existingValue: existing,
+        suggestedValue: normalized,
+        confidence: finalConfidence,
+        action: "skipped_manual"
+      });
+      if (process.env.NODE_ENV === "development") {
+        console.info(`[profile-safe-sync]`, {
+          fieldName: key,
+          currentValue: existing,
+          suggestedValue: normalized,
+          fieldSource: "manual",
+          action: "skipped_manual"
+        });
+      }
+      continue;
+    }
+
+    if (finalConfidence === "low") {
+      decisions.push({
+        key,
+        existingValue: existing,
+        suggestedValue: normalized,
+        confidence: finalConfidence,
+        action: "skipped_low_confidence"
+      });
+      if (process.env.NODE_ENV === "development") {
+        console.info(`[profile-safe-sync]`, {
+          fieldName: key,
+          currentValue: existing,
+          suggestedValue: normalized,
+          fieldSource: existingSources?.[key] || "none",
+          action: "skipped_low_confidence"
+        });
+      }
+      continue;
+    }
+
+    // Must be in safe auto-update fields to auto-save (Rule 3)
+    const isSafe = SAFE_AUTO_UPDATE_FIELDS.has(key);
+    if (!isSafe) {
+      manualSkipped.push(key);
+      decisions.push({
+        key,
+        existingValue: existing,
+        suggestedValue: normalized,
+        confidence: finalConfidence,
+        action: "skipped_protected_field"
+      });
+      if (process.env.NODE_ENV === "development") {
+        console.info(`[profile-safe-sync]`, {
+          fieldName: key,
+          currentValue: existing,
+          suggestedValue: normalized,
+          fieldSource: existingSources?.[key] || "none",
+          action: "skipped_protected_field"
+        });
+      }
       continue;
     }
 
     toSave[key] = normalized;
-    decisions.push({ key, existingValue: existing, suggestedValue: normalized, confidence, action: "updated" });
+    decisions.push({
+      key,
+      existingValue: existing,
+      suggestedValue: normalized,
+      confidence: finalConfidence,
+      action: "updated"
+    });
+    if (process.env.NODE_ENV === "development") {
+      console.info(`[profile-safe-sync]`, {
+        fieldName: key,
+        currentValue: existing,
+        suggestedValue: normalized,
+        fieldSource: existingSources?.[key] || "none",
+        action: "updated"
+      });
+    }
   }
 
   if (process.env.NODE_ENV === "development") {
-    for (const d of decisions) {
-      console.info("[profile-safe-merge]", {
-        field: d.key,
-        existingValue: d.existingValue,
-        suggestedValue: d.suggestedValue,
-        confidence: d.confidence,
-        action: d.action,
-      });
-    }
-    console.info("[profile-safe-merge]", {
-      finalUpdatePayloadKeys: Object.keys(toSave),
-      manualSkipped,
-    });
+    console.info(`[profile-safe-sync] final update payload keys:`, Object.keys(toSave));
   }
 
   return { toSave: toSave as Partial<UserProfile>, manualSkipped, decisions };
@@ -189,13 +264,52 @@ export function filterManualFields({
 
   for (const [key, val] of Object.entries(updates)) {
     const existing = existingProfile?.[key as keyof UserProfile];
-    const isManual = existingSources?.[key] === "manual" || (existing !== undefined && existing !== null && existingSources?.[key] !== "history_analysis");
+    const isManual = existingSources?.[key] === "manual" ||
+      (existing !== undefined && existing !== null && existing !== "" && existingSources?.[key] !== "history_analysis");
+
+    // 4. Never overwrite with invalid values
+    if (!isValidSuggestionValue(val)) {
+      if (process.env.NODE_ENV === "development") {
+        console.info(`[profile-safe-sync]`, {
+          fieldName: key,
+          currentValue: existing,
+          suggestedValue: val,
+          fieldSource: existingSources?.[key] || "none",
+          action: "skipped_invalid"
+        });
+      }
+      continue;
+    }
+
     if (isManual) {
       manualSkipped.push(key);
+      if (process.env.NODE_ENV === "development") {
+        console.info(`[profile-safe-sync]`, {
+          fieldName: key,
+          currentValue: existing,
+          suggestedValue: val,
+          fieldSource: "manual",
+          action: "skipped_manual"
+        });
+      }
     } else {
       toSave[key] = val;
+      if (process.env.NODE_ENV === "development") {
+        console.info(`[profile-safe-sync]`, {
+          fieldName: key,
+          currentValue: existing,
+          suggestedValue: val,
+          fieldSource: existingSources?.[key] || "none",
+          action: "updated"
+        });
+      }
     }
   }
+
+  if (process.env.NODE_ENV === "development") {
+    console.info(`[profile-safe-sync] final update payload keys:`, Object.keys(toSave));
+  }
+
   return { toSave: toSave as Partial<UserProfile>, manualSkipped };
 }
 
