@@ -1,16 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
-import { RaceGoalForm } from "@/components/RaceGoalForm";
 import { RaceCountdownCard } from "@/components/RaceCountdownCard";
+import { RaceGoalForm } from "@/components/RaceGoalForm";
 import { TrainingPhaseCard } from "@/components/TrainingPhaseCard";
 import { WeeklyPlanCard } from "@/components/WeeklyPlanCard";
-import { invalidateCoachCache } from "@/lib/invalidateCoachCache";
 import { buildCoachContextFromSupabase } from "@/lib/buildCoachContext";
+import { invalidateCoachCache } from "@/lib/invalidateCoachCache";
 import { loadRaceResults } from "@/lib/raceResults";
 import { deleteRaceGoalAndPlan, loadActiveRaceGoalAndPlan, saveRaceGoalAndPlan } from "@/lib/raceStorage";
-import type { RaceGoal, RacePlan, RaceResult } from "@/types/race";
+import type { RaceGoal, RacePlan, RaceResult, WeekWorkout } from "@/types/race";
 
 export default function RaceGoalPage() {
   const [goal, setGoal] = useState<RaceGoal | null>(null);
@@ -48,7 +48,7 @@ export default function RaceGoalPage() {
         body: JSON.stringify({ goal, context }),
       });
       if (!res.ok) throw new Error("api error");
-      const result = await res.json() as { data: RacePlan };
+      const result = (await res.json()) as { data: RacePlan };
       if (!result.data) throw new Error("no data");
       const saveResult = await saveRaceGoalAndPlan(goal, result.data);
       if (!saveResult.ok) throw new Error(saveResult.error);
@@ -73,50 +73,37 @@ export default function RaceGoalPage() {
     <AppShell title="Race Goal" subtitle="วางแผนจากวันนี้ไปถึงวันแข่ง">
       {!goal || !plan ? (
         <>
-          {raceResults.length > 0 && (() => {
-            const latest = raceResults[0];
-            return (
-              <div className="card px-5 py-4 space-y-2">
-                <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">ยินดีด้วย! 🏁</p>
-                <p className="text-base font-bold text-[#17201d]">{latest.raceName ?? "Race"} · {latest.raceDistance}</p>
-                {latest.actualTime && (
-                  <p className="text-sm text-slate-500">
-                    {latest.actualTime}{latest.actualPace ? ` · ${latest.actualPace}/km` : ""}
-                    {" · "}
-                    <span className="font-semibold text-[#2a5a39]">{resultBadge(latest.goalResult)}</span>
-                  </p>
-                )}
-                <p className="text-sm text-slate-400">พร้อมตั้ง Race Goal ถัดไปหรือยัง?</p>
-              </div>
-            );
-          })()}
+          {raceResults.length > 0 ? <LatestRacePrompt result={raceResults[0]} /> : null}
           <RaceGoalForm onCreated={(nextGoal, nextPlan) => { setGoal(nextGoal); setPlan(nextPlan); }} />
         </>
       ) : (
         <>
           <RaceCountdownCard goal={goal} phase={plan.currentPhase} />
+          <PlanAtGlance plan={plan} />
+          {plan.todayWorkout ? <TodayWorkoutCard workout={plan.todayWorkout} /> : null}
+          {plan.weeklyPlan?.length ? <ActionableWeekCard workouts={plan.weeklyPlan} /> : null}
+
           <section className="card space-y-3 p-5">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-3">
               <h2 className="text-xl font-bold">ภาพรวมแผน</h2>
               <button
                 type="button"
                 disabled={refreshing}
                 onClick={refreshPlan}
-                className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold text-[#42677f] hover:bg-slate-100 disabled:opacity-40 transition-colors"
+                className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold text-[#42677f] transition-colors hover:bg-slate-100 disabled:opacity-40"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`}>
                   <path fillRule="evenodd" d="M15.312 11.424a5.5 5.5 0 01-9.201 2.466l-.312-.311h2.433a.75.75 0 000-1.5H3.989a.75.75 0 00-.75.75v4.242a.75.75 0 001.5 0v-2.43l.31.31a7 7 0 0011.712-3.138.75.75 0 00-1.449-.39zm1.23-3.723a.75.75 0 00.219-.53V2.929a.75.75 0 00-1.5 0V5.36l-.31-.31A7 7 0 003.239 8.188a.75.75 0 101.448.389A5.5 5.5 0 0113.89 6.11l.311.31h-2.432a.75.75 0 000 1.5h4.243a.75.75 0 00.53-.219z" clipRule="evenodd" />
                 </svg>
-                {refreshing ? "กำลัง generate…" : "รีเฟรชแผน"}
+                {refreshing ? "กำลัง generate..." : "รีเฟรชแผน"}
               </button>
             </div>
-            {refreshError && (
-              <p className="text-xs text-red-500">Generate ไม่สำเร็จ ลองใหม่อีกครั้ง</p>
-            )}
+            {refreshError ? <p className="text-xs text-red-500">Generate ไม่สำเร็จ ลองใหม่อีกครั้ง</p> : null}
             <p className="text-sm leading-6 text-slate-600">{plan.planSummary}</p>
             {plan.phases?.map((phase) => <TrainingPhaseCard key={phase.name} phase={phase} />)}
           </section>
-          {plan.weeks?.[0] && <WeeklyPlanCard week={plan.weeks[0]} />}
+
+          {!plan.weeklyPlan?.length && plan.weeks?.[0] ? <WeeklyPlanCard week={plan.weeks[0]} /> : null}
           <button className="btn-secondary w-full" onClick={() => void resetAll()}>
             สร้างแผนใหม่
           </button>
@@ -124,6 +111,90 @@ export default function RaceGoalPage() {
       )}
       {raceResults.length > 0 ? <CompletedRaceSection results={raceResults} /> : null}
     </AppShell>
+  );
+}
+
+function LatestRacePrompt({ result }: { result: RaceResult }) {
+  return (
+    <div className="card space-y-2 px-5 py-4">
+      <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">Race completed</p>
+      <p className="text-base font-bold text-[#17201d]">{result.raceName ?? "Race"} · {result.raceDistance}</p>
+      {result.actualTime ? (
+        <p className="text-sm text-slate-500">
+          {result.actualTime}{result.actualPace ? ` · ${result.actualPace}/km` : ""} ·{" "}
+          <span className="font-semibold text-[#2a5a39]">{resultBadge(result.goalResult)}</span>
+        </p>
+      ) : null}
+      <p className="text-sm text-slate-400">พร้อมตั้ง Race Goal ถัดไปหรือยัง?</p>
+    </div>
+  );
+}
+
+function PlanAtGlance({ plan }: { plan: RacePlan }) {
+  return (
+    <section className="card p-5">
+      <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#6f8fa6]">Plan at a glance</p>
+      <div className="mt-4 grid grid-cols-3 gap-2">
+        <MiniMetric label="เหลือ" value={plan.weeksRemaining != null ? `${plan.weeksRemaining} wk` : `${plan.totalWeeks} wk`} />
+        <MiniMetric label="เริ่มแผน" value={formatShortDate(plan.planStartDate)} />
+        <MiniMetric label="เฟส" value={plan.currentPhase || "-"} />
+      </div>
+      {plan.safetyNotes ? <p className="mt-4 text-xs leading-5 text-slate-500">{plan.safetyNotes}</p> : null}
+    </section>
+  );
+}
+
+function TodayWorkoutCard({ workout }: { workout: WeekWorkout }) {
+  return (
+    <section className="card border border-[#b7dcc4] bg-[#f4fbf6] p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#2a5a39]">วันนี้ซ้อมอะไร</p>
+          <h2 className="mt-2 text-2xl font-bold text-[#14211c]">{workout.workoutType}</h2>
+        </div>
+        <span className="rounded-full bg-white px-3 py-1 text-sm font-bold text-[#2a5a39] shadow-sm">
+          {formatWorkoutAmount(workout)}
+        </span>
+      </div>
+      <p className="mt-4 text-sm leading-6 text-slate-700">{workout.description}</p>
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        <MiniMetric label="Pace" value={safeValue(workout.targetPace)} />
+        <MiniMetric label="HR / Effort" value={safeValue(workout.targetHR)} />
+      </div>
+      {workout.purpose ? <InfoLine label="ทำไปเพื่อ" value={workout.purpose} /> : null}
+      {workout.adjustment ? <InfoLine label="ปรับยังไง" value={workout.adjustment} /> : null}
+    </section>
+  );
+}
+
+function ActionableWeekCard({ workouts }: { workouts: WeekWorkout[] }) {
+  return (
+    <section className="card p-5">
+      <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#6f8fa6]">This week</p>
+      <h2 className="mt-2 text-xl font-bold text-[#17201d]">แผน 7 วันแบบลงมือทำได้</h2>
+      <div className="mt-4 space-y-3">
+        {workouts.map((workout, index) => (
+          <div key={`${workout.day}-${workout.workoutType}-${index}`} className="rounded-2xl bg-white/80 p-4 shadow-sm ring-1 ring-slate-100">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-bold text-[#6f8fa6]">{workout.day}</p>
+                <p className="mt-1 font-bold text-[#17201d]">{workout.workoutType}</p>
+              </div>
+              <span className="rounded-full bg-[#eef4ef] px-3 py-1 text-xs font-bold text-[#2a5a39]">
+                {formatWorkoutAmount(workout)}
+              </span>
+            </div>
+            <p className="mt-3 text-sm leading-6 text-slate-600">{workout.description}</p>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <MiniMetric label="Pace" value={safeValue(workout.targetPace)} />
+              <MiniMetric label="HR / Effort" value={safeValue(workout.targetHR)} />
+            </div>
+            {workout.purpose ? <InfoLine label="Purpose" value={workout.purpose} /> : null}
+            {workout.adjustment ? <InfoLine label="Adjustment" value={workout.adjustment} /> : null}
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -147,8 +218,8 @@ function CompletedRaceSection({ results }: { results: RaceResult[] }) {
               </span>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-2">
-              <MiniResult label="Time" value={result.actualTime ?? "-"} />
-              <MiniResult label="Pace" value={result.actualPace ? `${result.actualPace}/km` : "-"} />
+              <MiniMetric label="Time" value={result.actualTime ?? "-"} />
+              <MiniMetric label="Pace" value={result.actualPace ? `${result.actualPace}/km` : "-"} />
             </div>
             {result.coachSummary ? <p className="mt-3 text-sm leading-6 text-slate-700">{result.coachSummary}</p> : null}
           </div>
@@ -158,13 +229,40 @@ function CompletedRaceSection({ results }: { results: RaceResult[] }) {
   );
 }
 
-function MiniResult({ label, value }: { label: string; value: string }) {
+function MiniMetric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl bg-white p-3">
-      <p className="text-xs text-slate-400">{label}</p>
-      <p className="mt-1 font-bold text-[#17201d]">{value}</p>
+    <div className="rounded-2xl bg-white/80 p-3">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">{label}</p>
+      <p className="mt-1 text-sm font-bold text-[#17201d]">{value}</p>
     </div>
   );
+}
+
+function InfoLine({ label, value }: { label: string; value: string }) {
+  return (
+    <p className="mt-3 text-xs leading-5 text-slate-500">
+      <span className="font-bold text-slate-600">{label}: </span>
+      {value}
+    </p>
+  );
+}
+
+function formatWorkoutAmount(workout: WeekWorkout) {
+  if (workout.distanceKm != null) return `${workout.distanceKm} km`;
+  if (workout.durationMin != null) return `${workout.durationMin} min`;
+  return "พัก";
+}
+
+function safeValue(value: string | null | undefined) {
+  if (!value || /n\/a/i.test(value)) return "-";
+  return value;
+}
+
+function formatShortDate(value: string | null | undefined) {
+  if (!value) return "-";
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!match) return value;
+  return `${match[3]}/${match[2]}/${match[1]}`;
 }
 
 function resultBadge(value: RaceResult["goalResult"]) {

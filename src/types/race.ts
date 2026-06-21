@@ -28,6 +28,9 @@ export type WeekWorkout = {
   targetPace: string | null;
   targetHR: string | null;
   description: string;
+  durationMin?: number | null;
+  purpose?: string | null;
+  adjustment?: string | null;
 };
 
 export type TrainingWeek = {
@@ -47,6 +50,17 @@ export type RacePlan = {
   phases: TrainingPhase[];
   weeks: TrainingWeek[];
   safetyNotes: string;
+  weeksRemaining?: number | null;
+  planStartDate?: string | null;
+  todayWorkout?: WeekWorkout | null;
+  weeklyPlan?: WeekWorkout[];
+  paceGuidance?: {
+    recovery?: string | null;
+    easy?: string | null;
+    longRun?: string | null;
+    tempo?: string | null;
+    interval?: string | null;
+  } | null;
 };
 
 export type GoalResult = "completed" | "achieved" | "missed" | "unknown";
