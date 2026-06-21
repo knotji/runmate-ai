@@ -12,6 +12,7 @@ import { createHistoryItem, saveHistoryItems } from "@/lib/cloudHistory";
 import { loadProfileFromSupabase } from "@/lib/profileStorage";
 import { buildCoachContextFromSupabase, type CoachContext } from "@/lib/buildCoachContext";
 import { formatCalories, formatMacro } from "@/lib/format";
+import { buildNutritionTargetSummary } from "@/lib/nutritionTargets";
 import type { BodyCompositionAnalysis, MealAnalysis, MealType, SleepAnalysis, WorkoutAnalysis } from "@/types/logs";
 import type { UserProfile } from "@/types/profile";
 
@@ -147,6 +148,8 @@ export default function UploadPage() {
       {result && type === "meal" ? (
         <MealReviewCard
           initialMeal={(result as { data: MealAnalysis }).data}
+          profile={profile}
+          context={coachContext}
           onCancel={() => { setResult(null); setSaveStatus("idle"); }}
           onSave={(meal) => void saveMeal(meal)}
         />
@@ -164,10 +167,14 @@ export default function UploadPage() {
 
 function MealReviewCard({
   initialMeal,
+  profile,
+  context,
   onSave,
   onCancel,
 }: {
   initialMeal: MealAnalysis;
+  profile: UserProfile | null;
+  context: CoachContext | null;
   onSave: (meal: MealAnalysis) => void;
   onCancel: () => void;
 }) {
@@ -224,7 +231,7 @@ function MealReviewCard({
         </div>
       ) : (
         <>
-          <MealReviewSummary meal={meal} />
+          <MealReviewSummary meal={meal} profile={profile} context={context} />
         </>
       )}
 
@@ -252,8 +259,9 @@ function NutritionInput({ label, value, onChange }: { label: string; value: numb
   );
 }
 
-function MealReviewSummary({ meal }: { meal: MealAnalysis }) {
+function MealReviewSummary({ meal, profile, context }: { meal: MealAnalysis; profile: UserProfile | null; context: CoachContext | null }) {
   const foods = meal.detectedFoods.map((food) => food.name).join(", ") || "มื้ออาหาร";
+  const target = buildNutritionTargetSummary({ profile, context, meal });
   return (
     <div className="space-y-3 rounded-2xl bg-slate-50 p-4">
       <div>
@@ -265,6 +273,12 @@ function MealReviewSummary({ meal }: { meal: MealAnalysis }) {
         <ReviewMetric label="Protein" value={formatMacro(meal.nutrition.proteinG)} />
         <ReviewMetric label="Carbs" value={formatMacro(meal.nutrition.carbsG)} />
         <ReviewMetric label="Fat" value={formatMacro(meal.nutrition.fatG)} />
+      </div>
+      <div className="rounded-2xl bg-white p-3 text-xs leading-5 text-slate-600">
+        <p className="font-bold text-[#17201d]">Runner fuel check</p>
+        <p>Protein progress: {target.proteinProgressPct != null ? `${target.proteinProgressPct}%` : "-"}{target.proteinTargetG != null ? ` / target ${target.proteinTargetG} g` : ""}</p>
+        <p>Carb adequacy ({target.dayType} day): {target.carbAdequacy}{target.carbTargetG != null ? ` / target ${target.carbTargetG} g` : ""}</p>
+        <p>{target.recoveryFuelNote}</p>
       </div>
       <p className="text-sm leading-6 text-slate-700">{meal.trainingFit.coachNote}</p>
       <p className="text-xs text-slate-500">Confidence: {meal.confidence}</p>

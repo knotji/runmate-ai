@@ -298,6 +298,7 @@ function MealNutritionDaySummary({ summary, mealCount }: { summary: MealNutritio
       <p className="mt-2 text-xs text-orange-700">
         {mealCount} meals · ประเมินจากรูปอาหาร
       </p>
+      <p className="mt-2 text-sm font-semibold text-[#17201d]">{mealCoachVerdict(summary)}</p>
     </div>
   );
 }
@@ -486,6 +487,14 @@ function getMealNutrition(meals: LocalHistoryItem[]): MealNutritionSummary {
     fatG: sumNutrition(meals, "fatG"),
   };
   return totals;
+}
+
+function mealCoachVerdict(summary: MealNutritionSummary) {
+  if (summary.proteinG == null && summary.carbsG == null) return "ยังประเมินภาพรวมโภชนาการไม่ได้จากรูปวันนี้";
+  if ((summary.proteinG ?? 0) >= 80 && (summary.carbsG ?? 0) >= 180) return "เชื้อเพลิงวันนี้ดูช่วย recovery และการซ้อมได้ดี";
+  if ((summary.proteinG ?? 0) < 60) return "โปรตีนวันนี้ยังดูน้อยสำหรับ recovery ลองเติมโปรตีนในมื้อถัดไป";
+  if ((summary.carbsG ?? 0) < 140) return "คาร์บวันนี้ค่อนข้างเบา ถ้าพรุ่งนี้ซ้อมหนักหรือวิ่งยาวควรเติมเพิ่ม";
+  return "ภาพรวมวันนี้พอใช้สำหรับการซ้อมเบา ๆ และ recovery";
 }
 
 function sumNutrition(meals: LocalHistoryItem[], key: keyof MealAnalysis["nutrition"]): number | null {

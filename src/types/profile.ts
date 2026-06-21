@@ -1,4 +1,5 @@
 export type RunningLevel = "beginner" | "can_run_5k" | "can_run_10k" | "half_marathon_ready" | "returning";
+export type NutritionGoal = "recovery" | "lean_muscle" | "race_fuel" | "weight_control";
 
 export type UserProfile = {
   id?: string;
@@ -59,7 +60,11 @@ export type UserProfile = {
   riskNotes?: string;
 
   // Nutrition
-  nutritionGoal?: string;
+  nutritionGoal?: NutritionGoal;
+  proteinTargetG?: number;
+  carbTargetRestDayG?: number;
+  carbTargetEasyDayG?: number;
+  carbTargetHardDayG?: number;
   foodPreferences?: string;
   allergiesOrRestrictions?: string;
   caffeineHabit?: string;

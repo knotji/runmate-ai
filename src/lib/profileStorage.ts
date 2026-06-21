@@ -62,6 +62,10 @@ type ProfileRow = {
   risk_notes: string | null;
 
   nutrition_goal: string | null;
+  protein_target_g: number | null;
+  carb_target_rest_day_g: number | null;
+  carb_target_easy_day_g: number | null;
+  carb_target_hard_day_g: number | null;
   food_preferences: string | null;
   allergies_or_restrictions: string | null;
   caffeine_habit: string | null;
@@ -210,6 +214,10 @@ function profileToRow(profile: UserProfile, userId: string): Partial<ProfileRow>
     risk_notes: cleanText(profile.riskNotes),
 
     nutrition_goal: cleanText(profile.nutritionGoal),
+    protein_target_g: cleanNumber(profile.proteinTargetG),
+    carb_target_rest_day_g: cleanNumber(profile.carbTargetRestDayG),
+    carb_target_easy_day_g: cleanNumber(profile.carbTargetEasyDayG),
+    carb_target_hard_day_g: cleanNumber(profile.carbTargetHardDayG),
     food_preferences: cleanText(profile.foodPreferences),
     allergies_or_restrictions: cleanText(profile.allergiesOrRestrictions),
     caffeine_habit: cleanText(profile.caffeineHabit),
@@ -287,7 +295,11 @@ function rowToProfile(row: ProfileRow): UserProfile {
     currentPainNotes: row.current_pain_notes ?? undefined,
     riskNotes: row.risk_notes ?? undefined,
 
-    nutritionGoal: row.nutrition_goal ?? undefined,
+    nutritionGoal: (row.nutrition_goal as UserProfile["nutritionGoal"]) ?? undefined,
+    proteinTargetG: row.protein_target_g ?? undefined,
+    carbTargetRestDayG: row.carb_target_rest_day_g ?? undefined,
+    carbTargetEasyDayG: row.carb_target_easy_day_g ?? undefined,
+    carbTargetHardDayG: row.carb_target_hard_day_g ?? undefined,
     foodPreferences: row.food_preferences ?? undefined,
     allergiesOrRestrictions: row.allergies_or_restrictions ?? undefined,
     caffeineHabit: row.caffeine_habit ?? undefined,

@@ -9,6 +9,7 @@ import {
 } from "@/lib/profileStorage";
 import { defaultProfile, type UserProfile } from "@/types/profile";
 import { calculateAgeFromBirthDate } from "@/lib/profile/age";
+import { suggestedProteinTargetG } from "@/lib/nutritionTargets";
 
 type Status = { tone: "idle" | "good" | "warn" | "bad"; text: string };
 
@@ -23,7 +24,7 @@ const SECTION_KEYS: Record<string, (keyof UserProfile)[]> = {
   advanced: [
     "heightCm", "weightKg", "workSchedule", "timezone",
     "lactateThresholdHr", "vo2max", "averageCadence",
-    "availableEquipment", "nutritionGoal", "foodPreferences",
+    "availableEquipment", "nutritionGoal", "proteinTargetG", "carbTargetRestDayG", "carbTargetEasyDayG", "carbTargetHardDayG", "foodPreferences",
     "allergiesOrRestrictions", "caffeineHabit", "supplementNotes"
   ],
 };
@@ -193,6 +194,7 @@ export function ProfileSetupForm({
 
   const computedAge = calculateAgeFromBirthDate(profile.birthDate);
   const hasBaselineHistorySrc = SECTION_KEYS.baseline.some((k) => profile.fieldSources?.[k] === "history_analysis");
+  const suggestedProtein = suggestedProteinTargetG(profile.weightKg);
 
   // ── Onboarding (short form) ──────────────────────────────────────────────────
   if (mode === "onboarding") {
@@ -776,7 +778,11 @@ export function ProfileSetupForm({
             </div>
             <div className="rounded-xl bg-slate-50 px-3 py-2.5">
               <p className="text-[11px] text-slate-400">เป้าหมายโภชนาการ</p>
-              <p className="text-sm font-semibold text-[#17201d] leading-relaxed whitespace-pre-wrap">{profile.nutritionGoal || "—"}</p>
+              <p className="text-sm font-semibold text-[#17201d] leading-relaxed whitespace-pre-wrap">{nutritionGoalLabel(profile.nutritionGoal) || "—"}</p>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <StatCard label="Protein target" value={profile.proteinTargetG != null ? `${profile.proteinTargetG} g` : suggestedProtein != null ? `แนะนำ ${suggestedProtein} g` : "—"} />
+              <StatCard label="Carb hard day" value={profile.carbTargetHardDayG != null ? `${profile.carbTargetHardDayG} g` : "—"} />
             </div>
             <div className="grid grid-cols-2 gap-2">
               <StatCard label="อาหารที่ชอบ" value={profile.foodPreferences || "—"} />
@@ -844,12 +850,38 @@ export function ProfileSetupForm({
             </div>
             <div className="space-y-1">
               <span className="text-xs font-semibold text-slate-500">เป้าหมายโภชนาการ</span>
-              <textarea
+              <select
                 className="control min-h-14"
-                placeholder="เป้าหมายโภชนาการ เช่น รักษาน้ำหนัก, เพิ่มพลังงานซ้อม"
                 value={profile.nutritionGoal ?? ""}
-                onChange={(e) => update("nutritionGoal", e.target.value)}
-              />
+                onChange={(e) => update("nutritionGoal", (e.target.value || undefined) as UserProfile["nutritionGoal"])}
+              >
+                <option value="">ยังไม่ระบุ</option>
+                <option value="recovery">Recovery / ฟื้นตัว</option>
+                <option value="lean_muscle">Lean muscle / เพิ่มกล้ามแบบไม่หนักท้อง</option>
+                <option value="race_fuel">Race fuel / เติมพลังเพื่อซ้อมและแข่ง</option>
+                <option value="weight_control">Weight control / คุมน้ำหนักแบบไม่เสียแรงซ้อม</option>
+              </select>
+            </div>
+            <div className="rounded-2xl bg-[#e7efea] p-3 text-xs leading-5 text-slate-600">
+              Protein target แนะนำจากน้ำหนักประมาณ 1.6 g/kg/day{suggestedProtein != null ? ` ≈ ${suggestedProtein} g/day` : " หากยังไม่ใส่น้ำหนัก สามารถกรอกเองได้"}
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <span className="text-xs font-semibold text-slate-500">Protein target (g/day)</span>
+                <NumberInput placeholder={suggestedProtein != null ? String(suggestedProtein) : "เช่น 90"} value={profile.proteinTargetG} onChange={(v) => update("proteinTargetG", v)} />
+              </div>
+              <div className="space-y-1">
+                <span className="text-xs font-semibold text-slate-500">Carb rest day (g)</span>
+                <NumberInput placeholder="เช่น 150" value={profile.carbTargetRestDayG} onChange={(v) => update("carbTargetRestDayG", v)} />
+              </div>
+              <div className="space-y-1">
+                <span className="text-xs font-semibold text-slate-500">Carb easy day (g)</span>
+                <NumberInput placeholder="เช่น 200" value={profile.carbTargetEasyDayG} onChange={(v) => update("carbTargetEasyDayG", v)} />
+              </div>
+              <div className="space-y-1">
+                <span className="text-xs font-semibold text-slate-500">Carb hard/race day (g)</span>
+                <NumberInput placeholder="เช่น 260" value={profile.carbTargetHardDayG} onChange={(v) => update("carbTargetHardDayG", v)} />
+              </div>
             </div>
             <div className="space-y-1">
               <span className="text-xs font-semibold text-slate-500">อาหารที่ชอบ</span>
@@ -1045,6 +1077,15 @@ function langLabel(l: string) {
 }
 function priorityLabel(g: string) {
   return { finish: "จบให้ได้", time: "ทำเวลา", injury_free: "ไม่เจ็บ", consistency: "สม่ำเสมอ", fitness: "สุขภาพดี" }[g] ?? g;
+}
+function nutritionGoalLabel(g?: string) {
+  if (!g) return "";
+  return {
+    recovery: "Recovery / ฟื้นตัว",
+    lean_muscle: "Lean muscle",
+    race_fuel: "Race fuel",
+    weight_control: "Weight control",
+  }[g] ?? g;
 }
 function runTimeLabel(t: string) {
   return { morning: "เช้า", evening: "เย็น", night: "กลางคืน", flexible: "ยืดหยุ่น" }[t] ?? t;
