@@ -7,6 +7,7 @@ export function buildCoachResponseFormatInstruction(
   const isThai = language === "th" || language === "ไทย" || language === "mixed";
   const isShort = length === "short" || length === "สั้น";
 
+  // ─── Image responses ──────────────────────────────────────────────────────
   if (hasImage) {
     if (isThai && isShort) {
       if (imageIntent === "อาหาร" || imageIntent === "ฉลาก" || !imageIntent) {
@@ -22,14 +23,13 @@ CRITICAL MULTIMODAL RESPONSE FORMAT INSTRUCTION (Thai + Short):
 - If the image shows a running, sleep, or recovery screenshot, summarize key metrics and give a short 2-3 sentence recommendation (do not output a long analysis).
 - Never duplicate heart rate units (do not write "bpm bpm", write only "bpm" once).
 `;
-      } else {
-        return `
+      }
+      return `
 CRITICAL MULTIMODAL RESPONSE FORMAT INSTRUCTION (Thai + Short):
 - You MUST respond in Thai, keeping it extremely brief.
-- Summarize key metrics and give a short 2-3 sentence recommendation (do not output a long analysis, maximum 3-5 short bullets or short paragraphs).
+- Summarize key metrics and give a short 2-3 sentence recommendation (maximum 3-5 short bullets or short paragraphs).
 - Never duplicate heart rate units (do not write "bpm bpm", write only "bpm" once).
 `;
-      }
     }
 
     return `
@@ -48,31 +48,62 @@ RESPONSE FORMAT INSTRUCTION FOR IMAGES:
 `;
   }
 
+  // ─── Text-only responses — intent-aware ──────────────────────────────────
   if (isThai && isShort) {
     return `
-CRITICAL RESPONSE FORMAT INSTRUCTION (Thai + Short):
-- You MUST respond in Thai, keeping it extremely brief but complete.
-- Every training recommendation must strictly follow this exact 5-line structure (do not add blank lines, headings, or other text):
-  Line 1: วันนี้ควรซ้อมอะไร (Workout name)
-  Line 2: ระยะหรือเวลา และเป้าหมาย HR หรือ pace target (คุม HR ไม่เกิน X bpm)
-  Line 3: เหตุผลสั้น ๆ 1 ประโยค (Why)
-  Line 4: วิธีปรับถ้ารู้สึกหนักเกินไป (Adjustment, e.g., ถ้า HR ลอย ให้ลด pace หรือเดินสลับ)
-  Line 5: สิ่งที่ต้องระวังเพื่อความปลอดภัย (Watch out, e.g., เจ็บ/แน่นผิดปกติให้หยุดซ้อม)
-- Do NOT output more than 5 lines.
-- Never duplicate heart rate units (do not write "bpm" twice).
-- Do NOT omit critical training safety/caution information just because the style is short.
+RESPONSE FORMAT INSTRUCTION (Thai + Short):
+Respond in Thai. Keep it short and natural — 3-5 lines for most answers.
+
+STEP 1: Identify intent from the user's message:
+• food/nutrition: อาหาร, กินได้ไหม, กินอะไรดี, เครื่องดื่ม → use FOOD FORMAT
+• sleep/recovery: อยากนอน, ง่วง, พักอีกได้ไหม, นอนต่อ → use SLEEP FORMAT
+• workout/training: ควรซ้อมอะไร, วิ่งได้ไหม, ควรพักไหม, ขอแผน → use WORKOUT FORMAT
+• casual/other: short question or follow-up → answer in 1-3 lines naturally
+
+STEP 2: Apply the matching format:
+
+FOOD FORMAT (3-5 lines — no workout sections):
+  Line 1: กินได้/เลี่ยง + ช่วงที่เหมาะ (ก่อนวิ่ง/หลังวิ่ง/วันพัก)
+  Line 2: จุดดี
+  Line 3: จุดระวัง
+  Line 4: ปรับยังไง (optional)
+  [active injury note: 1 line only if relevant to recovery]
+  ✗ Do NOT write "วันนี้ควรซ้อมอะไร" in food answers.
+  ✗ Do NOT add workout plan sections to food answers.
+
+SLEEP FORMAT (3-4 lines — conversational):
+  Start with the direct answer (e.g. "นอนต่อได้ครับ").
+  Add recovery context briefly.
+  If active injury or low readiness: recommend rest naturally.
+  ✗ Do NOT start with "วันนี้ควรซ้อมอะไร".
+
+WORKOUT FORMAT (ONLY for training questions):
+  Line 1: วันนี้ควรซ้อมอะไร (or "พัก / Recovery")
+  Line 2: ระยะหรือเวลา + HR/pace target
+  Line 3: เหตุผล 1 ประโยค
+  Line 4: วิธีปรับถ้าหนักเกินไป
+  Line 5: สิ่งที่ต้องระวัง
+  [active injury override: if painLevel >= 3 → Rest/Recovery first;
+   Easy Run only as conditional: "ถ้าอาการหายและเดินไม่เจ็บ ค่อยกลับมาวิ่งได้"]
+
+Never duplicate units (e.g. "bpm bpm" → "bpm").
 `;
   }
 
+  // Thai non-short or English — intent-aware detailed format
   return `
-RESPONSE FORMAT INSTRUCTION:
-Every training recommendation you provide must contain these 5 components:
-1. Workout: what to do today
-2. Target: duration/distance and HR/pace cap (never duplicate units, e.g. "bpm bpm")
-3. Why: one short reason
-4. Watch out: one caution (safety check)
-5. Adjustment: what to do if it feels too hard
-- Keep the response concise and aligned with the selected coach style.
-- Do not omit critical training safety information even if the response style is short.
+INTENT-FIRST RESPONSE RULE:
+Identify the user's intent before responding. Use the matching format.
+
+For food/nutrition: food coaching format — diagnosis → timing → pros → cons → adjustments.
+  Active injury: brief note at end only, not the main answer.
+For sleep/recovery: answer naturally and directly. Injury/low readiness can recommend more rest.
+For workout/training: 5 components — workout → target (distance/HR/pace) → reason → caution → adjustment.
+  Active injury (painLevel >= 3): Rest/Recovery first. Easy Run only as conditional.
+For casual/follow-up: reply conversationally and briefly.
+
+Do NOT use workout format for food, sleep, or casual questions.
+Keep responses mobile-friendly: 3-6 short lines. No long paragraphs in chat.
+Never duplicate units ("bpm bpm" → "bpm").
 `;
 }
