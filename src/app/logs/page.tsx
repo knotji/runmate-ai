@@ -497,7 +497,7 @@ function BodyDetail({ item }: { item: LocalHistoryItem }) {
 
   return (
     <div className="rounded-2xl bg-slate-50 p-4">
-      <p className="text-xs font-bold uppercase tracking-wide text-[#42677f] mb-2">⚖️ ส่วนประกอบร่างกาย</p>
+      <p className="text-xs font-bold uppercase tracking-wide text-[#42677f] mb-2">⚖️ ร่างกาย</p>
       <div className="grid grid-cols-3 gap-2 mb-2">
         {ext.weightKg != null && <Metric label="น้ำหนัก" value={`${formatDecimal(ext.weightKg)} kg`} />}
         {ext.bodyFatPercent != null && <Metric label="ไขมัน" value={formatPercent(ext.bodyFatPercent)} />}

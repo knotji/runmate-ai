@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
 import { ImageUploader } from "@/components/ImageUploader";
 import { SleepResultCard } from "@/components/SleepResultCard";
@@ -424,7 +425,7 @@ export default function UploadPage() {
             {saveStatus === "saving" && <p className="text-xs font-semibold text-slate-500">กำลังบันทึก...</p>}
             {saveStatus === "saved" && <p className="text-xs font-semibold text-[var(--status-ready)]">บันทึกเข้า Report แล้ว</p>}
             {saveStatus === "error" && <p className="text-xs font-semibold text-[var(--status-rest)]">บันทึกไม่สำเร็จ กรุณาลองใหม่</p>}
-            {!result && saveStatus !== "saving" && <UploadEmptyGuide />}
+            {!result && saveStatus !== "saving" && <UploadEmptyGuide type={type} />}
           </>
         ) : null}
       </section>
@@ -513,15 +514,35 @@ export default function UploadPage() {
   );
 }
 
-function UploadEmptyGuide() {
+function UploadEmptyGuide({ type }: { type: UploadType }) {
+  if (type === "body") {
+    return (
+      <div className="rounded-2xl bg-slate-50/80 px-4 py-3 text-sm text-slate-600">
+        <p className="font-bold text-[#17201d]">อัปโหลดค่าร่างกายเพื่อสร้าง Report</p>
+        <p className="mt-1 text-xs leading-5 text-slate-500">บันทึกแนวโน้มน้ำหนัก ไขมัน กล้ามเนื้อ เพื่อให้โค้ชวิเคราะห์ได้</p>
+        <div className="mt-2 space-y-1.5 text-xs leading-5">
+          <p><span className="font-semibold text-slate-700">รูปค่าร่างกาย</span> — น้ำหนัก / ไขมัน / กล้ามเนื้อ</p>
+          <p><span className="font-semibold text-slate-700">รูป Smart scale</span> — ดูแนวโน้มรูปร่างและพลังงาน</p>
+          <p><span className="font-semibold text-slate-700">รูป Body composition</span> — ใช้ปรับเป้าหมายซ้อมและโภชนาการ</p>
+        </div>
+        <Link
+          href="/pain"
+          className="mt-3 flex items-center gap-1.5 rounded-xl bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200"
+        >
+          <span>🩹</span>
+          <span>มีอาการเจ็บ? บันทึกที่หน้า &ldquo;เจ็บ&rdquo;</span>
+        </Link>
+      </div>
+    );
+  }
   return (
     <div className="rounded-2xl bg-slate-50/80 px-4 py-3 text-sm text-slate-600">
       <p className="font-bold text-[#17201d]">ลองอัปโหลดเพื่อสร้าง Report</p>
       <p className="mt-1 text-xs leading-5 text-slate-500">รายการที่บันทึกไว้จะช่วยให้โค้ชตอบได้แม่นขึ้นใน Coach Chat</p>
       <div className="mt-2 space-y-1.5 text-xs leading-5">
-        <p><span className="font-semibold text-slate-700">รูปอาหาร</span> - กินได้มั้ย / ก่อนวิ่งได้ไหม</p>
-        <p><span className="font-semibold text-slate-700">รูปผลวิ่ง</span> - HR สูงไปไหม / รอบหน้าซ้อมอะไร</p>
-        <p><span className="font-semibold text-slate-700">รูปอาการเจ็บ</span> - ควรพักหรือขยับเบา ๆ ดี</p>
+        <p><span className="font-semibold text-slate-700">รูปอาหาร</span> — กินได้มั้ย / ก่อนวิ่งได้ไหม</p>
+        <p><span className="font-semibold text-slate-700">รูปผลวิ่ง</span> — HR สูงไปไหม / รอบหน้าซ้อมอะไร</p>
+        <p><span className="font-semibold text-slate-700">รูปค่าร่างกาย</span> — น้ำหนัก ไขมัน กล้ามเนื้อ</p>
       </div>
     </div>
   );
