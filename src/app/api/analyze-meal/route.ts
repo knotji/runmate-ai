@@ -135,9 +135,12 @@ function normalizeMealResult(data: MealAnalysis): MealAnalysis {
     needsReview: data.needsReview ?? true,
     errorLikeMessage: data.errorLikeMessage ?? (isNonFoodOrUnclear ? NON_FOOD_MESSAGE : null),
     trainingFit: {
-      ...fallback.trainingFit,
-      ...data.trainingFit,
-      coachNote: data.trainingFit?.coachNote || (isNonFoodOrUnclear ? NON_FOOD_MESSAGE : fallback.trainingFit.coachNote),
+      bestFor: data.trainingFit?.bestFor ?? fallback.trainingFit?.bestFor ?? [],
+      carbAdequacy: data.trainingFit?.carbAdequacy ?? fallback.trainingFit?.carbAdequacy ?? "unknown",
+      proteinAdequacy: data.trainingFit?.proteinAdequacy ?? fallback.trainingFit?.proteinAdequacy ?? "unknown",
+      fatLoad: data.trainingFit?.fatLoad ?? fallback.trainingFit?.fatLoad ?? "unknown",
+      hydrationNote: data.trainingFit?.hydrationNote ?? fallback.trainingFit?.hydrationNote ?? "",
+      coachNote: data.trainingFit?.coachNote || (isNonFoodOrUnclear ? NON_FOOD_MESSAGE : fallback.trainingFit?.coachNote ?? ""),
     },
   };
 }

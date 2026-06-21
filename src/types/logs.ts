@@ -29,8 +29,8 @@ export type MealAnalysis = {
   mealType: string;
   detectedFoods: {
     name: string;
-    portionEstimate: string;
-    confidence: "low" | "medium" | "high";
+    portionEstimate?: string;
+    confidence?: "low" | "medium" | "high";
   }[];
   nutrition: {
     caloriesKcal: number | null;
@@ -39,13 +39,13 @@ export type MealAnalysis = {
     fatG: number | null;
     fiberG: number | null;
   };
-  nutritionRange: {
-    caloriesKcal: { min: number; max: number } | null;
-    proteinG: { min: number; max: number } | null;
-    carbsG: { min: number; max: number } | null;
-    fatG: { min: number; max: number } | null;
+  nutritionRange?: {
+    caloriesKcal?: { min: number; max: number } | null;
+    proteinG?: { min: number; max: number } | null;
+    carbsG?: { min: number; max: number } | null;
+    fatG?: { min: number; max: number } | null;
   };
-  trainingFit: {
+  trainingFit?: {
     bestFor: string[];
     carbAdequacy: "low" | "ok" | "good" | "high" | "unknown";
     proteinAdequacy: "low" | "ok" | "good" | "high" | "unknown";

@@ -13,7 +13,7 @@ import { loadProfileFromSupabase } from "@/lib/profileStorage";
 import { buildCoachContextFromSupabase, type CoachContext } from "@/lib/buildCoachContext";
 import { buildRaceResultFromWorkout, detectRaceMatch, saveRaceResult, type RaceMatch } from "@/lib/raceResults";
 import { loadActiveRaceGoalAndPlan } from "@/lib/raceStorage";
-import { formatCalories, formatMacro } from "@/lib/format";
+import { formatCalories, formatMacro, formatNutritionRange } from "@/lib/format";
 import { buildNutritionTargetSummary } from "@/lib/nutritionTargets";
 import type { LocalHistoryItem } from "@/lib/localHistory";
 import type { BodyCompositionAnalysis, MealAnalysis, MealType, SleepAnalysis, WorkoutAnalysis } from "@/types/logs";
@@ -98,6 +98,16 @@ export default function UploadPage() {
     setRaceResultError("");
     if (type === "meal") {
       const data = ((next as { data?: MealAnalysis }).data ?? next) as MealAnalysis;
+      if (process.env.NODE_ENV === "development") {
+        console.info("[meal-analysis-result]", {
+          hasDetectedFoods: Array.isArray(data.detectedFoods) && data.detectedFoods.length > 0,
+          detectedFoodsCount: Array.isArray(data.detectedFoods) ? data.detectedFoods.length : 0,
+          nutritionObjectKeys: data.nutrition ? Object.keys(data.nutrition) : [],
+          nutritionRangeObjectKeys: data.nutritionRange ? Object.keys(data.nutritionRange) : [],
+          confidence: data.confidence,
+          needsReview: data.needsReview,
+        });
+      }
       const imageUrl = (next as { imageUrl?: string | null }).imageUrl ?? data.imageUrl ?? null;
       const meal = normalizeMealAnalysis({ ...data, imageUrl, mealType });
       setResult({ data: meal });
@@ -274,6 +284,7 @@ function MealReviewCard({
   const [editing, setEditing] = useState(initialMeal.needsReview);
   const [meal, setMeal] = useState<MealAnalysis>(initialMeal);
   const foodText = meal.detectedFoods.map((food) => food.name).join(", ");
+  const cannotEstimateNutrition = meal.detectedFoods.length > 0 && !hasAnyNutrition(meal);
 
   function updateNutrition(key: keyof MealAnalysis["nutrition"], value: string) {
     const numberValue = value === "" ? null : Number(value);
@@ -315,12 +326,17 @@ function MealReviewCard({
           </select>
           <input className="control" value={foodText} onChange={(event) => updateFoods(event.target.value)} placeholder="อาหารที่พบ เช่น ข้าว, ไข่, ไก่" />
           <div className="grid grid-cols-2 gap-2">
-            <NutritionInput label="Calories" value={meal.nutrition.caloriesKcal} onChange={(value) => updateNutrition("caloriesKcal", value)} />
-            <NutritionInput label="Protein g" value={meal.nutrition.proteinG} onChange={(value) => updateNutrition("proteinG", value)} />
-            <NutritionInput label="Carbs g" value={meal.nutrition.carbsG} onChange={(value) => updateNutrition("carbsG", value)} />
-            <NutritionInput label="Fat g" value={meal.nutrition.fatG} onChange={(value) => updateNutrition("fatG", value)} />
-            <NutritionInput label="Fiber g" value={meal.nutrition.fiberG} onChange={(value) => updateNutrition("fiberG", value)} />
+            <NutritionInput label="Calories" placeholder="เช่น 550" value={meal.nutrition.caloriesKcal} range={meal.nutritionRange?.caloriesKcal} unit="kcal" onChange={(value) => updateNutrition("caloriesKcal", value)} />
+            <NutritionInput label="Protein g" placeholder="เช่น 30" value={meal.nutrition.proteinG} range={meal.nutritionRange?.proteinG} onChange={(value) => updateNutrition("proteinG", value)} />
+            <NutritionInput label="Carbs g" placeholder="เช่น 70" value={meal.nutrition.carbsG} range={meal.nutritionRange?.carbsG} onChange={(value) => updateNutrition("carbsG", value)} />
+            <NutritionInput label="Fat g" placeholder="เช่น 20" value={meal.nutrition.fatG} range={meal.nutritionRange?.fatG} onChange={(value) => updateNutrition("fatG", value)} />
+            <NutritionInput label="Fiber g" placeholder="เช่น 5" value={meal.nutrition.fiberG} onChange={(value) => updateNutrition("fiberG", value)} />
           </div>
+          {cannotEstimateNutrition ? (
+            <p className="rounded-2xl bg-amber-50 p-3 text-xs font-semibold leading-5 text-amber-700">
+              AI อ่านอาหารได้ แต่ประเมินโภชนาการไม่ได้ชัดเจน คุณกรอกเองได้
+            </p>
+          ) : null}
         </div>
       ) : (
         <>
@@ -343,11 +359,30 @@ function MealReviewCard({
   );
 }
 
-function NutritionInput({ label, value, onChange }: { label: string; value: number | null; onChange: (value: string) => void }) {
+function NutritionInput({
+  label,
+  value,
+  range,
+  unit = "g",
+  placeholder,
+  onChange,
+}: {
+  label: string;
+  value: number | null;
+  range?: { min: number; max: number } | null;
+  unit?: string;
+  placeholder: string;
+  onChange: (value: string) => void;
+}) {
   return (
     <label className="block">
       <span className="mb-1 block text-xs font-semibold text-slate-500">{label}</span>
-      <input className="control" type="number" inputMode="decimal" value={value ?? ""} onChange={(event) => onChange(event.target.value)} />
+      <input className="control" type="number" inputMode="decimal" placeholder={placeholder} value={value ?? ""} onChange={(event) => onChange(event.target.value)} />
+      {range ? (
+        <span className="mt-1 block text-[11px] leading-4 text-slate-400">
+          ประเมินจากช่วง {formatNutritionRange(range.min, range.max, unit)}
+        </span>
+      ) : null}
     </label>
   );
 }
@@ -376,7 +411,12 @@ function MealReviewSummary({ meal, profile, context }: { meal: MealAnalysis; pro
         <p>Carb adequacy ({target.dayType} day): {target.carbAdequacy}{target.carbTargetG != null ? ` / target ${target.carbTargetG} g` : ""}</p>
         <p>{target.recoveryFuelNote}</p>
       </div>
-      <p className="text-sm leading-6 text-slate-700">{meal.trainingFit.coachNote}</p>
+      {!hasAnyNutrition(meal) && meal.detectedFoods.length > 0 ? (
+        <p className="rounded-2xl bg-amber-50 p-3 text-xs font-semibold leading-5 text-amber-700">
+          AI อ่านอาหารได้ แต่ประเมินโภชนาการไม่ได้ชัดเจน คุณกรอกเองได้
+        </p>
+      ) : null}
+      <p className="text-sm leading-6 text-slate-700">{meal.trainingFit?.coachNote ?? ""}</p>
       <p className="text-xs text-slate-500">Confidence: {meal.confidence}</p>
     </div>
   );
@@ -393,25 +433,28 @@ function ReviewMetric({ label, value }: { label: string; value: string }) {
 
 function normalizeMealAnalysis(meal: MealAnalysis): MealAnalysis {
   const legacyFood = meal.extracted?.detectedFood;
+  const ranges = meal.nutritionRange ?? { caloriesKcal: null, proteinG: null, carbsG: null, fatG: null };
+  const nutrition = {
+    caloriesKcal: cleanNumber(meal.nutrition?.caloriesKcal) ?? midpointFromRange(ranges.caloriesKcal),
+    proteinG: cleanNumber(meal.nutrition?.proteinG) ?? midpointFromRange(ranges.proteinG),
+    carbsG: cleanNumber(meal.nutrition?.carbsG) ?? midpointFromRange(ranges.carbsG),
+    fatG: cleanNumber(meal.nutrition?.fatG) ?? midpointFromRange(ranges.fatG),
+    fiberG: cleanNumber(meal.nutrition?.fiberG),
+  };
+  const trainingFit = meal.trainingFit ?? {
+    bestFor: [],
+    carbAdequacy: "unknown" as const,
+    proteinAdequacy: "unknown" as const,
+    fatLoad: "unknown" as const,
+    hydrationNote: meal.extracted?.hydrationSuggestion ?? "",
+    coachNote: meal.coach?.suggestion ?? meal.coach?.aiSummary ?? "",
+  };
   return {
     mealType: meal.mealType || "meal",
-    detectedFoods: meal.detectedFoods?.length ? meal.detectedFoods : legacyFood ? [{ name: legacyFood, portionEstimate: "จากภาพ", confidence: "low" }] : [],
-    nutrition: {
-      caloriesKcal: cleanNumber(meal.nutrition?.caloriesKcal),
-      proteinG: cleanNumber(meal.nutrition?.proteinG),
-      carbsG: cleanNumber(meal.nutrition?.carbsG),
-      fatG: cleanNumber(meal.nutrition?.fatG),
-      fiberG: cleanNumber(meal.nutrition?.fiberG),
-    },
-    nutritionRange: meal.nutritionRange ?? { caloriesKcal: null, proteinG: null, carbsG: null, fatG: null },
-    trainingFit: meal.trainingFit ?? {
-      bestFor: [],
-      carbAdequacy: "unknown",
-      proteinAdequacy: "unknown",
-      fatLoad: "unknown",
-      hydrationNote: meal.extracted?.hydrationSuggestion ?? "",
-      coachNote: meal.coach?.suggestion ?? meal.coach?.aiSummary ?? "",
-    },
+    detectedFoods: normalizeDetectedFoods(meal.detectedFoods, legacyFood),
+    nutrition,
+    nutritionRange: ranges,
+    trainingFit,
     confidence: meal.confidence ?? "low",
     needsReview: meal.needsReview ?? true,
     errorLikeMessage: meal.errorLikeMessage ?? null,
@@ -421,6 +464,33 @@ function normalizeMealAnalysis(meal: MealAnalysis): MealAnalysis {
 }
 
 function cleanNumber(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  if (typeof value === "string" && value.trim() === "") return null;
   const numberValue = Number(value);
   return Number.isFinite(numberValue) ? numberValue : null;
+}
+
+function midpointFromRange(range?: { min: number; max: number } | null): number | null {
+  if (!range) return null;
+  const min = cleanNumber(range.min);
+  const max = cleanNumber(range.max);
+  if (min == null || max == null) return null;
+  return Math.round((min + max) / 2);
+}
+
+function normalizeDetectedFoods(foods: MealAnalysis["detectedFoods"] | undefined, legacyFood?: string): MealAnalysis["detectedFoods"] {
+  if (Array.isArray(foods) && foods.length) {
+    return foods
+      .map((food) => ({
+        name: typeof food.name === "string" ? food.name.trim() : "",
+        portionEstimate: food.portionEstimate ?? "จากภาพ",
+        confidence: food.confidence ?? "low",
+      }))
+      .filter((food) => food.name);
+  }
+  return legacyFood ? [{ name: legacyFood, portionEstimate: "จากภาพ", confidence: "low" }] : [];
+}
+
+function hasAnyNutrition(meal: MealAnalysis) {
+  return Object.values(meal.nutrition ?? {}).some((value) => value !== null && value !== undefined);
 }
