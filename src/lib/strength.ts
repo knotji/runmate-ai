@@ -119,3 +119,8 @@ export async function logCompletedStrength(log: StrengthLog): Promise<{ ok: bool
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }
 }
+
+export async function deleteRoutineFromSupabase(id: string): Promise<{ ok: boolean; error?: string }> {
+  const { deleteHistoryItem } = await import("@/lib/cloudHistory");
+  return deleteHistoryItem(`strength_template-${id}`);
+}

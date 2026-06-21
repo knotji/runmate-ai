@@ -89,6 +89,23 @@ export async function loadHistoryItems(types?: HistoryType[]): Promise<{ ok: tru
   return { ok: true, items };
 }
 
+export async function deleteHistoryItem(id: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await ensureSupabaseProfileSession();
+  if (!session.ok) return { ok: false, error: sessionMessage(session) };
+
+  const { error } = await session.supabase
+    .from("history_items")
+    .delete()
+    .eq("user_id", session.userId)
+    .eq("id", id);
+
+  if (error) {
+    return { ok: false, error: friendlySupabaseError(error) };
+  }
+  window.dispatchEvent(new Event("runmate:cloud-data-updated"));
+  return { ok: true };
+}
+
 export async function loadHistoryItemById(id: string): Promise<{ ok: true; item: LocalHistoryItem } | { ok: false; error: string }> {
   const session = await ensureSupabaseProfileSession();
   if (!session.ok) return { ok: false, error: sessionMessage(session) };

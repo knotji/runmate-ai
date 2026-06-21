@@ -65,7 +65,15 @@ export default function UploadPage() {
     if (process.env.NODE_ENV === "development") {
       console.info("[upload-type-debug]", { queryType: raw, resolvedType: resolved ?? "(none — keeping default)" });
     }
-    if (resolved) queueMicrotask(() => setType(resolved));
+    if (resolved) {
+      queueMicrotask(() => setType(resolved));
+      if (resolved === "workout") {
+        const sub = params.get("subtype") ?? "";
+        if (["run", "strength", "walk", "other"].includes(sub)) {
+          queueMicrotask(() => setWorkoutSubtype(sub as any));
+        }
+      }
+    }
   }, []);
   const [mealType, setMealType] = useState<MealType>("breakfast");
   const [result, setResult] = useState<unknown>(null);
@@ -106,6 +114,16 @@ export default function UploadPage() {
     setSaveStatus("saved");
     invalidateCoachCache();
     return saved;
+  }
+
+  async function handleManualWorkoutSave(workout: WorkoutAnalysis) {
+    try {
+      const savedItem = await store({ data: workout }, "workout");
+      setResult({ data: workout });
+      setWorkoutSavedItem(savedItem);
+    } catch (e) {
+      // error is set inside store()
+    }
   }
 
   async function handleAnalysisResult(next: unknown) {
@@ -364,7 +382,7 @@ export default function UploadPage() {
             ))}
           </div>
         )}
-        {!(type === "workout" && workoutSubtype === "strength") ? (
+        {!(type === "workout" && (workoutSubtype === "strength" || workoutSubtype === "walk" || workoutSubtype === "other")) ? (
           <>
             <ImageUploader
               key={type + (type === "workout" ? `-${workoutSubtype}` : "")}
@@ -388,6 +406,14 @@ export default function UploadPage() {
             setSaveStatus("saved");
             setTimeout(() => setSaveStatus("idle"), 3000);
           }}
+        />
+      )}
+
+      {type === "workout" && (workoutSubtype === "walk" || workoutSubtype === "other") && (
+        <ManualWorkoutLogForm
+          subtype={workoutSubtype}
+          saving={saveStatus === "saving"}
+          onSave={handleManualWorkoutSave}
         />
       )}
 
@@ -783,5 +809,167 @@ function MealSlotConflictCard({
         </button>
       </div>
     </section>
+  );
+}
+
+function ManualWorkoutLogForm({
+  subtype,
+  onSave,
+  saving
+}: {
+  subtype: "walk" | "other";
+  onSave: (workout: WorkoutAnalysis) => void;
+  saving: boolean;
+}) {
+  const [date, setDate] = useState(() => new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10));
+  const [distance, setDistance] = useState("");
+  const [duration, setDuration] = useState("");
+  const [avgHR, setAvgHR] = useState("");
+  const [calories, setCalories] = useState("");
+  const [workoutType, setWorkoutType] = useState(subtype === "walk" ? "เดิน" : "ปั่นจักรยาน");
+  const [notes, setNotes] = useState("");
+  const [error, setError] = useState("");
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!duration || Number(duration) <= 0) {
+      setError("กรุณากรอกระยะเวลา (นาที)");
+      return;
+    }
+    setError("");
+
+    const h = Math.floor(Number(duration) / 60);
+    const m = Math.floor(Number(duration) % 60);
+    const durationStr = `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:00`;
+
+    const workoutKind = subtype === "walk" ? "walk" as const : "other" as const;
+
+    const data: WorkoutAnalysis = {
+      extracted: {
+        workoutKind,
+        date,
+        distanceKm: distance ? Number(distance) : null,
+        duration: durationStr,
+        avgPace: null,
+        avgSpeedKmh: null,
+        avgHR: avgHR ? Number(avgHR) : null,
+        maxHR: null,
+        cadence: null,
+        calories: calories ? Number(calories) : null,
+        elevationGain: null,
+        vo2Max: null,
+        sweatLossMl: null,
+        visibleMetrics: []
+      },
+      coach: {
+        workoutSummary: subtype === "walk" ? "เดินออกกำลังกาย / Active Recovery" : workoutType,
+        intensityAssessment: "เบา",
+        trainingLoadNote: notes || "บันทึกการฝึกซ้อมด้วยตนเอง",
+        wasTooHard: false,
+        recoveryAdvice: "พักผ่อน ดื่มน้ำให้เพียงพอ",
+        nutritionAfterWorkout: "เติมพลังงานด้วยสารอาหารที่มีประโยชน์",
+        nextWorkoutSuggestion: "ซ้อมตามแผนปกติ",
+        coachNote: notes || "บันทึกการฝึกซ้อมด้วยตนเอง"
+      }
+    };
+    onSave(data);
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4 pt-2 card p-5 bg-white">
+      <div>
+        <h3 className="text-lg font-bold text-[#17201d]">
+          {subtype === "walk" ? "บันทึกกิจกรรมเดิน" : "บันทึกกิจกรรมอื่น ๆ"}
+        </h3>
+        <p className="text-xs text-slate-500">กรอกข้อมูลการซ้อมและบันทึกตรงเข้า Supabase</p>
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="text-xs font-bold uppercase tracking-wide text-slate-400">วันที่</label>
+        <input type="date" className="control" value={date} onChange={(e) => setDate(e.target.value)} required />
+      </div>
+
+      {subtype === "other" && (
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold uppercase tracking-wide text-slate-400">ประเภทการออกกำลังกาย</label>
+          <input
+            type="text"
+            className="control"
+            placeholder="เช่น ปั่นจักรยาน, ว่ายน้ำ, โยคะ"
+            value={workoutType}
+            onChange={(e) => setWorkoutType(e.target.value)}
+            required
+          />
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold uppercase tracking-wide text-slate-400">เวลา (นาที)</label>
+          <input
+            type="number"
+            className="control"
+            placeholder="เช่น 30"
+            value={duration}
+            onChange={(e) => setDuration(e.target.value)}
+            min="1"
+            required
+          />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold uppercase tracking-wide text-slate-400">ระยะทาง (กม. ถ้ามี)</label>
+          <input
+            type="number"
+            step="0.01"
+            className="control"
+            placeholder="เช่น 3.5"
+            value={distance}
+            onChange={(e) => setDistance(e.target.value)}
+            min="0"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold uppercase tracking-wide text-slate-400">HR เฉลี่ย (bpm ถ้ามี)</label>
+          <input
+            type="number"
+            className="control"
+            placeholder="เช่น 120"
+            value={avgHR}
+            onChange={(e) => setAvgHR(e.target.value)}
+            min="30"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold uppercase tracking-wide text-slate-400">แคลอรี (kcal ถ้ามี)</label>
+          <input
+            type="number"
+            className="control"
+            placeholder="เช่น 250"
+            value={calories}
+            onChange={(e) => setCalories(e.target.value)}
+            min="0"
+          />
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="text-xs font-bold uppercase tracking-wide text-slate-400">บันทึกเพิ่มเติม</label>
+        <textarea
+          className="control min-h-[80px]"
+          placeholder="เช่น รู้สึกสดชื่นดี, เหนื่อยปานกลาง"
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+        />
+      </div>
+
+      {error && <p className="text-xs font-semibold text-red-600 bg-red-50 p-2.5 rounded-xl">{error}</p>}
+
+      <button type="submit" disabled={saving} className="btn-primary w-full py-3 text-sm font-bold">
+        {saving ? "กำลังบันทึก…" : "บันทึกกิจกรรม"}
+      </button>
+    </form>
   );
 }

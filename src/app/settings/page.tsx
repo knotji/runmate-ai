@@ -6,6 +6,7 @@ import { AppShell } from "@/components/AppShell";
 import { ProfileSetupForm } from "@/components/ProfileSetupForm";
 import { ProfileHistoryAnalyzer } from "@/components/ProfileHistoryAnalyzer";
 import { SamsungHealthImport } from "@/components/SamsungHealthImport";
+import { StrengthRoutineManager } from "@/components/StrengthRoutineManager";
 import { loadProfileFromSupabase } from "@/lib/profileStorage";
 import { createClient } from "@/lib/supabase/client";
 import type { UserProfile } from "@/types/profile";
@@ -84,6 +85,7 @@ export default function SettingsPage() {
             <ProfileHistoryAnalyzer onProfileUpdated={handleProfileUpdated} />
           </section>
           <ProfileSetupForm key={profileFormKey} profile={runnerProfile} onProfileSaved={handleProfileUpdated} />
+          <StrengthRoutineManager />
         </div>
       )}
 

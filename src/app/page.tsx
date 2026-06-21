@@ -9,13 +9,36 @@ import { loadActiveRaceGoalAndPlan } from "@/lib/raceStorage";
 import type { RaceGoal } from "@/types/race";
 import type { DailyCoachInsight } from "@/types/ai";
 
-const QUICK_ACTIONS = [
-  { href: "/upload?type=sleep",   icon: "🌙", label: "นอน" },
-  { href: "/upload?type=meal",    icon: "🍱", label: "อาหาร" },
-  { href: "/upload?type=workout", icon: "🏃", label: "วิ่ง" },
-  { href: "/summary",             icon: "📋", label: "สรุปวัน" },
-  { href: "/pain",                icon: "🩹", label: "เจ็บ" },
-] as const;
+function getRecommendedSubtype(insight: DailyCoachInsight | null, ctx: CoachContext | null): "run" | "strength" | "walk" | "other" {
+  if (ctx && ctx.recentPainLogs && ctx.recentPainLogs.length > 0) {
+    const p = ctx.recentPainLogs[0];
+    if (p.riskLevel === "high" || p.riskLevel === "medium") {
+      return "walk";
+    }
+  }
+
+  if (ctx && ctx.recentRaceResults && ctx.recentRaceResults.length > 0) {
+    const lastRace = ctx.recentRaceResults[0];
+    if (lastRace.raceDate) {
+      const todayStr = ctx.todayDate || new Date().toISOString().slice(0, 10);
+      const diffMs = Date.parse(todayStr) - Date.parse(lastRace.raceDate);
+      const diffDays = diffMs / 86400000;
+      if (diffDays >= 0 && diffDays <= 3) {
+        return "walk";
+      }
+    }
+  }
+
+  if (!insight || !insight.workoutRec) return "run";
+  const rec = insight.workoutRec.toLowerCase();
+  if (rec.includes("เวท") || rec.includes("strength") || rec.includes("ออกกำลังกายแรงต้าน") || rec.includes("บอดี้เวท")) {
+    return "strength";
+  }
+  if (rec.includes("เดิน") || rec.includes("walk") || rec.includes("recovery") || rec.includes("ฟื้นฟู") || rec.includes("พัก") || rec.includes("rest")) {
+    return "walk";
+  }
+  return "run";
+}
 
 export default function TodayPage() {
   const [goal, setGoal] = useState<RaceGoal | null>(null);
@@ -166,18 +189,8 @@ export default function TodayPage() {
       )}
 
       {/* ── Pain card (any recent pain log) ────────────────────── */}
-      {coachCtx?.recentPainLogs && coachCtx.recentPainLogs.length > 0 ? (
+      {coachCtx?.recentPainLogs && coachCtx.recentPainLogs.length > 0 && (
         <RecentPainCard pains={coachCtx.recentPainLogs} />
-      ) : (
-        <section className="card flex items-center justify-between px-5 py-3.5">
-          <div className="flex items-center gap-2">
-            <span className="text-lg">🩹</span>
-            <span className="text-sm font-semibold text-slate-700">มีอาการเจ็บ?</span>
-          </div>
-          <Link href="/pain" className="text-xs font-bold text-[#42677f] hover:underline">
-            แจ้งอาการ
-          </Link>
-        </section>
       )}
 
       {/* ── Today nutrition mini-card ─────────────────────────── */}
@@ -188,7 +201,13 @@ export default function TodayPage() {
       {/* ── Quick actions ─────────────────────────────────────── */}
       <section className="card p-4">
         <div className="grid grid-cols-5 gap-1">
-          {QUICK_ACTIONS.map(({ href, icon, label }) => (
+          {[
+            { href: "/upload?type=sleep",   icon: "🌙", label: "นอน" },
+            { href: "/upload?type=meal",    icon: "🍱", label: "อาหาร" },
+            { href: `/upload?type=workout&subtype=${getRecommendedSubtype(insight, coachCtx)}`, icon: "🏃", label: "ซ้อม" },
+            { href: "/pain",                icon: "🩹", label: "เจ็บ" },
+            { href: "/summary",             icon: "📋", label: "สรุปวัน" },
+          ].map(({ href, icon, label }) => (
             <Link
               key={href}
               href={href}

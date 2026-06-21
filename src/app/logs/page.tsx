@@ -33,6 +33,7 @@ export default function ReportPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [activeFilter, setActiveFilter] = useState<"all" | "run" | "meal" | "strength" | "pain">("all");
 
   useEffect(() => {
     let alive = true;
@@ -75,6 +76,29 @@ export default function ReportPage() {
   const dashboard = buildDashboard(items);
   const pTarget = proteinTargetGrams(profile);
 
+  const filteredDays = days.filter((day) => {
+    if (activeFilter === "all") return true;
+    if (activeFilter === "run") {
+      const workouts = day.items.filter((i) => i.type === "workout");
+      return workouts.some((w) => isRun(w));
+    }
+    if (activeFilter === "meal") {
+      return day.items.some((i) => i.type === "meal");
+    }
+    if (activeFilter === "strength") {
+      const strengths = day.items.filter((i) => i.type === "strength");
+      const workouts = day.items.filter((i) => i.type === "workout");
+      return (
+        strengths.length > 0 ||
+        workouts.some((w) => !isRun(w) && !isWalk(w) && (w.data as WorkoutAnalysis)?.extracted?.workoutKind === "strength")
+      );
+    }
+    if (activeFilter === "pain") {
+      return day.items.some((i) => i.type === "pain");
+    }
+    return true;
+  });
+
   return (
     <AppShell title="Report" subtitle="บันทึกสะสมรายวัน">
       {loading ? (
@@ -89,9 +113,42 @@ export default function ReportPage() {
       ) : (
         <>
           <WeeklyDashboard dashboard={dashboard} proteinTarget={pTarget} />
-          {days.map((day) => (
-            <DayCard key={day.date} day={day} raceResults={raceResultsByDate.get(day.date) ?? []} proteinTarget={pTarget} />
-          ))}
+
+          {/* Filter Pills */}
+          <div className="flex flex-wrap gap-1.5 my-4">
+            {(
+              [
+                { id: "all", label: "ทั้งหมด" },
+                { id: "run", label: "วิ่ง" },
+                { id: "meal", label: "อาหาร" },
+                { id: "strength", label: "เวท" },
+                { id: "pain", label: "เจ็บ" },
+              ] as const
+            ).map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                onClick={() => setActiveFilter(f.id)}
+                className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition-all border ${activeFilter === f.id ? "bg-[#17201d] text-white border-[#17201d]" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"}`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+
+          {activeFilter === "pain" && (
+            <div className="mb-4">
+              <PainHistoryCompactList items={items} />
+            </div>
+          )}
+
+          {filteredDays.length === 0 ? (
+            <section className="card p-5 text-sm text-slate-500 text-center">ไม่พบรายการที่ตรงกับตัวกรอง</section>
+          ) : (
+            filteredDays.map((day) => (
+              <DayCard key={day.date} day={day} raceResults={raceResultsByDate.get(day.date) ?? []} proteinTarget={pTarget} />
+            ))
+          )}
         </>
       )}
     </AppShell>
@@ -925,4 +982,71 @@ function dashboardNote(input: {
   if (input.avgReadiness != null) parts.push(`readiness เฉลี่ย ${input.avgReadiness}`);
   if (input.avgSleepHours != null) parts.push(`นอนเฉลี่ย ${input.avgSleepHours.toFixed(1)} ชม.`);
   return parts.join(" · ");
+}
+
+function PainHistoryCompactList({ items }: { items: LocalHistoryItem[] }) {
+  const painItems = items.filter((i) => i.type === "pain");
+  if (painItems.length === 0) {
+    return (
+      <div className="card p-5 text-sm text-slate-500 text-center">ไม่พบประวัติอาการเจ็บ</div>
+    );
+  }
+
+  const RISK_LABELS: Record<string, string> = { high: "สูง", medium: "กลาง", low: "ต่ำ" };
+  const RISK_COLORS: Record<string, string> = {
+    high: "text-red-600 bg-red-50 border-red-100",
+    medium: "text-amber-600 bg-amber-50 border-amber-100",
+    low: "text-green-600 bg-green-50 border-green-100"
+  };
+
+  const IMPACT_LABELS: Record<string, string> = {
+    seek_professional: "ปรึกษาผู้เชี่ยวชาญ",
+    rest: "พักทั้งหมด",
+    reduce_load: "ลดปริมาณซ้อม",
+    run_ok_easy: "วิ่งเบาได้"
+  };
+
+  return (
+    <section className="card p-5 space-y-4 bg-white">
+      <div>
+        <h3 className="text-base font-bold text-[#17201d]">ประวัติอาการเจ็บ</h3>
+        <p className="text-xs text-slate-500 mt-0.5">ประวัติและคำแนะนำผลกระทบการซ้อมสะสม</p>
+      </div>
+      <div className="overflow-x-auto -mx-5 px-5">
+        <table className="w-full text-left border-collapse text-xs min-w-[450px]">
+          <thead>
+            <tr className="text-slate-400 border-b border-slate-100">
+              <th className="py-2.5 font-semibold">วันที่</th>
+              <th className="py-2.5 font-semibold">ตำแหน่ง</th>
+              <th className="py-2.5 font-semibold text-center">ระดับ</th>
+              <th className="py-2.5 font-semibold text-center">ความเสี่ยง</th>
+              <th className="py-2.5 font-semibold">ผลกระทบ</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-50">
+            {painItems.map((item) => {
+              const p = item.data as PainLog;
+              const dateStr = item.createdAt.slice(0, 10);
+              const formattedDate = new Date(dateStr).toLocaleDateString("th-TH", {
+                day: "numeric", month: "short"
+              });
+              return (
+                <tr key={item.id} className="hover:bg-slate-50/50">
+                  <td className="py-2.5 font-medium text-slate-500">{formattedDate}</td>
+                  <td className="py-2.5 font-bold text-slate-700">🩹 {p.painLocation}</td>
+                  <td className="py-2.5 font-bold text-center text-slate-800">{p.painLevel}/10</td>
+                  <td className="py-2.5 text-center">
+                    <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${RISK_COLORS[p.riskLevel] || "bg-slate-50 text-slate-500"}`}>
+                      {RISK_LABELS[p.riskLevel] || p.riskLevel}
+                    </span>
+                  </td>
+                  <td className="py-2.5 text-slate-600 font-medium">{IMPACT_LABELS[p.trainingImpact] || p.trainingImpact}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
 }
