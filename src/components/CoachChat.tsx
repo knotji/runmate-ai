@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { LoadingState } from "@/components/LoadingState";
 import { buildCoachContextFromSupabase } from "@/lib/buildCoachContext";
-import { fileToDataUrl, uploadImage } from "@/lib/storage";
+import { fileToDataUrl } from "@/lib/storage";
 import { compressImage } from "@/lib/imageCompression";
 
 type ChatMessage = { role: "user" | "assistant"; content: string; imageUrl?: string };
@@ -64,19 +64,25 @@ export function CoachChat() {
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const objectUrlsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
-  // Clean up object URLs to avoid memory leaks
   useEffect(() => {
+    const objectUrls = objectUrlsRef.current;
     return () => {
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
-      }
+      objectUrls.forEach((url) => URL.revokeObjectURL(url));
+      objectUrls.clear();
     };
-  }, [previewUrl]);
+  }, []);
+
+  function revokeObjectUrl(url: string | null | undefined) {
+    if (!url?.startsWith("blob:")) return;
+    URL.revokeObjectURL(url);
+    objectUrlsRef.current.delete(url);
+  }
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -91,18 +97,19 @@ export function CoachChat() {
       }
       setSelectedFile(file);
       if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
+        revokeObjectUrl(previewUrl);
       }
       const localUrl = URL.createObjectURL(file);
+      objectUrlsRef.current.add(localUrl);
       setPreviewUrl(localUrl);
       setImageIntent("อื่น ๆ"); // Default intent
     }
   };
 
-  const clearImage = () => {
+  const clearImage = (revokePreview = true) => {
     setSelectedFile(null);
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
+    if (revokePreview) {
+      revokeObjectUrl(previewUrl);
     }
     setPreviewUrl(null);
     setImageIntent(null);
@@ -118,11 +125,10 @@ export function CoachChat() {
 
     // Clear input states early so UI feels responsive
     setInput("");
-    clearImage();
+    clearImage(false);
     setLoading(true);
 
     try {
-      let uploadedUrl: string | null = null;
       let base64DataUrl: string | undefined = undefined;
 
       if (fileToProcess) {
@@ -135,22 +141,18 @@ export function CoachChat() {
 
           // 2. Convert compressed file to base64 dynamically for current request
           base64DataUrl = await fileToDataUrl(compressedFile);
-
-          // 3. Upload compressed image to Supabase
-          uploadedUrl = await uploadImage("workout", compressedFile);
         } catch (err) {
-          console.error("Failed to compress or upload image", err);
+          console.error("Failed to compress image", err);
         }
       }
 
-      // Add to message history. Uses Supabase imageUrl or local object URL preview,
-      // avoiding storing large base64 strings in history state.
+      // Add a session-only preview URL, avoiding persisted image storage.
       const nextMessages: ChatMessage[] = [
         ...messages,
         {
           role: "user",
           content,
-          imageUrl: uploadedUrl || activePreviewUrl || undefined,
+          imageUrl: activePreviewUrl || undefined,
         },
       ];
       setMessages(nextMessages);
@@ -210,6 +212,7 @@ export function CoachChat() {
   }
 
   function clearChat() {
+    messages.forEach((message) => revokeObjectUrl(message.imageUrl));
     const reset = [INITIAL_MESSAGE];
     setMessages(reset);
     clearImage();
@@ -274,7 +277,7 @@ export function CoachChat() {
               <p className="font-bold text-[#17201d]">เลือกรูปภาพเรียบร้อย</p>
               <button
                 type="button"
-                onClick={clearImage}
+                onClick={() => clearImage()}
                 className="mt-1 text-red-500 font-bold hover:underline"
               >
                 ลบรูปภาพ
@@ -338,7 +341,7 @@ export function CoachChat() {
         </button>
       </form>
       <p className="text-center text-[10px] text-slate-400/80 mt-1.5 font-medium">
-        แชทและรูปที่ส่งในหน้านี้ใช้ถามชั่วคราว ไม่บันทึกเข้า Report อัตโนมัติ
+        รูปที่ส่งในแชทใช้ถามชั่วคราว ไม่บันทึกเข้า Report หรือคลังรูป
       </p>
     </section>
   );

@@ -24,6 +24,20 @@ import type { UserProfile } from "@/types/profile";
 type UploadType = "sleep" | "meal" | "workout" | "body";
 type WorkoutSubtype = "run" | "strength" | "walk" | "other";
 
+const IMAGE_REPORT_KEYS = new Set([
+  "imageUrl",
+  "imageUrls",
+  "imagePath",
+  "imagePaths",
+  "storagePath",
+  "storagePaths",
+  "thumbnailUrl",
+  "thumbnailUrls",
+  "base64",
+  "imageDataUrl",
+  "imageDataUrls",
+]);
+
 const UPLOAD_LABELS: Record<UploadType, string> = {
   sleep: "นอน",
   meal: "อาหาร",
@@ -97,7 +111,7 @@ export default function UploadPage() {
 
   async function store(next: unknown, overrideType: UploadType = type): Promise<LocalHistoryItem> {
     setSaveStatus("saving");
-    const data = (next as { data?: unknown }).data ?? next;
+    const data = sanitizeReportDataForSave((next as { data?: unknown }).data ?? next);
     const extractedDate = (data as { extracted?: { date?: string | null } }).extracted?.date;
     const saved = createHistoryItem(overrideType, data, extractedDate ?? undefined);
     if (process.env.NODE_ENV === "development") {
@@ -144,8 +158,7 @@ export default function UploadPage() {
           needsReview: data.needsReview,
         });
       }
-      const imageUrl = (next as { imageUrl?: string | null }).imageUrl ?? data.imageUrl ?? null;
-      const meal = normalizeMealAnalysis({ ...data, imageUrl, mealType });
+      const meal = normalizeMealAnalysis({ ...data, mealType });
       setResult({ data: meal });
       setSaveStatus("idle");
       return;
@@ -237,7 +250,7 @@ export default function UploadPage() {
     const updatedMeal = action === "merge" ? buildMergedMeal(existingMeal, newMeal) : newMeal;
 
     // Store as direct MealAnalysis — same shape as initial save, so report page reads it correctly.
-    const updatedItem = { ...existing, data: updatedMeal };
+    const updatedItem = { ...existing, data: sanitizeReportDataForSave(updatedMeal) };
 
     if (process.env.NODE_ENV === "development") {
       const existNutr = normalizeMealNutrition(existingMeal as unknown as Record<string, unknown>);
@@ -709,6 +722,19 @@ function ReviewMetric({ label, value }: { label: string; value: string }) {
   );
 }
 
+function sanitizeReportDataForSave<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value.map((item) => sanitizeReportDataForSave(item)) as T;
+  }
+  if (!value || typeof value !== "object") return value;
+  const cleaned: Record<string, unknown> = {};
+  for (const [key, nestedValue] of Object.entries(value as Record<string, unknown>)) {
+    if (IMAGE_REPORT_KEYS.has(key)) continue;
+    cleaned[key] = sanitizeReportDataForSave(nestedValue);
+  }
+  return cleaned as T;
+}
+
 function normalizeMealAnalysis(meal: MealAnalysis): MealAnalysis {
   const legacyFood = meal.extracted?.detectedFood;
   const ranges = meal.nutritionRange ?? { caloriesKcal: null, proteinG: null, carbsG: null, fatG: null };
@@ -736,7 +762,6 @@ function normalizeMealAnalysis(meal: MealAnalysis): MealAnalysis {
     confidence: meal.confidence ?? "low",
     needsReview: meal.needsReview ?? true,
     errorLikeMessage: meal.errorLikeMessage ?? null,
-    imageUrl: meal.imageUrl ?? null,
     createdAt: meal.createdAt,
   };
 }

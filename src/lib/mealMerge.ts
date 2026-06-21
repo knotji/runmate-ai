@@ -9,6 +9,20 @@ export type NormalizedNutrition = {
   fiberG: number | null;
 };
 
+const IMAGE_KEYS = new Set([
+  "imageUrl",
+  "imageUrls",
+  "imagePath",
+  "imagePaths",
+  "storagePath",
+  "storagePaths",
+  "thumbnailUrl",
+  "thumbnailUrls",
+  "base64",
+  "imageDataUrl",
+  "imageDataUrls",
+]);
+
 function cleanNumber(value: unknown): number | null {
   if (value === null || value === undefined || value === "") return null;
   if (typeof value === "string" && value.trim() === "") return null;
@@ -67,6 +81,19 @@ export function extractMealData(item: LocalHistoryItem): MealAnalysis {
   return d as unknown as MealAnalysis;
 }
 
+function stripImageReferences<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value.map((item) => stripImageReferences(item)) as T;
+  }
+  if (!value || typeof value !== "object") return value;
+  const cleaned: Record<string, unknown> = {};
+  for (const [key, nestedValue] of Object.entries(value as Record<string, unknown>)) {
+    if (IMAGE_KEYS.has(key)) continue;
+    cleaned[key] = stripImageReferences(nestedValue);
+  }
+  return cleaned as T;
+}
+
 /** Build a merged MealAnalysis from an existing and a new analysis. */
 export function buildMergedMeal(existing: MealAnalysis, incoming: MealAnalysis): MealAnalysis {
   const existNutr = normalizeMealNutrition(existing as unknown as Record<string, unknown>);
@@ -85,19 +112,17 @@ export function buildMergedMeal(existing: MealAnalysis, incoming: MealAnalysis):
     {
       detectedFoods: existing.detectedFoods ?? [],
       nutrition: existNutr,
-      imageUrl: existing.imageUrl ?? null,
       createdAt: existing.createdAt,
     },
   ];
   const newEntry: MealEntry = {
     detectedFoods: incoming.detectedFoods ?? [],
     nutrition: incomNutr,
-    imageUrl: incoming.imageUrl ?? null,
     createdAt: incoming.createdAt ?? new Date().toISOString(),
   };
-  const entries = [...existingEntries, newEntry];
+  const entries = stripImageReferences([...existingEntries, newEntry]);
 
-  return {
+  return stripImageReferences({
     ...incoming,
     mealType: existing.mealType || incoming.mealType,
     detectedFoods: mergedFoods,
@@ -106,12 +131,11 @@ export function buildMergedMeal(existing: MealAnalysis, incoming: MealAnalysis):
     imageCount: entries.length,
     entriesMerged: entries.length,
     updatedAt: new Date().toISOString(),
-    imageUrl: existing.imageUrl ?? incoming.imageUrl ?? null,
     needsReview: false,
     localDate: existing.localDate ?? incoming.localDate,
     mealGroupKey: existing.mealGroupKey ?? incoming.mealGroupKey,
     confidence: existing.confidence ?? incoming.confidence,
     trainingFit: existing.trainingFit ?? incoming.trainingFit,
     coachNote: existing.coachNote ?? incoming.coachNote,
-  } as MealAnalysis;
+  } as MealAnalysis);
 }

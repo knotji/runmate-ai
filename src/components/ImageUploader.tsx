@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { fileToDataUrl, uploadImage, type UploadKind } from "@/lib/storage";
+import { fileToDataUrl, type UploadKind } from "@/lib/storage";
 import { LoadingState } from "@/components/LoadingState";
 import { ErrorState } from "@/components/ErrorState";
 
@@ -68,10 +68,7 @@ export function ImageUploader({
 
     setLoading(true);
     try {
-      const [imageDataUrls, imageUrls] = await Promise.all([
-        Promise.all(files.map(fileToDataUrl)),
-        Promise.all(files.map((file) => uploadImage(kind, file).catch(() => null))),
-      ]);
+      const imageDataUrls = await Promise.all(files.map(fileToDataUrl));
       if (isMealUpload && imageDataUrls.length !== 1) {
         throw new Error("กรุณาเลือกรูปอาหารก่อน");
       }
@@ -104,8 +101,6 @@ export function ImageUploader({
         : {
             imageDataUrl: imageDataUrls[0],
             imageDataUrls,
-            imageUrl: imageUrls[0],
-            imageUrls,
             ...extraFields,
           };
       const response = await fetch(endpoint, {
@@ -118,7 +113,7 @@ export function ImageUploader({
         throw new Error(message);
       }
       const result = await response.json();
-      await onResult(isMealUpload ? { ...result, imageUrl: imageUrls[0] } : result);
+      await onResult(result);
       setFiles([]);
       setInputKey((value) => value + 1);
     } catch (err) {
@@ -164,6 +159,9 @@ export function ImageUploader({
           </>
         )}
       </label>
+      <p className="text-center text-[11px] leading-5 text-slate-400">
+        ระบบจะใช้รูปเพื่อให้ AI อ่านข้อมูลเท่านั้น และบันทึกเฉพาะผลลัพธ์เข้า Report
+      </p>
       <button className="btn-primary w-full" type="submit" disabled={loading}>
         วิเคราะห์ด้วยโค้ช AI
       </button>
