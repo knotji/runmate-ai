@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState, useEffect } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import type { RaceGoal, RacePlan } from "@/types/race";
 import { LoadingState } from "@/components/LoadingState";
 import { invalidateCoachCache } from "@/lib/invalidateCoachCache";
@@ -128,12 +128,9 @@ export function RaceGoalForm({ onCreated }: { onCreated: (goal: RaceGoal, plan: 
       </Field>
 
       <Field label="วันแข่ง">
-        <input
-          className="control"
-          required
-          type="date"
+        <RaceDateInput
           value={goal.raceDate}
-          onChange={(e) => update("raceDate", e.target.value)}
+          onChange={(value) => update("raceDate", value)}
         />
       </Field>
 
@@ -231,6 +228,103 @@ export function RaceGoalForm({ onCreated }: { onCreated: (goal: RaceGoal, plan: 
       {loading && <LoadingState />}
     </form>
   );
+}
+
+function RaceDateInput({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const pickerRef = useRef<HTMLInputElement>(null);
+  const textRef = useRef<HTMLInputElement>(null);
+  const [displayValue, setDisplayValue] = useState(() => formatDateForDisplay(value));
+
+  const parsedDisplay = parseDisplayDateToIso(displayValue);
+  const isInvalidDisplay = Boolean(displayValue) && !parsedDisplay;
+
+  useEffect(() => {
+    textRef.current?.setCustomValidity(isInvalidDisplay ? "กรุณาใส่วันที่รูปแบบ dd/mm/yyyy" : "");
+  }, [isInvalidDisplay]);
+
+  function openPicker() {
+    const picker = pickerRef.current as (HTMLInputElement & { showPicker?: () => void }) | null;
+    if (!picker) return;
+    if (typeof picker.showPicker === "function") {
+      picker.showPicker();
+      return;
+    }
+    picker.focus();
+    picker.click();
+  }
+
+  function updateDisplay(nextDisplay: string) {
+    const next = formatDateInput(nextDisplay);
+    setDisplayValue(next);
+    const iso = parseDisplayDateToIso(next);
+    onChange(iso ?? "");
+  }
+
+  function commitIsoDate(isoDate: string) {
+    setDisplayValue(formatDateForDisplay(isoDate));
+    onChange(isoDate);
+  }
+
+  return (
+    <div className="relative">
+      <input
+        ref={textRef}
+        className="control pr-12"
+        required
+        inputMode="numeric"
+        placeholder="dd/mm/yyyy"
+        value={displayValue}
+        onChange={(event) => updateDisplay(event.target.value)}
+        onBlur={() => {
+          if (parsedDisplay) setDisplayValue(formatDateForDisplay(parsedDisplay));
+        }}
+        aria-label="วันแข่ง รูปแบบ dd/mm/yyyy"
+      />
+      <button
+        type="button"
+        aria-label="เลือกวันแข่ง"
+        onClick={openPicker}
+        className="absolute right-2 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-xl text-slate-500 hover:bg-slate-100"
+      >
+        <span aria-hidden="true" className="text-xs font-bold">เลือก</span>
+      </button>
+      <input
+        ref={pickerRef}
+        className="sr-only"
+        tabIndex={-1}
+        type="date"
+        value={value}
+        onChange={(event) => commitIsoDate(event.target.value)}
+        aria-hidden="true"
+      />
+    </div>
+  );
+}
+
+function formatDateForDisplay(isoDate: string): string {
+  const match = isoDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return "";
+  return `${match[3]}/${match[2]}/${match[1]}`;
+}
+
+function parseDisplayDateToIso(displayDate: string): string | null {
+  const match = displayDate.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!match) return null;
+  const day = Number(match[1]);
+  const month = Number(match[2]);
+  const year = Number(match[3]);
+  if (!Number.isInteger(day) || !Number.isInteger(month) || !Number.isInteger(year)) return null;
+  if (year < 1900 || month < 1 || month > 12 || day < 1 || day > 31) return null;
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return null;
+  return `${year.toString().padStart(4, "0")}-${month.toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`;
+}
+
+function formatDateInput(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 8);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
 }
 
 function targetTimePlaceholder(distance: string): string {
