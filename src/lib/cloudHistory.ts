@@ -100,3 +100,39 @@ function dedupeHistoryItems(items: LocalHistoryItem[]) {
   }
   return Array.from(byId.values());
 }
+
+/**
+ * Find an existing meal slot for a given Bangkok-local date and meal type.
+ * Returns the first matching history item, or null if none found.
+ * Uses +07:00 range filter so timezone conversion happens in Postgres.
+ */
+export async function findMealSlotByDateAndType(
+  localDate: string, // YYYY-MM-DD in Bangkok time (UTC+7)
+  mealType: string
+): Promise<LocalHistoryItem | null> {
+  const session = await ensureSupabaseProfileSession();
+  if (!session.ok) return null;
+
+  const { data, error } = await session.supabase
+    .from("history_items")
+    .select("id, type, created_at, data")
+    .eq("user_id", session.userId)
+    .eq("type", "meal")
+    .gte("created_at", `${localDate}T00:00:00+07:00`)
+    .lte("created_at", `${localDate}T23:59:59+07:00`)
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  if (error || !data?.length) return null;
+
+  for (const row of (data as HistoryRow[])) {
+    const rowData = row.data as Record<string, unknown>;
+    const inner = (rowData?.data ?? rowData) as Record<string, unknown>;
+    if (typeof inner?.mealType === "string" && inner.mealType === mealType) {
+      // Skip rows already marked as separate meals
+      if (inner?.isSeparateMeal === true) continue;
+      return { id: row.id, type: row.type, createdAt: row.created_at, data: row.data };
+    }
+  }
+  return null;
+}

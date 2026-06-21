@@ -56,7 +56,7 @@ function buildHistorySummary(ctx: CoachContext): string {
     lines.push(`\nการออกกำลังกาย (${ctx.totalSessions} sessions, วิ่งรวม ${ctx.totalRunKm} km):`);
     for (const day of ctx.workouts7d) {
       const parts: string[] = [`  - ${day.date}:`];
-      for (const r of day.runs) parts.push(`วิ่ง ${r.km.toFixed(2)}km${r.avgHR ? ` HR${r.avgHR}` : ""}${r.pace ? ` pace${r.pace}` : ""}`);
+      for (const r of day.runs) parts.push(`วิ่ง ${Number(r.km).toFixed(2)}km${r.avgHR ? ` HR${r.avgHR}` : ""}${r.pace ? ` pace${r.pace}` : ""}`);
       for (const o of day.other) parts.push(`${o.label} ${o.durationMin}min`);
       lines.push(parts.join(" | "));
     }

@@ -23,14 +23,14 @@ export function AIContextCard() {
   const sleepLatest = context.sleep7d[0];
   const lastWorkout = context.workouts7d[0];
   const runLine = context.lastRun
-    ? `${context.lastRun.km.toFixed(2)} กม. เมื่อ ${context.lastRun.date}${context.lastRun.avgHR ? `, HR เฉลี่ย ${context.lastRun.avgHR}` : ""}${context.lastRun.pace ? `, pace ${context.lastRun.pace}` : ""}`
+    ? `${Number(context.lastRun.km).toFixed(2)} กม. เมื่อ ${context.lastRun.date}${context.lastRun.avgHR ? `, HR เฉลี่ย ${context.lastRun.avgHR}` : ""}${context.lastRun.pace ? `, pace ${context.lastRun.pace}` : ""}`
     : "ยังไม่มีวิ่งใน 7 วันล่าสุด";
 
   const workoutLine = useMemo(() => {
     if (!lastWorkout) return "ยังไม่มี workout ใน 7 วันล่าสุด";
     const parts = [
-      ...lastWorkout.runs.map((run) => `วิ่ง ${run.km.toFixed(2)} กม.`),
-      ...lastWorkout.walks.map((walk) => `เดิน ${walk.km ? `${walk.km.toFixed(2)} กม.` : `${walk.durationMin} นาที`}`),
+      ...lastWorkout.runs.map((run) => `วิ่ง ${Number(run.km).toFixed(2)} กม.`),
+      ...lastWorkout.walks.map((walk) => `เดิน ${walk.km != null ? `${Number(walk.km).toFixed(2)} กม.` : `${walk.durationMin} นาที`}`),
       ...lastWorkout.other.map((item) => `${item.label} ${item.durationMin} นาที`),
     ];
     return `${lastWorkout.date}: ${parts.join(" · ") || "มี workout"}`;

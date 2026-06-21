@@ -8,7 +8,7 @@ import { WorkoutResultCard } from "@/components/WorkoutResultCard";
 import { BodyResultCard } from "@/components/BodyResultCard";
 import { PostRunAnalysisCard } from "@/components/PostRunAnalysisCard";
 import { invalidateCoachCache } from "@/lib/invalidateCoachCache";
-import { createHistoryItem, saveHistoryItems } from "@/lib/cloudHistory";
+import { createHistoryItem, findMealSlotByDateAndType, saveHistoryItems } from "@/lib/cloudHistory";
 import { loadProfileFromSupabase } from "@/lib/profileStorage";
 import { buildCoachContextFromSupabase, type CoachContext } from "@/lib/buildCoachContext";
 import { buildRaceResultFromWorkout, detectRaceMatch, saveRaceResult, type RaceMatch } from "@/lib/raceResults";
@@ -44,6 +44,10 @@ export default function UploadPage() {
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [raceMatch, setRaceMatch] = useState<RaceMatch | null>(null);
   const [raceResultError, setRaceResultError] = useState("");
+  const [mealSlotConflict, setMealSlotConflict] = useState<{
+    existing: import("@/lib/localHistory").LocalHistoryItem;
+    newMeal: MealAnalysis;
+  } | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -129,8 +133,63 @@ export default function UploadPage() {
   }
 
   async function saveMeal(nextMeal: MealAnalysis) {
+    const localDate = toBangkokDate(new Date());
+    const existing = await findMealSlotByDateAndType(localDate, nextMeal.mealType);
+    if (process.env.NODE_ENV === "development") {
+      console.info("[meal-slot-debug]", {
+        localDate,
+        mealType: nextMeal.mealType,
+        existingMealCount: existing ? 1 : 0,
+        action: existing ? "conflict-detected" : "new-save",
+        existingId: existing?.id ?? null,
+      });
+    }
+    if (existing) {
+      setMealSlotConflict({ existing, newMeal: nextMeal });
+      return;
+    }
     await store({ data: nextMeal }, "meal");
     setResult(null);
+  }
+
+  async function saveMealWithAction(
+    action: "merge" | "replace" | "separate",
+    existing: import("@/lib/localHistory").LocalHistoryItem,
+    newMeal: MealAnalysis,
+  ) {
+    setMealSlotConflict(null);
+    const localDate = toBangkokDate(new Date());
+
+    if (action === "separate") {
+      const separateMeal = { ...newMeal, isSeparateMeal: true };
+      const saved = await store({ data: separateMeal }, "meal");
+      if (process.env.NODE_ENV === "development") {
+        console.info("[meal-slot-debug]", {
+          localDate, mealType: newMeal.mealType, chosenAction: "separate", savedHistoryItemId: saved.id,
+        });
+      }
+      setResult(null);
+      return;
+    }
+
+    const existingMeal = (existing.data as { data?: MealAnalysis }).data ?? (existing.data as MealAnalysis);
+    const updatedMeal = action === "merge" ? mergeMealData(existingMeal, newMeal) : newMeal;
+    const updatedItem = { ...existing, data: { data: updatedMeal } };
+
+    setSaveStatus("saving");
+    const saveResult = await saveHistoryItems([updatedItem]);
+    if (!saveResult.ok) { setSaveStatus("error"); return; }
+
+    if (process.env.NODE_ENV === "development") {
+      console.info("[meal-slot-debug]", {
+        localDate, mealType: newMeal.mealType, chosenAction: action,
+        savedHistoryItemId: existing.id,
+        mergedFoodCount: action === "merge" ? updatedMeal.detectedFoods.length : null,
+      });
+    }
+    setSaveStatus("saved");
+    setResult(null);
+    invalidateCoachCache();
   }
 
   function selectUploadType(nextType: UploadType) {
@@ -139,6 +198,7 @@ export default function UploadPage() {
     setSaveStatus("idle");
     setRaceMatch(null);
     setRaceResultError("");
+    setMealSlotConflict(null);
   }
 
   async function saveWorkoutOnly(workout: WorkoutAnalysis) {
@@ -195,13 +255,24 @@ export default function UploadPage() {
         {saveStatus === "error" && <p className="text-xs font-semibold text-red-500">บันทึกไม่สำเร็จ กรุณาลองใหม่</p>}
       </section>
       {result && type === "sleep" ? <SleepResultCard result={(result as { data: SleepAnalysis }).data} /> : null}
-      {result && type === "meal" ? (
+      {result && type === "meal" && !mealSlotConflict ? (
         <MealReviewCard
           initialMeal={(result as { data: MealAnalysis }).data}
           profile={profile}
           context={coachContext}
           onCancel={() => { setResult(null); setSaveStatus("idle"); }}
           onSave={(meal) => void saveMeal(meal)}
+        />
+      ) : null}
+      {mealSlotConflict && type === "meal" ? (
+        <MealSlotConflictCard
+          existing={mealSlotConflict.existing}
+          newMeal={mealSlotConflict.newMeal}
+          saving={saveStatus === "saving"}
+          onMerge={() => void saveMealWithAction("merge", mealSlotConflict.existing, mealSlotConflict.newMeal)}
+          onReplace={() => void saveMealWithAction("replace", mealSlotConflict.existing, mealSlotConflict.newMeal)}
+          onSeparate={() => void saveMealWithAction("separate", mealSlotConflict.existing, mealSlotConflict.newMeal)}
+          onCancel={() => setMealSlotConflict(null)}
         />
       ) : null}
       {result && type === "workout" ? (
@@ -493,4 +564,89 @@ function normalizeDetectedFoods(foods: MealAnalysis["detectedFoods"] | undefined
 
 function hasAnyNutrition(meal: MealAnalysis) {
   return Object.values(meal.nutrition ?? {}).some((value) => value !== null && value !== undefined);
+}
+
+// ── Meal slot helpers ───────────────────────────────────────────────────────
+
+function toBangkokDate(date: Date): string {
+  const bangkokMs = date.getTime() + 7 * 60 * 60 * 1000;
+  return new Date(bangkokMs).toISOString().slice(0, 10);
+}
+
+function sumNullable(a: number | null, b: number | null): number | null {
+  if (a == null && b == null) return null;
+  return Math.round(((a ?? 0) + (b ?? 0)) * 10) / 10;
+}
+
+function mergeMealData(existing: MealAnalysis, incoming: MealAnalysis): MealAnalysis {
+  const seen = new Set<string>();
+  const mergedFoods = [...(existing.detectedFoods ?? []), ...(incoming.detectedFoods ?? [])].filter((f) => {
+    if (seen.has(f.name)) return false;
+    seen.add(f.name);
+    return true;
+  });
+  return {
+    ...incoming,
+    detectedFoods: mergedFoods,
+    nutrition: {
+      caloriesKcal: sumNullable(existing.nutrition.caloriesKcal, incoming.nutrition.caloriesKcal),
+      proteinG: sumNullable(existing.nutrition.proteinG, incoming.nutrition.proteinG),
+      carbsG: sumNullable(existing.nutrition.carbsG, incoming.nutrition.carbsG),
+      fatG: sumNullable(existing.nutrition.fatG, incoming.nutrition.fatG),
+      fiberG: sumNullable(existing.nutrition.fiberG, incoming.nutrition.fiberG),
+    },
+    imageUrl: existing.imageUrl ?? incoming.imageUrl,
+    needsReview: false,
+  };
+}
+
+function MealSlotConflictCard({
+  existing,
+  newMeal,
+  saving,
+  onMerge,
+  onReplace,
+  onSeparate,
+  onCancel,
+}: {
+  existing: import("@/lib/localHistory").LocalHistoryItem;
+  newMeal: MealAnalysis;
+  saving: boolean;
+  onMerge: () => void;
+  onReplace: () => void;
+  onSeparate: () => void;
+  onCancel: () => void;
+}) {
+  const existingMeal = (existing.data as { data?: MealAnalysis }).data ?? (existing.data as MealAnalysis);
+  const mealLabel = MEAL_TYPE_LABELS[newMeal.mealType] ?? newMeal.mealType;
+  const existingFoods = existingMeal.detectedFoods?.map((f) => f.name).join(", ") || `มื้อ${mealLabel}`;
+
+  return (
+    <section className="card space-y-4 p-5">
+      <div>
+        <p className="text-xs font-bold uppercase tracking-[0.22em] text-amber-500">มื้อซ้ำ</p>
+        <h2 className="mt-2 text-xl font-bold text-[#17201d]">วันนี้มีมื้อ{mealLabel}อยู่แล้ว</h2>
+        <p className="mt-1 text-sm text-slate-500">ต้องการทำอะไรกับรูปนี้?</p>
+      </div>
+      <div className="rounded-xl bg-slate-50 px-3 py-2.5">
+        <p className="text-[11px] text-slate-400 mb-0.5">ที่บันทึกไว้</p>
+        <p className="text-sm font-semibold text-[#17201d]">{existingFoods}</p>
+      </div>
+      <div className="space-y-2">
+        <button type="button" className="btn-primary w-full py-3 text-sm" onClick={onMerge} disabled={saving}>
+          เพิ่มเข้าเมื้อเดิม
+        </button>
+        <p className="text-center text-[11px] text-slate-400">รวมอาหารและโภชนาการเข้าด้วยกัน</p>
+        <button type="button" className="btn-secondary w-full py-3 text-sm" onClick={onReplace} disabled={saving}>
+          แทนที่ข้อมูลเดิม
+        </button>
+        <button type="button" className="w-full rounded-full bg-slate-50 py-3 text-sm font-bold text-slate-600" onClick={onSeparate} disabled={saving}>
+          บันทึกเป็นมื้อใหม่
+        </button>
+        <button type="button" className="w-full pt-1 text-xs text-slate-400" onClick={onCancel} disabled={saving}>
+          ยกเลิก
+        </button>
+      </div>
+    </section>
+  );
 }

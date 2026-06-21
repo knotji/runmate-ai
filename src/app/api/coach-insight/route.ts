@@ -91,7 +91,8 @@ function buildUserPrompt(ctx: CoachContext): string {
   lines.push(`\nการออกกำลังกาย 7 วันล่าสุด (รวม ${ctx.totalRunKm} km วิ่ง, ${ctx.totalSessions} sessions):`);
   lines.push(`Run days: ${ctx.runDays7d}, longest run: ${ctx.longestRun7dKm ?? "unknown"} km, last workout: ${ctx.lastWorkoutDate ?? "unknown"}`);
   if (ctx.lastRun) {
-    lines.push(`Last run: ${ctx.lastRun.date}, ${ctx.lastRun.km.toFixed(2)} km, ${ctx.lastRun.durationMin} min, HR ${ctx.lastRun.avgHR ?? "unknown"}, pace ${ctx.lastRun.pace ?? "unknown"}`);
+    const lastRunKm = typeof ctx.lastRun.km === "number" ? ctx.lastRun.km.toFixed(2) : String(ctx.lastRun.km ?? "?");
+    lines.push(`Last run: ${ctx.lastRun.date}, ${lastRunKm} km, ${ctx.lastRun.durationMin} min, HR ${ctx.lastRun.avgHR ?? "unknown"}, pace ${ctx.lastRun.pace ?? "unknown"}`);
   }
 
   if (ctx.workouts7d.length === 0) {
@@ -100,10 +101,10 @@ function buildUserPrompt(ctx: CoachContext): string {
     for (const day of ctx.workouts7d) {
       const parts: string[] = [`${day.date}:`];
       for (const r of day.runs) {
-        parts.push(`วิ่ง ${r.km.toFixed(2)}km ${r.durationMin}min${r.avgHR ? ` HR${r.avgHR}` : ""}${r.pace ? ` pace${r.pace}` : ""}`);
+        parts.push(`วิ่ง ${Number(r.km).toFixed(2)}km ${r.durationMin}min${r.avgHR ? ` HR${r.avgHR}` : ""}${r.pace ? ` pace${r.pace}` : ""}`);
       }
       for (const w of day.walks) {
-        parts.push(`เดิน${w.km ? ` ${w.km.toFixed(2)}km` : ""} ${w.durationMin}min`);
+        parts.push(`เดิน${w.km != null ? ` ${Number(w.km).toFixed(2)}km` : ""} ${w.durationMin}min`);
       }
       for (const o of day.other) {
         parts.push(`${o.label} ${o.durationMin}min`);
