@@ -143,5 +143,15 @@ function parseDataUrl(dataUrl: string) {
 
 function parseJson<T>(raw: string): T {
   const trimmed = raw.trim().replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```$/i, "");
-  return JSON.parse(trimmed) as T;
+  try {
+    return JSON.parse(trimmed) as T;
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn("[ai-json-parse-error]", {
+        errorMessage: error instanceof Error ? error.message : String(error),
+        rawResponsePrefix: trimmed.slice(0, 600),
+      });
+    }
+    throw error;
+  }
 }

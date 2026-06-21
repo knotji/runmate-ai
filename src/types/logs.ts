@@ -55,6 +55,7 @@ export type MealAnalysis = {
   };
   confidence: "low" | "medium" | "high";
   needsReview: boolean;
+  errorLikeMessage?: string | null;
   imageUrl?: string | null;
   createdAt?: string;
   extracted?: {

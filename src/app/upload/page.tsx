@@ -92,11 +92,6 @@ export default function UploadPage() {
       const data = ((next as { data?: MealAnalysis }).data ?? next) as MealAnalysis;
       const imageUrl = (next as { imageUrl?: string | null }).imageUrl ?? data.imageUrl ?? null;
       const meal = normalizeMealAnalysis({ ...data, imageUrl, mealType });
-      const hasFood = meal.detectedFoods.length > 0;
-      const hasNutrition = Object.values(meal.nutrition).some((value) => value != null);
-      if (!hasFood && !hasNutrition) {
-        throw new Error("รูปนี้อาจไม่ใช่อาหาร ลองเลือกรูปอาหารอีกครั้ง");
-      }
       setResult({ data: meal });
       setSaveStatus("idle");
       return;
@@ -268,6 +263,9 @@ function MealReviewSummary({ meal, profile, context }: { meal: MealAnalysis; pro
         <p className="text-xs font-semibold text-slate-400">{meal.mealType}</p>
         <p className="text-lg font-bold text-[#17201d]">{foods}</p>
       </div>
+      {meal.errorLikeMessage ? (
+        <p className="rounded-2xl bg-amber-50 p-3 text-xs font-semibold leading-5 text-amber-700">{meal.errorLikeMessage}</p>
+      ) : null}
       <div className="grid grid-cols-2 gap-2">
         <ReviewMetric label="Calories" value={formatCalories(meal.nutrition.caloriesKcal)} />
         <ReviewMetric label="Protein" value={formatMacro(meal.nutrition.proteinG)} />
@@ -318,6 +316,7 @@ function normalizeMealAnalysis(meal: MealAnalysis): MealAnalysis {
     },
     confidence: meal.confidence ?? "low",
     needsReview: meal.needsReview ?? true,
+    errorLikeMessage: meal.errorLikeMessage ?? null,
     imageUrl: meal.imageUrl ?? null,
     createdAt: meal.createdAt,
   };

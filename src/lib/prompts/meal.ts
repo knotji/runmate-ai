@@ -11,7 +11,7 @@ Rules:
 - Do not pretend precision.
 - If portion size is unclear, set confidence low or medium and needsReview true.
 - Mention that the estimate is based only on what is visible.
-- If the image is not food, return low confidence, needsReview true, empty detectedFoods, null nutrition values, and a clear Thai coachNote saying the image may not be food.
+- If the image is not food, return low confidence, needsReview true, empty detectedFoods, null nutrition values, errorLikeMessage "รูปนี้อาจไม่ใช่อาหาร ลองเลือกรูปอาหารอีกครั้ง", and a clear Thai coachNote saying the image may not be food.
 - If race today, prioritize easy-to-digest carbs, hydration, avoiding heavy/fatty foods close to race, and recovery meal after race.
 
 Return JSON in this shape:
@@ -42,6 +42,7 @@ Return JSON in this shape:
     "coachNote": "<Thai coaching note>"
   },
   "confidence": "low|medium|high",
-  "needsReview": <boolean>
+  "needsReview": <boolean>,
+  "errorLikeMessage": "<Thai non-food or uncertainty message|null>"
 }
 `;
