@@ -27,7 +27,9 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("profile");
   const [runnerProfile, setRunnerProfile] = useState<UserProfile | null>(null);
   const [envDebug, setEnvDebug] = useState<EnvDebug | null>(null);
+  const [versionCopied, setVersionCopied] = useState(false);
   const profileFormKey = runnerProfile?.updatedAt ?? runnerProfile?.id ?? "empty-profile";
+  const buildMeta = getBuildMetadata();
 
   useEffect(() => {
     fetch("/api/debug/env")
@@ -62,6 +64,22 @@ export default function SettingsPage() {
     const supabase = createClient();
     if (supabase) await supabase.auth.signOut();
     router.replace("/login");
+  }
+
+  async function copyBuildInfo() {
+    const text = [
+      `RunMate AI v${buildMeta.version}`,
+      `Build: ${buildMeta.fullSha}`,
+      `Environment: ${buildMeta.environment}`,
+      `Updated: ${buildMeta.rawBuildTime}`,
+    ].join("\n");
+    try {
+      await navigator.clipboard.writeText(text);
+      setVersionCopied(true);
+      window.setTimeout(() => setVersionCopied(false), 1800);
+    } catch (error) {
+      console.warn("[version-copy-error]", error instanceof Error ? error.message : String(error));
+    }
   }
 
   return (
@@ -147,8 +165,84 @@ export default function SettingsPage() {
           </button>
         </div>
       )}
+
+      <section className="mt-5 rounded-3xl border border-[var(--border-warm)] bg-white/45 px-4 py-3 text-xs text-[var(--muted-text)]">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">เกี่ยวกับแอป</p>
+            <p className="mt-1 font-semibold text-[var(--foreground)]">RunMate AI v{buildMeta.version}</p>
+            <p className="mt-0.5">
+              Build {buildMeta.shortSha} · {buildMeta.environment}
+            </p>
+            <p className="mt-0.5">Updated {buildMeta.displayBuildTime}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => void copyBuildInfo()}
+            className="shrink-0 rounded-full bg-[var(--surface-muted)] px-3 py-1.5 text-[11px] font-bold text-[var(--muted-text)] hover:bg-[var(--primary-soft)]"
+          >
+            {versionCopied ? "คัดลอกแล้ว" : "คัดลอก"}
+          </button>
+        </div>
+      </section>
     </AppShell>
   );
+}
+
+type BuildMetadata = {
+  version: string;
+  fullSha: string;
+  shortSha: string;
+  rawBuildTime: string;
+  displayBuildTime: string;
+  environment: string;
+};
+
+function getBuildMetadata(): BuildMetadata {
+  const version = cleanMeta(process.env.NEXT_PUBLIC_APP_VERSION) || "dev";
+  const fullSha = cleanMeta(process.env.NEXT_PUBLIC_GIT_SHA) || "local";
+  const deployEnv = cleanMeta(process.env.NEXT_PUBLIC_DEPLOY_ENV) || "local";
+  const rawBuildTime = cleanMeta(process.env.NEXT_PUBLIC_BUILD_TIME) || "-";
+  return {
+    version,
+    fullSha,
+    shortSha: fullSha === "local" ? "local" : fullSha.slice(0, 7),
+    rawBuildTime,
+    displayBuildTime: formatBuildTime(rawBuildTime),
+    environment: formatDeployEnv(deployEnv),
+  };
+}
+
+function cleanMeta(value: string | undefined): string {
+  return typeof value === "string" && value.trim() ? value.trim() : "";
+}
+
+function formatDeployEnv(value: string): string {
+  const normalized = value.toLowerCase();
+  if (normalized === "production") return "Production";
+  if (normalized === "preview") return "Preview";
+  if (normalized === "development") return "Development";
+  if (normalized === "local") return "Local";
+  return value || "Local";
+}
+
+function formatBuildTime(value: string): string {
+  if (!value || value === "-" || value === "local") return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  try {
+    return new Intl.DateTimeFormat("th-TH-u-ca-gregory", {
+      timeZone: "Asia/Bangkok",
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).format(date);
+  } catch {
+    return value;
+  }
 }
 
 function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: ReactNode }) {

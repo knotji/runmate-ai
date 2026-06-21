@@ -26,9 +26,14 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_APP_VERSION=0.1.0
+NEXT_PUBLIC_GIT_SHA=local
+NEXT_PUBLIC_BUILD_TIME=
+NEXT_PUBLIC_DEPLOY_ENV=local
 ```
 
 Set `AI_PROVIDER=gemini` to use Gemini first, or `AI_PROVIDER=openai` to use OpenAI first. Never expose `GEMINI_API_KEY`, `OPENAI_API_KEY`, or `SUPABASE_SERVICE_ROLE_KEY` in client components.
+The `NEXT_PUBLIC_APP_VERSION`, `NEXT_PUBLIC_GIT_SHA`, `NEXT_PUBLIC_BUILD_TIME`, and `NEXT_PUBLIC_DEPLOY_ENV` values are safe public build metadata shown on the Settings page. On Vercel, `NEXT_PUBLIC_GIT_SHA` and `NEXT_PUBLIC_DEPLOY_ENV` can fall back to `VERCEL_GIT_COMMIT_SHA` and `VERCEL_ENV` at build time.
 
 ## Supabase setup
 
