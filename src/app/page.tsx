@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { formatThaiDate } from "@/lib/date";
-import { buildCoachContextFromSupabase } from "@/lib/buildCoachContext";
+import { buildCoachContextFromSupabase, type CoachContext, type NutritionDaySummary } from "@/lib/buildCoachContext";
 import { loadActiveRaceGoalAndPlan } from "@/lib/raceStorage";
 import type { RaceGoal } from "@/types/race";
 import type { DailyCoachInsight } from "@/types/ai";
@@ -19,6 +19,7 @@ const QUICK_ACTIONS = [
 export default function TodayPage() {
   const [goal, setGoal] = useState<RaceGoal | null>(null);
   const [insight, setInsight] = useState<DailyCoachInsight | null>(null);
+  const [coachCtx, setCoachCtx] = useState<CoachContext | null>(null);
   const [loading, setLoading] = useState(false);
   const [insightError, setInsightError] = useState(false);
   const [hasHistory, setHasHistory] = useState(false);
@@ -30,6 +31,7 @@ export default function TodayPage() {
     setInsightError(false);
     try {
       const ctx = await buildCoachContextFromSupabase();
+      setCoachCtx(ctx);
       const hasSomeData = ctx.sleep7d.length > 0 || ctx.workouts7d.length > 0 || ctx.latestBody != null || !!ctx.raceGoal;
       setHasHistory(hasSomeData);
       if (!hasSomeData) return;
@@ -162,6 +164,11 @@ export default function TodayPage() {
         </section>
       )}
 
+      {/* ── Today nutrition mini-card ─────────────────────────── */}
+      {coachCtx?.nutritionToday && (
+        <TodayNutritionCard nutrition={coachCtx.nutritionToday} profile={coachCtx.profile} />
+      )}
+
       {/* ── Quick actions ─────────────────────────────────────── */}
       <section className="card p-4">
         <div className="grid grid-cols-4 gap-1">
@@ -220,4 +227,48 @@ function readinessText(score: number): string {
   if (score >= 65) return "text-[#42677f]";
   if (score >= 50) return "text-amber-600";
   return "text-red-500";
+}
+
+function todayProteinTarget(profile: Record<string, unknown> | null): number {
+  const pt = Number(profile?.proteinTargetG);
+  if (Number.isFinite(pt) && pt > 0) return Math.round(pt);
+  const wt = Number(profile?.weightKg);
+  if (Number.isFinite(wt) && wt > 0) return Math.round(wt * 1.6);
+  return 90;
+}
+
+function TodayNutritionCard({ nutrition, profile }: { nutrition: NutritionDaySummary; profile: Record<string, unknown> | null }) {
+  const target = todayProteinTarget(profile);
+  const actual = nutrition.proteinG;
+  const remaining = actual != null ? target - actual : null;
+  const status =
+    actual == null ? null
+    : actual / target < 0.7 ? "น้อยไป"
+    : actual / target < 0.9 ? "ใกล้ถึง"
+    : actual / target <= 1.2 ? "ดี"
+    : "เกินเป้า";
+
+  return (
+    <section className="card px-5 py-4 space-y-2">
+      <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">โภชนาการวันนี้</p>
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-sm font-bold text-[#17201d]">
+          💪 Protein {actual ?? "-"} / {target} g
+        </span>
+        {status && (
+          <span className="rounded-full bg-orange-50 px-2.5 py-0.5 text-xs font-bold text-orange-700">{status}</span>
+        )}
+      </div>
+      <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-slate-500">
+        {nutrition.carbsG != null && <span>Carbs {nutrition.carbsG} g</span>}
+        {nutrition.caloriesKcal != null && <span>{nutrition.caloriesKcal} kcal</span>}
+        <span>{nutrition.mealCount} มื้อ</span>
+      </div>
+      {remaining != null && (
+        <p className="text-xs text-slate-500">
+          {remaining > 0 ? `โปรตีนยังขาดอีกประมาณ ${remaining} g` : "ถึงเป้าโปรตีนแล้ว"}
+        </p>
+      )}
+    </section>
+  );
 }

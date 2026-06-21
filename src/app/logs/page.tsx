@@ -4,9 +4,11 @@ import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { loadHistoryItems } from "@/lib/cloudHistory";
 import { loadRaceResults } from "@/lib/raceResults";
+import { loadProfileFromSupabase } from "@/lib/profileStorage";
 import type { LocalHistoryItem } from "@/lib/localHistory";
 import type { SleepAnalysis, WorkoutAnalysis, MealAnalysis, DailySummary, BodyCompositionAnalysis } from "@/types/logs";
 import type { RaceResult } from "@/types/race";
+import type { UserProfile } from "@/types/profile";
 import {
   formatDistanceKm,
   formatDuration,
@@ -24,6 +26,7 @@ import {
 export default function ReportPage() {
   const [items, setItems] = useState<LocalHistoryItem[]>([]);
   const [raceResults, setRaceResults] = useState<RaceResult[]>([]);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -31,8 +34,13 @@ export default function ReportPage() {
     let alive = true;
     async function load() {
       setLoading(true);
-      const [result, raceResult] = await Promise.all([loadHistoryItems(), loadRaceResults(50)]);
+      const [result, raceResult, profileResult] = await Promise.all([
+        loadHistoryItems(),
+        loadRaceResults(50),
+        loadProfileFromSupabase(),
+      ]);
       if (!alive) return;
+      if (profileResult.ok) setProfile(profileResult.profile ?? null);
       if (result.ok) {
         setItems(result.items);
         if (raceResult.ok) {
@@ -61,6 +69,7 @@ export default function ReportPage() {
   const raceResultsByDate = groupRaceResultsByDate(raceResults);
   const days = groupByDay(items);
   const dashboard = buildDashboard(items);
+  const pTarget = proteinTargetGrams(profile);
 
   return (
     <AppShell title="Report" subtitle="บันทึกสะสมรายวัน">
@@ -75,15 +84,17 @@ export default function ReportPage() {
         </section>
       ) : (
         <>
-          <WeeklyDashboard dashboard={dashboard} />
-          {days.map((day) => <DayCard key={day.date} day={day} raceResults={raceResultsByDate.get(day.date) ?? []} />)}
+          <WeeklyDashboard dashboard={dashboard} proteinTarget={pTarget} />
+          {days.map((day) => (
+            <DayCard key={day.date} day={day} raceResults={raceResultsByDate.get(day.date) ?? []} proteinTarget={pTarget} />
+          ))}
         </>
       )}
     </AppShell>
   );
 }
 
-function WeeklyDashboard({ dashboard }: { dashboard: Dashboard }) {
+function WeeklyDashboard({ dashboard, proteinTarget }: { dashboard: Dashboard; proteinTarget: number }) {
   return (
     <section className="card space-y-4 p-5">
       <div>
@@ -97,7 +108,7 @@ function WeeklyDashboard({ dashboard }: { dashboard: Dashboard }) {
         <DashboardMetric label="Readiness avg" value={dashboard.avgReadiness != null ? formatScore(dashboard.avgReadiness) : "-"} sub={dashboard.readinessTrend} />
         <DashboardMetric label="Sleep avg" value={dashboard.avgSleepHours != null ? `${formatDecimal(dashboard.avgSleepHours)} h` : "-"} sub={`${dashboard.sleepCount} nights`} />
         <DashboardMetric label="Meal kcal avg" value={dashboard.avgMealCalories != null ? formatCalories(dashboard.avgMealCalories) : "-"} sub="ประเมินจากรูปอาหาร" />
-        <DashboardMetric label="Protein avg" value={dashboard.avgMealProtein != null ? formatMacro(dashboard.avgMealProtein) : "-"} sub="meals logged" />
+        <DashboardMetric label="Protein avg / day" value={dashboard.avgMealProtein != null ? formatMacro(dashboard.avgMealProtein) : "-"} sub={`target ${proteinTarget} g`} />
       </div>
       <div className="grid grid-cols-3 gap-2">
         <DashboardMetric label="Weight" value={dashboard.latestBody?.weightKg != null ? `${formatDecimal(dashboard.latestBody.weightKg)} kg` : "-"} compact />
@@ -120,7 +131,7 @@ function DashboardMetric({ label, value, sub, compact = false }: { label: string
 
 // ─── Day card ─────────────────────────────────────────────────────────────────
 
-function DayCard({ day, raceResults }: { day: DayGroup; raceResults: RaceResult[] }) {
+function DayCard({ day, raceResults, proteinTarget }: { day: DayGroup; raceResults: RaceResult[]; proteinTarget: number }) {
   const [expanded, setExpanded] = useState(false);
 
   const sleeps = day.items.filter((i) => i.type === "sleep");
@@ -135,6 +146,7 @@ function DayCard({ day, raceResults }: { day: DayGroup; raceResults: RaceResult[
   const walkKm = getTotalKm(workouts.filter(isWalk));
   const mealCount = meals.length;
   const mealNutrition = getMealNutrition(meals);
+  const proteinStatus = mealNutrition.proteinG != null ? calcProteinStatus(mealNutrition.proteinG, proteinTarget) : null;
 
   return (
     <section className="card overflow-hidden">
@@ -146,16 +158,27 @@ function DayCard({ day, raceResults }: { day: DayGroup; raceResults: RaceResult[
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">{day.label}</p>
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {sleeps.length > 0 && <Badge icon="🌙" label="นอน" />}
-              {workouts.some((w) => isRun(w)) && <Badge icon="🏃" label={runKm ? formatDistanceKm(runKm) : "วิ่ง"} color="green" />}
-              {workouts.some((w) => isWalk(w)) && <Badge icon="🚶" label={walkKm ? formatDistanceKm(walkKm) : "เดิน"} />}
-              {workouts.some((w) => !isRun(w) && !isWalk(w)) && <Badge icon="💪" label="เวท" color="blue" />}
-              {mealCount > 0 && <Badge icon="🍱" label={`${mealCount} มื้อ`} color="orange" />}
-              {mealNutrition.caloriesKcal != null && <Badge icon="🔥" label={formatCalories(mealNutrition.caloriesKcal)} color="orange" />}
-              {raceResults.length > 0 && <Badge icon="🏁" label="Race Result" color="green" />}
-              {bodies.length > 0 && <Badge icon="⚖️" label="ชั่งน้ำหนัก" />}
-              {summaries.length > 0 && sleeps.length === 0 && workouts.length === 0 && <Badge icon="💬" label="บทสนทนา" />}
+            <div className="mt-2 space-y-1.5">
+              {/* Activity row */}
+              <div className="flex flex-wrap gap-1.5">
+                {sleeps.length > 0 && <Badge icon="🌙" label="นอน" />}
+                {workouts.some((w) => isRun(w)) && <Badge icon="🏃" label={runKm ? formatDistanceKm(runKm) : "วิ่ง"} color="green" />}
+                {workouts.some((w) => isWalk(w)) && <Badge icon="🚶" label={walkKm ? formatDistanceKm(walkKm) : "เดิน"} />}
+                {workouts.some((w) => !isRun(w) && !isWalk(w)) && <Badge icon="💪" label="เวท" color="blue" />}
+                {raceResults.length > 0 && <Badge icon="🏁" label="Race Result" color="green" />}
+                {bodies.length > 0 && <Badge icon="⚖️" label="ชั่งน้ำหนัก" />}
+                {summaries.length > 0 && sleeps.length === 0 && workouts.length === 0 && <Badge icon="💬" label="บทสนทนา" />}
+              </div>
+              {/* Nutrition row */}
+              {mealCount > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  <Badge icon="🍽" label={`${mealCount} มื้อ`} color="orange" />
+                  {mealNutrition.caloriesKcal != null && <Badge icon="🔥" label={formatCalories(mealNutrition.caloriesKcal)} color="orange" />}
+                  {mealNutrition.proteinG != null && (
+                    <Badge icon="💪" label={`${mealNutrition.proteinG}/${proteinTarget}g · ${proteinStatus}`} color="orange" />
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -184,7 +207,7 @@ function DayCard({ day, raceResults }: { day: DayGroup; raceResults: RaceResult[
           {sleeps.map((item) => <SleepDetail key={item.id} item={item} />)}
           {raceResults.map((result) => <RaceResultDetail key={result.id ?? `${result.raceDate}-${result.raceName}`} result={result} />)}
           {workouts.map((item) => <WorkoutDetail key={item.id} item={item} />)}
-          {mealCount > 0 && <MealNutritionDaySummary summary={mealNutrition} mealCount={mealCount} />}
+          {mealCount > 0 && <MealNutritionDaySummary summary={mealNutrition} mealCount={mealCount} proteinTarget={proteinTarget} />}
           {meals.map((item) => <MealDetail key={item.id} item={item} />)}
           {bodies.map((item) => <BodyDetail key={item.id} item={item} />)}
           {summaries.length > 0 && (sleeps.length + workouts.length + meals.length + bodies.length === 0) &&
@@ -312,20 +335,28 @@ function MealDetail({ item }: { item: LocalHistoryItem }) {
   );
 }
 
-function MealNutritionDaySummary({ summary, mealCount }: { summary: MealNutritionSummary; mealCount: number }) {
+function MealNutritionDaySummary({ summary, mealCount, proteinTarget }: { summary: MealNutritionSummary; mealCount: number; proteinTarget: number }) {
+  const status = summary.proteinG != null ? calcProteinStatus(summary.proteinG, proteinTarget) : null;
+  const coachNote = summary.proteinG != null ? proteinCoachNote(summary.proteinG, proteinTarget) : null;
+  const proteinDisplay = summary.proteinG != null ? `${summary.proteinG} / ${proteinTarget} g` : "-";
+
   return (
     <div className="rounded-2xl bg-orange-50 p-4">
       <p className="text-xs font-bold uppercase tracking-wide text-orange-600 mb-2">Nutrition Summary</p>
       <div className="grid grid-cols-4 gap-2">
         <Metric label="Calories" value={formatCalories(summary.caloriesKcal)} />
-        <Metric label="Protein" value={formatMacro(summary.proteinG)} />
+        <div className="rounded-xl bg-white p-2.5 text-center">
+          <p className="text-xs text-slate-400 truncate">Protein</p>
+          <p className="mt-0.5 text-sm font-bold leading-tight">{proteinDisplay}</p>
+          {status && <p className="text-[10px] text-orange-600 font-semibold mt-0.5">{status}</p>}
+        </div>
         <Metric label="Carbs" value={formatMacro(summary.carbsG)} />
         <Metric label="Fat" value={formatMacro(summary.fatG)} />
       </div>
       <p className="mt-2 text-xs text-orange-700">
         {mealCount} meals · ประเมินจากรูปอาหาร
       </p>
-      <p className="mt-2 text-sm font-semibold text-[#17201d]">{mealCoachVerdict(summary)}</p>
+      {coachNote && <p className="mt-2 text-sm font-semibold text-[#17201d]">{coachNote}</p>}
     </div>
   );
 }
@@ -534,12 +565,24 @@ function getMealNutrition(meals: LocalHistoryItem[]): MealNutritionSummary {
   return totals;
 }
 
-function mealCoachVerdict(summary: MealNutritionSummary) {
-  if (summary.proteinG == null && summary.carbsG == null) return "ยังประเมินภาพรวมโภชนาการไม่ได้จากรูปวันนี้";
-  if ((summary.proteinG ?? 0) >= 80 && (summary.carbsG ?? 0) >= 180) return "เชื้อเพลิงวันนี้ดูช่วย recovery และการซ้อมได้ดี";
-  if ((summary.proteinG ?? 0) < 60) return "โปรตีนวันนี้ยังดูน้อยสำหรับ recovery ลองเติมโปรตีนในมื้อถัดไป";
-  if ((summary.carbsG ?? 0) < 140) return "คาร์บวันนี้ค่อนข้างเบา ถ้าพรุ่งนี้ซ้อมหนักหรือวิ่งยาวควรเติมเพิ่ม";
-  return "ภาพรวมวันนี้พอใช้สำหรับการซ้อมเบา ๆ และ recovery";
+function proteinTargetGrams(profile: UserProfile | null): number {
+  if (profile?.proteinTargetG && profile.proteinTargetG > 0) return Math.round(profile.proteinTargetG);
+  if (profile?.weightKg && profile.weightKg > 0) return Math.round(profile.weightKg * 1.6);
+  return 90;
+}
+
+function calcProteinStatus(actual: number, target: number): string {
+  const pct = actual / target;
+  if (pct < 0.7) return "น้อยไป";
+  if (pct < 0.9) return "ใกล้ถึง";
+  if (pct <= 1.2) return "ดี";
+  return "เกินเป้า";
+}
+
+function proteinCoachNote(actual: number, target: number): string {
+  const remaining = target - actual;
+  if (remaining <= 0) return "โปรตีนวันนี้ถึงเป้าแล้ว ช่วยเรื่องฟื้นตัวได้ดี";
+  return `วันนี้โปรตีนยังขาดประมาณ ${remaining} g เพิ่มโปรตีนอีกมื้อเล็ก ๆ ได้`;
 }
 
 function sumNutrition(meals: LocalHistoryItem[], key: keyof MealAnalysis["nutrition"]): number | null {
