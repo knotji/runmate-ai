@@ -5,6 +5,20 @@ import { loadRoutinesFromSupabase, saveRoutineToSupabase, deleteRoutineFromSupab
 import { buildCoachContextFromSupabase, type CoachContext } from "@/lib/buildCoachContext";
 import type { StrengthRoutine, AIPrescription, StrengthExercise } from "@/types/strength";
 
+function getShortName(r: StrengthRoutine) {
+  if (r.id === "recovery") return "Recovery";
+  if (r.id === "fullbody") return "Full Body";
+  if (r.id === "core") return "Core & Abs";
+  return r.name;
+}
+
+function formatRepsDuration(ex: StrengthExercise) {
+  if (ex.durationSec) {
+    return `${ex.sets} เซ็ต × ${ex.durationSec} วิ`;
+  }
+  return `${ex.sets} เซ็ต × ${ex.reps} ครั้ง`;
+}
+
 export function StrengthRoutineManager() {
   const [routines, setRoutines] = useState<StrengthRoutine[]>([]);
   const [selectedRoutine, setSelectedRoutine] = useState<StrengthRoutine | null>(null);
@@ -343,18 +357,17 @@ export function StrengthRoutineManager() {
 
   return (
     <section className="card p-5 space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">Routines</p>
-          <h2 className="mt-1 text-xl font-bold text-[#17201d]">รูทีนเวทเทรนนิ่ง</h2>
+          <h2 className="text-xl font-bold text-[#17201d]">รูทีนเวท</h2>
           <p className="text-xs text-slate-500 leading-relaxed mt-0.5">
-            จัดการเทมเพลตเวทและจำลองโค้ช AI ประเมินปรับปรุงท่า/ความเหนื่อยได้
+            จัดการรูทีนและให้ AI ปรับตามสภาพร่างกายวันนี้
           </p>
         </div>
         <button
           type="button"
           onClick={handleStartAdd}
-          className="rounded-full bg-slate-100 hover:bg-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600"
+          className="rounded-full bg-slate-100 hover:bg-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600 whitespace-nowrap flex-shrink-0"
         >
           + เพิ่มรูทีน
         </button>
@@ -365,7 +378,7 @@ export function StrengthRoutineManager() {
 
       {/* Routine Selector Dropdown/Tabs */}
       <div className="space-y-3">
-        <div className="flex flex-wrap gap-1.5 border-b border-slate-100 pb-3">
+        <div className="flex flex-wrap gap-2 border-b border-slate-100 pb-3">
           {routines.map((r) => (
             <button
               key={r.id}
@@ -374,25 +387,24 @@ export function StrengthRoutineManager() {
                 setSelectedRoutine(r);
                 setPrescription(null);
               }}
-              className={`rounded-full px-3 py-1.5 text-xs font-bold transition-all border ${selectedRoutine?.id === r.id ? "bg-[#17201d] text-white border-[#17201d]" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"}`}
+              className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition-all border ${selectedRoutine?.id === r.id ? "bg-[#17201d] text-white border-[#17201d]" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"}`}
             >
-              {r.name}
+              {getShortName(r)}
             </button>
           ))}
         </div>
 
         {selectedRoutine && (
           <div className="space-y-4">
-            <div className="flex justify-between items-start gap-4">
+            <div className="flex justify-between items-center gap-4">
               <div>
                 <h4 className="text-base font-bold text-[#17201d]">{selectedRoutine.name}</h4>
                 <p className="text-xs text-slate-500 mt-0.5">{selectedRoutine.description}</p>
-                <div className="flex gap-4 mt-2 text-xs text-slate-400">
-                  <span>วอร์ม: {selectedRoutine.warmupMin} นาที</span>
-                  <span>คูลดาวน์: {selectedRoutine.cooldownMin} นาที</span>
-                </div>
+                <p className="text-xs text-slate-400 mt-1.5">
+                  Warm-up {selectedRoutine.warmupMin} นาที · Cool down {selectedRoutine.cooldownMin} นาที
+                </p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-shrink-0">
                 <button
                   type="button"
                   onClick={() => setEditingRoutine({ ...selectedRoutine })}
@@ -417,13 +429,13 @@ export function StrengthRoutineManager() {
 
             {/* List Exercises */}
             <div className="space-y-2 bg-slate-50/50 rounded-2xl p-3 border border-slate-100">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">ท่าฝึกซ้อมในโปรแกรม</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">ท่าในรูทีน</p>
               <div className="divide-y divide-slate-100">
                 {selectedRoutine.exercises.map((ex, i) => (
                   <div key={i} className="text-xs flex justify-between items-center py-2">
                     <p className="font-semibold text-slate-700">{ex.name}</p>
-                    <p className="text-slate-500 font-medium shrink-0">
-                      {ex.sets} เซ็ต × {ex.reps} {ex.durationSec ? `(${ex.durationSec} วิ)` : ""}
+                    <p className="text-slate-500 font-medium shrink-0 ml-2">
+                      {formatRepsDuration(ex)}
                     </p>
                   </div>
                 ))}
@@ -455,33 +467,33 @@ export function StrengthRoutineManager() {
                         <p className="font-semibold text-slate-800">{ex.name}</p>
                         {ex.modificationNote && <p className="text-[10px] text-green-700 mt-0.5">💡 {ex.modificationNote}</p>}
                       </div>
-                      <p className="text-slate-500 font-medium shrink-0">
-                        {ex.sets} เซ็ต × {ex.reps} {ex.durationSec ? `(${ex.durationSec} วิ)` : ""}
+                      <p className="text-slate-500 font-medium shrink-0 ml-2">
+                        {formatRepsDuration(ex)}
                       </p>
                     </div>
                   ))}
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 pt-1">
+                <div className="flex flex-col gap-2 sm:flex-row pt-1">
                   <button
                     type="button"
                     disabled={logging}
                     onClick={() => handleLogWorkout("ai_prescription")}
-                    className="btn-primary py-2 text-xs"
+                    className="btn-primary flex-1 py-2.5 text-xs font-bold"
                   >
-                    {logging ? "กำลังบันทึก…" : "บันทึกการซ้อมวันนี้ (AI)"}
+                    {logging ? "กำลังบันทึก…" : "บันทึกวันนี้"}
                   </button>
                   <button
                     type="button"
                     onClick={() => setPrescription(null)}
-                    className="btn-secondary py-2 text-xs"
+                    className="btn-secondary flex-1 py-2.5 text-xs font-bold"
                   >
                     กลับแผนปกติ
                   </button>
                 </div>
               </div>
             ) : (
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row">
                 <button
                   type="button"
                   disabled={loadingAI}
@@ -489,7 +501,7 @@ export function StrengthRoutineManager() {
                   className="btn-primary flex-1 py-2.5 text-xs font-bold flex items-center justify-center gap-1.5"
                 >
                   {loadingAI && <div className="h-3 w-3 animate-spin rounded-full border border-slate-300 border-t-slate-600" />}
-                  {loadingAI ? "AI กำลังปรับ…" : "✨ AI ปรับให้วันนี้"}
+                  {loadingAI ? "AI กำลังปรับ…" : "AI ปรับให้วันนี้"}
                 </button>
                 <button
                   type="button"
@@ -497,7 +509,7 @@ export function StrengthRoutineManager() {
                   onClick={() => handleLogWorkout("saved_routine")}
                   className="btn-secondary flex-1 py-2.5 text-xs font-bold"
                 >
-                  {logging ? "กำลังบันทึก…" : "บันทึกการฝึกซ้อมวันนี้"}
+                  {logging ? "กำลังบันทึก…" : "บันทึกวันนี้"}
                 </button>
               </div>
             )}
