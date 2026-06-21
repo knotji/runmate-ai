@@ -1,5 +1,5 @@
 import type { LocalHistoryItem } from "./localHistory";
-import type { SleepAnalysis, WorkoutAnalysis } from "@/types/logs";
+import type { BodyCompositionAnalysis, SleepAnalysis, WorkoutAnalysis } from "@/types/logs";
 
 const DAY_NAMES_TH = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัส", "ศุกร์", "เสาร์"];
 const TZ_MS = 7 * 60 * 60 * 1000;
@@ -26,6 +26,8 @@ export type RunnerHistoryStats = {
   averageEnergyScore: number | null;
   averageRestingHR: number | null;
   averageHRV: number | null;
+  latestWeightKg: number | null;
+  latestBodyFatPercent: number | null;
 };
 
 export type ProfileAnalysisSuggestions = {
@@ -193,6 +195,23 @@ export function buildRunnerHistoryStats(items: LocalHistoryItem[] = []): RunnerH
     ? DAY_NAMES_TH[maxAvgKmDay]
     : null;
 
+  // ── Body composition data ─────────────────────────────────────────────────
+  const bodyItemsSorted = items
+    .filter((i) => i.type === "body")
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  let latestWeightKg: number | null = null;
+  let latestBodyFatPercent: number | null = null;
+  for (const item of bodyItemsSorted) {
+    const ext = (item.data as BodyCompositionAnalysis)?.extracted;
+    if (!ext) continue;
+    const w = Number(ext.weightKg);
+    if (Number.isFinite(w) && w > 0) {
+      latestWeightKg = w;
+      latestBodyFatPercent = ext.bodyFatPercent != null ? Number(ext.bodyFatPercent) : null;
+      break;
+    }
+  }
+
   // ── Sleep data ────────────────────────────────────────────────────────────
   const sleepItems = items.filter((i) => i.type === "sleep").filter((i) => i.createdAt.slice(0, 10) >= cutoff);
 
@@ -235,6 +254,8 @@ export function buildRunnerHistoryStats(items: LocalHistoryItem[] = []): RunnerH
     averageEnergyScore: energyScores.length > 0 ? Math.round(avg(energyScores)) : null,
     averageRestingHR: restingHRs.length > 0 ? Math.round(avg(restingHRs)) : null,
     averageHRV: hrvs.length > 0 ? Math.round(avg(hrvs)) : null,
+    latestWeightKg,
+    latestBodyFatPercent,
   };
 }
 

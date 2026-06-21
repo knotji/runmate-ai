@@ -10,8 +10,19 @@ import {
   filterManualFields,
   buildSourceUpdates,
 } from "@/lib/profile/autoSaveHistorySuggestions";
+import { calculateNutritionTargetsFromWeight } from "@/lib/nutritionTargets";
 import type { ProfileAnalysisResult, ProfileAnalysisSuggestions } from "@/lib/analyzeHistory";
 import type { UserProfile } from "@/types/profile";
+
+type NutritionUpdateSummary = {
+  weightKg: number;
+  proteinTargetG: number;
+  carbTargetRestDayG: number;
+  carbTargetEasyDayG: number;
+  carbTargetHardDayG: number;
+  proteinMultiplier: number;
+  skippedManual: string[];
+};
 
 type State = "idle" | "loading" | "done" | "error";
 
@@ -48,6 +59,15 @@ const SHORT_LABEL: Partial<Record<keyof ProfileAnalysisSuggestions, string>> = {
   injuryHistory:         "ประวัติบาดเจ็บ",
   currentLevel:          "ระดับปัจจุบัน",
   vo2max:                "VO2max",
+};
+
+const SHORT_LABEL_ALL: Record<string, string> = {
+  ...SHORT_LABEL,
+  weightKg:             "น้ำหนัก",
+  proteinTargetG:       "Protein target",
+  carbTargetRestDayG:   "Carb วันพัก",
+  carbTargetEasyDayG:   "Carb easy day",
+  carbTargetHardDayG:   "Carb hard day",
 };
 
 function fieldLabel(key: keyof ProfileAnalysisSuggestions) {
@@ -99,6 +119,7 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
   const [savedKeys, setSavedKeys] = useState<string[]>([]);
   const [reviewItems, setReviewItems] = useState<ReviewItem[]>([]);
   const [manualItems, setManualItems] = useState<ManualItem[]>([]);
+  const [nutritionSummary, setNutritionSummary] = useState<NutritionUpdateSummary | null>(null);
   const [error, setError] = useState("");
   const [currentProfile, setCurrentProfile] = useState<UserProfile | null>(null);
 
@@ -109,10 +130,11 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
     setSavedKeys([]);
     setReviewItems([]);
     setManualItems([]);
+    setNutritionSummary(null);
 
     try {
       const [historyResult, profileResult] = await Promise.all([
-        loadHistoryItems(["sleep", "workout"]),
+        loadHistoryItems(["sleep", "workout", "body"]),
         loadProfileFromSupabase(),
       ]);
       if (!historyResult.ok) throw new Error(historyResult.error);
@@ -181,8 +203,61 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
         )
         .map((k) => ({ key: k, label: fieldLabel(k), value: suggestions[k] }));
 
+      // ── Nutrition targets from body history (deterministic, no AI needed) ──
+      let nutritionUpdate: NutritionUpdateSummary | null = null;
+      if (stats.latestWeightKg != null) {
+        const nutritionGoal = profile?.nutritionGoal ?? null;
+        const weeklyMileageKm = stats.weeklyMileageEstimate;
+        const targets = calculateNutritionTargetsFromWeight(stats.latestWeightKg, nutritionGoal, weeklyMileageKm);
+
+        console.info("[nutrition-target-debug]", {
+          latestWeightKg: stats.latestWeightKg,
+          nutritionGoal,
+          proteinMultiplier: targets.proteinMultiplier,
+          carbMultipliers: { rest: 3, easy: 4, hard: weeklyMileageKm != null && weeklyMileageKm >= 50 ? 6 : 5 },
+          calculated: {
+            proteinTargetG: targets.proteinTargetG,
+            carbTargetRestDayG: targets.carbTargetRestDayG,
+            carbTargetEasyDayG: targets.carbTargetEasyDayG,
+            carbTargetHardDayG: targets.carbTargetHardDayG,
+          },
+        });
+
+        const nutritionFieldUpdates: Partial<UserProfile> = {
+          weightKg: stats.latestWeightKg,
+          proteinTargetG: targets.proteinTargetG,
+          carbTargetRestDayG: targets.carbTargetRestDayG,
+          carbTargetEasyDayG: targets.carbTargetEasyDayG,
+          carbTargetHardDayG: targets.carbTargetHardDayG,
+        };
+
+        const { toSave: nutritionToSave, manualSkipped: nutritionManualSkipped } = filterManualFields({
+          updates: nutritionFieldUpdates,
+          existingSources: profile?.fieldSources ?? {},
+        });
+
+        console.info("[nutrition-target-debug]", {
+          skippedManual: nutritionManualSkipped,
+        });
+
+        const nutritionKeys = Object.keys(nutritionToSave);
+        const baseProfile = (currentProfile ?? profile ?? { displayName: "นักวิ่ง" }) as UserProfile;
+        if (nutritionKeys.length > 0) {
+          const merged = await applyAndPersist(baseProfile, nutritionToSave, buildSourceUpdates(nutritionKeys), onProfileUpdated);
+          setCurrentProfile(merged);
+          setSavedKeys((prev) => [...new Set([...prev, ...nutritionKeys])]);
+        }
+
+        nutritionUpdate = {
+          weightKg: stats.latestWeightKg,
+          ...targets,
+          skippedManual: nutritionManualSkipped,
+        };
+      }
+
       setResult(data);
-      setSavedKeys(updatedKeys);
+      setNutritionSummary(nutritionUpdate);
+      setSavedKeys((prev) => [...new Set([...prev, ...updatedKeys])]);  // updatedKeys = training stats auto-saved
       setReviewItems(review);
       setManualItems(manualReview);
       setState("done");
@@ -258,11 +333,38 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
                   <p className="text-xs text-slate-600">
                     อัปเดต:{" "}
                     {savedKeys
-                      .map((k) => fieldLabel(k as keyof ProfileAnalysisSuggestions))
+                      .map((k) => SHORT_LABEL_ALL[k] ?? fieldLabel(k as keyof ProfileAnalysisSuggestions))
                       .join(", ")}
                   </p>
                 )}
               </div>
+
+              {/* Nutrition targets summary */}
+              {nutritionSummary && (
+                <div className="rounded-2xl border border-[#d9e8df] bg-[#f5faf7] p-4 space-y-2">
+                  <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">อัปเดตโภชนาการ</p>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-slate-700">
+                    <span className="text-slate-500">น้ำหนักล่าสุด</span>
+                    <span className="font-semibold">{nutritionSummary.weightKg} kg</span>
+                    <span className="text-slate-500">Protein target</span>
+                    <span className="font-semibold">{nutritionSummary.proteinTargetG} g/day</span>
+                    <span className="text-slate-500">Carb วันพัก</span>
+                    <span className="font-semibold">{nutritionSummary.carbTargetRestDayG} g</span>
+                    <span className="text-slate-500">Carb easy day</span>
+                    <span className="font-semibold">{nutritionSummary.carbTargetEasyDayG} g</span>
+                    <span className="text-slate-500">Carb hard/race day</span>
+                    <span className="font-semibold">{nutritionSummary.carbTargetHardDayG} g</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 leading-4">
+                    คำนวณจากน้ำหนักล่าสุด {nutritionSummary.weightKg} kg · protein {nutritionSummary.proteinMultiplier} g/kg/day · ค่าแนะนำเบื้องต้นสำหรับการซ้อมและ recovery
+                  </p>
+                  {nutritionSummary.skippedManual.length > 0 && (
+                    <p className="text-[11px] text-amber-600">
+                      ไม่ได้อัปเดต {nutritionSummary.skippedManual.map((k) => SHORT_LABEL_ALL[k] ?? k).join(", ")} เพราะคุณเคยแก้เอง
+                    </p>
+                  )}
+                </div>
+              )}
 
               {/* Training preference summary */}
               {result.suggestions.trainingPreferenceSummary && (

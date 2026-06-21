@@ -9,7 +9,7 @@ import {
 } from "@/lib/profileStorage";
 import { defaultProfile, type UserProfile } from "@/types/profile";
 import { calculateAgeFromBirthDate } from "@/lib/profile/age";
-import { suggestedProteinTargetG } from "@/lib/nutritionTargets";
+import { calculateNutritionTargetsFromWeight, suggestedProteinTargetG } from "@/lib/nutritionTargets";
 
 type Status = { tone: "idle" | "good" | "warn" | "bad"; text: string };
 
@@ -195,6 +195,12 @@ export function ProfileSetupForm({
   const computedAge = calculateAgeFromBirthDate(profile.birthDate);
   const hasBaselineHistorySrc = SECTION_KEYS.baseline.some((k) => profile.fieldSources?.[k] === "history_analysis");
   const suggestedProtein = suggestedProteinTargetG(profile.weightKg);
+  const suggestedNutrition =
+    profile.weightKg != null
+      ? calculateNutritionTargetsFromWeight(profile.weightKg, profile.nutritionGoal)
+      : null;
+  const nutritionFromHistory = (["weightKg", "proteinTargetG", "carbTargetRestDayG", "carbTargetEasyDayG", "carbTargetHardDayG"] as const)
+    .some((k) => profile.fieldSources?.[k] === "history_analysis");
 
   // ── Onboarding (short form) ──────────────────────────────────────────────────
   if (mode === "onboarding") {
@@ -862,27 +868,41 @@ export function ProfileSetupForm({
                 <option value="weight_control">Weight control / คุมน้ำหนักแบบไม่เสียแรงซ้อม</option>
               </select>
             </div>
-            <div className="rounded-2xl bg-[#e7efea] p-3 text-xs leading-5 text-slate-600">
-              Protein target แนะนำจากน้ำหนักประมาณ 1.6 g/kg/day{suggestedProtein != null ? ` ≈ ${suggestedProtein} g/day` : " หากยังไม่ใส่น้ำหนัก สามารถกรอกเองได้"}
+            <div className="rounded-2xl bg-[#e7efea] p-3 text-xs leading-5 text-slate-600 space-y-1">
+              <p>ระบบคำนวณเป้าหมายโปรตีนและคาร์บจากน้ำหนักล่าสุดและรูปแบบการซ้อม คุณแก้เองได้เสมอ</p>
+              {suggestedNutrition != null ? (
+                <p className="text-slate-500">คำนวณจากน้ำหนักล่าสุด {profile.weightKg} kg · protein {suggestedNutrition.proteinMultiplier} g/kg/day · ค่าแนะนำเบื้องต้นสำหรับการซ้อมและ recovery</p>
+              ) : (
+                <p className="text-slate-500">หากยังไม่ใส่น้ำหนัก สามารถกรอกเองได้ หรือกดวิเคราะห์จากประวัติเพื่อให้ระบบดึงค่าจากประวัติ body composition</p>
+              )}
+              {nutritionFromHistory && (
+                <p className="text-[#42677f] font-semibold">คำนวณจากประวัติ body composition อัตโนมัติ · แก้ได้ตลอด</p>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
                 <span className="text-xs font-semibold text-slate-500">Protein target (g/day)</span>
-                <NumberInput placeholder={suggestedProtein != null ? String(suggestedProtein) : "เช่น 90"} value={profile.proteinTargetG} onChange={(v) => update("proteinTargetG", v)} />
+                <NumberInput
+                  placeholder={suggestedNutrition != null ? String(suggestedNutrition.proteinTargetG) : suggestedProtein != null ? String(suggestedProtein) : "เช่น 90"}
+                  value={profile.proteinTargetG}
+                  onChange={(v) => update("proteinTargetG", v)}
+                />
+                <p className="text-[11px] text-slate-400">แนะนำจากน้ำหนักประมาณ {suggestedNutrition?.proteinMultiplier ?? 1.6} g/kg/day</p>
               </div>
               <div className="space-y-1">
                 <span className="text-xs font-semibold text-slate-500">Carb rest day (g)</span>
-                <NumberInput placeholder="เช่น 150" value={profile.carbTargetRestDayG} onChange={(v) => update("carbTargetRestDayG", v)} />
+                <NumberInput placeholder={suggestedNutrition != null ? String(suggestedNutrition.carbTargetRestDayG) : "เช่น 150"} value={profile.carbTargetRestDayG} onChange={(v) => update("carbTargetRestDayG", v)} />
               </div>
               <div className="space-y-1">
                 <span className="text-xs font-semibold text-slate-500">Carb easy day (g)</span>
-                <NumberInput placeholder="เช่น 200" value={profile.carbTargetEasyDayG} onChange={(v) => update("carbTargetEasyDayG", v)} />
+                <NumberInput placeholder={suggestedNutrition != null ? String(suggestedNutrition.carbTargetEasyDayG) : "เช่น 200"} value={profile.carbTargetEasyDayG} onChange={(v) => update("carbTargetEasyDayG", v)} />
               </div>
               <div className="space-y-1">
                 <span className="text-xs font-semibold text-slate-500">Carb hard/race day (g)</span>
-                <NumberInput placeholder="เช่น 260" value={profile.carbTargetHardDayG} onChange={(v) => update("carbTargetHardDayG", v)} />
+                <NumberInput placeholder={suggestedNutrition != null ? String(suggestedNutrition.carbTargetHardDayG) : "เช่น 260"} value={profile.carbTargetHardDayG} onChange={(v) => update("carbTargetHardDayG", v)} />
               </div>
             </div>
+            <p className="text-[11px] text-slate-400 leading-4">คำนวณตามประเภทวันซ้อม: วันพัก / easy / hard หรือ race day</p>
             <div className="space-y-1">
               <span className="text-xs font-semibold text-slate-500">อาหารที่ชอบ</span>
               <input

@@ -22,6 +22,32 @@ export function suggestedProteinTargetG(weightKg?: number | null) {
     : null;
 }
 
+export function calculateNutritionTargetsFromWeight(
+  weightKg: number,
+  nutritionGoal?: string | null,
+  weeklyMileageKm?: number | null,
+): {
+  proteinTargetG: number;
+  carbTargetRestDayG: number;
+  carbTargetEasyDayG: number;
+  carbTargetHardDayG: number;
+  proteinMultiplier: number;
+} {
+  let proteinMultiplier = 1.6;
+  if (nutritionGoal === "lean_muscle") proteinMultiplier = 1.8;
+  else if (nutritionGoal === "weight_control") proteinMultiplier = 1.7;
+
+  const proteinTargetG = Math.min(130, Math.max(60, Math.round(weightKg * proteinMultiplier)));
+  const hardMultiplier = (weeklyMileageKm ?? 0) >= 50 ? 6 : 5;
+  return {
+    proteinTargetG,
+    carbTargetRestDayG: Math.round(weightKg * 3),
+    carbTargetEasyDayG: Math.round(weightKg * 4),
+    carbTargetHardDayG: Math.round(weightKg * hardMultiplier),
+    proteinMultiplier,
+  };
+}
+
 export function inferTrainingNutritionDayType(context: CoachContext | null): TrainingNutritionDayType {
   if (!context) return "rest";
   if (context.isRaceToday || context.isRaceTomorrow) return "hard";
