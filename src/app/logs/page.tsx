@@ -35,7 +35,12 @@ export default function ReportPage() {
       if (!alive) return;
       if (result.ok) {
         setItems(result.items);
-        if (raceResult.ok) setRaceResults(raceResult.results);
+        if (raceResult.ok) {
+          setRaceResults(raceResult.results);
+          if (process.env.NODE_ENV === "development") {
+            console.info("[report-race-badge-debug]", { raceResultsCount: raceResult.results.length, dates: raceResult.results.map((r) => r.raceDate) });
+          }
+        }
         setError("");
       } else {
         setError(result.error);

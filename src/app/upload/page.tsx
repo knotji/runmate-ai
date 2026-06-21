@@ -11,7 +11,7 @@ import { invalidateCoachCache } from "@/lib/invalidateCoachCache";
 import { createHistoryItem, findMealSlotByDateAndType, saveHistoryItems } from "@/lib/cloudHistory";
 import { loadProfileFromSupabase } from "@/lib/profileStorage";
 import { buildCoachContextFromSupabase, type CoachContext } from "@/lib/buildCoachContext";
-import { buildRaceResultFromWorkout, detectRaceMatch, saveRaceResult, type RaceMatch } from "@/lib/raceResults";
+import { buildRaceResultFromWorkout, detectRaceMatch, getWorkoutLocalDate, normalizeLocalDate, saveRaceResult, type RaceMatch } from "@/lib/raceResults";
 import { loadActiveRaceGoalAndPlan } from "@/lib/raceStorage";
 import { formatCalories, formatMacro, formatNutritionRange } from "@/lib/format";
 import { buildNutritionTargetSummary } from "@/lib/nutritionTargets";
@@ -51,10 +51,16 @@ export default function UploadPage() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const t = params.get("type") as UploadType;
-    if (t && ["sleep", "meal", "workout", "body"].includes(t)) {
-      queueMicrotask(() => setType(t));
+    const raw = params.get("type") ?? "";
+    const aliasMap: Record<string, UploadType> = {
+      sleep: "sleep", meal: "meal", workout: "workout", body: "body",
+      run: "workout", วิ่ง: "workout",
+    };
+    const resolved: UploadType | undefined = aliasMap[raw.toLowerCase()];
+    if (process.env.NODE_ENV === "development") {
+      console.info("[upload-type-debug]", { queryType: raw, resolvedType: resolved ?? "(none — keeping default)" });
     }
+    if (resolved) queueMicrotask(() => setType(resolved));
   }, []);
   const [mealType, setMealType] = useState<MealType>("breakfast");
   const [result, setResult] = useState<unknown>(null);
@@ -120,8 +126,37 @@ export default function UploadPage() {
     }
     if (type === "workout") {
       const data = ((next as { data?: WorkoutAnalysis }).data ?? next) as WorkoutAnalysis;
-      const raceResult = await loadActiveRaceGoalAndPlan();
-      const match = detectRaceMatch(data, raceResult.ok ? raceResult.goal : null);
+      const todayBangkok = toBangkokDate(new Date());
+      const workoutLocalDate = getWorkoutLocalDate(data, todayBangkok);
+
+      let raceGoalForMatch = null;
+      try {
+        const raceResult = await loadActiveRaceGoalAndPlan();
+        if (raceResult.ok) raceGoalForMatch = raceResult.goal;
+      } catch (e) {
+        if (process.env.NODE_ENV === "development") console.warn("[race-match-debug] loadActiveRaceGoalAndPlan error", e);
+      }
+
+      if (process.env.NODE_ENV === "development") {
+        const ext = data.extracted as Record<string, unknown>;
+        console.info("[race-match-debug]", {
+          rawDateFields: {
+            date: ext?.date,
+            workoutDate: ext?.workoutDate,
+            activityDate: ext?.activityDate,
+            startTime: ext?.startTime,
+          },
+          workoutLocalDate,
+          todayBangkok,
+          raceGoalId: raceGoalForMatch?.id ?? null,
+          raceGoalName: raceGoalForMatch?.raceName ?? null,
+          raceGoalDate: raceGoalForMatch?.raceDate ?? null,
+          raceLocalDate: normalizeLocalDate(raceGoalForMatch?.raceDate),
+          matched: !!(raceGoalForMatch && workoutLocalDate === normalizeLocalDate(raceGoalForMatch.raceDate)),
+        });
+      }
+
+      const match = detectRaceMatch(data, raceGoalForMatch, todayBangkok);
       if (match) {
         setResult({ data });
         setRaceMatch(match);
@@ -210,12 +245,22 @@ export default function UploadPage() {
   async function saveAsRaceResult(workout: WorkoutAnalysis, match: RaceMatch) {
     setRaceResultError("");
     const saved = await store({ data: workout }, "workout");
+    if (process.env.NODE_ENV === "development") {
+      console.info("[race-result-save]", { historyItemId: saved.id, raceGoalId: match.goal.id, workoutDate: match.workoutDate });
+    }
     const racePayload = buildRaceResultFromWorkout({
       workout,
       goal: match.goal,
       linkedHistoryItemId: saved.id,
     });
     const raceSave = await saveRaceResult(racePayload);
+    if (process.env.NODE_ENV === "development") {
+      if (raceSave.ok) {
+        console.info("[race-result-save] success", { raceResultId: raceSave.result.id });
+      } else {
+        console.warn("[race-result-save] error", { error: raceSave.error });
+      }
+    }
     if (!raceSave.ok) {
       setRaceResultError("บันทึก workout แล้ว แต่บันทึก Race Result ไม่สำเร็จ");
       return;

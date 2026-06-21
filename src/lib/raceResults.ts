@@ -42,9 +42,19 @@ export type RaceMatch = {
   distanceMatches: boolean;
 };
 
-export function detectRaceMatch(workout: WorkoutAnalysis, goal: RaceGoal | null): RaceMatch | null {
+export function getWorkoutLocalDate(workout: WorkoutAnalysis, todayBangkok?: string): string | null {
+  const ext = workout.extracted as Record<string, unknown>;
+  const candidates = [ext?.date, ext?.workoutDate, ext?.activityDate, ext?.startTime, ext?.endTime];
+  for (const candidate of candidates) {
+    const normalized = normalizeLocalDate(candidate);
+    if (normalized) return normalized;
+  }
+  return todayBangkok ?? null;
+}
+
+export function detectRaceMatch(workout: WorkoutAnalysis, goal: RaceGoal | null, todayBangkok?: string): RaceMatch | null {
   if (!goal?.raceDate) return null;
-  const workoutDate = normalizeLocalDate(workout.extracted?.date);
+  const workoutDate = getWorkoutLocalDate(workout, todayBangkok);
   const raceDate = normalizeLocalDate(goal.raceDate);
   if (!workoutDate || !raceDate || workoutDate !== raceDate) return null;
   return {
@@ -151,12 +161,37 @@ export async function loadRaceResults(limit = 20): Promise<{ ok: true; results: 
 }
 
 export function normalizeLocalDate(value: unknown): string | null {
-  if (typeof value !== "string") return null;
-  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (!match) return null;
-  const date = `${match[1]}-${match[2]}-${match[3]}`;
-  const parsed = new Date(`${date}T12:00:00+07:00`);
-  return Number.isNaN(parsed.getTime()) ? null : date;
+  if (typeof value !== "string" || !value.trim()) return null;
+  const s = value.trim();
+
+  // YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS...
+  const isoMatch = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (isoMatch) {
+    const date = `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+    const parsed = new Date(`${date}T12:00:00+07:00`);
+    return Number.isNaN(parsed.getTime()) ? null : date;
+  }
+
+  // YYYY/MM/DD
+  const slashYMD = s.match(/^(\d{4})\/(\d{2})\/(\d{2})/);
+  if (slashYMD) {
+    const date = `${slashYMD[1]}-${slashYMD[2]}-${slashYMD[3]}`;
+    const parsed = new Date(`${date}T12:00:00+07:00`);
+    return Number.isNaN(parsed.getTime()) ? null : date;
+  }
+
+  // DD/MM/YYYY or DD-MM-YYYY (European / Thai short)
+  const dmy = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+  if (dmy) {
+    const d = dmy[1].padStart(2, "0");
+    const m = dmy[2].padStart(2, "0");
+    const y = dmy[3];
+    const date = `${y}-${m}-${d}`;
+    const parsed = new Date(`${date}T12:00:00+07:00`);
+    return Number.isNaN(parsed.getTime()) ? null : date;
+  }
+
+  return null;
 }
 
 function rowToRaceResult(row: RaceResultRow): RaceResult {

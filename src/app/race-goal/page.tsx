@@ -26,7 +26,12 @@ export default function RaceGoalPage() {
         setGoal(result.goal);
         setPlan(result.plan);
       }
-      if (completed.ok) setRaceResults(completed.results);
+      if (completed.ok) {
+        setRaceResults(completed.results);
+        if (process.env.NODE_ENV === "development") {
+          console.info("[race-history-debug]", { raceResultsCount: completed.results.length, ids: completed.results.map((r) => r.id) });
+        }
+      }
       setMounted(true);
     });
   }, []);
