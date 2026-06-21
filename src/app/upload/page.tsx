@@ -305,11 +305,18 @@ export default function UploadPage() {
           ))}
         </div>
         {type === "meal" ? (
-          <select className="control" value={mealType} onChange={(event) => setMealType(event.target.value as MealType)}>
-            {(["breakfast", "lunch", "dinner", "snack", "pre-run", "post-run"] as const).map((item) => (
-              <option key={item} value={item}>{MEAL_TYPE_LABELS[item]}</option>
+          <div className="flex flex-wrap gap-1.5">
+            {(["breakfast", "lunch", "dinner", "snack", "pre-run", "post-run"] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => setMealType(m)}
+                className={`rounded-full px-3 py-1.5 text-sm font-semibold transition-colors ${mealType === m ? "bg-[#17201d] text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+              >
+                {MEAL_TYPE_LABELS[m]}
+              </button>
             ))}
-          </select>
+          </div>
         ) : null}
         <ImageUploader
           key={type}
@@ -477,11 +484,18 @@ function MealReviewCard({
 
       {editing ? (
         <div className="space-y-3">
-          <select className="control" value={meal.mealType} onChange={(event) => setMeal((current) => ({ ...current, mealType: event.target.value }))}>
-            {(["breakfast", "lunch", "dinner", "snack", "pre-run", "post-run"] as const).map((item) => (
-              <option key={item} value={item}>{MEAL_TYPE_LABELS[item]}</option>
+          <div className="flex flex-wrap gap-1.5">
+            {(["breakfast", "lunch", "dinner", "snack", "pre-run", "post-run"] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => setMeal((current) => ({ ...current, mealType: m }))}
+                className={`rounded-full px-3 py-1.5 text-sm font-semibold transition-colors ${meal.mealType === m ? "bg-[#17201d] text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+              >
+                {MEAL_TYPE_LABELS[m]}
+              </button>
             ))}
-          </select>
+          </div>
           <input className="control" value={foodText} onChange={(event) => updateFoods(event.target.value)} placeholder="อาหารที่พบ เช่น ข้าว, ไข่, ไก่" />
           <div className="grid grid-cols-2 gap-2">
             <NutritionInput label="Calories" placeholder="เช่น 550" value={meal.nutrition.caloriesKcal} range={meal.nutritionRange?.caloriesKcal} unit="kcal" onChange={(value) => updateNutrition("caloriesKcal", value)} />

@@ -133,19 +133,41 @@ export function ImageUploader({
 
   return (
     <form onSubmit={submit} className="space-y-3">
-      <input
-        key={inputKey}
-        className="control"
-        type="file"
-        accept="image/*"
-        multiple={maxFiles > 1}
-        onChange={(event) => setFiles(Array.from(event.target.files || []).slice(0, maxFiles))}
-      />
-      <p className="text-xs text-slate-500">เลือกได้สูงสุด {maxFiles} รูปต่อครั้ง</p>
+      <label
+        className={`flex min-h-[120px] cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed transition-colors ${
+          files.length > 0
+            ? "border-[#42677f] bg-[#f5faf7]"
+            : "border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-white"
+        }`}
+      >
+        <input
+          key={inputKey}
+          type="file"
+          className="sr-only"
+          accept="image/*"
+          multiple={maxFiles > 1}
+          onChange={(event) => setFiles(Array.from(event.target.files || []).slice(0, maxFiles))}
+        />
+        {files.length === 0 ? (
+          <>
+            <span className="text-3xl">📷</span>
+            <p className="text-sm font-semibold text-slate-600">กดเพื่อเลือกรูปภาพ</p>
+            <p className="text-xs text-slate-400">เลือกได้สูงสุด {maxFiles} รูป</p>
+          </>
+        ) : (
+          <>
+            <span className="text-2xl text-[#42677f]">✓</span>
+            <p className="text-sm font-semibold text-[#17201d]">
+              {files.length === 1 ? files[0].name : `${files.length} รูปที่เลือกไว้`}
+            </p>
+            <p className="text-xs text-[#42677f] underline underline-offset-2">เปลี่ยนรูป</p>
+          </>
+        )}
+      </label>
       <button className="btn-primary w-full" type="submit" disabled={loading}>
         วิเคราะห์ด้วยโค้ช AI
       </button>
-      {loading ? <LoadingState label="กำลังบันทึก..." /> : null}
+      {loading ? <LoadingState label="กำลังวิเคราะห์..." /> : null}
       {error ? <ErrorState message={error} /> : null}
     </form>
   );

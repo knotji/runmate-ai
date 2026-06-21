@@ -175,7 +175,10 @@ function DayCard({ day, raceResults, proteinTarget }: { day: DayGroup; raceResul
                   <Badge icon="🍽" label={`${mealCount} มื้อ`} color="orange" />
                   {mealNutrition.caloriesKcal != null && <Badge icon="🔥" label={formatCalories(mealNutrition.caloriesKcal)} color="orange" />}
                   {mealNutrition.proteinG != null && (
-                    <Badge icon="💪" label={`${mealNutrition.proteinG}/${proteinTarget}g · ${proteinStatus}`} color="orange" />
+                    <Badge icon="💪" label={`${mealNutrition.proteinG}/${proteinTarget}g`} color="orange" />
+                  )}
+                  {proteinStatus && mealNutrition.proteinG != null && (
+                    <Badge icon="" label={proteinStatus} color="orange" />
                   )}
                 </div>
               )}
@@ -338,25 +341,37 @@ function MealDetail({ item }: { item: LocalHistoryItem }) {
 function MealNutritionDaySummary({ summary, mealCount, proteinTarget }: { summary: MealNutritionSummary; mealCount: number; proteinTarget: number }) {
   const status = summary.proteinG != null ? calcProteinStatus(summary.proteinG, proteinTarget) : null;
   const coachNote = summary.proteinG != null ? proteinCoachNote(summary.proteinG, proteinTarget) : null;
-  const proteinDisplay = summary.proteinG != null ? `${summary.proteinG} / ${proteinTarget} g` : "-";
+  const remaining = summary.proteinG != null && summary.proteinG < proteinTarget ? proteinTarget - summary.proteinG : null;
 
   return (
-    <div className="rounded-2xl bg-orange-50 p-4">
-      <p className="text-xs font-bold uppercase tracking-wide text-orange-600 mb-2">Nutrition Summary</p>
-      <div className="grid grid-cols-4 gap-2">
-        <Metric label="Calories" value={formatCalories(summary.caloriesKcal)} />
-        <div className="rounded-xl bg-white p-2.5 text-center">
-          <p className="text-xs text-slate-400 truncate">Protein</p>
-          <p className="mt-0.5 text-sm font-bold leading-tight">{proteinDisplay}</p>
-          {status && <p className="text-[10px] text-orange-600 font-semibold mt-0.5">{status}</p>}
+    <div className="rounded-2xl bg-orange-50 p-4 space-y-3">
+      <p className="text-xs font-bold uppercase tracking-wide text-orange-600">Nutrition Summary</p>
+
+      {/* Protein — hero metric */}
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-xs text-slate-400">💪 Protein</p>
+          <p className="text-xl font-bold leading-tight text-[#17201d]">
+            {summary.proteinG != null ? `${summary.proteinG} / ${proteinTarget} g` : "-"}
+          </p>
+          {remaining != null && (
+            <p className="mt-0.5 text-xs text-slate-500">ยังขาดอีก {remaining} g</p>
+          )}
         </div>
+        {status && (
+          <span className="shrink-0 rounded-full bg-white px-2.5 py-1 text-xs font-bold text-orange-600">{status}</span>
+        )}
+      </div>
+
+      {/* Secondary macros */}
+      <div className="grid grid-cols-3 gap-2">
+        <Metric label="Calories" value={formatCalories(summary.caloriesKcal)} />
         <Metric label="Carbs" value={formatMacro(summary.carbsG)} />
         <Metric label="Fat" value={formatMacro(summary.fatG)} />
       </div>
-      <p className="mt-2 text-xs text-orange-700">
-        {mealCount} meals · ประเมินจากรูปอาหาร
-      </p>
-      {coachNote && <p className="mt-2 text-sm font-semibold text-[#17201d]">{coachNote}</p>}
+
+      <p className="text-xs text-orange-700">{mealCount} มื้อ · ประเมินจากรูปอาหาร</p>
+      {coachNote && <p className="text-sm font-semibold text-[#17201d]">{coachNote}</p>}
     </div>
   );
 }
@@ -396,7 +411,7 @@ function SummaryDetail({ item }: { item: LocalHistoryItem }) {
 
 // ─── Small components ─────────────────────────────────────────────────────────
 
-function Badge({ icon, label, color }: { icon: string; label: string; color?: "green" | "blue" | "orange" }) {
+function Badge({ icon, label, color }: { icon?: string; label: string; color?: "green" | "blue" | "orange" }) {
   const bg =
     color === "green" ? "bg-[#e7efea] text-[#2a5a39]"
     : color === "blue" ? "bg-blue-50 text-blue-700"
@@ -404,7 +419,7 @@ function Badge({ icon, label, color }: { icon: string; label: string; color?: "g
     : "bg-slate-100 text-slate-600";
   return (
     <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold ${bg}`}>
-      {icon} {label}
+      {icon ? `${icon} ` : null}{label}
     </span>
   );
 }

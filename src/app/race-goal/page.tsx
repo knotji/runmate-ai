@@ -73,13 +73,23 @@ export default function RaceGoalPage() {
     <AppShell title="Race Goal" subtitle="วางแผนจากวันนี้ไปถึงวันแข่ง">
       {!goal || !plan ? (
         <>
-          {raceResults.length > 0 && (
-            <div className="card px-5 py-4 space-y-1">
-              <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">ยินดีด้วย!</p>
-              <p className="text-base font-bold text-[#17201d]">Race Goal ล่าสุดเสร็จสมบูรณ์แล้ว</p>
-              <p className="text-sm text-slate-500">พร้อมตั้ง Race Goal ถัดไปหรือยัง?</p>
-            </div>
-          )}
+          {raceResults.length > 0 && (() => {
+            const latest = raceResults[0];
+            return (
+              <div className="card px-5 py-4 space-y-2">
+                <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">ยินดีด้วย! 🏁</p>
+                <p className="text-base font-bold text-[#17201d]">{latest.raceName ?? "Race"} · {latest.raceDistance}</p>
+                {latest.actualTime && (
+                  <p className="text-sm text-slate-500">
+                    {latest.actualTime}{latest.actualPace ? ` · ${latest.actualPace}/km` : ""}
+                    {" · "}
+                    <span className="font-semibold text-[#2a5a39]">{resultBadge(latest.goalResult)}</span>
+                  </p>
+                )}
+                <p className="text-sm text-slate-400">พร้อมตั้ง Race Goal ถัดไปหรือยัง?</p>
+              </div>
+            );
+          })()}
           <RaceGoalForm onCreated={(nextGoal, nextPlan) => { setGoal(nextGoal); setPlan(nextPlan); }} />
         </>
       ) : (

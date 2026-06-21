@@ -104,14 +104,14 @@ export default function TodayPage() {
         {insight && !loading && (
           <>
             <div>
-              <h2 className="text-2xl font-bold text-[#17201d]">{insight.workoutRec}</h2>
+              <h2 className="line-clamp-2 text-2xl font-bold text-[#17201d]">{insight.workoutRec}</h2>
               {hasPace && (
                 <span className="mt-2 inline-block rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
                   {insight.workoutTarget}
                 </span>
               )}
               {insight.keyObservation && insight.keyObservation !== "-" && (
-                <p className="mt-2 text-sm leading-relaxed text-slate-500">{insight.keyObservation}</p>
+                <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-slate-500">{insight.keyObservation}</p>
               )}
             </div>
 
@@ -201,7 +201,7 @@ export default function TodayPage() {
             type="button"
             disabled={loading}
             onClick={() => void generateInsight(true)}
-            className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs text-slate-400 hover:bg-slate-100 hover:text-slate-600 disabled:opacity-40"
+            className="flex items-center gap-1.5 rounded-full bg-slate-100 px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-200 disabled:opacity-40"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`}>
               <path fillRule="evenodd" d="M13.836 2.477a.75.75 0 0 1 .75.75v3.182a.75.75 0 0 1-.75.75h-3.182a.75.75 0 0 1 0-1.5h1.37l-.84-.841a4.5 4.5 0 0 0-7.08.932.75.75 0 0 1-1.3-.75 6 6 0 0 1 9.44-1.242l.842.84V3.227a.75.75 0 0 1 .75-.75Zm-.911 7.5A.75.75 0 0 1 13.199 11a6 6 0 0 1-9.44 1.241l-.84-.84v1.371a.75.75 0 0 1-1.5 0V9.591a.75.75 0 0 1 .75-.75H5.35a.75.75 0 0 1 0 1.5H3.98l.841.841a4.5 4.5 0 0 0 7.08-.932.75.75 0 0 1 1.024-.273Z" clipRule="evenodd" />
