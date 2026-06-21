@@ -67,6 +67,7 @@ export default function UploadPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [coachContext, setCoachContext] = useState<CoachContext | null>(null);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [bodySaveError, setBodySaveError] = useState("");
   const [raceMatch, setRaceMatch] = useState<RaceMatch | null>(null);
   const [raceResultError, setRaceResultError] = useState("");
   const [workoutSavedItem, setWorkoutSavedItem] = useState<import("@/lib/localHistory").LocalHistoryItem | null>(null);
@@ -119,17 +120,29 @@ export default function UploadPage() {
 
   async function store(next: unknown, overrideType: UploadType = type): Promise<LocalHistoryItem> {
     setSaveStatus("saving");
+    if (overrideType === "body") setBodySaveError("");
     const data = sanitizeReportDataForSave((next as { data?: unknown }).data ?? next);
     const extractedDate = (data as { extracted?: { date?: string | null } }).extracted?.date;
-    const saved = createHistoryItem(overrideType, data, extractedDate ?? undefined);
+    // Body items always use upload time as createdAt — using the measurement date from the image
+    // would file the item under that day in Report, not today, making it hard to find.
+    const saveDate = overrideType === "body" ? undefined : (extractedDate ?? undefined);
+    const saved = createHistoryItem(overrideType, data, saveDate);
     if (process.env.NODE_ENV === "development") {
-      console.info("[upload-debug]", { uploadType: overrideType, saveTable: "history_items", historyItemId: saved.id });
+      console.info("[upload-debug]", {
+        uploadType: overrideType,
+        saveTable: "history_items",
+        historyItemId: saved.id,
+        extractedDate,
+        savedCreatedAt: saved.createdAt,
+        dataKeys: typeof data === "object" && data !== null ? Object.keys(data) : [],
+      });
     }
     const saveResult = await saveHistoryItems([saved]);
     if (!saveResult.ok) {
       if (process.env.NODE_ENV === "development") {
         console.warn("[upload-debug]", { uploadType: overrideType, saveError: saveResult.error });
       }
+      if (overrideType === "body") setBodySaveError(saveResult.error ?? "บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
       setSaveStatus("error");
       throw new Error("บันทึกไม่สำเร็จ กรุณาลองใหม่");
     }
@@ -507,7 +520,7 @@ export default function UploadPage() {
       {result && type === "body" ? (
         <>
           <BodyResultCard result={(result as { data: BodyCompositionAnalysis }).data} />
-          <BodySaveBar saveStatus={saveStatus} onSave={() => void store(result)} />
+          <BodySaveBar saveStatus={saveStatus} saveError={bodySaveError} onSave={() => void store(result)} />
         </>
       ) : null}
     </AppShell>
@@ -780,20 +793,40 @@ function ReviewMetric({ label, value }: { label: string; value: string }) {
   );
 }
 
-function BodySaveBar({ saveStatus, onSave }: { saveStatus: "idle" | "saving" | "saved" | "error"; onSave: () => void }) {
+function BodySaveBar({
+  saveStatus,
+  saveError,
+  onSave,
+}: {
+  saveStatus: "idle" | "saving" | "saved" | "error";
+  saveError?: string;
+  onSave: () => void;
+}) {
   return (
     <section className="card space-y-2 p-5">
       {saveStatus === "saved" ? (
-        <p className="text-center text-sm font-bold text-[var(--status-ready)]">บันทึกเข้า Report แล้ว</p>
+        <div className="space-y-2 text-center">
+          <p className="text-sm font-bold text-[var(--status-ready)]">บันทึกเข้า Report แล้ว</p>
+          <Link href="/logs" className="block text-xs font-semibold text-[var(--primary-strong)] underline underline-offset-2">
+            ดูใน Report →
+          </Link>
+        </div>
       ) : (
-        <button
-          type="button"
-          disabled={saveStatus === "saving"}
-          onClick={onSave}
-          className="btn-primary w-full py-3 text-sm disabled:opacity-60"
-        >
-          {saveStatus === "saving" ? "กำลังบันทึก..." : saveStatus === "error" ? "บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง" : "บันทึกเข้า Report"}
-        </button>
+        <>
+          <button
+            type="button"
+            disabled={saveStatus === "saving"}
+            onClick={onSave}
+            className="btn-primary w-full py-3 text-sm disabled:opacity-60"
+          >
+            {saveStatus === "saving" ? "กำลังบันทึก..." : saveStatus === "error" ? "ลองบันทึกอีกครั้ง" : "บันทึกเข้า Report"}
+          </button>
+          {saveStatus === "error" && (
+            <p className="text-center text-xs font-semibold text-[var(--status-rest)]">
+              {saveError || "บันทึกไม่สำเร็จ กรุณาลองใหม่"}
+            </p>
+          )}
+        </>
       )}
       <p className="text-center text-xs text-slate-400">ข้อมูล structured data เท่านั้น รูปต้นฉบับไม่ถูกเก็บ</p>
     </section>
