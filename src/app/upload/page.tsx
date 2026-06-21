@@ -11,6 +11,7 @@ import { PostRunAnalysisCard } from "@/components/PostRunAnalysisCard";
 import { invalidateCoachCache } from "@/lib/invalidateCoachCache";
 import { createHistoryItem, saveHistoryItems } from "@/lib/cloudHistory";
 import { loadProfileFromSupabase } from "@/lib/profileStorage";
+import { buildCoachContextFromSupabase, type CoachContext } from "@/lib/buildCoachContext";
 import type { BodyCompositionAnalysis, MealAnalysis, MealType, SleepAnalysis, WorkoutAnalysis } from "@/types/logs";
 import type { UserProfile } from "@/types/profile";
 
@@ -35,6 +36,7 @@ const MEAL_TYPE_LABELS: Record<string, string> = {
 export default function UploadPage() {
   const [type, setType] = useState<UploadType>("sleep");
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [coachContext, setCoachContext] = useState<CoachContext | null>(null);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
   useEffect(() => {
@@ -48,8 +50,9 @@ export default function UploadPage() {
   const [result, setResult] = useState<unknown>(null);
 
   useEffect(() => {
-    loadProfileFromSupabase().then((res) => {
-      if (res.ok) setProfile(res.profile ?? null);
+    Promise.all([loadProfileFromSupabase(), buildCoachContextFromSupabase()]).then(([profileResult, context]) => {
+      if (profileResult.ok) setProfile(profileResult.profile ?? null);
+      setCoachContext(context);
     });
   }, []);
 
@@ -67,8 +70,14 @@ export default function UploadPage() {
     const data = (next as { data?: unknown }).data ?? next;
     const extractedDate = (data as { extracted?: { date?: string | null } }).extracted?.date;
     const saved = createHistoryItem(type, data, extractedDate ?? undefined);
+    if (process.env.NODE_ENV === "development") {
+      console.info("[upload-debug]", { uploadType: type, saveTable: "history_items", historyItemId: saved.id });
+    }
     const saveResult = await saveHistoryItems([saved]);
     if (!saveResult.ok) {
+      if (process.env.NODE_ENV === "development") {
+        console.warn("[upload-debug]", { uploadType: type, saveError: saveResult.error });
+      }
       setSaveStatus("error");
       throw new Error("บันทึกไม่สำเร็จ กรุณาลองใหม่");
     }
@@ -77,12 +86,18 @@ export default function UploadPage() {
     invalidateCoachCache();
   }
 
+  function selectUploadType(nextType: UploadType) {
+    setType(nextType);
+    setResult(null);
+    setSaveStatus("idle");
+  }
+
   return (
     <AppShell title="Upload" subtitle="อัปโหลดภาพ แล้วให้โค้ชอ่านข้อมูลให้">
       <section className="card space-y-3 p-5">
         <div className="grid grid-cols-4 gap-2">
           {(["sleep", "meal", "workout", "body"] as UploadType[]).map((item) => (
-            <button key={item} className={`rounded-2xl px-3 py-3 text-sm font-bold ${type === item ? "bg-[#17201d] text-white" : "bg-slate-50 text-slate-600"}`} onClick={() => { setType(item); setResult(null); }}>
+            <button key={item} className={`rounded-2xl px-3 py-3 text-sm font-bold ${type === item ? "bg-[#17201d] text-white" : "bg-slate-50 text-slate-600"}`} onClick={() => selectUploadType(item)}>
               {UPLOAD_LABELS[item]}
             </button>
           ))}
@@ -95,10 +110,11 @@ export default function UploadPage() {
           </select>
         ) : null}
         <ImageUploader
+          key={type}
           kind={type}
           endpoint={endpoint}
           maxFiles={type === "meal" ? 1 : type === "sleep" ? 3 : 4}
-          extraFields={{ ...(type === "meal" ? { mealType } : {}), profile }}
+          extraFields={{ ...(type === "meal" ? { mealType } : {}), profile, context: coachContext }}
           onResult={store}
         />
         {saveStatus === "saving" && <p className="text-xs font-semibold text-slate-500">กำลังบันทึก...</p>}

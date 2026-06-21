@@ -26,14 +26,14 @@ export default function TodayPage() {
   const generateInsight = useCallback(async (force = false) => {
     void force;
 
-    const ctx = await buildCoachContextFromSupabase();
-    const hasSomeData = ctx.sleep7d.length > 0 || ctx.workouts7d.length > 0 || ctx.latestBody != null;
-    setHasHistory(hasSomeData);
-    if (!hasSomeData) return;
-
     setLoading(true);
     setInsightError(false);
     try {
+      const ctx = await buildCoachContextFromSupabase();
+      const hasSomeData = ctx.sleep7d.length > 0 || ctx.workouts7d.length > 0 || ctx.latestBody != null || !!ctx.raceGoal;
+      setHasHistory(hasSomeData);
+      if (!hasSomeData) return;
+
       const res = await fetch("/api/coach-insight", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -43,10 +43,14 @@ export default function TodayPage() {
       const json = await res.json() as { data: DailyCoachInsight };
       if (!json.data) throw new Error("no data");
       setInsight(json.data);
-    } catch {
+    } catch (error) {
+      if (process.env.NODE_ENV === "development") {
+        console.warn("[today-analysis-error]", error);
+      }
       setInsightError(true);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -80,12 +84,15 @@ export default function TodayPage() {
         )}
 
         {insightError && !loading && (
-          <div className="flex items-center justify-between gap-3 py-1">
-            <p className="text-sm text-slate-500">วิเคราะห์ไม่สำเร็จ</p>
+          <div className="space-y-2 py-1">
+            <div>
+              <p className="text-sm font-bold text-[#17201d]">วันนี้ยังวิเคราะห์ด้วย AI ไม่สำเร็จ</p>
+              <p className="text-xs text-slate-500">ลองอัปโหลดข้อมูลล่าสุดหรือลองใหม่อีกครั้ง</p>
+            </div>
             <button
               type="button"
               onClick={() => void generateInsight(true)}
-              className="shrink-0 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600"
+              className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600"
             >
               ลองใหม่
             </button>

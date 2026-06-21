@@ -20,21 +20,28 @@ const fallback: PostRunAnalysis = {
 };
 
 export async function POST(request: Request) {
-  const body = await request.json() as {
-    workout?: WorkoutAnalysis;
-    context?: CoachContext;
-  };
+  try {
+    const body = await request.json() as {
+      workout?: WorkoutAnalysis;
+      context?: CoachContext;
+    };
 
-  const result = await jsonFromAI<PostRunAnalysis>({
-    system: SYSTEM_PROMPT,
-    user: JSON.stringify({
-      workout: body.workout,
-      context: body.context,
-    }),
-    fallback,
-  });
+    const result = await jsonFromAI<PostRunAnalysis>({
+      system: SYSTEM_PROMPT,
+      user: JSON.stringify({
+        workout: body.workout,
+        context: body.context,
+      }),
+      fallback,
+    });
 
-  return NextResponse.json(result);
+    return NextResponse.json(result);
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn("[post-run-analysis-error]", error);
+    }
+    return NextResponse.json({ data: fallback, error: "post-run failed" });
+  }
 }
 
 const SYSTEM_PROMPT = `
@@ -64,6 +71,7 @@ Rules:
 - Be detailed and practical, not generic.
 - Do not invent missing metrics. Say what is missing.
 - If active race goal is null, do not infer an upcoming race from old memories.
+- If context.isRaceToday is true, explicitly mention race-day context. Treat same-day run as possible race performance when the date/distance fits the race goal.
 - If the workout was hard, HR was high, sleep/readiness was poor, or weekly load is high, recommend recovery/easy tomorrow.
 - If it was easy and readiness is good, suggest a conservative next step.
 - For treadmill, avoid over-interpreting GPS pace/elevation.

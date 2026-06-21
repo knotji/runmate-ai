@@ -26,7 +26,10 @@ export function PostRunAnalysisCard({ workout }: { workout: WorkoutAnalysis }) {
       if (!res.ok) throw new Error("post-run analysis failed");
       const json = await res.json() as { data: PostRunAnalysis };
       setAnalysis(json.data);
-    } catch {
+    } catch (error) {
+      if (process.env.NODE_ENV === "development") {
+        console.warn("[post-run-analysis-error]", error);
+      }
       setError("วิเคราะห์หลังซ้อมไม่สำเร็จ ลองใหม่อีกครั้งครับ");
     } finally {
       setLoading(false);

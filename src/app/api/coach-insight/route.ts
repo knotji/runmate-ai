@@ -16,22 +16,40 @@ const FALLBACK: DailyCoachInsight = {
 };
 
 export async function POST(request: Request) {
-  const ctx: CoachContext = await request.json();
-  const profileCtx = buildRunnerProfileContext(ctx.profile);
-  const system = profileCtx ? `${SYSTEM_PROMPT}\n\n${profileCtx}` : SYSTEM_PROMPT;
+  try {
+    const ctx: CoachContext = await request.json();
+    if (process.env.NODE_ENV === "development") {
+      console.info("[context-debug]", {
+        hasProfile: Boolean(ctx.profile),
+        recentHistoryCount: (ctx.sleep7d?.length ?? 0) + (ctx.workouts7d?.length ?? 0),
+        hasActiveRace: Boolean(ctx.raceGoal),
+        raceDate: ctx.raceDate ?? null,
+        isRaceToday: Boolean(ctx.isRaceToday),
+        isRaceTomorrow: Boolean(ctx.isRaceTomorrow),
+      });
+    }
+    const profileCtx = buildRunnerProfileContext(ctx.profile);
+    const system = profileCtx ? `${SYSTEM_PROMPT}\n\n${profileCtx}` : SYSTEM_PROMPT;
 
-  const result = await jsonFromAI<DailyCoachInsight>({
-    system,
-    user: buildUserPrompt(ctx),
-    fallback: FALLBACK,
-  });
+    const result = await jsonFromAI<DailyCoachInsight>({
+      system,
+      user: buildUserPrompt(ctx),
+      fallback: FALLBACK,
+    });
 
-  return NextResponse.json(result);
+    return NextResponse.json(result);
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn("[today-analysis-error]", error);
+    }
+    return NextResponse.json({ data: FALLBACK, error: "today analysis failed" });
+  }
 }
 
 function buildUserPrompt(ctx: CoachContext): string {
   const lines: string[] = [];
   lines.push(`Active race status: ${ctx.activeRaceStatus}`);
+  lines.push(`Race context: date=${ctx.raceDate ?? "none"}, isRaceToday=${ctx.isRaceToday}, isRaceTomorrow=${ctx.isRaceTomorrow}, isRaceWeek=${ctx.isRaceWeek}, distance=${ctx.raceDistance ?? "none"}, target=${ctx.targetTime ?? "none"}`);
   if (ctx.contextNotes?.length) {
     lines.push(`Context notes:`);
     for (const note of ctx.contextNotes) lines.push(`- ${note}`);

@@ -46,16 +46,35 @@ export function CoachChat() {
     setMessages(nextMessages);
     setInput("");
     setLoading(true);
-    const context = await buildCoachContextFromSupabase();
-    const response = await fetch("/api/coach-chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages: nextMessages, context }),
-    });
-    const result = await response.json();
-    const finalMessages: ChatMessage[] = [...nextMessages, { role: "assistant", content: result.message }];
-    setMessages(finalMessages);
-    setLoading(false);
+    try {
+      const context = await buildCoachContextFromSupabase();
+      if (process.env.NODE_ENV === "development") {
+        console.info("[coach-context-debug]", {
+          hasProfile: Boolean(context.profile),
+          recentHistoryCount: context.sleep7d.length + context.workouts7d.length,
+          hasActiveRace: Boolean(context.raceGoal),
+          raceDate: context.raceDate,
+          isRaceToday: context.isRaceToday,
+          isRaceTomorrow: context.isRaceTomorrow,
+        });
+      }
+      const response = await fetch("/api/coach-chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: nextMessages, context }),
+      });
+      if (!response.ok) throw new Error("coach chat api failed");
+      const result = await response.json();
+      const finalMessages: ChatMessage[] = [...nextMessages, { role: "assistant", content: result.message ?? "โค้ชตอบไม่สำเร็จ ลองใหม่อีกครั้ง" }];
+      setMessages(finalMessages);
+    } catch (error) {
+      if (process.env.NODE_ENV === "development") {
+        console.warn("[coach-page-error]", error);
+      }
+      setMessages([...nextMessages, { role: "assistant", content: "โค้ชตอบไม่สำเร็จ ลองใหม่อีกครั้ง" }]);
+    } finally {
+      setLoading(false);
+    }
   }
 
   function submit(event: FormEvent) {

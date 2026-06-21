@@ -31,7 +31,8 @@ const fallback: SleepAnalysis = {
 export async function POST(request: Request) {
   const body = await request.json();
   const profileCtx = buildRunnerProfileContext(body.profile ?? null);
-  const system = profileCtx ? `${sleepPrompt}\n\n${profileCtx}` : sleepPrompt;
+  const contextCtx = buildAnalysisContext(body.context);
+  const system = [sleepPrompt, profileCtx, contextCtx].filter(Boolean).join("\n\n");
 
   const result = await jsonFromAI<SleepAnalysis>({
     system,
@@ -41,4 +42,22 @@ export async function POST(request: Request) {
   });
 
   return NextResponse.json({ ...result, data: mergeWithFallback(result.data, fallback), imageUrl: body.imageUrl });
+}
+
+function buildAnalysisContext(context: unknown) {
+  if (!context || typeof context !== "object") return "";
+  const ctx = context as Record<string, unknown>;
+  const lines = [
+    "Current app context:",
+    `todayDate: ${ctx.todayDate ?? "unknown"}`,
+    `isRaceToday: ${Boolean(ctx.isRaceToday)}`,
+    `isRaceTomorrow: ${Boolean(ctx.isRaceTomorrow)}`,
+    `isRaceWeek: ${Boolean(ctx.isRaceWeek)}`,
+    `raceDate: ${ctx.raceDate ?? "none"}`,
+    `raceName: ${ctx.raceName ?? "none"}`,
+    `raceDistance: ${ctx.raceDistance ?? "none"}`,
+    `targetTime: ${ctx.targetTime ?? "none"}`,
+    "If isRaceToday is true, mention race-day readiness and avoid suggesting heavy extra training.",
+  ];
+  return lines.join("\n");
 }

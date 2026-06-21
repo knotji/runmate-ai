@@ -25,6 +25,16 @@ export type CoachContext = {
   raceGoal: Record<string, unknown> | null;
   racePlan: Record<string, unknown> | null;
   activeRaceStatus: "none" | "scheduled" | "today" | "past";
+  activeRaceGoal: Record<string, unknown> | null;
+  raceDate: string | null;
+  raceDistance: string | null;
+  raceName: string | null;
+  daysUntilRace: number | null;
+  isRaceToday: boolean;
+  isRaceTomorrow: boolean;
+  isRaceWeek: boolean;
+  raceGoalType: string | null;
+  targetTime: string | null;
   sleep7d: WeekSleepRow[];
   avgReadiness: number | null;
   workouts7d: DayWorkoutSummary[];
@@ -76,8 +86,10 @@ export function buildCoachContextFromData(input: {
 }): CoachContext {
   const today = todayBangkok();
   const cutoff = dateBefore(7);
+  const race = buildRaceContext(input.raceGoal, today);
+  const items = input.items.filter((item) => normalizeDateString(item.createdAt));
 
-  const sleepItems = input.items
+  const sleepItems = items
     .filter((i) => i.type === "sleep")
     .filter((i) => i.createdAt.slice(0, 10) >= cutoff);
   const sleep7d: WeekSleepRow[] = sleepItems.map((item) => {
@@ -93,7 +105,7 @@ export function buildCoachContextFromData(input: {
   const scores = sleep7d.map((s) => s.readiness).filter((n): n is number => n != null);
   const avgReadiness = scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null;
 
-  const workoutItems = input.items
+  const workoutItems = items
     .filter((i) => i.type === "workout")
     .filter((i) => i.createdAt.slice(0, 10) >= cutoff);
 
@@ -140,7 +152,7 @@ export function buildCoachContextFromData(input: {
   const runDays7d = workouts7d.filter((day) => day.runs.length > 0).length;
   const lastWorkoutDate = workouts7d[0]?.date ?? null;
 
-  const latestBodyItem = input.items.filter((i) => i.type === "body")[0];
+  const latestBodyItem = items.filter((i) => i.type === "body")[0];
   let latestBody: CoachContext["latestBody"] = null;
   if (latestBodyItem) {
     const bd = latestBodyItem.data as BodyCompositionAnalysis;
@@ -155,7 +167,17 @@ export function buildCoachContextFromData(input: {
     profile: input.profile,
     raceGoal: input.raceGoal,
     racePlan: input.racePlan,
-    activeRaceStatus: raceStatus(input.raceGoal, today),
+    activeRaceStatus: race.activeRaceStatus,
+    activeRaceGoal: input.raceGoal,
+    raceDate: race.raceDate,
+    raceDistance: race.raceDistance,
+    raceName: race.raceName,
+    daysUntilRace: race.daysUntilRace,
+    isRaceToday: race.isRaceToday,
+    isRaceTomorrow: race.isRaceTomorrow,
+    isRaceWeek: race.isRaceWeek,
+    raceGoalType: race.raceGoalType,
+    targetTime: race.targetTime,
     sleep7d,
     avgReadiness,
     workouts7d,
@@ -180,13 +202,6 @@ export function buildCoachContextFromData(input: {
   };
 }
 
-function raceStatus(raceGoal: Record<string, unknown> | null, today: string): CoachContext["activeRaceStatus"] {
-  const date = typeof raceGoal?.raceDate === "string" ? raceGoal.raceDate : null;
-  if (!date) return "none";
-  if (date === today) return "today";
-  return date > today ? "scheduled" : "past";
-}
-
 function buildContextNotes(input: {
   raceGoal: Record<string, unknown> | null;
   racePlan: Record<string, unknown> | null;
@@ -199,6 +214,12 @@ function buildContextNotes(input: {
 }): string[] {
   const notes: string[] = [];
   if (!input.raceGoal) notes.push("No active race goal is set. Do not infer an upcoming race from old imported memories.");
+  if (input.raceGoal) {
+    const race = buildRaceContext(input.raceGoal, todayBangkok());
+    if (race.isRaceToday) notes.push(`Race day today: ${race.raceName ?? "race"} ${race.raceDistance ?? ""} target ${race.targetTime ?? race.raceGoalType ?? "not set"}. Prioritize warm-up, pacing, hydration, and recovery. Do not suggest heavy extra training.`);
+    else if (race.isRaceTomorrow) notes.push(`Race is tomorrow: ${race.raceName ?? "race"} ${race.raceDistance ?? ""}. Avoid long run/heavy workout; keep legs fresh.`);
+    else if (race.isRaceWeek) notes.push(`Race is within 7 days (${race.daysUntilRace} days). Be conservative with training load.`);
+  }
   if (!input.racePlan) notes.push("No active weekly/race plan is set. For tomorrow questions, state that the plan is inferred from recent data.");
   if (input.sleep7d.length === 0) notes.push("No sleep data in the last 7 days.");
   if (input.workouts7d.length === 0) notes.push("No workout data in the last 7 days.");
@@ -206,6 +227,46 @@ function buildContextNotes(input: {
   if (input.longestRun7dKm != null) notes.push(`Longest run in last 7 days: ${input.longestRun7dKm.toFixed(1)} km.`);
   if (input.lastWorkoutDate) notes.push(`Last workout date: ${input.lastWorkoutDate}.`);
   return notes;
+}
+
+function buildRaceContext(raceGoal: Record<string, unknown> | null, today: string) {
+  const raceDate = normalizeDateString(raceGoal?.raceDate);
+  const daysUntilRace = raceDate ? dateDiffDays(today, raceDate) : null;
+  const activeRaceStatus: CoachContext["activeRaceStatus"] =
+    daysUntilRace == null ? "none" : daysUntilRace === 0 ? "today" : daysUntilRace > 0 ? "scheduled" : "past";
+
+  return {
+    activeRaceStatus,
+    raceDate,
+    raceDistance: stringOrNull(raceGoal?.raceDistance),
+    raceName: stringOrNull(raceGoal?.raceName),
+    daysUntilRace,
+    isRaceToday: daysUntilRace === 0,
+    isRaceTomorrow: daysUntilRace === 1,
+    isRaceWeek: daysUntilRace != null && daysUntilRace >= 0 && daysUntilRace <= 7,
+    raceGoalType: stringOrNull(raceGoal?.goalType),
+    targetTime: stringOrNull(raceGoal?.targetTime),
+  };
+}
+
+function normalizeDateString(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!match) return null;
+  const date = `${match[1]}-${match[2]}-${match[3]}`;
+  const parsed = new Date(`${date}T12:00:00+07:00`);
+  return Number.isNaN(parsed.getTime()) ? null : date;
+}
+
+function dateDiffDays(fromDate: string, toDate: string): number | null {
+  const from = Date.parse(`${fromDate}T12:00:00+07:00`);
+  const to = Date.parse(`${toDate}T12:00:00+07:00`);
+  if (Number.isNaN(from) || Number.isNaN(to)) return null;
+  return Math.round((to - from) / 86_400_000);
+}
+
+function stringOrNull(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
 function parseDurationToMin(dur: string | null): number | null {

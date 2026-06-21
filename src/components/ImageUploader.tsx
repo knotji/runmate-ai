@@ -19,6 +19,7 @@ export function ImageUploader({
   onResult: (result: unknown) => void | Promise<void>;
 }) {
   const [files, setFiles] = useState<File[]>([]);
+  const [inputKey, setInputKey] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -48,10 +49,19 @@ export function ImageUploader({
 
     setLoading(true);
     try {
+      if (process.env.NODE_ENV === "development") {
+        console.info("[upload-debug]", { uploadType: kind, selectedFileCount: files.length, analysisRoute: endpoint });
+      }
       const [imageDataUrls, imageUrls] = await Promise.all([
         Promise.all(files.map(fileToDataUrl)),
         Promise.all(files.map((file) => uploadImage(kind, file).catch(() => null))),
       ]);
+      if (kind === "meal" && imageDataUrls.length !== 1) {
+        throw new Error("วิเคราะห์รูปอาหารไม่สำเร็จ ลองเลือกรูปใหม่อีกครั้ง");
+      }
+      if (!imageDataUrls[0]) {
+        throw new Error("วิเคราะห์รูปไม่สำเร็จ ลองเลือกรูปใหม่อีกครั้ง");
+      }
       const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -63,10 +73,17 @@ export function ImageUploader({
           ...extraFields,
         }),
       });
-      if (!response.ok) throw new Error("วิเคราะห์รูปไม่สำเร็จ");
+      if (!response.ok) {
+        throw new Error(kind === "meal" ? "วิเคราะห์รูปอาหารไม่สำเร็จ ลองเลือกรูปใหม่อีกครั้ง" : "วิเคราะห์รูปไม่สำเร็จ");
+      }
       const result = await response.json();
       await onResult(result);
+      setFiles([]);
+      setInputKey((value) => value + 1);
     } catch (err) {
+      if (process.env.NODE_ENV === "development") {
+        console.warn(kind === "meal" ? "[meal-analysis-error]" : "[upload-debug]", err);
+      }
       setError(err instanceof Error ? err.message : "เกิดข้อผิดพลาด ลองใหม่อีกครั้ง");
     } finally {
       setLoading(false);
@@ -76,6 +93,7 @@ export function ImageUploader({
   return (
     <form onSubmit={submit} className="space-y-3">
       <input
+        key={inputKey}
         className="control"
         type="file"
         accept="image/*"

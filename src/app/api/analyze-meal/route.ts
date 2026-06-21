@@ -21,16 +21,26 @@ const fallback: MealAnalysis = {
 };
 
 export async function POST(request: Request) {
-  const body = await request.json();
-  const profileCtx = buildRunnerProfileContext(body.profile ?? null);
-  const system = profileCtx ? `${mealPrompt}\n\n${profileCtx}` : mealPrompt;
+  try {
+    const body = await request.json();
+    if (!body.imageDataUrl || typeof body.imageDataUrl !== "string") {
+      return NextResponse.json({ error: "missing imageDataUrl" }, { status: 400 });
+    }
+    const profileCtx = buildRunnerProfileContext(body.profile ?? null);
+    const system = profileCtx ? `${mealPrompt}\n\n${profileCtx}` : mealPrompt;
 
-  const result = await jsonFromAI<MealAnalysis>({
-    system,
-    user: `Analyze this ${body.mealType || "meal"} photo for a runner. Return JSON only.`,
-    imageDataUrl: body.imageDataUrl,
-    fallback,
-  });
+    const result = await jsonFromAI<MealAnalysis>({
+      system,
+      user: `Analyze this ${body.mealType || "meal"} photo for a runner. Return JSON only.`,
+      imageDataUrl: body.imageDataUrl,
+      fallback,
+    });
 
-  return NextResponse.json({ ...result, data: mergeWithFallback(result.data, fallback), imageUrl: body.imageUrl });
+    return NextResponse.json({ ...result, data: mergeWithFallback(result.data, fallback), imageUrl: body.imageUrl });
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn("[meal-analysis-error]", error);
+    }
+    return NextResponse.json({ error: "วิเคราะห์รูปอาหารไม่สำเร็จ ลองเลือกรูปใหม่อีกครั้ง" }, { status: 500 });
+  }
 }

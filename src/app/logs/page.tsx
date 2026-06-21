@@ -37,10 +37,13 @@ export default function ReportPage() {
       setLoading(false);
     }
     void load();
+    const onFocus = () => void load();
     window.addEventListener("runmate:cloud-data-updated", load);
+    window.addEventListener("focus", onFocus);
     return () => {
       alive = false;
       window.removeEventListener("runmate:cloud-data-updated", load);
+      window.removeEventListener("focus", onFocus);
     };
   }, []);
 

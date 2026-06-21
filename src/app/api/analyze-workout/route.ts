@@ -37,7 +37,8 @@ const fallback: WorkoutAnalysis = {
 export async function POST(request: Request) {
   const body = await request.json();
   const profileCtx = buildRunnerProfileContext(body.profile ?? null);
-  const system = profileCtx ? `${workoutPrompt}\n\n${profileCtx}` : workoutPrompt;
+  const contextCtx = buildAnalysisContext(body.context);
+  const system = [workoutPrompt, profileCtx, contextCtx].filter(Boolean).join("\n\n");
 
   const result = await jsonFromAI<WorkoutAnalysis>({
     system,
@@ -48,4 +49,21 @@ export async function POST(request: Request) {
   });
 
   return NextResponse.json({ ...result, data: mergeWithFallback(result.data, fallback), imageUrls: body.imageUrls });
+}
+
+function buildAnalysisContext(context: unknown) {
+  if (!context || typeof context !== "object") return "";
+  const ctx = context as Record<string, unknown>;
+  return [
+    "Current app context:",
+    `todayDate: ${ctx.todayDate ?? "unknown"}`,
+    `isRaceToday: ${Boolean(ctx.isRaceToday)}`,
+    `isRaceTomorrow: ${Boolean(ctx.isRaceTomorrow)}`,
+    `isRaceWeek: ${Boolean(ctx.isRaceWeek)}`,
+    `raceDate: ${ctx.raceDate ?? "none"}`,
+    `raceName: ${ctx.raceName ?? "none"}`,
+    `raceDistance: ${ctx.raceDistance ?? "none"}`,
+    `targetTime: ${ctx.targetTime ?? "none"}`,
+    "If isRaceToday is true, treat a same-day run as possible race-day performance and include race-day recovery context.",
+  ].join("\n");
 }
