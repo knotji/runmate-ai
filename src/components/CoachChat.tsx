@@ -155,7 +155,7 @@ function FormattedCoachText({ text }: { text: string }) {
       {normalized.split("\n").map((line, index) => {
         const trimmed = line.trim();
         if (!trimmed) return <div key={index} className="h-1" />;
-        const bullet = trimmed.match(/^[-•]\s+(.*)$/);
+        const bullet = trimmed.match(/^[-•*]\s+(.*)$/);
         if (bullet) {
           return (
             <div key={index} className="flex gap-2">

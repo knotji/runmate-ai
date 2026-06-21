@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { textFromAI } from "@/lib/ai";
 import { coachChatPrompt } from "@/lib/prompts/coachChat";
 import { buildRunnerProfileContext } from "@/lib/buildRunnerProfileContext";
+import type { UserProfile } from "@/types/profile";
 
 export async function POST(request: Request) {
   try {
@@ -34,7 +35,78 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: guardedReply, source: "guardrail" });
     }
 
-    const profileCtx = buildRunnerProfileContext((context as Record<string, unknown>)?.profile as Record<string, unknown> ?? null);
+    const profile = (context as Record<string, unknown>)?.profile as UserProfile | null;
+    const responseDetail = profile?.responseDetail as string | undefined;
+    const coachingTone = profile?.coachingTone as string | undefined;
+
+    let basePrompt = coachChatPrompt;
+    let chatInstructions = "";
+    if (responseDetail === "short" || responseDetail === "สั้น") {
+      // Filter out instructions to include check-in time, ข้อมูลที่ใช้ประเมิน, and สิ่งที่ยังไม่รู้
+      basePrompt = basePrompt
+        .split("\n")
+        .filter((line) => {
+          const lower = line.toLowerCase();
+          if (
+            lower.includes("เวลาเช็คอิน:") ||
+            lower.includes("ข้อมูลที่ใช้ประเมิน") ||
+            lower.includes("สิ่งที่ยังไม่รู้")
+          ) {
+            return false;
+          }
+          return true;
+        })
+        .join("\n");
+
+      chatInstructions = `
+CRITICAL INSTRUCTION - RESPOND SHORT AND BRIEF:
+Since the user requested responseDetail = "สั้น" (short):
+1. You MUST answer briefly and mobile-friendly in Thai.
+2. Maximum 3-5 short bullets or short paragraphs. Keep the answer around 120-180 Thai words maximum.
+3. Start with the direct recommendation. No long explanations, debug, or unnecessary context details.
+4. Do NOT include the exact check-in time, and do NOT include sections named “ข้อมูลที่ใช้ประเมิน”, “สิ่งที่ยังไม่รู้”, or “เวลาเช็คอิน”.
+5. You MUST strictly use this structure:
+
+คำตอบสั้น ๆ:
+[direct answer]
+
+แนะนำ:
+- [bullet point]
+- [bullet point]
+
+เลี่ยงก่อน:
+- [bullet point]
+
+เหตุผลสั้น ๆ:
+[one short reason]
+
+6. SAFETY EXCEPTION: If pain/red flag exists, still include a short safety warning (e.g., “ถ้าเจ็บเพิ่ม บวม ชา หรือลงน้ำหนักไม่ได้ ให้หยุดซ้อมและปรึกษาผู้เชี่ยวชาญ”). Do not expand into a long medical explanation.
+`;
+    }
+
+    if (coachingTone === "friendly" || coachingTone === "เป็นกันเอง") {
+      chatInstructions += `
+COACHING TONE:
+Use a friendly, practical, and warm Thai coaching tone (เป็นกันเอง). Avoid strict lecture tone unless it's a safety issue.
+`;
+    } else if (coachingTone === "direct" || coachingTone === "ตรงๆ") {
+      chatInstructions += `
+COACHING TONE:
+Use a direct and straight-to-the-point Thai coaching tone (ตรงๆ).
+`;
+    } else if (coachingTone === "gentle" || coachingTone === "นุ่มนวล") {
+      chatInstructions += `
+COACHING TONE:
+Use a gentle and encouraging Thai coaching tone (นุ่มนวล).
+`;
+    } else if (coachingTone === "strict" || coachingTone === "เข้มงวด") {
+      chatInstructions += `
+COACHING TONE:
+Use a strict, structured, and disciplined Thai coaching tone (เข้มงวด).
+`;
+    }
+
+    const profileCtx = buildRunnerProfileContext(profile);
     const systemExtra = [
       `วันที่และเวลาปัจจุบัน: ${dateTimeStr}`,
       profileCtx,
@@ -42,7 +114,7 @@ export async function POST(request: Request) {
     ].filter(Boolean).join("\n\n");
 
     const result = await textFromAI({
-      system: `${coachChatPrompt}\n\n${systemExtra}`,
+      system: `${basePrompt}\n\n${chatInstructions}\n\n${systemExtra}`,
       messages,
       fallback: fallbackCoachReply(latest),
     });
