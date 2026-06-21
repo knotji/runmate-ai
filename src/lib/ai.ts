@@ -83,18 +83,26 @@ export async function jsonFromAI<T>({
 export async function textFromAI({
   system,
   messages,
+  imageDataUrl,
   fallback,
 }: {
   system: string;
   messages: { role: "user" | "assistant"; content: string }[];
+  imageDataUrl?: string;
   fallback: string;
 }): Promise<{ message: string; source: AISource }> {
+  const images = imageDataUrl ? [imageDataUrl] : [];
+
   if (provider === "gemini" && gemini) {
     try {
       const transcript = messages.map((message) => `${message.role}: ${message.content}`).join("\n");
+      const prompt = `${system}\n\nConversation:\n${transcript}`;
+      
+      const contents = buildGeminiContents(prompt, images);
+
       const response = await gemini.models.generateContent({
         model: geminiModel,
-        contents: `${system}\n\nConversation:\n${transcript}`,
+        contents,
         config: { temperature: 0.4 },
       });
       return { message: response.text || fallback, source: "gemini" };
@@ -106,10 +114,26 @@ export async function textFromAI({
 
   if (openai) {
     try {
+      const formattedMessages = messages.map((msg, idx) => {
+        if (msg.role === "user" && images.length > 0 && idx === messages.length - 1) {
+          return {
+            role: "user" as const,
+            content: [
+              { type: "text" as const, text: msg.content },
+              ...images.map((url) => ({ type: "image_url" as const, image_url: { url } })),
+            ],
+          };
+        }
+        return {
+          role: msg.role,
+          content: msg.content,
+        };
+      });
+
       const response = await openai.chat.completions.create({
         model: openaiModel,
         temperature: 0.4,
-        messages: [{ role: "system", content: system }, ...messages],
+        messages: [{ role: "system" as const, content: system }, ...formattedMessages],
       });
       return { message: response.choices[0]?.message.content || fallback, source: "openai" };
     } catch (error) {

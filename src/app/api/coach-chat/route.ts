@@ -39,9 +39,10 @@ export async function POST(request: Request) {
     const profile = (context as Record<string, unknown>)?.profile as UserProfile | null;
     const responseDetail = profile?.responseDetail as string | undefined;
     const coachingTone = profile?.coachingTone as string | undefined;
+    const imageDataUrl = body.imageDataUrl as string | undefined;
 
     let basePrompt = coachChatPrompt;
-    let chatInstructions = buildCoachResponseFormatInstruction(profile?.language, responseDetail);
+    let chatInstructions = buildCoachResponseFormatInstruction(profile?.language, responseDetail, Boolean(imageDataUrl));
 
     if (responseDetail === "short" || responseDetail === "สั้น") {
       // Filter out instructions to include check-in time, ข้อมูลที่ใช้ประเมิน, and สิ่งที่ยังไม่รู้
@@ -93,6 +94,7 @@ Use a strict, structured, and disciplined Thai coaching tone (เข้มงว
     const result = await textFromAI({
       system: `${basePrompt}\n\n${chatInstructions}\n\n${systemExtra}`,
       messages,
+      imageDataUrl,
       fallback: fallbackCoachReply(latest),
     });
 
