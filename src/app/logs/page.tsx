@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
-import { loadHistoryItems } from "@/lib/cloudHistory";
-import { loadRaceResults } from "@/lib/raceResults";
+import { deleteHistoryItem, loadHistoryItems } from "@/lib/cloudHistory";
+import { deleteRaceResult, loadRaceResults } from "@/lib/raceResults";
 import { loadProfileFromSupabase } from "@/lib/profileStorage";
 import type { LocalHistoryItem } from "@/lib/localHistory";
 import type { SleepAnalysis, WorkoutAnalysis, MealAnalysis, DailySummary, BodyCompositionAnalysis } from "@/types/logs";
@@ -36,6 +36,7 @@ export default function ReportPage() {
   const [error, setError] = useState("");
   const [activeFilter, setActiveFilter] = useState<"all" | "run" | "meal" | "strength" | "pain">("all");
   const [showOlderDays, setShowOlderDays] = useState(false);
+  const [deleteStatus, setDeleteStatus] = useState("");
 
   useEffect(() => {
     let alive = true;
@@ -104,6 +105,33 @@ export default function ReportPage() {
   const olderDays = filteredDays.slice(7);
   const visibleDays = showOlderDays ? filteredDays : recentDays;
 
+  async function handleDeleteItem(item: LocalHistoryItem) {
+    const confirmed = window.confirm("ลบรายการนี้?\n\nรายการนี้จะถูกลบออกจาก Report และจะไม่ถูกใช้เป็นบริบทให้ Coach อีก");
+    if (!confirmed) return;
+    setDeleteStatus("");
+    const result = await deleteHistoryItem(item.id);
+    if (!result.ok) {
+      setDeleteStatus(result.error ? `ลบไม่สำเร็จ: ${result.error}` : "ลบไม่สำเร็จ ลองใหม่อีกครั้ง");
+      return;
+    }
+    setItems((current) => current.filter((next) => next.id !== item.id));
+    setDeleteStatus("ลบรายการแล้ว");
+  }
+
+  async function handleDeleteRaceResult(result: RaceResult) {
+    if (!result.id) return;
+    const confirmed = window.confirm("ลบ Race Result นี้?\n\nรายการนี้จะถูกลบออกจาก Report และจะไม่ถูกใช้เป็นบริบทให้ Coach อีก");
+    if (!confirmed) return;
+    setDeleteStatus("");
+    const response = await deleteRaceResult(result.id);
+    if (!response.ok) {
+      setDeleteStatus(response.error ? `ลบไม่สำเร็จ: ${response.error}` : "ลบไม่สำเร็จ ลองใหม่อีกครั้ง");
+      return;
+    }
+    setRaceResults((current) => current.filter((next) => next.id !== result.id));
+    setDeleteStatus("ลบรายการแล้ว");
+  }
+
   return (
     <AppShell title="Report" subtitle="บันทึกจาก Upload ที่ Coach Chat ใช้เป็นบริบท">
       {loading ? (
@@ -126,6 +154,11 @@ export default function ReportPage() {
             Report คือประวัติจริงจาก Upload และการบันทึกกิจกรรม ส่วนข้อความใน Coach Chat จะไม่ถูกเพิ่มเข้าหน้านี้อัตโนมัติ
           </section>
           <WeeklyDashboard dashboard={dashboard} proteinTarget={pTarget} />
+          {deleteStatus ? (
+            <section className={`rounded-2xl px-4 py-3 text-xs font-semibold ${deleteStatus.startsWith("ลบไม่สำเร็จ") ? "bg-red-50 text-red-600" : "bg-[#e7efea] text-[#2a5a39]"}`}>
+              {deleteStatus}
+            </section>
+          ) : null}
 
           {/* Filter Pills */}
           <div className="flex flex-wrap gap-1.5 my-4">
@@ -154,7 +187,7 @@ export default function ReportPage() {
 
           {activeFilter === "pain" && (
             <div className="mb-4">
-              <PainHistoryCompactList items={items} />
+              <PainHistoryCompactList items={items} onDelete={handleDeleteItem} />
             </div>
           )}
 
@@ -163,7 +196,14 @@ export default function ReportPage() {
           ) : (
             <>
               {visibleDays.map((day) => (
-                <DayCard key={day.date} day={day} raceResults={raceResultsByDate.get(day.date) ?? []} proteinTarget={pTarget} />
+                <DayCard
+                  key={day.date}
+                  day={day}
+                  raceResults={raceResultsByDate.get(day.date) ?? []}
+                  proteinTarget={pTarget}
+                  onDeleteItem={handleDeleteItem}
+                  onDeleteRaceResult={handleDeleteRaceResult}
+                />
               ))}
               {olderDays.length > 0 && (
                 <button
@@ -219,7 +259,19 @@ function DashboardMetric({ label, value, sub, compact = false }: { label: string
 
 // ─── Day card ─────────────────────────────────────────────────────────────────
 
-function DayCard({ day, raceResults, proteinTarget }: { day: DayGroup; raceResults: RaceResult[]; proteinTarget: number }) {
+function DayCard({
+  day,
+  raceResults,
+  proteinTarget,
+  onDeleteItem,
+  onDeleteRaceResult,
+}: {
+  day: DayGroup;
+  raceResults: RaceResult[];
+  proteinTarget: number;
+  onDeleteItem: (item: LocalHistoryItem) => void;
+  onDeleteRaceResult: (result: RaceResult) => void;
+}) {
   const [expanded, setExpanded] = useState(false);
 
   const sleeps = day.items.filter((i) => i.type === "sleep");
@@ -310,23 +362,26 @@ function DayCard({ day, raceResults, proteinTarget }: { day: DayGroup; raceResul
 
       {expanded && (
         <div className="border-t border-[#d9e8df]/70 space-y-3 px-4 pb-4 pt-3">
-          {sleeps.map((item) => <SleepDetail key={item.id} item={item} />)}
-          {pains.map((item) => <PainDetail key={item.id} item={item} meta={painMetaById.get(item.id)} />)}
-          {strengths.map((item) => <StrengthDetail key={item.id} item={item} />)}
-          {raceResults.map((result) => <RaceResultDetail key={result.id ?? `${result.raceDate}-${result.raceName}`} result={result} />)}
-          {workouts.map((item) => <WorkoutDetail key={item.id} item={item} />)}
+          {sleeps.map((item) => <SleepDetail key={item.id} item={item} onDelete={onDeleteItem} />)}
+          {pains.map((item) => <PainDetail key={item.id} item={item} meta={painMetaById.get(item.id)} onDelete={onDeleteItem} />)}
+          {strengths.map((item) => <StrengthDetail key={item.id} item={item} onDelete={onDeleteItem} />)}
+          {raceResults.map((result) => <RaceResultDetail key={result.id ?? `${result.raceDate}-${result.raceName}`} result={result} onDelete={onDeleteRaceResult} />)}
+          {workouts.map((item) => <WorkoutDetail key={item.id} item={item} onDelete={onDeleteItem} />)}
           {mealCount > 0 && <MealNutritionDaySummary summary={mealNutrition} mealCount={mealCount} proteinTarget={proteinTarget} />}
-          {meals.map((item) => <MealDetail key={item.id} item={item} />)}
-          {bodies.map((item) => <BodyDetail key={item.id} item={item} />)}
+          {meals.map((item) => <MealDetail key={item.id} item={item} onDelete={onDeleteItem} />)}
+          {bodies.map((item) => <BodyDetail key={item.id} item={item} onDelete={onDeleteItem} />)}
           {summaries.length > 0 && (sleeps.length + workouts.length + meals.length + bodies.length + pains.length + strengths.length === 0) &&
-            summaries.map((item) => <SummaryDetail key={item.id} item={item} />)}
+            summaries.map((item) => <SummaryDetail key={item.id} item={item} onDelete={onDeleteItem} />)}
           {summaries.length > 0 && (sleeps.length + workouts.length + meals.length + bodies.length + pains.length + strengths.length > 0) && (
             <div className="rounded-2xl bg-slate-50 p-3">
               <p className="text-xs font-bold text-slate-500 mb-1">สรุปท้ายวัน ({summaries.length})</p>
               {summaries.slice(0, 2).map((item) => (
-                <p key={item.id} className="text-sm text-slate-700 leading-5 mt-1">
-                  {truncate(getSummaryText(item), 120)}
-                </p>
+                <div key={item.id} className="mt-2 rounded-xl bg-white/80 p-3">
+                  <p className="text-sm text-slate-700 leading-5">
+                    {truncate(getSummaryText(item), 120)}
+                  </p>
+                  <DeleteRecordButton onDelete={() => onDeleteItem(item)} />
+                </div>
               ))}
             </div>
           )}
@@ -336,7 +391,7 @@ function DayCard({ day, raceResults, proteinTarget }: { day: DayGroup; raceResul
   );
 }
 
-function RaceResultDetail({ result }: { result: RaceResult }) {
+function RaceResultDetail({ result, onDelete }: { result: RaceResult; onDelete: (result: RaceResult) => void }) {
   return (
     <div className="rounded-2xl bg-[#e7efea] p-4">
       <p className="mb-1 text-xs font-bold uppercase tracking-wide text-[#2a5a39]">🏁 Race Day</p>
@@ -347,13 +402,14 @@ function RaceResultDetail({ result }: { result: RaceResult }) {
         <Metric label="Result" value={raceResultLabel(result.goalResult)} />
       </div>
       {result.coachSummary ? <p className="mt-3 text-sm leading-6 text-slate-700">{truncate(result.coachSummary, 160)}</p> : null}
+      <DeleteRecordButton onDelete={() => onDelete(result)} />
     </div>
   );
 }
 
 // ─── Detail panels ────────────────────────────────────────────────────────────
 
-function SleepDetail({ item }: { item: LocalHistoryItem }) {
+function SleepDetail({ item, onDelete }: { item: LocalHistoryItem; onDelete: (item: LocalHistoryItem) => void }) {
   const d = item.data as SleepAnalysis;
   const ext = d?.extracted ?? {};
   const coach = d?.coach ?? {};
@@ -374,11 +430,12 @@ function SleepDetail({ item }: { item: LocalHistoryItem }) {
       {coach.todayRecommendation && (
         <p className="mt-2 text-sm font-bold text-[#17201d]">→ {polishSleepInsightText(coach.todayRecommendation)}</p>
       )}
+      <DeleteRecordButton onDelete={() => onDelete(item)} />
     </div>
   );
 }
 
-function WorkoutDetail({ item }: { item: LocalHistoryItem }) {
+function WorkoutDetail({ item, onDelete }: { item: LocalHistoryItem; onDelete: (item: LocalHistoryItem) => void }) {
   const d = item.data as WorkoutAnalysis;
   const ext = d?.extracted ?? {};
   const coach = d?.coach ?? {};
@@ -414,11 +471,12 @@ function WorkoutDetail({ item }: { item: LocalHistoryItem }) {
       {coach.workoutSummary && (
         <p className="text-sm leading-6 text-slate-700">{truncate(formatSummaryText(coach.workoutSummary), 160)}</p>
       )}
+      <DeleteRecordButton onDelete={() => onDelete(item)} />
     </div>
   );
 }
 
-function MealDetail({ item }: { item: LocalHistoryItem }) {
+function MealDetail({ item, onDelete }: { item: LocalHistoryItem; onDelete: (item: LocalHistoryItem) => void }) {
   const d = extractMealData(item);
   const n = normalizeMealNutrition(d as unknown as Record<string, unknown>);
   const foodNames = d.detectedFoods?.map((food) => food.name).filter(Boolean).join(", ") || d?.extracted?.detectedFood || "";
@@ -446,6 +504,7 @@ function MealDetail({ item }: { item: LocalHistoryItem }) {
       {note && (
         <p className="text-sm leading-6 text-slate-700">{truncate(note, 140)}</p>
       )}
+      <DeleteRecordButton onDelete={() => onDelete(item)} />
     </div>
   );
 }
@@ -488,7 +547,7 @@ function MealNutritionDaySummary({ summary, mealCount, proteinTarget }: { summar
   );
 }
 
-function BodyDetail({ item }: { item: LocalHistoryItem }) {
+function BodyDetail({ item, onDelete }: { item: LocalHistoryItem; onDelete: (item: LocalHistoryItem) => void }) {
   const d = item.data as BodyCompositionAnalysis;
   const ext = d?.extracted ?? {};
   const coach = d?.coach ?? {};
@@ -511,11 +570,12 @@ function BodyDetail({ item }: { item: LocalHistoryItem }) {
       {confidenceLabel && (
         <p className="mt-2 text-xs text-slate-400">{confidenceLabel}</p>
       )}
+      <DeleteRecordButton onDelete={() => onDelete(item)} />
     </div>
   );
 }
 
-function SummaryDetail({ item }: { item: LocalHistoryItem }) {
+function SummaryDetail({ item, onDelete }: { item: LocalHistoryItem; onDelete: (item: LocalHistoryItem) => void }) {
   const d = item.data as DailySummary & { coachMessage?: string };
 
   return (
@@ -524,13 +584,14 @@ function SummaryDetail({ item }: { item: LocalHistoryItem }) {
       <p className="text-sm leading-6 text-slate-700 whitespace-pre-line">
         {truncate(d?.coachMessage ?? d?.overallSummary ?? "", 240)}
       </p>
+      <DeleteRecordButton onDelete={() => onDelete(item)} />
     </div>
   );
 }
 
 // ─── Small components ─────────────────────────────────────────────────────────
 
-function PainDetail({ item, meta }: { item: LocalHistoryItem; meta?: PainDisplayMeta }) {
+function PainDetail({ item, meta, onDelete }: { item: LocalHistoryItem; meta?: PainDisplayMeta; onDelete: (item: LocalHistoryItem) => void }) {
   const painLog = item.data as PainLog;
   if (!painLog) return null;
 
@@ -625,11 +686,12 @@ function PainDetail({ item, meta }: { item: LocalHistoryItem; meta?: PainDisplay
           อัปเดตอาการ
         </Link>
       </div>
+      <DeleteRecordButton onDelete={() => onDelete(item)} />
     </div>
   );
 }
 
-function StrengthDetail({ item }: { item: LocalHistoryItem }) {
+function StrengthDetail({ item, onDelete }: { item: LocalHistoryItem; onDelete: (item: LocalHistoryItem) => void }) {
   const log = item.data as StrengthLog;
   if (!log) return null;
 
@@ -690,6 +752,21 @@ function StrengthDetail({ item }: { item: LocalHistoryItem }) {
       <div className="text-[10px] text-slate-400">
         ความเหนื่อย: {INTENSITY_LABELS[log.intensity] ?? log.intensity}
       </div>
+      <DeleteRecordButton onDelete={() => onDelete(item)} />
+    </div>
+  );
+}
+
+function DeleteRecordButton({ onDelete }: { onDelete: () => void }) {
+  return (
+    <div className="mt-3 flex justify-end">
+      <button
+        type="button"
+        onClick={onDelete}
+        className="rounded-full border border-red-100 bg-white/80 px-3 py-1.5 text-xs font-bold text-red-500 transition hover:bg-red-50"
+      >
+        ลบรายการ
+      </button>
     </div>
   );
 }
@@ -1037,7 +1114,13 @@ function dashboardNote(input: {
   return parts.join(" · ");
 }
 
-function PainHistoryCompactList({ items }: { items: LocalHistoryItem[] }) {
+function PainHistoryCompactList({
+  items,
+  onDelete,
+}: {
+  items: LocalHistoryItem[];
+  onDelete: (item: LocalHistoryItem) => void;
+}) {
   const painItems = items
     .filter((i) => i.type === "pain")
     .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
@@ -1076,6 +1159,7 @@ function PainHistoryCompactList({ items }: { items: LocalHistoryItem[] }) {
               <th className="py-2.5 font-semibold text-center">ระดับ</th>
               <th className="py-2.5 font-semibold text-center">ความเสี่ยง</th>
               <th className="py-2.5 font-semibold">ผลกระทบ</th>
+              <th className="py-2.5 font-semibold text-right">จัดการ</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
@@ -1096,6 +1180,15 @@ function PainHistoryCompactList({ items }: { items: LocalHistoryItem[] }) {
                     </span>
                   </td>
                   <td className="py-2.5 text-slate-600 font-medium">{IMPACT_LABELS[p.trainingImpact] || p.trainingImpact}</td>
+                  <td className="py-2.5 text-right">
+                    <button
+                      type="button"
+                      onClick={() => onDelete(item)}
+                      className="rounded-full border border-red-100 bg-white px-2.5 py-1 text-[10px] font-bold text-red-500 hover:bg-red-50"
+                    >
+                      ลบ
+                    </button>
+                  </td>
                 </tr>
               );
             })}

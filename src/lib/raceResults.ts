@@ -173,6 +173,27 @@ export async function loadRaceResults(limit = 20): Promise<{ ok: true; results: 
   return { ok: true, results };
 }
 
+export async function deleteRaceResult(id: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await ensureSupabaseProfileSession();
+  if (!session.ok) return { ok: false, error: session.message ?? session.reason };
+
+  logSupabaseSyncStart({ table: "race_results", operation: "delete", userId: session.userId, count: 1 });
+  const { error } = await session.supabase
+    .from("race_results")
+    .delete()
+    .eq("user_id", session.userId)
+    .eq("id", id);
+
+  if (error) {
+    logSupabaseSyncError({ table: "race_results", operation: "delete", userId: session.userId, error });
+    return { ok: false, error: friendlySupabaseError(error) };
+  }
+
+  logSupabaseSyncSuccess({ table: "race_results", operation: "delete", userId: session.userId, count: 1 });
+  window.dispatchEvent(new Event("runmate:cloud-data-updated"));
+  return { ok: true };
+}
+
 export function normalizeLocalDate(value: unknown): string | null {
   if (typeof value !== "string" || !value.trim()) return null;
   const s = value.trim();
