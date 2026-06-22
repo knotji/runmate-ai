@@ -80,8 +80,8 @@ export default function RaceGoalPage() {
         <>
           <RaceCountdownCard goal={goal} phase={plan.currentPhase} />
           <PlanAtGlance plan={plan} />
-          {plan.todayWorkout ? <TodayWorkoutCard workout={plan.todayWorkout} /> : null}
-          {plan.weeklyPlan?.length ? <ActionableWeekCard workouts={plan.weeklyPlan} /> : null}
+          {plan.todayWorkout ? <TodayWorkoutCard workout={normalizeForDisplay(plan.todayWorkout)} /> : null}
+          {plan.weeklyPlan?.length ? <ActionableWeekCard workouts={plan.weeklyPlan.map(normalizeForDisplay)} /> : null}
 
           <section className="card space-y-3 p-5">
             <div className="flex items-center justify-between gap-3">
@@ -270,4 +270,52 @@ function resultBadge(value: RaceResult["goalResult"]) {
   if (value === "missed") return "Missed";
   if (value === "completed") return "Completed";
   return "Race Result";
+}
+
+// ── Display-layer normalization (applied to stored plans before render) ──────
+
+function normalizeForDisplay(workout: WeekWorkout): WeekWorkout {
+  const type = workout.workoutType ?? "";
+  const isRestOnly = /^(rest(\s+day)?|พัก)(\s*[\/,+]|$)/i.test(type.trim());
+  const isRecovery =
+    !isRestOnly &&
+    /^(recovery|active\s+recovery|recovery\s+walk|mobility|shakeout|post.?race|walk|ฟื้น)/i.test(type.trim());
+  const isStrength = /^(strength|cross.?training|gym|core)/i.test(type.trim());
+
+  let targetPace = workout.targetPace;
+  let targetHR = workout.targetHR;
+
+  if (isRestOnly || isStrength) {
+    if (targetPace && /\d+:\d{2}/.test(targetPace)) targetPace = "ไม่เน้น pace";
+    targetHR = "ไม่เน้น HR";
+  } else if (isRecovery) {
+    if (targetPace && /\d+:\d{2}/.test(targetPace)) {
+      targetPace = roundPaceRangeDisplay(targetPace);
+    }
+    if (!targetHR || /n\/a/i.test(targetHR)) {
+      targetHR = "โซน 1–2 · หายใจสบาย คุยได้";
+    }
+  } else if (targetPace && /\d+:\d{2}/.test(targetPace)) {
+    targetPace = roundPaceRangeDisplay(targetPace);
+  }
+
+  return { ...workout, targetPace, targetHR };
+}
+
+function roundPaceRangeDisplay(raw: string): string {
+  const rangeM = raw.match(/(\d+:\d{2})\s*[–\-]\s*(\d+:\d{2})/);
+  if (rangeM) {
+    return `${roundPaceSecDisplay(rangeM[1])}–${roundPaceSecDisplay(rangeM[2])}/km`;
+  }
+  const singleM = raw.match(/(\d+:\d{2})/);
+  if (singleM) return `${roundPaceSecDisplay(singleM[1])}/km`;
+  return raw;
+}
+
+function roundPaceSecDisplay(pace: string, toNearest = 10): string {
+  const m = pace.match(/^(\d+):(\d{2})$/);
+  if (!m) return pace;
+  const total = parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+  const rounded = Math.round(total / toNearest) * toNearest;
+  return `${Math.floor(rounded / 60)}:${(rounded % 60).toString().padStart(2, "0")}`;
 }

@@ -117,21 +117,64 @@ function sanitizeWeeklyPlan(
 
 function normalizeWorkout(workout: WeekWorkout, index: number, derived: DerivedPlanInputs): WeekWorkout {
   const type = cleanText(workout.workoutType) || (index === 0 ? derived.defaultTodayType : "Recovery");
-  const isRest = /rest|recovery|พัก|ฟื้น/i.test(type);
+  // isRestOnly = pure rest day with no running expected
+  const isRestOnly = /^(rest(\s+day)?|พัก)(\s*[\/,+]|$)/i.test(type);
+  // isRecovery = light active session (Recovery, Mobility, Shakeout, Walk, ฟื้น...)
+  const isRecovery = !isRestOnly && /^(recovery|active\s+recovery|recovery\s+walk|mobility|shakeout|post.?race|walk|ฟื้น)/i.test(type);
+  const isRest = isRestOnly || isRecovery;
   const isHard = /tempo|interval|hill|speed|threshold|เร็ว|อินเทอร์/i.test(type);
+  const isStrength = /^(strength|cross.?training|gym|core)/i.test(type);
   const pace = cleanText(workout.targetPace);
   const hr = cleanText(workout.targetHR);
+
+  let targetPace: string | null;
+  if (isRestOnly || isStrength) {
+    targetPace = null;
+  } else if (isRecovery) {
+    const raw = pace && !/n\/a/i.test(pace) ? pace : null;
+    targetPace = raw && /\d+:\d{2}/.test(raw) ? roundPacePlanStr(raw) : (derived.paceGuidance.recovery ?? null);
+  } else if (pace && !/n\/a/i.test(pace)) {
+    targetPace = /\d+:\d{2}/.test(pace) ? roundPacePlanStr(pace) : pace;
+  } else {
+    targetPace = (isHard ? derived.paceGuidance.tempo : derived.paceGuidance.easy) ?? null;
+  }
+
+  let targetHR: string;
+  if (isRestOnly || isStrength) {
+    targetHR = "ไม่เน้น HR";
+  } else if (isRecovery) {
+    targetHR = hr && !/n\/a/i.test(hr) ? hr : "โซน 1–2 · หายใจสบาย คุยได้";
+  } else {
+    targetHR = hr && !/n\/a/i.test(hr) ? hr : derived.easyHrTarget;
+  }
+
   return {
     day: cleanText(workout.day) || (index === 0 ? "วันนี้" : `วันที่ ${index + 1}`),
     workoutType: type,
     distanceKm: typeof workout.distanceKm === "number" ? workout.distanceKm : isRest ? null : derived.easyDistanceKm,
     durationMin: typeof workout.durationMin === "number" ? workout.durationMin : isRest ? 20 : null,
-    targetPace: pace && !/n\/a/i.test(pace) ? pace : (isHard ? derived.paceGuidance.tempo : derived.paceGuidance.easy) ?? null,
-    targetHR: hr && !/n\/a/i.test(hr) ? hr : isRest ? "ไม่เน้น HR" : derived.easyHrTarget,
+    targetPace,
+    targetHR,
     purpose: cleanText(workout.purpose) || (isRest ? "ลดความล้าและคุมความเสี่ยงเจ็บซ้ำ" : "สะสมความฟิตให้พร้อมสำหรับวันแข่ง"),
     adjustment: cleanText(workout.adjustment) || derived.defaultAdjustment,
     description: cleanText(workout.description) || (isRest ? "เดินเบา ๆ หรือ mobility สั้น ๆ ถ้าไม่เจ็บ" : "วิ่งคุมแรงแบบยังพูดเป็นประโยคได้"),
   };
+}
+
+// Round a pace string like "6:57–8:01/km" or "6:57-8:01" to nearest-5-second boundaries
+function roundPacePlanStr(raw: string): string {
+  const rangeM = raw.match(/(\d+:\d{2})\s*[–\-]\s*(\d+:\d{2})/);
+  if (rangeM) {
+    const lo = parsePaceToSeconds(rangeM[1]);
+    const hi = parsePaceToSeconds(rangeM[2]);
+    if (lo && hi) return `${formatPace(lo)}–${formatPace(hi)}/km`;
+  }
+  const singleM = raw.match(/(\d+:\d{2})/);
+  if (singleM) {
+    const s = parsePaceToSeconds(singleM[1]);
+    if (s) return `${formatPace(s)}/km`;
+  }
+  return raw;
 }
 
 function applyInjurySafety(plan: WeekWorkout[], ctx: CoachContext | undefined, derived: DerivedPlanInputs): WeekWorkout[] {
@@ -190,7 +233,7 @@ type DerivedPlanInputs = {
   paceGuidance: NonNullable<RacePlan["paceGuidance"]>;
 };
 
-function derivePlanInputs(goal: RaceGoal, ctx: CoachContext | undefined, todayStr: string, daysUntilRace: number | null): DerivedPlanInputs {
+function derivePlanInputs(goal: RaceGoal, ctx: CoachContext | undefined, _todayStr: string, daysUntilRace: number | null): DerivedPlanInputs {
   const currentPhase = phaseFromDays(daysUntilRace);
   const recentWeeklyKm = ctx?.totalRunKm ?? 0;
   const longestRecent = ctx?.longestRun7dKm ?? goal.currentLongestRunKm ?? null;

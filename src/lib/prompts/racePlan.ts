@@ -82,7 +82,7 @@ Rules:
 - Each workout must include type, distance or duration, pace/effort, HR/effort guidance, purpose, and adjustment.
 - Use target race time, profile easy pace, easy HR cap, recent run pace, recent weekly km, sleep readiness, and pain status.
 - Do not hardcode one pace for every runner. Derive realistic pace guidance from the data.
-- Use "ไม่เน้น HR" or effort wording when HR target is not applicable. Never output "HR N/A" or "Pace N/A".
+- Never output "HR N/A" or "Pace N/A". Use natural Thai wording instead.
 - If days until race <= 2, return Race Week only with rest/shakeout/race execution guidance.
 - If days until race <= 7, prioritize taper and freshness.
 - If avg readiness < 70, reduce load and add recovery.
@@ -91,4 +91,31 @@ Rules:
   * If current pain is 1-2/10 but recent max pain >= 3/10, hard sessions must be conditional or replaced by easy/recovery.
   * Mention recent max pain only as safety history, not as current pain.
 - Keep the plan conservative and race-specific.
+
+Workout-type specific rules (MUST follow exactly):
+- Rest / Rest Day / พัก:
+    targetPace: null (omit entirely — no running pace)
+    targetHR: "ไม่เน้น HR"
+    purpose: rest/recovery note in Thai
+    adjustment: light walk or stretch only if feeling good
+- Recovery / Active Recovery / Recovery Walk / Mobility / Shakeout:
+    targetPace: null or a soft rounded jog pace only if it is clearly a jog (e.g. "8:00–9:00/km"). Never give an exact calculator value.
+    targetHR: "โซน 1–2" or "โซน 1–2 · ไม่เกิน 135 bpm" if HR cap is known. Never use a running effort HR cap as the main recovery guide.
+- Easy Run / Long Run:
+    targetPace: rounded easy pace range derived from profile
+    targetHR: "ไม่เกิน [easy HR cap] bpm" or "โซน 2 · ไม่เกิน [easy HR cap] bpm"
+- Tempo:
+    targetHR: "ใกล้ LT แต่ไม่เกิน [LT] bpm" if LT HR known, else "คุมเหนื่อยระดับ 7/10". Do NOT use easy HR cap as tempo HR.
+- Intervals:
+    targetHR: "Effort 8–9/10" or "พักให้ HR ลงก่อนเริ่มรอบถัดไป". Do NOT use easy HR cap as interval HR.
+- Strength / Cross Training / Gym:
+    targetPace: null
+    targetHR: "ไม่เน้น HR" or "RPE 6–7/10"
+
+Pace format rules (MUST follow):
+- Round ALL planned pace values to nearest 5 seconds. Examples: 6:57 → 7:00, 8:01 → 8:00, 7:13 → 7:15, 9:10 → 9:10.
+- Format pace ranges with en dash: "M:SS–M:SS/km". Example: "7:00–8:00/km".
+- Rest / Recovery / Strength: targetPace must be null, not a pace string.
+- Actual race result pace may keep its exact value; only planned training paces must be rounded.
 `;
+
