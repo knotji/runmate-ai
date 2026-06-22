@@ -250,7 +250,11 @@ function buildAnalysisContext(context: unknown) {
     "If isRaceToday is true, mention race-day readiness and avoid suggesting heavy extra training.",
   ];
   if (latestPain) {
-    lines.push(`latestPain/current: ${latestPain.painLocation} ${latestPain.painLevel}/10 on ${latestPain.date ?? "unknown"}`);
+    if (latestPain.hasResolvedPain) {
+      lines.push(`latestPain/resolved: ${latestPain.painLocation} marked resolved on ${latestPain.resolvedAt ?? latestPain.date ?? "unknown"}. Do not describe it as active injury.`);
+    } else {
+      lines.push(`latestPain/current: ${latestPain.painLocation} ${latestPain.painLevel}/10 on ${latestPain.date ?? "unknown"}`);
+    }
     if (recentMaxPain && recentMaxPain.painLevel > latestPain.painLevel) {
       lines.push(`recentMaxPain/safety only: ${recentMaxPain.painLocation} ${recentMaxPain.painLevel}/10 on ${recentMaxPain.date ?? "unknown"}`);
     }
@@ -311,6 +315,12 @@ function buildInjuryAwareSleepRecommendation(input: {
     ? `แม้ล่าสุดเจ็บ${latest.painLocation}แค่ ${latest.painLevel}/10 แต่ช่วงไม่กี่วันที่ผ่านมาเคยขึ้นถึง ${input.recentMaxPain.painLevel}/10 จึงควรคุมโหลดไว้ก่อน `
     : "";
 
+  if (latest.hasResolvedPain) {
+    return input.recentMaxPain && input.recentMaxPain.painLevel >= 3 && input.recentMaxPain.painLevel > latest.painLevel
+      ? `ล่าสุด${latest.painLocation}ทำเครื่องหมายว่าหายแล้ว แต่ช่วงไม่กี่วันที่ผ่านมาเคยขึ้นถึง ${input.recentMaxPain.painLevel}/10 วันนี้ค่อย ๆ เพิ่มโหลดกลับได้แบบ conservative เริ่มจากเดิน/วอร์มอัปให้ไม่เจ็บก่อน และหลีกเลี่ยงซ้อมหนักทันทีครับ`
+      : `ล่าสุด${latest.painLocation}ทำเครื่องหมายว่าหายแล้ว ถ้าเดินและวอร์มอัปไม่เจ็บ ค่อย ๆ กลับเข้า easy movement ได้ แต่หยุดถ้าอาการกลับมาครับ`;
+  }
+
   if (latest.painLevel <= 1) {
     return `${recentHistory}ถ้าเดินแล้วไม่เจ็บและวอร์มอัปแล้วอาการไม่เพิ่ม ค่อยวิ่ง Easy Run เบา ๆ ได้ ${hrText} ถ้าเริ่มเจ็บ ให้เปลี่ยนเป็น Active Recovery หรือพักครับ`;
   }
@@ -334,6 +344,8 @@ type PainContext = {
   date: string | null;
   painLocation: string;
   painLevel: number;
+  hasResolvedPain: boolean;
+  resolvedAt: string | null;
 };
 
 function readPainSummary(value: unknown): PainContext | null {
@@ -345,6 +357,8 @@ function readPainSummary(value: unknown): PainContext | null {
     date: typeof record.date === "string" ? record.date : null,
     painLocation: typeof record.painLocation === "string" && record.painLocation.trim() ? record.painLocation.trim() : "อาการเจ็บ",
     painLevel: Math.round(painLevel),
+    hasResolvedPain: Boolean(record.hasResolvedPain || record.resolved || record.status === "resolved"),
+    resolvedAt: typeof record.resolvedAt === "string" ? record.resolvedAt : null,
   };
 }
 

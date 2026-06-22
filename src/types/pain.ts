@@ -2,6 +2,7 @@ export type PainSide = "left" | "right" | "both" | "unknown";
 export type PainTriYesNo = "yes" | "no" | "unknown";
 export type PainRiskLevel = "low" | "medium" | "high";
 export type PainTrainingImpact = "run_ok_easy" | "reduce_load" | "rest" | "seek_professional";
+export type PainStatus = "active" | "resolved";
 
 export type PainLog = {
   painLocation: string;
@@ -19,6 +20,9 @@ export type PainLog = {
   coachAdvice: string;
   redFlags: string[];
   createdAt: string;
+  resolved?: boolean;
+  status?: PainStatus;
+  resolvedAt?: string;
 };
 
 export type PainAnalysisResult = {

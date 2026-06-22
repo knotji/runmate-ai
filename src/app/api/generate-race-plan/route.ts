@@ -249,7 +249,11 @@ function derivePlanInputs(goal: RaceGoal, ctx: CoachContext | undefined, _todayS
   const recentMaxPain = ctx?.recentMaxPain;
   const defaultTodayType = defaultWorkoutType(currentPhase, latestPain, recentMaxPain, ctx);
   const sleepNote = ctx?.avgReadiness != null ? `readiness เฉลี่ย ${ctx.avgReadiness}` : "ยังไม่มี readiness เฉลี่ย";
-  const painNote = latestPain ? `ล่าสุด${painLabel(latestPain)} ${latestPain.painLevel}/10` : "ไม่มี pain log ล่าสุด";
+  const painNote = latestPain
+    ? latestPain.hasResolvedPain
+      ? `ล่าสุด${painLabel(latestPain)}ทำเครื่องหมายว่าหายแล้ว`
+      : `ล่าสุด${painLabel(latestPain)} ${latestPain.painLevel}/10`
+    : "ไม่มี pain log ล่าสุด";
 
   return {
     currentPhase,
@@ -416,7 +420,11 @@ function buildHistorySummary(ctx: CoachContext): string {
   }
 
   if (ctx.latestPain) {
-    lines.push(`\nCurrent pain: ${ctx.latestPain.painLocation} ${ctx.latestPain.painLevel}/10 (${ctx.latestPain.date})`);
+    if (ctx.latestPain.hasResolvedPain) {
+      lines.push(`\nResolved pain: ${ctx.latestPain.painLocation} marked resolved (${ctx.latestPain.resolvedAt ?? ctx.latestPain.date}). Use gradual ramp-up, not active injury wording.`);
+    } else {
+      lines.push(`\nCurrent pain: ${ctx.latestPain.painLocation} ${ctx.latestPain.painLevel}/10 (${ctx.latestPain.date})`);
+    }
     if (ctx.recentMaxPain && ctx.recentMaxPain.painLevel > ctx.latestPain.painLevel) {
       lines.push(`Recent max pain safety context: ${ctx.recentMaxPain.painLocation} ${ctx.recentMaxPain.painLevel}/10`);
     }
@@ -440,7 +448,9 @@ function formatPainContext(ctx: CoachContext | undefined) {
   if (!ctx?.latestPain) return "No current pain log.";
   const latest = ctx.latestPain;
   const max = ctx.recentMaxPain;
-  const parts = [`Latest pain: ${latest.painLocation} ${latest.painLevel}/10 on ${latest.date}`];
+  const parts = [latest.hasResolvedPain
+    ? `Latest pain resolved: ${latest.painLocation} on ${latest.resolvedAt ?? latest.date}. Use gradual ramp-up wording.`
+    : `Latest pain: ${latest.painLocation} ${latest.painLevel}/10 on ${latest.date}`];
   if (max && max.painLevel > latest.painLevel) {
     parts.push(`Recent max pain: ${max.painLocation} ${max.painLevel}/10. Use as safety history only.`);
   }
@@ -468,8 +478,8 @@ function weeklyFocusForPhase(phase: string): string {
 }
 
 function defaultWorkoutType(phase: string, latestPain: PainSummary | null | undefined, recentMax: PainSummary | null | undefined, ctx: CoachContext | undefined) {
-  if ((latestPain?.painLevel ?? 0) >= 3 || hasRedFlag(latestPain)) return "Recovery / Walk + Mobility";
-  if ((latestPain?.painLevel ?? 0) >= 1 && (recentMax?.painLevel ?? 0) >= 3) return "Easy Run / Recovery";
+  if (!latestPain?.hasResolvedPain && ((latestPain?.painLevel ?? 0) >= 3 || hasRedFlag(latestPain))) return "Recovery / Walk + Mobility";
+  if (!latestPain?.hasResolvedPain && (latestPain?.painLevel ?? 0) >= 1 && (recentMax?.painLevel ?? 0) >= 3) return "Easy Run / Recovery";
   if (ctx?.avgReadiness != null && ctx.avgReadiness < 70) return "Recovery";
   if (phase === "Race Week") return ctx?.isRaceToday ? "Race Day" : "Shakeout / Easy";
   return "Easy Run";
@@ -478,7 +488,9 @@ function defaultWorkoutType(phase: string, latestPain: PainSummary | null | unde
 function hasRecentInjuryConstraint(ctx: CoachContext | undefined) {
   const latest = ctx?.latestPain;
   const max = ctx?.recentMaxPain;
-  return (latest?.painLevel ?? 0) >= 3 || ((latest?.painLevel ?? 0) >= 1 && (max?.painLevel ?? 0) >= 3) || hasRedFlag(latest) || hasRedFlag(max);
+  return (!latest?.hasResolvedPain && ((latest?.painLevel ?? 0) >= 3 || ((latest?.painLevel ?? 0) >= 1 && (max?.painLevel ?? 0) >= 3)))
+    || hasRedFlag(latest)
+    || hasRedFlag(max);
 }
 
 function hasRedFlag(pain: PainSummary | null | undefined) {

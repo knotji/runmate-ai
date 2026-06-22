@@ -84,7 +84,11 @@ function buildUserPrompt(ctx: CoachContext): string {
 
   if (ctx.latestPain) {
     lines.push(`\nPain status for Today Focus:`);
-    lines.push(`- latestPain/current: ${ctx.latestPain.painLocation} ${ctx.latestPain.painLevel}/10 on ${ctx.latestPain.date}, risk=${ctx.latestPain.riskLevel}, impact=${ctx.latestPain.trainingImpact}`);
+    if (ctx.latestPain.hasResolvedPain) {
+      lines.push(`- latestPain/resolved: ${ctx.latestPain.painLocation} marked resolved on ${ctx.latestPain.resolvedAt ?? ctx.latestPain.date}. Do not describe it as active injury.`);
+    } else {
+      lines.push(`- latestPain/current: ${ctx.latestPain.painLocation} ${ctx.latestPain.painLevel}/10 on ${ctx.latestPain.date}, risk=${ctx.latestPain.riskLevel}, impact=${ctx.latestPain.trainingImpact}`);
+    }
     if (ctx.recentMaxPain && ctx.recentMaxPain.painLevel > ctx.latestPain.painLevel) {
       lines.push(`- recentMaxPain/safety only: ${ctx.recentMaxPain.painLocation} ${ctx.recentMaxPain.painLevel}/10 on ${ctx.recentMaxPain.date}`);
     }
@@ -216,6 +220,16 @@ function applyTodayPainGuard(insight: DailyCoachInsight, ctx: CoachContext): Dai
 
   const recentMax = ctx.recentMaxPain ?? latest;
   const hasRecentSafetyHistory = recentMax.painLevel >= 3 && recentMax.painLevel > latest.painLevel;
+  if (latest.hasResolvedPain) {
+    const resolvedLine = hasRecentSafetyHistory
+      ? `ล่าสุด${latest.painLocation}ทำเครื่องหมายว่าหายแล้ว แต่ช่วง 3 วันที่ผ่านมาเคยขึ้นถึง ${recentMax.painLevel}/10`
+      : `ล่าสุด${latest.painLocation}ทำเครื่องหมายว่าหายแล้ว`;
+    return {
+      ...cleaned,
+      keyObservation: resolvedLine,
+      coachMessage: `${resolvedLine} วันนี้ค่อย ๆ เพิ่มโหลดกลับได้แบบ conservative เริ่มจากเดิน/วอร์มอัปให้ไม่เจ็บก่อน หลีกเลี่ยงซ้อมหนักทันที และหยุดถ้าอาการกลับมาครับ`,
+    };
+  }
   const painLine = hasRecentSafetyHistory
     ? `ล่าสุด${latest.painLocation} ${latest.painLevel}/10 แต่ในช่วง 3 วันที่ผ่านมาเคยขึ้นถึง ${recentMax.painLevel}/10`
     : `ล่าสุด${latest.painLocation} ${latest.painLevel}/10`;
@@ -344,6 +358,11 @@ function buildPostWorkoutPainLine(ctx: CoachContext): string {
   if (!latest) return "";
   const recentMax = ctx.recentMaxPain ?? latest;
   const hasRecentSafetyHistory = recentMax.painLevel >= 3 && recentMax.painLevel > latest.painLevel;
+  if (latest.hasResolvedPain) {
+    return hasRecentSafetyHistory
+      ? `ล่าสุด${latest.painLocation}ทำเครื่องหมายว่าหายแล้ว แต่เคยขึ้นถึง ${recentMax.painLevel}/10 ในช่วงล่าสุด จึงยังค่อย ๆ เพิ่มโหลด`
+      : `ล่าสุด${latest.painLocation}ทำเครื่องหมายว่าหายแล้ว ค่อย ๆ เพิ่มโหลดกลับ`;
+  }
   const base = hasRecentSafetyHistory
     ? `ล่าสุดเจ็บ${latest.painLocation} ${latest.painLevel}/10 แต่เคยขึ้นถึง ${recentMax.painLevel}/10 ในช่วงล่าสุด`
     : `ล่าสุดเจ็บ${latest.painLocation} ${latest.painLevel}/10`;

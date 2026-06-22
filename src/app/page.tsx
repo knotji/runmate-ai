@@ -11,6 +11,7 @@ import { loadActiveRaceGoalAndPlan } from "@/lib/raceStorage";
 import { loadRoutinesFromSupabase, logCompletedStrength } from "@/lib/strength";
 import type { LocalHistoryItem } from "@/lib/localHistory";
 import type { DailySummary } from "@/types/logs";
+import type { PainLog, PainSide } from "@/types/pain";
 import type { RaceGoal } from "@/types/race";
 import type { AIPrescription, StrengthExercise, StrengthRoutine } from "@/types/strength";
 import type { DailyCoachInsight } from "@/types/ai";
@@ -18,7 +19,7 @@ import type { DailyCoachInsight } from "@/types/ai";
 function getRecommendedSubtype(insight: DailyCoachInsight | null, ctx: CoachContext | null): "run" | "strength" | "walk" | "other" {
   if (ctx && (ctx.latestPain || ctx.recentPainLogs?.length)) {
     const p = ctx.latestPain ?? ctx.recentPainLogs[0];
-    if (p.riskLevel === "high" || p.riskLevel === "medium") return "walk";
+    if (p.hasActivePain && (p.riskLevel === "high" || p.riskLevel === "medium")) return "walk";
   }
   if (ctx && ctx.recentRaceResults && ctx.recentRaceResults.length > 0) {
     const lastRace = ctx.recentRaceResults[0];
@@ -332,7 +333,11 @@ function buildPostWorkoutSubtitle(context: CoachContext, workout: TodayCompleted
     if (workout.avgHR != null) parts.push(`Avg HR ${Math.round(workout.avgHR)}`);
   }
   const latestPain = context.latestPain;
-  if (latestPain) parts.push(`เจ็บ${latestPain.painLocation}ล่าสุด ${latestPain.painLevel}/10`);
+  if (latestPain) {
+    parts.push(latestPain.hasResolvedPain
+      ? `${latestPain.painLocation}หายแล้ว`
+      : `เจ็บ${latestPain.painLocation}ล่าสุด ${latestPain.painLevel}/10`);
+  }
   if (context.avgReadiness != null) parts.push(`Readiness ${Math.round(context.avgReadiness)}`);
   return parts.length > 0
     ? `${parts.join(" · ")} · วันนี้ให้เก็บแรงไว้ฟื้นตัว`
@@ -379,6 +384,12 @@ function buildPostWorkoutInjuryNote(context: CoachContext): string {
   if (!latest) return "";
   const recentMax = context.recentMaxPain;
   const hasRecentHigher = recentMax && recentMax.painLevel > latest.painLevel;
+  if (latest.hasResolvedPain) {
+    if (hasRecentHigher) {
+      return `ล่าสุด${latest.painLocation}ทำเครื่องหมายว่าหายแล้ว แต่ช่วงล่าสุดเคยขึ้นถึง ${recentMax.painLevel}/10 วันนี้ค่อย ๆ เพิ่มโหลดและหลีกเลี่ยงซ้อมหนัก`;
+    }
+    return `ล่าสุด${latest.painLocation}ทำเครื่องหมายว่าหายแล้ว วันนี้ค่อย ๆ กลับเข้าโหลดเบา ๆ และหยุดถ้าอาการกลับมา`;
+  }
   if (latest.painLevel >= 3) {
     return `ล่าสุดเจ็บ${latest.painLocation} ${latest.painLevel}/10 วันนี้งดซ้อมเพิ่ม เน้นพักและประคบเย็นถ้ายังระบม`;
   }
@@ -570,7 +581,7 @@ function selectTodayStrengthRoutine(routines: StrengthRoutine[], insight: DailyC
   if (!routines.length) return null;
   const text = strengthSignalText(insight);
   const latestPain = context.latestPain;
-  const painRisk = latestPain && (latestPain.painLevel >= 3 || latestPain.riskLevel === "medium" || latestPain.riskLevel === "high");
+  const painRisk = latestPain && latestPain.hasActivePain && (latestPain.painLevel >= 3 || latestPain.riskLevel === "medium" || latestPain.riskLevel === "high");
 
   if (painRisk || /recovery|active recovery|mobility|easy|walk|rest|พัก|ฟื้น|เดิน|ยืด|เบา/i.test(text)) {
     return findRoutine(routines, "recovery") ?? routines[0];
@@ -586,7 +597,7 @@ function selectTodayStrengthRoutine(routines: StrengthRoutine[], insight: DailyC
 
 function buildTodayStrengthReason(routine: StrengthRoutine, insight: DailyCoachInsight, context: CoachContext): string {
   const latestPain = context.latestPain;
-  if (latestPain && latestPain.painLevel >= 3) {
+  if (latestPain && latestPain.hasActivePain && latestPain.painLevel >= 3) {
     return `เลือก ${routine.name} แบบลดโหลด เพราะล่าสุดเจ็บ${latestPain.painLocation} ${latestPain.painLevel}/10`;
   }
   if (routine.id === "recovery") return "เหมาะกับวัน recovery / easy หรือวันที่ร่างกายยังล้า";
@@ -598,6 +609,12 @@ function buildTodayStrengthReason(routine: StrengthRoutine, insight: DailyCoachI
 function buildTodayStrengthSafety(context: CoachContext): { blockWorkout: boolean; note: string } {
   const latest = context.latestPain;
   if (!latest) return { blockWorkout: false, note: "" };
+  if (latest.hasResolvedPain) {
+    return {
+      blockWorkout: false,
+      note: `ล่าสุด${latest.painLocation}ทำเครื่องหมายว่าหายแล้ว ทำเวทเบา ๆ ได้ แต่ค่อย ๆ เพิ่มโหลดและหยุดถ้าอาการกลับมา`,
+    };
+  }
   const cannotBearWeight = /no|cannot|can't|ไม่ได้|ไม่ไหว|ลงน้ำหนักไม่ได้/i.test(latest.canBearWeight);
   const hasRedFlag = latest.redFlags.length > 0 || cannotBearWeight;
   if (latest.painLevel >= 7 || latest.riskLevel === "high" || hasRedFlag) {
@@ -763,8 +780,12 @@ function isMeaningfulWorkoutTarget(value: string | null | undefined): boolean {
 
 function CompactPainCard({ pains }: { pains: PainSummary[] }) {
   const latest = pains[0];
-  const isHighRisk = latest.riskLevel === "high";
-  const isMediumRisk = latest.riskLevel === "medium";
+  const [savingResolved, setSavingResolved] = useState(false);
+  const [resolvedSaved, setResolvedSaved] = useState(false);
+  const [error, setError] = useState("");
+  const isResolved = latest.hasResolvedPain || resolvedSaved;
+  const isHighRisk = latest.hasActivePain && latest.riskLevel === "high";
+  const isMediumRisk = latest.hasActivePain && latest.riskLevel === "medium";
 
   const borderClass = isHighRisk ? "border-red-200 bg-red-50"
     : isMediumRisk ? "border-amber-200 bg-amber-50"
@@ -777,8 +798,42 @@ function CompactPainCard({ pains }: { pains: PainSummary[] }) {
     : isMediumRisk ? "bg-amber-100 text-amber-700 hover:bg-amber-200"
     : "bg-[#e7efea] text-[#2a5a39] hover:bg-[#d9e8df]";
 
+  async function markPainResolved() {
+    if (savingResolved || isResolved) return;
+    setSavingResolved(true);
+    setError("");
+    const now = new Date().toISOString();
+    const painLog: PainLog = {
+      painLocation: latest.painLocation,
+      painSide: (["left", "right", "both", "unknown"].includes(latest.painSide) ? latest.painSide : "unknown") as PainSide,
+      painLevel: 0,
+      startedWhen: "unknown",
+      painType: [],
+      painfulWhen: [],
+      swellingOrRedness: "no",
+      canBearWeight: "yes",
+      notes: "ผู้ใช้ทำเครื่องหมายว่าอาการหายแล้วจากหน้า Today",
+      riskLevel: "low",
+      trainingImpact: "run_ok_easy",
+      coachAdvice: "อาการนี้ถูกทำเครื่องหมายว่าหายแล้ว ค่อย ๆ เพิ่มโหลดกลับ และหยุดทันทีถ้าอาการกลับมา",
+      redFlags: [],
+      createdAt: now,
+      resolved: true,
+      status: "resolved",
+      resolvedAt: now,
+    };
+    const result = await saveHistoryItems([createHistoryItem("pain", painLog, now)]);
+    setSavingResolved(false);
+    if (!result.ok) {
+      setError(result.error ?? "บันทึกสถานะหายแล้วไม่สำเร็จ");
+      return;
+    }
+    setResolvedSaved(true);
+  }
+
   const impactNote =
-    latest.trainingImpact === "seek_professional" ? "ควรพักและพบผู้เชี่ยวชาญหากบวม/ลงน้ำหนักไม่ได้"
+    isResolved ? "อาการล่าสุดถูกทำเครื่องหมายว่าหายแล้ว ค่อย ๆ เพิ่มโหลดกลับและสังเกตอาการ"
+    : latest.trainingImpact === "seek_professional" ? "ควรพักและพบผู้เชี่ยวชาญหากบวม/ลงน้ำหนักไม่ได้"
     : latest.trainingImpact === "rest" ? "ควรพักจากการวิ่งก่อน"
     : latest.trainingImpact === "reduce_load" ? "ควรลดโหลดซ้อม 24–48 ชม."
     : "ซ้อมเบา ๆ ได้ถ้าไม่เจ็บเพิ่ม";
@@ -788,10 +843,11 @@ function CompactPainCard({ pains }: { pains: PainSummary[] }) {
       <div className="flex items-center justify-between gap-2">
         <span className={`text-sm font-bold ${textClass}`}>🩹 {latest.painLocation}</span>
         <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-bold ${badgeClass}`}>
-          {latest.painLevel}/10
+          {isResolved ? "หายแล้ว" : `${latest.painLevel}/10`}
         </span>
       </div>
       <p className={`text-xs leading-5 ${textClass}`}>{impactNote}</p>
+      {error ? <p className="rounded-xl bg-red-50 px-3 py-2 text-xs font-semibold text-red-600">{error}</p> : null}
       <div className="grid grid-cols-2 gap-2">
         <Link
           href={`/pain/${encodeURIComponent(latest.id)}`}
@@ -806,6 +862,17 @@ function CompactPainCard({ pains }: { pains: PainSummary[] }) {
           อัปเดต
         </Link>
       </div>
+      {!isResolved && latest.painLevel === 0 && (
+        <LoadingButton
+          type="button"
+          loading={savingResolved}
+          loadingText="กำลังบันทึก..."
+          onClick={() => void markPainResolved()}
+          className="w-full rounded-full bg-white/80 py-2 text-center text-xs font-bold text-[#2a5a39] hover:bg-white"
+        >
+          หายแล้ว
+        </LoadingButton>
+      )}
     </section>
   );
 }

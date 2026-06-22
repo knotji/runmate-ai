@@ -39,13 +39,22 @@ function buildInjuryBlock(pains: PainSummary[]): string {
   return "\n\n" + lines.join("\n");
 }
 
+function isActivePain(pain: PainSummary): boolean {
+  if (pain.hasResolvedPain) return false;
+  return pain.hasActivePain
+    || pain.painLevel > 0
+    || pain.swellingOrRedness === "yes"
+    || pain.canBearWeight === "no"
+    || Boolean(pain.redFlags?.length);
+}
+
 export async function POST(request: Request) {
   const context = await request.json() as { recentPainLogs?: PainSummary[] };
   const recentPainLogs = context.recentPainLogs ?? [];
 
   // Inject explicit injury block for any active injury (level >= 3 or medium/high risk)
   const activePains = recentPainLogs.filter(
-    (p) => p.painLevel >= 3 || p.riskLevel === "medium" || p.riskLevel === "high",
+    (p) => isActivePain(p) && (p.painLevel >= 3 || p.riskLevel === "medium" || p.riskLevel === "high"),
   );
   const injuryBlock = buildInjuryBlock(activePains);
 

@@ -33,6 +33,11 @@ Data trust and wording rules:
 
 When the context includes active pain/injury reports, these rules override all other training suggestions. Injury is always the primary constraint.
 
+If latestPain has hasResolvedPain/status resolved and no red flags:
+  Do not describe it as an active injury.
+  Mention it as resolved/recently improved, recommend gradual ramp-up, and use recentMaxPain only as safety history.
+  Red flags override resolved status.
+
 Pain level thresholds for tomorrowPlan:
 
 • painLevel 1–2:

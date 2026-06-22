@@ -94,6 +94,7 @@ function PainPageContent() {
   const [swellingOrRedness, setSwellingOrRedness] = useState<PainTriYesNo>("unknown");
   const [canBearWeight, setCanBearWeight] = useState<PainTriYesNo>("unknown");
   const [notes, setNotes] = useState("");
+  const [markResolved, setMarkResolved] = useState(false);
 
   // image
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -123,6 +124,7 @@ function PainPageContent() {
         setSwellingOrRedness("unknown");
         setCanBearWeight("unknown");
         setNotes("");
+        setMarkResolved(false);
         setImageFile(null);
         setImagePreview(null);
         setResult(null);
@@ -146,6 +148,7 @@ function PainPageContent() {
         if (log?.swellingOrRedness) setSwellingOrRedness(log.swellingOrRedness);
         if (log?.canBearWeight)     setCanBearWeight(log.canBearWeight);
         if (log?.notes) setNotes(log.notes);
+        setMarkResolved(Boolean(log?.resolved || log?.status === "resolved"));
       }
       setPrefillComplete(true);
     });
@@ -192,7 +195,17 @@ function PainPageContent() {
       if (!json.ok || !json.data) throw new Error("วิเคราะห์ไม่สำเร็จ");
 
       const analysis = json.data;
-      setResult(analysis);
+      const hasRedFlags = analysis.redFlags.length > 0 || swellingOrRedness === "yes" || canBearWeight === "no";
+      const canSaveResolved = painLevel === 0 && markResolved && !hasRedFlags;
+      const savedAnalysis: PainAnalysisResult = canSaveResolved
+        ? {
+          riskLevel: "low",
+          trainingImpact: "run_ok_easy",
+          coachAdvice: "อาการนี้ถูกทำเครื่องหมายว่าหายแล้ว ค่อย ๆ เพิ่มโหลดกลับแบบคุมความรู้สึก และหยุดทันทีถ้ามีอาการกลับมา",
+          redFlags: [],
+        }
+        : analysis;
+      setResult(savedAnalysis);
 
       // Build and save history item
       const now = new Date().toISOString();
@@ -205,12 +218,17 @@ function PainPageContent() {
         painfulWhen,
         swellingOrRedness,
         canBearWeight,
-        notes: notes.trim() || undefined,
-        riskLevel: analysis.riskLevel,
-        trainingImpact: analysis.trainingImpact,
-        coachAdvice: analysis.coachAdvice,
-        redFlags: analysis.redFlags,
+        notes: canSaveResolved
+          ? [notes.trim(), "ผู้ใช้ทำเครื่องหมายว่าอาการหายแล้ว"].filter(Boolean).join(" · ")
+          : notes.trim() || undefined,
+        riskLevel: savedAnalysis.riskLevel,
+        trainingImpact: savedAnalysis.trainingImpact,
+        coachAdvice: savedAnalysis.coachAdvice,
+        redFlags: savedAnalysis.redFlags,
         createdAt: now,
+        resolved: canSaveResolved,
+        status: canSaveResolved ? "resolved" : "active",
+        resolvedAt: canSaveResolved ? now : undefined,
       };
 
       const item = createHistoryItem("pain", painLog, now);
@@ -234,6 +252,7 @@ function PainPageContent() {
     setSwellingOrRedness("unknown");
     setCanBearWeight("unknown");
     setNotes("");
+    setMarkResolved(false);
     setImageFile(null);
     setImagePreview(null);
     setResult(null);
@@ -365,7 +384,11 @@ function PainPageContent() {
               max={10}
               step={1}
               value={painLevel}
-              onChange={(e) => setPainLevel(Number(e.target.value))}
+              onChange={(e) => {
+                const next = Number(e.target.value);
+                setPainLevel(next);
+                if (next !== 0) setMarkResolved(false);
+              }}
               className="w-full accent-[#42677f]"
             />
             <div className="flex justify-between text-[11px] text-slate-400">
@@ -374,6 +397,23 @@ function PainPageContent() {
               <span>10 — ทนไม่ได้</span>
             </div>
           </div>
+
+          {painLevel === 0 && (
+            <label className="flex items-start gap-3 rounded-2xl bg-[#f5faf7] p-3 text-sm text-[#17201d]">
+              <input
+                type="checkbox"
+                checked={markResolved}
+                onChange={(e) => setMarkResolved(e.target.checked)}
+                className="mt-1 h-4 w-4 rounded border-slate-300 accent-[#42677f]"
+              />
+              <span>
+                <span className="font-bold">ตอนนี้หายแล้ว / ไม่มีอาการตอนเดินหรือวิ่งเบา ๆ</span>
+                <span className="mt-1 block text-xs leading-5 text-slate-500">
+                  ระบบจะบันทึกเป็นสถานะหายแล้ว และใช้เป็นอาการล่าสุดในการแนะนำซ้อม
+                </span>
+              </span>
+            </label>
+          )}
 
           {/* Pain type + started when */}
           <div className="card p-4 space-y-4">

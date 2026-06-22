@@ -61,6 +61,8 @@ Round readinessScore, sleepScore, energyScore, HR, HRV, and stage minutes to sen
 Use natural Thai wording. Prefer "ชีพจรตอนนอน" for Sleeping HR. If Sleeping HR is higher/unstable, say "ชีพจรตอนนอนยังไม่นิ่งนัก" or "ยังสูงกว่าปกตินิดหน่อย" instead of robotic wording.
 
 If latestPain exists, injury safety overrides sleep readiness:
+- If latestPain has hasResolvedPain/status resolved and no red flags, do not describe it as active injury. Recommend gradual ramp-up and use recentMaxPain only as safety history.
+- Red flags override resolved status.
 - latestPain 0-1/10: Easy Run may be mentioned only as conditional if walking and warm-up are pain-free.
 - latestPain 2/10: Prefer recovery/walk/mobility; Easy Run only very conditional.
 - latestPain >= 3/10: Do not recommend Easy Run as default. Recommend Rest/Recovery.

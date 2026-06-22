@@ -156,7 +156,12 @@ function buildContextGuidance(question: string, context: unknown) {
   if (latestPain) {
     const area = stringValue(latestPain.painLocation) ?? "อาการเจ็บ";
     const score = numberValue(latestPain.painLevel);
-    lines.push(`PAIN WORDING HINT: Current/latest pain is ${area}${score != null ? ` ${score}/10` : ""}. Always mention this before older pain values.`);
+    const resolved = Boolean(latestPain.hasResolvedPain || latestPain.resolved || latestPain.status === "resolved");
+    if (resolved) {
+      lines.push(`PAIN WORDING HINT: Latest ${area} is marked resolved. Do not describe it as active injury; recommend gradual ramp-up and stop if symptoms return.`);
+    } else {
+      lines.push(`PAIN WORDING HINT: Current/latest pain is ${area}${score != null ? ` ${score}/10` : ""}. Always mention this before older pain values.`);
+    }
     const recentScore = numberValue(recentMaxPain?.painLevel);
     if (recentMaxPain && score != null && recentScore != null && recentScore > score) {
       lines.push(`RECENT MAX PAIN HINT: Recent max was ${recentScore}/10. Mention only as safety history, not as current pain.`);
