@@ -297,6 +297,7 @@ function DayCard({
   const pains = day.items.filter((i) => i.type === "pain");
   const strengths = day.items.filter((i) => i.type === "strength");
   const painMetaById = buildPainDisplayMeta(pains);
+  const latestSleepDuration = getLatestSleepDuration(sleeps);
 
   const readiness = getReadiness(sleeps);
   const totalKm = getTotalKm(workouts);
@@ -323,7 +324,7 @@ function DayCard({
             <div className="mt-2 space-y-1.5">
               {/* Activity row (Row 1) */}
               <div className="flex flex-wrap gap-1.5">
-                {sleeps.length > 0 && <Badge icon="🌙" label="นอน" />}
+                {sleeps.length > 0 && <Badge icon="🌙" label={latestSleepDuration ? formatSleepBadgeDuration(latestSleepDuration) : "นอน"} />}
                 {workouts.some((w) => isRun(w)) && <Badge icon="🏃" label={runKm ? formatDistanceKm(runKm) : "วิ่ง"} color="green" />}
                 {raceResults.length > 0 && <Badge icon="🏁" label="Race Result" color="green" />}
                 {(strengths.length > 0 || workouts.some((w) => !isRun(w) && !isWalk(w) && (w.data as WorkoutAnalysis)?.extracted?.workoutKind === "strength")) && (
@@ -437,7 +438,7 @@ function SleepDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; onD
           <Metric label="Readiness" value={formatScore(coach.readinessScore)} sub={coach.readinessLabel} />
         )}
         {ext.sleepScore != null && <Metric label="Sleep score" value={formatScore(ext.sleepScore)} />}
-        {ext.sleepDuration && <Metric label="นอน" value={formatSleepDuration(ext.sleepDuration)} />}
+        {getSleepDurationRaw(item) && <Metric label="นอน" value={formatSleepDuration(getSleepDurationRaw(item))} />}
         {ext.hrv != null && <Metric label="HRV" value={formatScore(ext.hrv)} sub="ms" />}
         {ext.restingHR != null && <Metric label="Resting HR" value={formatScore(ext.restingHR)} sub="bpm" />}
       </div>
@@ -865,7 +866,7 @@ function buildDashboard(items: LocalHistoryItem[]): Dashboard {
     : null;
 
   const sleepHours = sleeps
-    .map((item) => parseSleepHours((item.data as SleepAnalysis)?.extracted?.sleepDuration))
+    .map((item) => parseSleepHours(getSleepDurationRaw(item)))
     .filter((hours): hours is number => hours != null);
   const avgSleepHours = sleepHours.length
     ? Math.round((sleepHours.reduce((sum, hours) => sum + hours, 0) / sleepHours.length) * 10) / 10
@@ -1090,10 +1091,47 @@ function sleepAverageSubtext(count: number): string {
   return `จากข้อมูล ${count} คืน`;
 }
 
+function getLatestSleepDuration(sleeps: LocalHistoryItem[]): string | number | null {
+  const latest = [...sleeps]
+    .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
+    .find((item) => getSleepDurationRaw(item) != null);
+  return latest ? getSleepDurationRaw(latest) : null;
+}
+
+function getSleepDurationRaw(item: LocalHistoryItem): string | number | null {
+  const data = item.data as Record<string, unknown> | null;
+  const extracted = data?.extracted as Record<string, unknown> | undefined;
+  const sleep = data?.sleep as Record<string, unknown> | undefined;
+  const candidates = [
+    extracted?.sleepDuration,
+    extracted?.duration,
+    extracted?.sleepTime,
+    data?.sleepDuration,
+    data?.duration,
+    data?.sleepTime,
+    data?.sleepDurationHours,
+    data?.sleepDurationMinutes,
+    data?.totalSleepMinutes,
+    sleep?.duration,
+    sleep?.sleepDuration,
+    sleep?.totalSleepMinutes,
+  ];
+  for (const candidate of candidates) {
+    if (typeof candidate === "string" && candidate.trim()) return candidate;
+    if (typeof candidate === "number" && Number.isFinite(candidate) && candidate > 0) return candidate;
+  }
+  return null;
+}
+
+function formatSleepBadgeDuration(value: string | number | null | undefined): string {
+  const hours = parseSleepHours(value);
+  return hours == null ? "นอน" : formatSleepAverageHours(hours);
+}
+
 function formatSleepDuration(value: string | number | null | undefined): string {
   if (value == null || value === "") return "-";
+  const hours = parseSleepHours(value);
   const raw = String(value).trim();
-  const hours = parseSleepHours(raw);
   if (hours == null) return formatDuration(raw);
   const totalMinutes = Math.round(hours * 60);
   if (totalMinutes <= 0) return "-";
@@ -1104,8 +1142,12 @@ function formatSleepDuration(value: string | number | null | undefined): string 
   return `${m} นาที`;
 }
 
-function parseSleepHours(value: string | null | undefined): number | null {
+function parseSleepHours(value: string | number | null | undefined): number | null {
   if (!value) return null;
+  if (typeof value === "number") {
+    if (!Number.isFinite(value) || value <= 0) return null;
+    return value > 24 ? value / 60 : value;
+  }
   const colonMatch = value.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
   if (colonMatch) {
     return Number(colonMatch[1]) + Number(colonMatch[2]) / 60;
