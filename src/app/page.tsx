@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { formatThaiDate } from "@/lib/date";
-import { buildCoachContextFromSupabase, type CoachContext, type NutritionDaySummary, type PainSummary } from "@/lib/buildCoachContext";
+import { buildCoachContextFromSupabase, type CoachContext, type NutritionDaySummary, type PainSummary, type TodayCompletedWorkoutSummary } from "@/lib/buildCoachContext";
 import { createHistoryItem, loadHistoryItems, saveHistoryItems } from "@/lib/cloudHistory";
 import { loadActiveRaceGoalAndPlan } from "@/lib/raceStorage";
 import type { LocalHistoryItem } from "@/lib/localHistory";
@@ -150,22 +150,9 @@ export default function TodayPage() {
         )}
 
         {insight && !loading && (
-          <div>
-            <h2 className="line-clamp-2 text-2xl font-bold text-[#17201d]">{insight.workoutRec}</h2>
-            {hasPace && (
-              <span className="mt-2 inline-block rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-                {insight.workoutTarget}
-              </span>
-            )}
-            {insight.keyObservation && insight.keyObservation !== "-" && (
-              <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-slate-500">{insight.keyObservation}</p>
-            )}
-            {insight.coachMessage && (
-              <p className="mt-3 rounded-2xl bg-[var(--primary-soft)] px-4 py-3 text-sm font-medium leading-relaxed text-[var(--foreground)]">
-                {insight.coachMessage}
-              </p>
-            )}
-          </div>
+          hasWorkoutToday && coachCtx?.todayPrimaryWorkout
+            ? <PostWorkoutFocusContent insight={insight} context={coachCtx} />
+            : <PreWorkoutFocusContent insight={insight} hasPace={hasPace} />
         )}
 
         {!insight && !loading && !insightError && !hasHistory && (
@@ -260,6 +247,142 @@ export default function TodayPage() {
 }
 
 // ─── Today Snapshot ────────────────────────────────────────────────────────────
+
+function PreWorkoutFocusContent({ insight, hasPace }: { insight: DailyCoachInsight; hasPace: boolean }) {
+  return (
+    <div>
+      <h2 className="line-clamp-2 text-2xl font-bold text-[#17201d]">{insight.workoutRec}</h2>
+      {hasPace && (
+        <span className="mt-2 inline-block rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+          {insight.workoutTarget}
+        </span>
+      )}
+      {insight.keyObservation && insight.keyObservation !== "-" && (
+        <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-slate-500">{insight.keyObservation}</p>
+      )}
+      {insight.coachMessage && (
+        <p className="mt-3 rounded-2xl bg-[var(--primary-soft)] px-4 py-3 text-sm font-medium leading-relaxed text-[var(--foreground)]">
+          {insight.coachMessage}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function PostWorkoutFocusContent({ insight, context }: { insight: DailyCoachInsight; context: CoachContext }) {
+  const workout = context.todayPrimaryWorkout;
+  const title = buildPostWorkoutTitle(workout, insight);
+  const subtitle = buildPostWorkoutSubtitle(context, workout);
+  const items = buildPostWorkoutChecklist(context, workout);
+  const injuryNote = buildPostWorkoutInjuryNote(context);
+
+  return (
+    <div>
+      <h2 className="text-2xl font-bold text-[#17201d]">{title}</h2>
+      <span className="mt-2 inline-block rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+        ไม่ต้องซ้อมเพิ่ม · เน้นฟื้นตัว
+      </span>
+      <p className="mt-2 text-sm leading-relaxed text-slate-500">{subtitle}</p>
+      <div className="mt-3 rounded-2xl bg-[var(--primary-soft)] px-4 py-3 text-sm font-medium leading-relaxed text-[var(--foreground)]">
+        <ul className="space-y-1.5">
+          {items.map((item) => (
+            <li key={item} className="flex gap-2">
+              <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#2a5a39]" />
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+        {injuryNote && (
+          <p className="mt-3 border-t border-[#d9e8df] pt-2 text-xs font-semibold leading-5 text-[#2a5a39]">
+            {injuryNote}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function buildPostWorkoutTitle(workout: TodayCompletedWorkoutSummary | null, insight: DailyCoachInsight): string {
+  if (!workout) return insight.workoutRec || "Recovery หลังซ้อมวันนี้";
+  if (workout.kind === "race") return "Recovery หลัง Race วันนี้";
+  if (workout.kind === "run") {
+    return workout.distanceKm != null
+      ? `ฟื้นตัวหลังวิ่ง ${formatKm(workout.distanceKm)} km`
+      : "Recovery หลังวิ่งวันนี้";
+  }
+  if (workout.kind === "strength") return "ฟื้นตัวหลังเวทวันนี้";
+  if (workout.kind === "walk") return "ฟื้นตัวหลังเดินวันนี้";
+  return "พักฟื้นหลังซ้อมวันนี้";
+}
+
+function buildPostWorkoutSubtitle(context: CoachContext, workout: TodayCompletedWorkoutSummary | null): string {
+  const parts: string[] = [];
+  if (workout) {
+    if (workout.kind === "run" && workout.distanceKm != null) parts.push(`วิ่งแล้ว ${formatKm(workout.distanceKm)} km`);
+    else parts.push(`${workout.label}วันนี้แล้ว`);
+    if (workout.avgHR != null) parts.push(`Avg HR ${Math.round(workout.avgHR)}`);
+  }
+  const latestPain = context.latestPain;
+  if (latestPain) parts.push(`เจ็บ${latestPain.painLocation}ล่าสุด ${latestPain.painLevel}/10`);
+  if (context.avgReadiness != null) parts.push(`Readiness ${Math.round(context.avgReadiness)}`);
+  return parts.length > 0
+    ? `${parts.join(" · ")} · วันนี้ให้เก็บแรงไว้ฟื้นตัว`
+    : "วันนี้มีข้อมูลซ้อมแล้ว ให้ปิดงานด้วย recovery สั้น ๆ และพักให้พอ";
+}
+
+function buildPostWorkoutChecklist(context: CoachContext, workout: TodayCompletedWorkoutSummary | null): string[] {
+  const items = [
+    buildHydrationRecoveryItem(workout),
+    buildNutritionRecoveryItem(context),
+    "ยืด/foam roll เบา ๆ 10–15 นาที ไม่กดจุดที่เจ็บแรง",
+    buildSleepRecoveryItem(context),
+  ];
+  return items.filter((item): item is string => Boolean(item));
+}
+
+function buildHydrationRecoveryItem(workout: TodayCompletedWorkoutSummary | null): string {
+  const distance = workout?.distanceKm ?? 0;
+  const calories = workout?.calories ?? 0;
+  if (workout?.kind === "race" || distance >= 8 || calories >= 500) return "ดื่มน้ำเพิ่ม 600–900 ml แบ่งจิบ ไม่ต้องรีบอัดทีเดียว";
+  if (distance >= 5 || calories >= 250) return "ดื่มน้ำเพิ่ม 500–700 ml และสังเกตสีปัสสาวะ";
+  return "ดื่มน้ำเพิ่ม 400–600 ml ให้ร่างกายค่อย ๆ กลับมาสมดุล";
+}
+
+function buildNutritionRecoveryItem(context: CoachContext): string {
+  const protein = context.nutritionToday?.proteinG;
+  const target = todayProteinTarget(context.profile);
+  if (protein != null && target > 0) {
+    const remaining = Math.max(0, Math.round(target - protein));
+    if (remaining >= 15) return `เติมโปรตีนอีกประมาณ ${remaining} g ในมื้อต่อไป`;
+    return "โปรตีนวันนี้ใกล้ถึงเป้าแล้ว เติมคาร์บพอประมาณเพื่อฟื้นตัว";
+  }
+  if (protein != null) return `โปรตีนวันนี้ประมาณ ${Math.round(protein)} g เติมคาร์บพอประมาณ`;
+  return "ถ้ายังไม่ได้กินหลังซ้อม ให้เน้นโปรตีน 25–35 g + คาร์บย่อยง่าย";
+}
+
+function buildSleepRecoveryItem(context: CoachContext): string {
+  if (context.avgReadiness != null && context.avgReadiness < 55) return "คืนนี้นอนให้เร็วที่สุด ลดจอ 20–30 นาทีก่อนนอน";
+  return "คืนนี้เน้นนอน 7–8 ชม. เพื่อให้ขาซ่อมตัว";
+}
+
+function buildPostWorkoutInjuryNote(context: CoachContext): string {
+  const latest = context.latestPain;
+  if (!latest) return "";
+  const recentMax = context.recentMaxPain;
+  const hasRecentHigher = recentMax && recentMax.painLevel > latest.painLevel;
+  if (latest.painLevel >= 3) {
+    return `ล่าสุดเจ็บ${latest.painLocation} ${latest.painLevel}/10 วันนี้งดซ้อมเพิ่ม เน้นพักและประคบเย็นถ้ายังระบม`;
+  }
+  if (hasRecentHigher) {
+    return `ล่าสุดเจ็บ${latest.painLocation} ${latest.painLevel}/10 แต่เคยขึ้นถึง ${recentMax.painLevel}/10 ช่วงล่าสุด วันนี้ยังลดโหลดไว้ก่อน`;
+  }
+  return `ล่าสุดเจ็บ${latest.painLocation} ${latest.painLevel}/10 ถ้าเดินแล้วไม่เจ็บเพิ่ม ค่อยทำ mobility เบา ๆ ได้`;
+}
+
+function formatKm(value: number): string {
+  if (!Number.isFinite(value)) return "-";
+  return value.toFixed(2).replace(/\.?0+$/, "");
+}
 
 type TodayChecklistItem = { label: string; href: string; done: boolean };
 
