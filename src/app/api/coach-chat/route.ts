@@ -1,16 +1,19 @@
 import { NextResponse } from "next/server";
 import { textFromAI } from "@/lib/ai";
-import { coachChatPrompt } from "@/lib/prompts/coachChat";
 import { buildRunnerProfileContext } from "@/lib/buildRunnerProfileContext";
-import type { UserProfile } from "@/types/profile";
 import { buildCoachResponseFormatInstruction } from "@/lib/coachPrompt";
+import { coachChatPrompt } from "@/lib/prompts/coachChat";
+import type { UserProfile } from "@/types/profile";
+
+type ChatMessage = { role?: "user" | "assistant"; content?: string };
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const latest = body.messages?.at(-1)?.content || "";
+    const latest = String(body.messages?.at(-1)?.content ?? "");
     const context = body.context || {};
-    const messages = hasActiveRaceGoal(context) ? (body.messages || []) : removeStaleRaceMessages(body.messages || []);
+    const messages = hasActiveRaceGoal(context) ? body.messages || [] : removeStaleRaceMessages(body.messages || []);
+    const dateTimeStr = bangkokDateTimeString();
 
     if (process.env.NODE_ENV === "development") {
       console.info("[coach-context-debug]", {
@@ -23,87 +26,39 @@ export async function POST(request: Request) {
       });
     }
 
-    const nowBangkok = new Date(Date.now() + 7 * 60 * 60 * 1000);
-    const dd   = String(nowBangkok.getUTCDate()).padStart(2, "0");
-    const mm   = String(nowBangkok.getUTCMonth() + 1).padStart(2, "0");
-    const yyyy = nowBangkok.getUTCFullYear();
-    const hh   = String(nowBangkok.getUTCHours()).padStart(2, "0");
-    const min  = String(nowBangkok.getUTCMinutes()).padStart(2, "0");
-    const dateTimeStr = `${dd}/${mm}/${yyyy} ${hh}:${min} (Bangkok UTC+7)`;
-
     const guardedReply = raceEveGuard(latest, context, dateTimeStr);
     if (guardedReply) {
       return NextResponse.json({ message: guardedReply, source: "guardrail" });
     }
 
-    const profile = (context as Record<string, unknown>)?.profile as UserProfile | null;
-    const responseDetail = profile?.responseDetail as string | undefined;
-    const coachingTone = profile?.coachingTone as string | undefined;
+    const profile = ((context as Record<string, unknown>)?.profile ?? null) as UserProfile | null;
+    const responseDetail = profile?.responseDetail;
+    const coachingTone = profile?.coachingTone;
     const imageDataUrl = body.imageDataUrl as string | undefined;
     const imageIntent = body.imageIntent as string | undefined;
 
-    let basePrompt = coachChatPrompt;
     let chatInstructions = buildCoachResponseFormatInstruction(profile?.language, responseDetail, Boolean(imageDataUrl), imageIntent);
-
-    if (responseDetail === "short" || responseDetail === "สั้น") {
-      // Filter out instructions to include check-in time, ข้อมูลที่ใช้ประเมิน, and สิ่งที่ยังไม่รู้
-      basePrompt = basePrompt
-        .split("\n")
-        .filter((line) => {
-          const lower = line.toLowerCase();
-          if (
-            lower.includes("เวลาเช็คอิน:") ||
-            lower.includes("ข้อมูลที่ใช้ประเมิน") ||
-            lower.includes("สิ่งที่ยังไม่รู้")
-          ) {
-            return false;
-          }
-          return true;
-        })
-        .join("\n");
-    }
-
-    if (coachingTone === "friendly" || coachingTone === "เป็นกันเอง") {
-      chatInstructions += `
-COACHING TONE:
-Use a friendly, practical, and warm Thai coaching tone (เป็นกันเอง). Avoid strict lecture tone unless it's a safety issue.
-`;
-    } else if (coachingTone === "direct" || coachingTone === "ตรงๆ") {
-      chatInstructions += `
-COACHING TONE:
-Use a direct and straight-to-the-point Thai coaching tone (ตรงๆ).
-`;
-    } else if (coachingTone === "gentle" || coachingTone === "นุ่มนวล") {
-      chatInstructions += `
-COACHING TONE:
-Use a gentle and encouraging Thai coaching tone (นุ่มนวล).
-`;
-    } else if (coachingTone === "strict" || coachingTone === "เข้มงวด") {
-      chatInstructions += `
-COACHING TONE:
-Use a strict, structured, and disciplined Thai coaching tone (เข้มงวด).
-`;
-    }
+    chatInstructions += buildToneInstruction(coachingTone);
 
     const imageIntentInstruction = imageIntent ? `
-IMAGE INTENT DETECTED: The user has explicitly labeled the attached image as "${imageIntent}". Focus your analysis accordingly:
-- If "อาหาร" (food/drink): Analyze as a running lifestyle nutrition coach. Focus on carbs, proteins, hydration, fats, and timing (before/after run vs. rest day).
-- If "ฉลาก" (nutrition label): Extract and explain visible nutrition facts (macros, sodium, sugar, serving sizes) if readable in the image.
-- If "ผลวิ่ง" (running result): Focus strictly on running performance metrics visible: distance, pace, duration, HR, zones, splits. Explain what they imply.
-- If "Recovery/Sleep" (sleep/recovery): Focus strictly on recovery indicators: sleep score, duration, deep sleep, HRV, resting HR.
-- If "เจ็บ/ปวด" (injury/pain): Focus on safety. Do NOT diagnose the medical condition. Give conservative training guidance and red flags/stop rules.
+IMAGE INTENT HINT: "${imageIntent}".
+- Treat this as a hint, not a rigid template.
+- Answer the user's actual question about the image.
+- Food/menu/label: give practical running nutrition advice; choose clearly if the user asks to choose.
+- Run/sleep/body screenshot: summarize only the key visible metrics and explain what they mean.
+- Injury/pain: do not diagnose; give conservative training guidance and red flags.
+- Chat images are temporary and are not saved to Report.
 ` : "";
 
-    const profileCtx = buildRunnerProfileContext(profile);
     const systemExtra = [
-      `วันที่และเวลาปัจจุบัน: ${dateTimeStr}`,
-      profileCtx,
-      `Context:\n${JSON.stringify(context)}`,
+      `Current Bangkok date/time: ${dateTimeStr}`,
+      buildRunnerProfileContext(profile),
+      `Context from Report/Profile/Race Goal:\n${JSON.stringify(context)}`,
       imageIntentInstruction,
     ].filter(Boolean).join("\n\n");
 
     const result = await textFromAI({
-      system: `${basePrompt}\n\n${chatInstructions}\n\n${systemExtra}`,
+      system: `${coachChatPrompt}\n\n${chatInstructions}\n\n${systemExtra}`,
       messages,
       imageDataUrl,
       fallback: fallbackCoachReply(latest),
@@ -118,12 +73,28 @@ IMAGE INTENT DETECTED: The user has explicitly labeled the attached image as "${
   }
 }
 
+function buildToneInstruction(coachingTone?: string) {
+  if (coachingTone === "friendly" || coachingTone === "เป็นกันเอง") {
+    return "\nCOACHING TONE: Friendly, practical, warm Thai tone. Avoid lecture style unless safety matters.";
+  }
+  if (coachingTone === "direct" || coachingTone === "ตรงๆ") {
+    return "\nCOACHING TONE: Direct and concise Thai tone.";
+  }
+  if (coachingTone === "gentle" || coachingTone === "นุ่มนวล") {
+    return "\nCOACHING TONE: Gentle and encouraging Thai tone.";
+  }
+  if (coachingTone === "strict" || coachingTone === "เข้มงวด") {
+    return "\nCOACHING TONE: Structured and disciplined, but still conversational.";
+  }
+  return "";
+}
+
 function fallbackCoachReply(question: string) {
   const risky = /เจ็บ|ปวด|หน้ามืด|แน่นหน้าอก|วิงเวียน|เป็นลม|หายใจไม่ออก/.test(question);
   if (risky) {
-    return "ถ้ามีอาการเจ็บ หน้ามืด แน่นหน้าอก หรือผิดปกติ แนะนำให้หยุดซ้อมก่อน ลดความหนัก และปรึกษาผู้เชี่ยวชาญถ้าอาการไม่หายหรือรุนแรงนะครับ";
+    return "ขอให้หยุดซ้อมไว้ก่อนนะครับ อันนี้ไม่ใช่การวินิจฉัย แต่ถ้ามีอาการแย่ลง บวม ลงน้ำหนักไม่ได้ ชา หรือแน่นหน้าอก ควรปรึกษาแพทย์/นักกายภาพครับ";
   }
-  return "จากข้อมูลตอนนี้ แนะนำให้เลือกทางที่ซ้อมได้ต่อเนื่องและไม่สะสมความล้า ถ้าไม่แน่ใจให้เริ่มจาก Easy Run สั้น ๆ คุม HR สบาย หรือพักเมื่อรู้สึกล้า";
+  return "ตอนนี้โค้ชตอบจากระบบไม่ได้ชั่วคราวครับ แต่คุยต่อได้เลย ถ้าเป็นเรื่องซ้อมให้เริ่มจากตัวเลือกที่ปลอดภัยก่อน: เบาลง พักให้พอ และอย่าฝืนถ้าร่างกายส่งสัญญาณล้า";
 }
 
 function raceEveGuard(question: string, context: unknown, dateTimeStr: string) {
@@ -133,27 +104,27 @@ function raceEveGuard(question: string, context: unknown, dateTimeStr: string) {
     normalizedQuestion.includes("ลองรัน") ||
     normalizedQuestion.includes("วิ่งยาว");
 
-  if (!asksLongRun || !hasImminentSub25Race(context)) return "";
+  const ctx = context as Record<string, unknown>;
+  const raceIsSoon = Boolean(ctx.isRaceToday || ctx.isRaceTomorrow);
+  const raceGoal = getRaceGoal(context);
+  const latestRace = ctx.latestCompletedRace as { raceDate?: unknown } | null;
+  const raceCompletedToday = latestRace?.raceDate && latestRace.raceDate === ctx.todayDate;
+
+  if (!asksLongRun || !raceIsSoon || !raceGoal || raceCompletedToday) return "";
 
   return [
     `เวลาเช็คอิน: ${dateTimeStr}`,
     "ไม่ควร long run ครับ",
     "",
-    "พรุ่งนี้มี Race 5K เป้าหมาย Sub 25 แล้ว วันนี้/พรุ่งนี้ก่อนแข่งไม่ใช่เวลาสร้างความอึดเพิ่มแล้ว เป้าหมายคือเก็บขาให้สดที่สุดครับ",
+    "ถ้าวันแข่งอยู่วันนี้หรือพรุ่งนี้ เป้าหมายไม่ใช่สร้าง fitness เพิ่มแล้ว แต่คือเก็บขาให้สดและลดความเสี่ยงล้า",
     "",
-    "แผนที่เหมาะกว่า:",
-    "- ถ้ายังไม่ได้ขยับวันนี้: Shakeout 3-4 km เบามาก",
-    "- Pace ประมาณ 7:30-8:30/km",
-    "- HR คุมต่ำกว่า 145",
-    "- ไม่เร่งท้าย ไม่แอบ tempo",
-    "- ถ้าขาสดจริง ๆ ค่อยใส่ strides 15-20 วิ x 3 รอบ เอาแค่ปลุกขา",
+    "ทางเลือกที่เหมาะกว่า:",
+    "- พัก หรือเดินเบา 20-30 นาที",
+    "- ถ้าขาสดจริง ๆ ทำ shakeout 2-4 km แบบสบายมาก",
+    "- ไม่ tempo, ไม่ interval, ไม่เร่งท้าย",
+    "- เติมน้ำ กินคาร์บย่อยง่าย และนอนให้พอ",
     "",
-    "ถ้าขาตึง ง่วง หรือรู้สึกล้า:",
-    "- เดิน 20-30 นาที",
-    "- mobility 10 นาที",
-    "- แล้วจบ พัก นอน เติมน้ำ",
-    "",
-    "สรุปวันนี้: ไม่ long run ครับ เก็บขาไว้กด 5K พรุ่งนี้ดีกว่า วันนี้ชนะด้วยการไม่ซ่าครับ",
+    "สรุป: วันนี้ชนะด้วยการไม่ซ่าครับ เก็บขาไว้ใช้วันแข่งดีกว่า",
   ].join("\n");
 }
 
@@ -167,7 +138,7 @@ function getRaceGoal(context: unknown) {
   return raceGoal && typeof raceGoal === "object" ? raceGoal : null;
 }
 
-function removeStaleRaceMessages(messages: { role?: string; content?: string }[]) {
+function removeStaleRaceMessages(messages: ChatMessage[]) {
   const staleRacePattern = /sub\s?25|race\s?day|5k\s+sub|แข่ง|วันแข่ง/i;
   return messages.map((message) => {
     if (!message.content || !staleRacePattern.test(message.content)) return message;
@@ -178,22 +149,12 @@ function removeStaleRaceMessages(messages: { role?: string; content?: string }[]
   });
 }
 
-function hasImminentSub25Race(context: unknown) {
-  const raceGoal = getRaceGoal(context);
-  if (!raceGoal) return false;
-
-  const raw = JSON.stringify(raceGoal).toLowerCase();
-  const raceSignals =
-    raw.includes("sub 25") ||
-    raw.includes("sub25") ||
-    raw.includes("5k") ||
-    raw.includes("race day") ||
-    raw.includes("race");
-
-  if (!raceSignals) return false;
-
-  const ctx = context as Record<string, unknown>;
-  const latestRace = ctx.latestCompletedRace as { raceDate?: unknown } | null;
-  if (latestRace?.raceDate && latestRace.raceDate === ctx.todayDate) return false;
-  return Boolean(ctx.isRaceToday || ctx.isRaceTomorrow);
+function bangkokDateTimeString() {
+  const nowBangkok = new Date(Date.now() + 7 * 60 * 60 * 1000);
+  const dd = String(nowBangkok.getUTCDate()).padStart(2, "0");
+  const mm = String(nowBangkok.getUTCMonth() + 1).padStart(2, "0");
+  const yyyy = nowBangkok.getUTCFullYear();
+  const hh = String(nowBangkok.getUTCHours()).padStart(2, "0");
+  const min = String(nowBangkok.getUTCMinutes()).padStart(2, "0");
+  return `${dd}/${mm}/${yyyy} ${hh}:${min} (Bangkok UTC+7)`;
 }
