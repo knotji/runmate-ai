@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { jsonFromAI } from "@/lib/ai";
 import { buildRunnerProfileContext } from "@/lib/buildRunnerProfileContext";
-import type { CoachContext } from "@/lib/buildCoachContext";
+import type { CoachContext, TodayCompletedWorkoutSummary } from "@/lib/buildCoachContext";
 import type { DailyCoachInsight } from "@/types/ai";
 
 const FALLBACK: DailyCoachInsight = {
@@ -26,6 +26,13 @@ export async function POST(request: Request) {
         raceDate: ctx.raceDate ?? null,
         isRaceToday: Boolean(ctx.isRaceToday),
         isRaceTomorrow: Boolean(ctx.isRaceTomorrow),
+        hasWorkoutToday: Boolean(ctx.hasWorkoutToday),
+        todayPrimaryWorkout: ctx.todayPrimaryWorkout ? {
+          kind: ctx.todayPrimaryWorkout.kind,
+          distanceKm: ctx.todayPrimaryWorkout.distanceKm,
+          durationText: ctx.todayPrimaryWorkout.durationText,
+          avgHR: ctx.todayPrimaryWorkout.avgHR,
+        } : null,
         latestPain: ctx.latestPain ? { date: ctx.latestPain.date, painLevel: ctx.latestPain.painLevel } : null,
         recentMaxPain: ctx.recentMaxPain ? { date: ctx.recentMaxPain.date, painLevel: ctx.recentMaxPain.painLevel } : null,
       });
@@ -41,7 +48,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       ...result,
-      data: applyTodayPainGuard(result.data, ctx),
+      data: applyPostWorkoutRecoveryGuard(applyTodayPainGuard(result.data, ctx), ctx),
     });
   } catch (error) {
     if (process.env.NODE_ENV === "development") {
@@ -61,6 +68,19 @@ function buildUserPrompt(ctx: CoachContext): string {
   }
 
   lines.push(`วันนี้: ${ctx.todayDate}`);
+
+  if (ctx.hasWorkoutToday && ctx.todayPrimaryWorkout) {
+    lines.push(`\nToday workout status: completed`);
+    lines.push(`- Primary workout today: ${formatWorkoutForPrompt(ctx.todayPrimaryWorkout)}`);
+    if (ctx.todayWorkouts.length > 1) {
+      lines.push(`- Other workouts today: ${ctx.todayWorkouts.slice(1).map(formatWorkoutForPrompt).join(" | ")}`);
+    }
+    lines.push("- Rule: Today Focus must switch to post-workout recovery. Do not recommend another run or hard session unless explicitly asked and clearly safe.");
+    lines.push("- Include hydration, protein/carbs, light mobility, sleep target/bedtime, and injury guard.");
+  } else {
+    lines.push(`\nToday workout status: not completed yet`);
+    lines.push("- Rule: Today Focus may answer what to train today, while respecting sleep/readiness/race/pain safety.");
+  }
 
   if (ctx.latestPain) {
     lines.push(`\nPain status for Today Focus:`);
@@ -149,6 +169,41 @@ function buildUserPrompt(ctx: CoachContext): string {
   return lines.join("\n");
 }
 
+function applyPostWorkoutRecoveryGuard(insight: DailyCoachInsight, ctx: CoachContext): DailyCoachInsight {
+  const workout = ctx.todayPrimaryWorkout;
+  if (!ctx.hasWorkoutToday || !workout) return insight;
+
+  const workoutLine = formatWorkoutShortThai(workout);
+  const painLine = buildPostWorkoutPainLine(ctx);
+  const hydrationLine = buildHydrationLine(workout);
+  const nutritionLine = buildPostWorkoutNutritionLine(ctx);
+  const sleepLine = buildPostWorkoutSleepLine(ctx);
+  const mobilityLine = workout.kind === "race"
+    ? "วันนี้ไม่ต้องซ้อมเพิ่ม ให้เดินคลายขาเบา ๆ และยืด/foam roll 10–15 นาทีพอ"
+    : "ไม่ต้องซ้อมหนักเพิ่มวันนี้ ยืด/foam roll เบา ๆ 10–15 นาที";
+
+  const keyObservation = painLine
+    ? `${workoutLine} · ${painLine}`
+    : workoutLine;
+
+  const coachMessage = [
+    `${workoutLine} วันนี้ให้เปลี่ยนโหมดเป็นฟื้นตัวก่อน`,
+    hydrationLine,
+    nutritionLine,
+    mobilityLine,
+    sleepLine,
+    painLine ? `เช็กอาการ: ${painLine}` : "ถ้ามีอาการเจ็บเพิ่ม ให้ลดการเดินเยอะและพักมากขึ้น",
+  ].filter(Boolean).slice(0, 6).join(" ");
+
+  return {
+    ...insight,
+    workoutRec: postWorkoutTitle(workout),
+    workoutTarget: "ไม่ต้องซ้อมเพิ่ม · เน้นฟื้นตัว",
+    keyObservation,
+    coachMessage,
+  };
+}
+
 function applyTodayPainGuard(insight: DailyCoachInsight, ctx: CoachContext): DailyCoachInsight {
   const cleaned: DailyCoachInsight = {
     ...FALLBACK,
@@ -208,6 +263,114 @@ function applyTodayPainGuard(insight: DailyCoachInsight, ctx: CoachContext): Dai
   }
 
   return cleaned;
+}
+
+function formatWorkoutForPrompt(workout: TodayCompletedWorkoutSummary): string {
+  const details = [
+    workout.distanceKm != null ? `${workout.distanceKm.toFixed(2)} km` : null,
+    workout.durationText ?? (workout.durationMin != null ? `${workout.durationMin} min` : null),
+    workout.avgHR != null ? `avg HR ${workout.avgHR}` : null,
+    workout.pace ? `pace ${workout.pace}` : null,
+    workout.calories != null ? `${workout.calories} kcal` : null,
+  ].filter(Boolean);
+  return `${workout.label}${details.length ? ` (${details.join(", ")})` : ""}`;
+}
+
+function formatWorkoutShortThai(workout: TodayCompletedWorkoutSummary): string {
+  const parts: string[] = [];
+  if (workout.kind === "race") parts.push("วันนี้มี Race Result แล้ว");
+  else if (workout.kind === "run") parts.push("วันนี้วิ่งไปแล้ว");
+  else if (workout.kind === "strength") parts.push("วันนี้เวทไปแล้ว");
+  else if (workout.kind === "walk") parts.push("วันนี้เดิน/ขยับตัวไปแล้ว");
+  else parts.push(`วันนี้${workout.label}ไปแล้ว`);
+
+  if (workout.distanceKm != null && workout.distanceKm > 0) parts.push(`${formatKm(workout.distanceKm)} km`);
+  if (workout.durationText) parts.push(`เวลา ${workout.durationText}`);
+  else if (workout.durationMin != null) parts.push(`เวลา ${workout.durationMin} นาที`);
+  if (workout.avgHR != null) parts.push(`เฉลี่ย HR ${workout.avgHR}`);
+  return parts.join(" ");
+}
+
+function postWorkoutTitle(workout: TodayCompletedWorkoutSummary): string {
+  if (workout.kind === "race") return "Recovery หลัง Race วันนี้";
+  if (workout.kind === "run") {
+    return workout.distanceKm != null
+      ? `ฟื้นตัวหลังวิ่ง ${formatKm(workout.distanceKm)} km`
+      : "Recovery หลังวิ่งวันนี้";
+  }
+  if (workout.kind === "strength") return "ฟื้นตัวหลังเวทวันนี้";
+  return "พักฟื้นหลังซ้อมวันนี้";
+}
+
+function buildHydrationLine(workout: TodayCompletedWorkoutSummary): string {
+  const distance = workout.distanceKm ?? 0;
+  const calories = workout.calories ?? 0;
+  if (distance >= 8 || calories >= 500 || workout.kind === "race") {
+    return "ดื่มน้ำเพิ่มประมาณ 600–900 ml และเติมเกลือแร่ถ้าเหงื่อออกเยอะ";
+  }
+  if (distance >= 5 || calories >= 250) {
+    return "ดื่มน้ำเพิ่มประมาณ 500–700 ml ในช่วงหลังซ้อม";
+  }
+  return "ดื่มน้ำเพิ่มประมาณ 400–600 ml ให้ปัสสาวะกลับมาใสขึ้น";
+}
+
+function buildPostWorkoutNutritionLine(ctx: CoachContext): string {
+  const nutrition = ctx.nutritionToday;
+  const target = proteinTarget(ctx);
+  if (nutrition?.proteinG != null && target != null) {
+    const remaining = Math.max(0, target - nutrition.proteinG);
+    if (remaining >= 15) {
+      return `โปรตีนวันนี้ยังขาดประมาณ ${Math.round(remaining)} g มื้อต่อไปเติมโปรตีน 25–35 g + คาร์บพอประมาณ`;
+    }
+    return "โปรตีนวันนี้ใกล้ถึงเป้าแล้ว เน้นคาร์บพอประมาณและน้ำเพื่อ recovery";
+  }
+  if (nutrition?.proteinG != null) {
+    return `วันนี้มีโปรตีนประมาณ ${nutrition.proteinG} g แล้ว หลังซ้อมยังควรมีโปรตีน 25–35 g + คาร์บพอประมาณ`;
+  }
+  return "ถ้ายังไม่ได้กินหลังซ้อม ให้เน้นโปรตีน 25–35 g + คาร์บพอประมาณจากอาหารย่อยง่าย";
+}
+
+function buildPostWorkoutSleepLine(ctx: CoachContext): string {
+  const latestSleep = ctx.sleep7d.find((sleep) => sleep.date === ctx.todayDate) ?? ctx.sleep7d[0];
+  const readiness = latestSleep?.readiness ?? ctx.avgReadiness;
+  if (readiness != null && readiness < 55) {
+    return "คืนนี้เข้านอนให้เร็วที่สุดเท่าที่ทำได้ เลี่ยงจอ 20–30 นาที และตั้งเป้านอน 7–8 ชม.";
+  }
+  return "คืนนี้ตั้งเป้านอน 7–8 ชม. เข้านอนประมาณ 22:30–23:30 ถ้าทำได้";
+}
+
+function buildPostWorkoutPainLine(ctx: CoachContext): string {
+  const latest = ctx.latestPain ?? ctx.recentPainLogs?.[0] ?? null;
+  if (!latest) return "";
+  const recentMax = ctx.recentMaxPain ?? latest;
+  const hasRecentSafetyHistory = recentMax.painLevel >= 3 && recentMax.painLevel > latest.painLevel;
+  const base = hasRecentSafetyHistory
+    ? `ล่าสุดเจ็บ${latest.painLocation} ${latest.painLevel}/10 แต่เคยขึ้นถึง ${recentMax.painLevel}/10 ในช่วงล่าสุด`
+    : `ล่าสุดเจ็บ${latest.painLocation} ${latest.painLevel}/10`;
+
+  const hasRedFlag =
+    latest.swellingOrRedness === "yes" ||
+    latest.canBearWeight === "no" ||
+    latest.redFlags.length > 0 ||
+    latest.painType.some((type) => /sharp|numb|ชา|แปลบ/i.test(type));
+  if (hasRedFlag) return `${base} ถ้าบวมแดง ชา ปวดแปลบ หรือลงน้ำหนักลำบาก ให้หยุดซ้อมและปรึกษาแพทย์/นักกายภาพ`;
+  if (latest.painLevel >= 3) return `${base} งดซ้อมเพิ่ม เน้นพัก/ประคบเย็น/ยกขา`;
+  if (latest.painLevel === 2) return `${base} ลดโหลดและสังเกตอาการ ถ้าเจ็บเพิ่มให้พัก`;
+  if (hasRecentSafetyHistory) return `${base} จึงยังควรลดโหลดและเลี่ยง hard session`;
+  return `${base} ถ้าไม่เจ็บเพิ่ม เดินเบา ๆ หรือ mobility ได้`;
+}
+
+function proteinTarget(ctx: CoachContext): number | null {
+  const profile = ctx.profile;
+  const explicit = Number(profile?.proteinTargetG);
+  if (Number.isFinite(explicit) && explicit > 0) return Math.round(explicit);
+  const weight = Number(profile?.weightKg);
+  if (Number.isFinite(weight) && weight > 0) return Math.round(weight * 1.6);
+  return null;
+}
+
+function formatKm(km: number): string {
+  return Number.isInteger(km) ? String(km) : km.toFixed(2).replace(/0$/, "").replace(/\.0$/, "");
 }
 
 function cleanWorkoutTarget(value: string | null | undefined): string {

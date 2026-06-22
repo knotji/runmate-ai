@@ -17,6 +17,18 @@ export type DayWorkoutSummary = {
   other: { label: string; durationMin: number }[];
 };
 
+export type TodayCompletedWorkoutSummary = {
+  date: string;
+  kind: "run" | "walk" | "strength" | "cycling" | "race" | "other";
+  label: string;
+  distanceKm: number | null;
+  durationMin: number | null;
+  durationText: string | null;
+  avgHR: number | null;
+  pace: string | null;
+  calories: number | null;
+};
+
 export type WeekSleepRow = {
   date: string;
   durationH: string | null;
@@ -60,6 +72,9 @@ export type CoachContext = {
   sleep7d: WeekSleepRow[];
   avgReadiness: number | null;
   workouts7d: DayWorkoutSummary[];
+  hasWorkoutToday: boolean;
+  todayWorkouts: TodayCompletedWorkoutSummary[];
+  todayPrimaryWorkout: TodayCompletedWorkoutSummary | null;
   nutritionToday: NutritionDaySummary | null;
   nutrition7d: NutritionDaySummary[];
   latestCompletedRace: RaceResult | null;
@@ -169,6 +184,7 @@ export function buildCoachContextFromData(input: {
   let totalSessions = 0;
   let longestRun7dKm: number | null = null;
   let lastRun: CoachContext["lastRun"] = null;
+  const todayWorkouts: TodayCompletedWorkoutSummary[] = [];
 
   for (const item of workoutItems) {
     const date = item.createdAt.slice(0, 10);
@@ -177,6 +193,19 @@ export function buildCoachContextFromData(input: {
     if (!ext) continue;
 
     const durationMin = parseDurationToMin(ext.duration);
+    if (date === today) {
+      todayWorkouts.push({
+        date,
+        kind: workoutKindToTodayKind(ext.workoutKind),
+        label: workoutKindLabel(ext.workoutKind),
+        distanceKm: ext.distanceKm ?? null,
+        durationMin,
+        durationText: ext.duration ?? null,
+        avgHR: ext.avgHR ?? null,
+        pace: ext.avgPace ?? null,
+        calories: ext.calories ?? null,
+      });
+    }
     if (!durationMin) continue;
 
     const day = ensureDay(date);
@@ -206,15 +235,42 @@ export function buildCoachContextFromData(input: {
     const day = ensureDay(date);
     totalSessions++;
     day.other.push({ label: `เวท (${d.routineName})`, durationMin: d.durationMin || 15 });
+    if (date === today) {
+      todayWorkouts.push({
+        date,
+        kind: "strength",
+        label: d.routineName ? `เวท (${d.routineName})` : "เวทเทรนนิ่ง",
+        distanceKm: null,
+        durationMin: d.durationMin || null,
+        durationText: d.durationMin ? `${d.durationMin} นาที` : null,
+        avgHR: null,
+        pace: null,
+        calories: null,
+      });
+    }
   }
 
   const workouts7d = [...dayMap.values()].sort((a, b) => b.date.localeCompare(a.date));
   const nutrition7d = buildNutritionSummaries(items, cutoff);
   const nutritionToday = nutrition7d.find((day) => day.date === today) ?? null;
   const recentRaceResults = (input.raceResults ?? []).map(compactRaceResult);
+  for (const result of recentRaceResults.filter((raceResult) => raceResult.raceDate === today)) {
+    todayWorkouts.push({
+      date: today,
+      kind: "race",
+      label: result.raceName ? `Race ${result.raceName}` : "Race Result",
+      distanceKm: result.actualDistanceKm ?? null,
+      durationMin: parseDurationToMin(result.actualTime ?? null),
+      durationText: result.actualTime ?? null,
+      avgHR: result.avgHr ?? null,
+      pace: result.actualPace ?? null,
+      calories: null,
+    });
+  }
   const latestCompletedRace = recentRaceResults[0] ?? null;
   const runDays7d = workouts7d.filter((day) => day.runs.length > 0).length;
   const lastWorkoutDate = workouts7d[0]?.date ?? null;
+  const todayPrimaryWorkout = pickTodayPrimaryWorkout(todayWorkouts);
 
   // Pain logs — last 7 days, most recent first
   const painItems = items
@@ -273,6 +329,9 @@ export function buildCoachContextFromData(input: {
     sleep7d,
     avgReadiness,
     workouts7d,
+    hasWorkoutToday: todayWorkouts.length > 0,
+    todayWorkouts,
+    todayPrimaryWorkout,
     nutritionToday,
     nutrition7d,
     latestCompletedRace,
@@ -294,6 +353,9 @@ export function buildCoachContextFromData(input: {
       raceResults: recentRaceResults,
       sleep7d,
       workouts7d,
+      hasWorkoutToday: todayWorkouts.length > 0,
+      todayPrimaryWorkout,
+      todayWorkouts,
       totalRunKm,
       runDays7d,
       longestRun7dKm,
@@ -365,12 +427,48 @@ function compactRaceResult(result: RaceResult): RaceResult {
   };
 }
 
+function workoutKindToTodayKind(kind: WorkoutAnalysis["extracted"]["workoutKind"]): TodayCompletedWorkoutSummary["kind"] {
+  if (kind === "outdoor_run" || kind === "treadmill") return "run";
+  if (kind === "walk") return "walk";
+  if (kind === "strength") return "strength";
+  if (kind === "cycling") return "cycling";
+  return "other";
+}
+
+function workoutKindLabel(kind: WorkoutAnalysis["extracted"]["workoutKind"]): string {
+  if (kind === "outdoor_run") return "วิ่งนอก";
+  if (kind === "treadmill") return "วิ่งลู่";
+  if (kind === "walk") return "เดิน";
+  if (kind === "strength") return "เวทเทรนนิ่ง";
+  if (kind === "cycling") return "ปั่นจักรยาน";
+  return "ออกกำลังกาย";
+}
+
+function pickTodayPrimaryWorkout(workouts: TodayCompletedWorkoutSummary[]): TodayCompletedWorkoutSummary | null {
+  if (workouts.length === 0) return null;
+  return [...workouts].sort((a, b) => todayWorkoutRank(b) - todayWorkoutRank(a))[0] ?? null;
+}
+
+function todayWorkoutRank(workout: TodayCompletedWorkoutSummary): number {
+  const kindScore =
+    workout.kind === "race" ? 50 :
+    workout.kind === "run" ? 40 :
+    workout.kind === "strength" ? 30 :
+    workout.kind === "cycling" ? 20 :
+    workout.kind === "walk" ? 10 :
+    0;
+  return kindScore + (workout.distanceKm ?? 0) + ((workout.durationMin ?? 0) / 100);
+}
+
 function buildContextNotes(input: {
   raceGoal: Record<string, unknown> | null;
   racePlan: Record<string, unknown> | null;
   raceResults: RaceResult[];
   sleep7d: WeekSleepRow[];
   workouts7d: DayWorkoutSummary[];
+  hasWorkoutToday?: boolean;
+  todayPrimaryWorkout?: TodayCompletedWorkoutSummary | null;
+  todayWorkouts?: TodayCompletedWorkoutSummary[];
   totalRunKm: number;
   runDays7d: number;
   recentPainLogs?: PainSummary[];
@@ -398,6 +496,16 @@ function buildContextNotes(input: {
   if (!input.racePlan) notes.push("No active weekly/race plan is set. For tomorrow questions, state that the plan is inferred from recent data.");
   if (input.sleep7d.length === 0) notes.push("No sleep data in the last 7 days.");
   if (input.workouts7d.length === 0) notes.push("No workout data in the last 7 days.");
+  if (input.hasWorkoutToday && input.todayPrimaryWorkout) {
+    const workout = input.todayPrimaryWorkout;
+    const details = [
+      workout.distanceKm != null ? `${workout.distanceKm.toFixed(2)} km` : null,
+      workout.durationText ?? (workout.durationMin != null ? `${workout.durationMin} min` : null),
+      workout.avgHR != null ? `avg HR ${workout.avgHR}` : null,
+      workout.pace ? `pace ${workout.pace}` : null,
+    ].filter(Boolean).join(", ");
+    notes.push(`TODAY WORKOUT COMPLETED: ${workout.label}${details ? ` (${details})` : ""}. Today Focus should switch to post-workout recovery and must not recommend extra hard training.`);
+  }
   if (input.totalRunKm > 0) notes.push(`Last 7 days running load: ${Math.round(input.totalRunKm * 10) / 10} km across ${input.runDays7d} run days.`);
   if (input.longestRun7dKm != null) notes.push(`Longest run in last 7 days: ${input.longestRun7dKm.toFixed(1)} km.`);
   if (input.lastWorkoutDate) notes.push(`Last workout date: ${input.lastWorkoutDate}.`);

@@ -56,7 +56,7 @@ export default function TodayPage() {
     try {
       const ctx = await buildCoachContextFromSupabase();
       setCoachCtx(ctx);
-      const hasSomeData = ctx.sleep7d.length > 0 || ctx.workouts7d.length > 0 || ctx.latestBody != null || !!ctx.raceGoal;
+      const hasSomeData = ctx.sleep7d.length > 0 || ctx.workouts7d.length > 0 || ctx.nutrition7d.length > 0 || ctx.latestBody != null || !!ctx.raceGoal;
       setHasHistory(hasSomeData);
       if (!hasSomeData) return;
       const res = await fetch("/api/coach-insight", {
@@ -122,13 +122,16 @@ export default function TodayPage() {
   const hasPace = isMeaningfulWorkoutTarget(insight?.workoutTarget);
   const readinessScore = insight?.todayReadiness != null ? Math.round(insight.todayReadiness) : null;
   const todayChecklist = buildTodayChecklist(coachCtx, dailySummaryItem);
+  const hasWorkoutToday = Boolean(coachCtx?.hasWorkoutToday);
 
   return (
     <AppShell title="โค้ชข้างทาง" subtitle={formatThaiDate()}>
 
       {/* B. Today Focus Card */}
       <section className="card p-5 space-y-4">
-        <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">วันนี้ควรทำอะไร</p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
+          {hasWorkoutToday ? "หลังซ้อมวันนี้ควรทำอะไร" : "วันนี้ควรทำอะไร"}
+        </p>
 
         {loading && (
           <div className="flex items-center gap-3 py-2">
@@ -182,7 +185,7 @@ export default function TodayPage() {
         )}
 
         <Link href="/upload" className="btn-primary block w-full py-3 text-center text-sm font-bold">
-          อัปโหลดผลวันนี้
+          {hasWorkoutToday ? "อัปเดตข้อมูลวันนี้" : "อัปโหลดผลวันนี้"}
         </Link>
       </section>
 
