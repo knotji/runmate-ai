@@ -154,7 +154,7 @@ export function StrengthRoutineManager() {
 
     setLogging(false);
     if (res.ok) {
-      setFeedback("🏋️ บันทึกการฝึกซ้อมวันนี้สำเร็จแล้ว!");
+      setFeedback("🏋️ บันทึกเวทวันนี้เข้า Report แล้ว");
       setPrescription(null);
       setTimeout(() => setFeedback(""), 5000);
     } else {
@@ -366,7 +366,7 @@ export function StrengthRoutineManager() {
         <div>
           <h2 className="text-xl font-bold text-[#17201d]">รูทีนเวท</h2>
           <p className="text-xs text-slate-500 leading-relaxed mt-0.5">
-            จัดการรูทีนและให้ AI ปรับตามสภาพร่างกายวันนี้
+            ตั้งค่า routine ไว้ตรงนี้ แล้วใช้จริงผ่าน Today หรือ Upload
           </p>
         </div>
         <button
@@ -496,7 +496,7 @@ export function StrengthRoutineManager() {
                     onClick={() => handleLogWorkout("ai_prescription")}
                     className="btn-primary flex-1 py-2.5 text-xs font-bold"
                   >
-                    {logging ? "กำลังบันทึก…" : "บันทึกวันนี้"}
+                    {logging ? "กำลังบันทึก…" : "บันทึกว่าเสร็จแล้วใน Report"}
                   </button>
                   <button
                     type="button"
@@ -516,7 +516,7 @@ export function StrengthRoutineManager() {
                   className="btn-primary flex-1 py-2.5 text-xs font-bold flex items-center justify-center gap-1.5"
                 >
                   {loadingAI && <div className="h-3 w-3 animate-spin rounded-full border border-slate-300 border-t-slate-600" />}
-                  {loadingAI ? "AI กำลังปรับ…" : "AI ปรับให้วันนี้"}
+                  {loadingAI ? "AI กำลังปรับ…" : "AI ปรับเป็นเวอร์ชันวันนี้"}
                 </button>
                 <button
                   type="button"
@@ -524,7 +524,7 @@ export function StrengthRoutineManager() {
                   onClick={() => handleLogWorkout("saved_routine")}
                   className="btn-secondary flex-1 py-2.5 text-xs font-bold"
                 >
-                  {logging ? "กำลังบันทึก…" : "บันทึกวันนี้"}
+                  {logging ? "กำลังบันทึก…" : "บันทึกว่าเสร็จแล้วใน Report"}
                 </button>
               </div>
             )}

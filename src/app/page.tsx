@@ -8,9 +8,11 @@ import { formatThaiDate } from "@/lib/date";
 import { buildCoachContextFromSupabase, type CoachContext, type NutritionDaySummary, type PainSummary, type TodayCompletedWorkoutSummary } from "@/lib/buildCoachContext";
 import { createHistoryItem, loadHistoryItems, saveHistoryItems } from "@/lib/cloudHistory";
 import { loadActiveRaceGoalAndPlan } from "@/lib/raceStorage";
+import { loadRoutinesFromSupabase, logCompletedStrength } from "@/lib/strength";
 import type { LocalHistoryItem } from "@/lib/localHistory";
 import type { DailySummary } from "@/types/logs";
 import type { RaceGoal } from "@/types/race";
+import type { AIPrescription, StrengthExercise, StrengthRoutine } from "@/types/strength";
 import type { DailyCoachInsight } from "@/types/ai";
 
 function getRecommendedSubtype(insight: DailyCoachInsight | null, ctx: CoachContext | null): "run" | "strength" | "walk" | "other" {
@@ -176,6 +178,14 @@ export default function TodayPage() {
           {hasWorkoutToday ? "อัปเดตข้อมูลวันนี้" : "อัปโหลดผลวันนี้"}
         </Link>
       </section>
+
+      {insight && coachCtx && shouldShowTodayStrengthCard(insight, coachCtx) ? (
+        <TodayStrengthRoutineCard
+          insight={insight}
+          context={coachCtx}
+          onSaved={() => void generateInsight(true)}
+        />
+      ) : null}
 
       {/* C. Today Snapshot: readiness + daily check */}
       <TodaySnapshotCard
@@ -376,6 +386,260 @@ function buildPostWorkoutInjuryNote(context: CoachContext): string {
     return `ล่าสุดเจ็บ${latest.painLocation} ${latest.painLevel}/10 แต่เคยขึ้นถึง ${recentMax.painLevel}/10 ช่วงล่าสุด วันนี้ยังลดโหลดไว้ก่อน`;
   }
   return `ล่าสุดเจ็บ${latest.painLocation} ${latest.painLevel}/10 ถ้าเดินแล้วไม่เจ็บเพิ่ม ค่อยทำ mobility เบา ๆ ได้`;
+}
+
+function TodayStrengthRoutineCard({
+  insight,
+  context,
+  onSaved,
+}: {
+  insight: DailyCoachInsight;
+  context: CoachContext;
+  onSaved: () => void;
+}) {
+  const [routines, setRoutines] = useState<StrengthRoutine[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [prescription, setPrescription] = useState<AIPrescription | null>(null);
+  const [adjusting, setAdjusting] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    loadRoutinesFromSupabase()
+      .then((data) => {
+        if (active) setRoutines(data);
+      })
+      .catch((err) => {
+        if (process.env.NODE_ENV === "development") console.warn("[today-strength-debug] load routines failed", err);
+        if (active) setError("โหลดรูทีนเวทไม่สำเร็จ");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const alreadyCompleted = saved || context.todayWorkouts.some((workout) => workout.kind === "strength");
+  const safety = buildTodayStrengthSafety(context);
+  const selected = selectTodayStrengthRoutine(routines, insight, context);
+  const reason = selected ? buildTodayStrengthReason(selected, insight, context) : "";
+  const durationMin = prescription?.estimatedDurationMin ?? (selected ? estimateRoutineDuration(selected) : null);
+  const exercises = prescription?.exercises ?? selected?.exercises ?? [];
+
+  async function adjustForToday() {
+    if (!selected || safety.blockWorkout) return;
+    setAdjusting(true);
+    setError("");
+    try {
+      const response = await fetch("/api/analyze-strength", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ routine: selected, context }),
+      });
+      if (!response.ok) throw new Error("api error");
+      const payload = await response.json() as { ok?: boolean; data?: AIPrescription };
+      if (!payload.data) throw new Error("missing prescription");
+      setPrescription(payload.data);
+    } catch (err) {
+      if (process.env.NODE_ENV === "development") console.warn("[today-strength-debug] ai adjust failed", err);
+      setError("AI ปรับรูทีนไม่สำเร็จ ลองใหม่อีกครั้ง");
+    } finally {
+      setAdjusting(false);
+    }
+  }
+
+  async function saveDone() {
+    if (!selected || alreadyCompleted || safety.blockWorkout) return;
+    setSaving(true);
+    setError("");
+    const source = prescription ? "ai_prescription" : "saved_routine";
+    const result = await logCompletedStrength({
+      type: "strength",
+      routineId: selected.id,
+      routineName: prescription?.routineName ?? selected.name,
+      source,
+      intensity: prescription?.intensity ?? (selected.id === "fullbody" ? "moderate" : "easy"),
+      durationMin: durationMin ?? estimateRoutineDuration(selected),
+      exercises,
+      notes: selected.notes,
+      coachReason: prescription?.reason ?? reason,
+      createdAt: new Date().toISOString(),
+    });
+    setSaving(false);
+    if (!result.ok) {
+      setError(result.error ?? "บันทึกเวทไม่สำเร็จ");
+      return;
+    }
+    setSaved(true);
+    onSaved();
+  }
+
+  if (loading) {
+    return (
+      <section className="card p-4 text-sm text-slate-500">
+        กำลังโหลดรูทีนเวทวันนี้...
+      </section>
+    );
+  }
+
+  if (!selected) return null;
+
+  return (
+    <section className="card space-y-3 p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#6f8fa6]">เวทวันนี้</p>
+          <h2 className="mt-1 text-xl font-bold text-[#17201d]">
+            {prescription?.recommendedTitle ?? selected.name}
+          </h2>
+          <p className="mt-1 text-sm leading-6 text-slate-500">{prescription?.reason ?? reason}</p>
+        </div>
+        {durationMin ? (
+          <span className="shrink-0 rounded-full bg-[#eef4ef] px-3 py-1 text-xs font-bold text-[#2a5a39]">
+            {durationMin} นาที
+          </span>
+        ) : null}
+      </div>
+
+      {safety.note ? (
+        <p className={`rounded-2xl px-3 py-2 text-xs leading-5 ${safety.blockWorkout ? "bg-amber-50 text-amber-800" : "bg-slate-50 text-slate-600"}`}>
+          {safety.note}
+        </p>
+      ) : null}
+
+      {!safety.blockWorkout ? (
+        <div className="rounded-2xl bg-slate-50/80 p-3">
+          <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">ตัวอย่างท่า</p>
+          <div className="mt-2 space-y-1.5">
+            {exercises.slice(0, 3).map((exercise) => (
+              <div key={`${exercise.name}-${exercise.sets}-${exercise.reps}`} className="flex justify-between gap-3 text-xs">
+                <span className="font-semibold text-slate-700">{exercise.name}</span>
+                <span className="shrink-0 text-slate-500">{formatStrengthExerciseLine(exercise)}</span>
+              </div>
+            ))}
+            {exercises.length > 3 ? <p className="text-xs text-slate-400">+ อีก {exercises.length - 3} ท่า</p> : null}
+          </div>
+        </div>
+      ) : null}
+
+      {alreadyCompleted ? (
+        <p className="rounded-2xl bg-green-50 px-3 py-2 text-xs font-bold text-green-700">
+          วันนี้บันทึกเวทแล้ว
+        </p>
+      ) : null}
+      {error ? <p className="rounded-2xl bg-red-50 px-3 py-2 text-xs font-semibold text-red-600">{error}</p> : null}
+
+      {!alreadyCompleted && !safety.blockWorkout ? (
+        <div className="grid gap-2 sm:grid-cols-2">
+          <LoadingButton
+            type="button"
+            loading={adjusting}
+            loadingText="AI กำลังปรับ..."
+            onClick={() => void adjustForToday()}
+            className="btn-secondary py-2.5 text-xs font-bold"
+          >
+            AI ปรับเป็นเวอร์ชันวันนี้
+          </LoadingButton>
+          <LoadingButton
+            type="button"
+            loading={saving}
+            loadingText="กำลังบันทึก..."
+            onClick={() => void saveDone()}
+            className="btn-primary py-2.5 text-xs font-bold"
+          >
+            บันทึกว่าเสร็จแล้ว
+          </LoadingButton>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function shouldShowTodayStrengthCard(insight: DailyCoachInsight, context: CoachContext): boolean {
+  const completedStrengthToday = context.todayWorkouts.some((workout) => workout.kind === "strength");
+  if (completedStrengthToday) return true;
+  if (context.todayWorkouts.some((workout) => workout.kind !== "strength")) return false;
+  return containsStrengthSignal(strengthSignalText(insight));
+}
+
+function selectTodayStrengthRoutine(routines: StrengthRoutine[], insight: DailyCoachInsight, context: CoachContext): StrengthRoutine | null {
+  if (!routines.length) return null;
+  const text = strengthSignalText(insight);
+  const latestPain = context.latestPain;
+  const painRisk = latestPain && (latestPain.painLevel >= 3 || latestPain.riskLevel === "medium" || latestPain.riskLevel === "high");
+
+  if (painRisk || /recovery|active recovery|mobility|easy|walk|rest|พัก|ฟื้น|เดิน|ยืด|เบา/i.test(text)) {
+    return findRoutine(routines, "recovery") ?? routines[0];
+  }
+  if (/core|abs|แกนกลาง|หน้าท้อง/i.test(text)) {
+    return findRoutine(routines, "core") ?? findRoutine(routines, "recovery") ?? routines[0];
+  }
+  if (/strength|gym|full body|bodyweight|เวท|แรงต้าน/i.test(text)) {
+    return findRoutine(routines, "fullbody") ?? findRoutine(routines, "recovery") ?? routines[0];
+  }
+  return findRoutine(routines, "recovery") ?? routines[0];
+}
+
+function buildTodayStrengthReason(routine: StrengthRoutine, insight: DailyCoachInsight, context: CoachContext): string {
+  const latestPain = context.latestPain;
+  if (latestPain && latestPain.painLevel >= 3) {
+    return `เลือก ${routine.name} แบบลดโหลด เพราะล่าสุดเจ็บ${latestPain.painLocation} ${latestPain.painLevel}/10`;
+  }
+  if (routine.id === "recovery") return "เหมาะกับวัน recovery / easy หรือวันที่ร่างกายยังล้า";
+  if (routine.id === "core") return "เสริมแกนกลางแบบไม่รบกวนขามาก";
+  if (routine.id === "fullbody") return "เหมาะกับวันที่ร่างกายพร้อมและไม่มีอาการเจ็บเด่น";
+  return insight.keyObservation || "ใช้เป็นรูทีนเวทสั้น ๆ สำหรับวันนี้";
+}
+
+function buildTodayStrengthSafety(context: CoachContext): { blockWorkout: boolean; note: string } {
+  const latest = context.latestPain;
+  if (!latest) return { blockWorkout: false, note: "" };
+  const cannotBearWeight = /no|cannot|can't|ไม่ได้|ไม่ไหว|ลงน้ำหนักไม่ได้/i.test(latest.canBearWeight);
+  const hasRedFlag = latest.redFlags.length > 0 || cannotBearWeight;
+  if (latest.painLevel >= 7 || latest.riskLevel === "high" || hasRedFlag) {
+    return {
+      blockWorkout: true,
+      note: "วันนี้ยังไม่ควรเวทหนัก ถ้ามีอาการผิดปกติควรพักและประเมินอาการก่อน",
+    };
+  }
+  if (latest.painLevel >= 3) {
+    return {
+      blockWorkout: false,
+      note: "วันนี้ให้ทำแบบเบาและหยุดทันทีถ้าเจ็บเพิ่ม หลีกเลี่ยงท่าที่ลงน้ำหนักจุดเจ็บเยอะ",
+    };
+  }
+  return {
+    blockWorkout: false,
+    note: `ล่าสุดเจ็บ${latest.painLocation} ${latest.painLevel}/10 ทำได้เฉพาะช่วงที่ไม่เจ็บเพิ่ม`,
+  };
+}
+
+function strengthSignalText(insight: DailyCoachInsight): string {
+  return [
+    insight.workoutRec,
+    insight.workoutTarget,
+  ].filter(Boolean).join(" ").toLowerCase();
+}
+
+function containsStrengthSignal(text: string): boolean {
+  return /เวท|strength|gym|core|abs|bodyweight|แรงต้าน|mobility|active recovery|cross training|recovery strength|ฟื้น|ยืด|เดินเบา/.test(text);
+}
+
+function findRoutine(routines: StrengthRoutine[], id: "recovery" | "core" | "fullbody") {
+  return routines.find((routine) => routine.id === id) ?? null;
+}
+
+function estimateRoutineDuration(routine: StrengthRoutine): number {
+  return routine.warmupMin + routine.cooldownMin + 15;
+}
+
+function formatStrengthExerciseLine(exercise: StrengthExercise): string {
+  if (exercise.durationSec) return `${exercise.sets} x ${exercise.durationSec} วิ`;
+  return `${exercise.sets} x ${exercise.reps}`;
 }
 
 function formatKm(value: number): string {
