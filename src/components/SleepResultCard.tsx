@@ -17,6 +17,12 @@ export function SleepResultCard({ result }: { result: SleepAnalysis }) {
       ? formatDuration(result.extracted.sleepDuration)
       : null;
   const timeInBed = result.extracted.timeInBedMinutes ? formatSleepMinutesThai(result.extracted.timeInBedMinutes) : null;
+  const mergeNote = result.extracted.mergedFromMultipleImages
+    ? "รวมข้อมูลจากหลายภาพแล้ว: ใช้หน้า Sleep สำหรับเวลานอน/คะแนนนอน และหน้า Energy สำหรับ HR/HRV/Energy"
+    : "";
+  const missingDurationNote = !primaryDuration
+    ? "บันทึกได้ แต่ยังไม่พบเวลานอนจริง แนะนำอัปโหลดหน้า Sleep เพิ่มเพื่อให้ Report แม่นขึ้น"
+    : "";
 
   return (
     <section className="card p-5">
@@ -29,6 +35,11 @@ export function SleepResultCard({ result }: { result: SleepAnalysis }) {
       <div className="mt-3">
         <AIReadQualityNote confidence={result.confidence} unclearFields={result.unclearFields} />
       </div>
+      {mergeNote || missingDurationNote ? (
+        <p className={`mt-3 rounded-2xl px-3 py-2 text-xs leading-5 ${missingDurationNote ? "bg-amber-50 text-amber-800" : "bg-[#eef7f0] text-[#2a5a39]"}`}>
+          {missingDurationNote || mergeNote}
+        </p>
+      ) : null}
       <MetricGrid
         items={[
           { label: durationLabel, value: primaryDuration },

@@ -23,7 +23,14 @@ export type SleepAnalysis = {
     sleepStageRemMinutes?: number | null;
     sleepStageLightMinutes?: number | null;
     sleepStageDeepMinutes?: number | null;
+    sleepStageMinutes?: {
+      awake?: number | null;
+      rem?: number | null;
+      light?: number | null;
+      deep?: number | null;
+    } | null;
     sleepDurationSource?: "actual" | "time_in_bed_fallback" | "unknown";
+    mergedFromMultipleImages?: boolean;
     sleepScore: number | null;
     energyScore: number | null;
     restingHR: number | null;

@@ -24,7 +24,9 @@ const fallback: SleepAnalysis = {
     sleepStageRemMinutes: null,
     sleepStageLightMinutes: null,
     sleepStageDeepMinutes: null,
+    sleepStageMinutes: null,
     sleepDurationSource: "unknown",
+    mergedFromMultipleImages: false,
     sleepScore: null,
     energyScore: null,
     restingHR: null,
@@ -48,24 +50,50 @@ const fallback: SleepAnalysis = {
 
 export async function POST(request: Request) {
   const body = await request.json();
+  const imageDataUrls = readImageDataUrls(body);
   const profileCtx = buildRunnerProfileContext(body.profile ?? null);
   const contextCtx = buildAnalysisContext(body.context);
   const system = [sleepPrompt, profileCtx, contextCtx].filter(Boolean).join("\n\n");
 
   const result = await jsonFromAI<SleepAnalysis>({
     system,
-    user: "Analyze this sleep screenshot and return JSON in the requested schema.",
-    imageDataUrl: body.imageDataUrl,
+    user: imageDataUrls.length > 1
+      ? `Analyze these ${imageDataUrls.length} sleep screenshots together. Merge visible fields from all images into one sleep record.`
+      : "Analyze this sleep screenshot and return JSON in the requested schema.",
+    imageDataUrl: imageDataUrls[0],
+    imageDataUrls,
     fallback,
+  });
+  if (process.env.NODE_ENV === "development") {
+    console.info("[sleep-analysis-debug]", {
+      imageCount: imageDataUrls.length,
+      source: result.source,
+      hasDuration: Boolean(result.data?.extracted?.sleepDuration || result.data?.extracted?.actualSleepDurationMinutes),
+      sleepScore: result.data?.extracted?.sleepScore ?? null,
+      energyScore: result.data?.extracted?.energyScore ?? null,
+    });
+  }
+
+  const normalized = normalizeSleepExtraction(normalizeReadQuality(mergeWithFallback(result.data, fallback)), imageDataUrls.length);
+  const polished = polishSleepAnalysis(normalized, {
+    context: body.context,
+    profile: body.profile,
   });
 
   return NextResponse.json({
     ...result,
-    data: polishSleepAnalysis(normalizeSleepExtraction(normalizeReadQuality(mergeWithFallback(result.data, fallback))), {
-      context: body.context,
-      profile: body.profile,
-    }),
+    data: recomputeSleepUnclearFields(polished),
   });
+}
+
+function readImageDataUrls(body: Record<string, unknown>): string[] {
+  const urls = Array.isArray(body.imageDataUrls)
+    ? body.imageDataUrls.filter((value): value is string => typeof value === "string" && value.startsWith("data:image/"))
+    : [];
+  if (urls.length) return urls;
+  return typeof body.imageDataUrl === "string" && body.imageDataUrl.startsWith("data:image/")
+    ? [body.imageDataUrl]
+    : [];
 }
 
 function normalizeReadQuality(data: SleepAnalysis): SleepAnalysis {
@@ -76,8 +104,9 @@ function normalizeReadQuality(data: SleepAnalysis): SleepAnalysis {
   };
 }
 
-function normalizeSleepExtraction(data: SleepAnalysis): SleepAnalysis {
+function normalizeSleepExtraction(data: SleepAnalysis, imageCount = 1): SleepAnalysis {
   const extracted = data.extracted ?? fallback.extracted;
+  const stageObject = readStageObject(extracted.sleepStageMinutes);
   const actualMinutes = parsePositiveMinutes(
     extracted.actualSleepDurationMinutes,
     extracted.actualSleepDurationText,
@@ -118,11 +147,80 @@ function normalizeSleepExtraction(data: SleepAnalysis): SleepAnalysis {
       avgSleepingHeartRate: roundNullable(extracted.avgSleepingHeartRate ?? extracted.restingHR),
       avgSleepingHrv: roundNullable(extracted.avgSleepingHrv ?? extracted.hrv),
       avgRespiratoryRate: roundDecimalNullable(extracted.avgRespiratoryRate),
-      sleepStageAwakeMinutes: parseSleepDurationToMinutes(extracted.sleepStageAwakeMinutes),
-      sleepStageRemMinutes: parseSleepDurationToMinutes(extracted.sleepStageRemMinutes),
-      sleepStageLightMinutes: parseSleepDurationToMinutes(extracted.sleepStageLightMinutes),
-      sleepStageDeepMinutes: parseSleepDurationToMinutes(extracted.sleepStageDeepMinutes),
+      sleepStageAwakeMinutes: parseSleepDurationToMinutes(extracted.sleepStageAwakeMinutes) ?? stageObject.awake,
+      sleepStageRemMinutes: parseSleepDurationToMinutes(extracted.sleepStageRemMinutes) ?? stageObject.rem,
+      sleepStageLightMinutes: parseSleepDurationToMinutes(extracted.sleepStageLightMinutes) ?? stageObject.light,
+      sleepStageDeepMinutes: parseSleepDurationToMinutes(extracted.sleepStageDeepMinutes) ?? stageObject.deep,
+      sleepStageMinutes: {
+        awake: parseSleepDurationToMinutes(extracted.sleepStageAwakeMinutes) ?? stageObject.awake,
+        rem: parseSleepDurationToMinutes(extracted.sleepStageRemMinutes) ?? stageObject.rem,
+        light: parseSleepDurationToMinutes(extracted.sleepStageLightMinutes) ?? stageObject.light,
+        deep: parseSleepDurationToMinutes(extracted.sleepStageDeepMinutes) ?? stageObject.deep,
+      },
+      mergedFromMultipleImages: imageCount > 1,
     },
+  };
+}
+
+function recomputeSleepUnclearFields(data: SleepAnalysis): SleepAnalysis {
+  const ext = data.extracted;
+  const missing = new Set((data.unclearFields ?? []).filter(Boolean));
+  if (hasPrimaryDuration(ext)) {
+    missing.delete("sleepDuration");
+    missing.delete("actualSleepDurationMinutes");
+    missing.delete("actualSleepDurationText");
+  } else {
+    missing.add("sleepDuration");
+  }
+  if (ext.sleepScore != null) missing.delete("sleepScore");
+  if (ext.energyScore != null) missing.delete("energyScore");
+  if (ext.restingHR != null || ext.avgSleepingHeartRate != null) {
+    missing.delete("restingHR");
+    missing.delete("avgSleepingHeartRate");
+  }
+  if (ext.hrv != null || ext.avgSleepingHrv != null) {
+    missing.delete("hrv");
+    missing.delete("avgSleepingHrv");
+  }
+  if (hasSleepStages(ext)) {
+    missing.delete("sleepStageMinutes");
+    missing.delete("sleepStageAwakeMinutes");
+    missing.delete("sleepStageRemMinutes");
+    missing.delete("sleepStageLightMinutes");
+    missing.delete("sleepStageDeepMinutes");
+  }
+  return { ...data, unclearFields: Array.from(missing) };
+}
+
+function hasPrimaryDuration(extracted: SleepAnalysis["extracted"]) {
+  return Boolean(
+    extracted.actualSleepDurationMinutes ||
+    extracted.actualSleepDurationText ||
+    extracted.sleepDuration ||
+    extracted.timeInBedMinutes,
+  );
+}
+
+function hasSleepStages(extracted: SleepAnalysis["extracted"]) {
+  return Boolean(
+    extracted.sleepStageAwakeMinutes ||
+    extracted.sleepStageRemMinutes ||
+    extracted.sleepStageLightMinutes ||
+    extracted.sleepStageDeepMinutes ||
+    extracted.sleepStageMinutes?.awake ||
+    extracted.sleepStageMinutes?.rem ||
+    extracted.sleepStageMinutes?.light ||
+    extracted.sleepStageMinutes?.deep,
+  );
+}
+
+function readStageObject(value: unknown): { awake: number | null; rem: number | null; light: number | null; deep: number | null } {
+  const record = readRecord(value);
+  return {
+    awake: parseSleepDurationToMinutes(record?.awake),
+    rem: parseSleepDurationToMinutes(record?.rem),
+    light: parseSleepDurationToMinutes(record?.light),
+    deep: parseSleepDurationToMinutes(record?.deep),
   };
 }
 
