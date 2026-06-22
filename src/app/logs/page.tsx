@@ -1103,6 +1103,8 @@ function getSleepDurationRaw(item: LocalHistoryItem): string | number | null {
   const extracted = data?.extracted as Record<string, unknown> | undefined;
   const sleep = data?.sleep as Record<string, unknown> | undefined;
   const candidates = [
+    extracted?.actualSleepDurationMinutes,
+    extracted?.actualSleepDurationText,
     extracted?.sleepDuration,
     extracted?.duration,
     extracted?.sleepTime,

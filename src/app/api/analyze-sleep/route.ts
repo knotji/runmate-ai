@@ -3,6 +3,7 @@ import { jsonFromAI } from "@/lib/ai";
 import { mergeWithFallback } from "@/lib/fallback";
 import { sleepPrompt } from "@/lib/prompts/sleep";
 import { buildRunnerProfileContext } from "@/lib/buildRunnerProfileContext";
+import { parseSleepDurationToMinutes, sleepDurationTextFromMinutes } from "@/lib/sleepDuration";
 import { polishSleepInsightText } from "@/lib/sleepInsight";
 import type { SleepAnalysis } from "@/types/logs";
 
@@ -10,6 +11,20 @@ const fallback: SleepAnalysis = {
   extracted: {
     date: null,
     sleepDuration: null,
+    actualSleepDurationMinutes: null,
+    actualSleepDurationText: null,
+    timeInBedMinutes: null,
+    timeInBedText: null,
+    sleepStartTime: null,
+    sleepEndTime: null,
+    avgSleepingHeartRate: null,
+    avgSleepingHrv: null,
+    avgRespiratoryRate: null,
+    sleepStageAwakeMinutes: null,
+    sleepStageRemMinutes: null,
+    sleepStageLightMinutes: null,
+    sleepStageDeepMinutes: null,
+    sleepDurationSource: "unknown",
     sleepScore: null,
     energyScore: null,
     restingHR: null,
@@ -46,7 +61,7 @@ export async function POST(request: Request) {
 
   return NextResponse.json({
     ...result,
-    data: polishSleepAnalysis(normalizeReadQuality(mergeWithFallback(result.data, fallback)), {
+    data: polishSleepAnalysis(normalizeSleepExtraction(normalizeReadQuality(mergeWithFallback(result.data, fallback))), {
       context: body.context,
       profile: body.profile,
     }),
@@ -59,6 +74,64 @@ function normalizeReadQuality(data: SleepAnalysis): SleepAnalysis {
     confidence: data.confidence ?? "low",
     unclearFields: Array.isArray(data.unclearFields) ? data.unclearFields : [],
   };
+}
+
+function normalizeSleepExtraction(data: SleepAnalysis): SleepAnalysis {
+  const extracted = data.extracted ?? fallback.extracted;
+  const actualMinutes = parsePositiveMinutes(
+    extracted.actualSleepDurationMinutes,
+    extracted.actualSleepDurationText,
+  );
+  const timeInBedMinutes = parsePositiveMinutes(
+    extracted.timeInBedMinutes,
+    extracted.timeInBedText,
+  );
+  const legacyMinutes = parseSleepDurationToMinutes(extracted.sleepDuration);
+
+  const primaryMinutes = actualMinutes ?? legacyMinutes ?? timeInBedMinutes;
+  const sleepDurationSource = actualMinutes
+    ? "actual"
+    : primaryMinutes && timeInBedMinutes && primaryMinutes === timeInBedMinutes
+      ? "time_in_bed_fallback"
+      : extracted.sleepDurationSource ?? "unknown";
+
+  const actualSleepDurationMinutes = actualMinutes ?? (sleepDurationSource === "time_in_bed_fallback" ? null : primaryMinutes);
+  const actualSleepDurationText = actualSleepDurationMinutes
+    ? extracted.actualSleepDurationText ?? sleepDurationTextFromMinutes(actualSleepDurationMinutes)
+    : null;
+  const timeInBedText = timeInBedMinutes
+    ? extracted.timeInBedText ?? sleepDurationTextFromMinutes(timeInBedMinutes)
+    : null;
+
+  return {
+    ...data,
+    extracted: {
+      ...extracted,
+      sleepDuration: primaryMinutes ? sleepDurationTextFromMinutes(primaryMinutes) : extracted.sleepDuration,
+      actualSleepDurationMinutes,
+      actualSleepDurationText,
+      timeInBedMinutes,
+      timeInBedText,
+      sleepDurationSource,
+      restingHR: roundNullable(extracted.restingHR ?? extracted.avgSleepingHeartRate),
+      hrv: roundNullable(extracted.hrv ?? extracted.avgSleepingHrv),
+      avgSleepingHeartRate: roundNullable(extracted.avgSleepingHeartRate ?? extracted.restingHR),
+      avgSleepingHrv: roundNullable(extracted.avgSleepingHrv ?? extracted.hrv),
+      avgRespiratoryRate: roundDecimalNullable(extracted.avgRespiratoryRate),
+      sleepStageAwakeMinutes: parseSleepDurationToMinutes(extracted.sleepStageAwakeMinutes),
+      sleepStageRemMinutes: parseSleepDurationToMinutes(extracted.sleepStageRemMinutes),
+      sleepStageLightMinutes: parseSleepDurationToMinutes(extracted.sleepStageLightMinutes),
+      sleepStageDeepMinutes: parseSleepDurationToMinutes(extracted.sleepStageDeepMinutes),
+    },
+  };
+}
+
+function parsePositiveMinutes(...values: unknown[]) {
+  for (const value of values) {
+    const parsed = parseSleepDurationToMinutes(value);
+    if (parsed != null && parsed > 0) return parsed;
+  }
+  return null;
 }
 
 function buildAnalysisContext(context: unknown) {
@@ -193,6 +266,12 @@ function roundNullable(value: unknown): number | null {
   if (value === null || value === undefined || value === "") return null;
   const num = Number(value);
   return Number.isFinite(num) ? Math.round(num) : null;
+}
+
+function roundDecimalNullable(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  const num = Number(value);
+  return Number.isFinite(num) ? Math.round(num * 10) / 10 : null;
 }
 
 function readRecord(value: unknown): Record<string, unknown> | null {

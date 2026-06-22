@@ -10,6 +10,20 @@ export type SleepAnalysis = {
   extracted: {
     date: string | null;
     sleepDuration: string | null;
+    actualSleepDurationMinutes?: number | null;
+    actualSleepDurationText?: string | null;
+    timeInBedMinutes?: number | null;
+    timeInBedText?: string | null;
+    sleepStartTime?: string | null;
+    sleepEndTime?: string | null;
+    avgSleepingHeartRate?: number | null;
+    avgSleepingHrv?: number | null;
+    avgRespiratoryRate?: number | null;
+    sleepStageAwakeMinutes?: number | null;
+    sleepStageRemMinutes?: number | null;
+    sleepStageLightMinutes?: number | null;
+    sleepStageDeepMinutes?: number | null;
+    sleepDurationSource?: "actual" | "time_in_bed_fallback" | "unknown";
     sleepScore: number | null;
     energyScore: number | null;
     restingHR: number | null;

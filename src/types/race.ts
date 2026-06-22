@@ -61,6 +61,8 @@ export type RacePlan = {
     tempo?: string | null;
     interval?: string | null;
   } | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
 };
 
 export type GoalResult = "completed" | "achieved" | "missed" | "unknown";

@@ -2,6 +2,7 @@ import type { SleepAnalysis } from "@/types/logs";
 import { AIReadQualityNote } from "@/components/AIReadQualityNote";
 import { DetailBlock, MetricGrid } from "@/components/ResultDetail";
 import { formatDuration, formatScore, formatHeartRate } from "@/lib/format";
+import { formatSleepMinutesThai } from "@/lib/sleepDuration";
 import { polishSleepInsightText } from "@/lib/sleepInsight";
 
 export function SleepResultCard({ result }: { result: SleepAnalysis }) {
@@ -9,6 +10,13 @@ export function SleepResultCard({ result }: { result: SleepAnalysis }) {
   const label = result.coach.readinessLabel || "ประเมินความพร้อม";
   const summary = polishSleepInsightText(result.coach.aiSummary) || "โค้ชอ่านข้อมูลการนอนแล้ว แต่ยังสรุปบางค่าได้ไม่ครบ";
   const recommendation = polishSleepInsightText(result.coach.todayRecommendation) || "ถ้าวันนี้รู้สึกล้า แนะนำให้ซ้อมเบาหรือพักก่อน";
+  const durationLabel = result.extracted.sleepDurationSource === "time_in_bed_fallback" ? "เวลานอน" : "นอนจริง";
+  const primaryDuration = result.extracted.actualSleepDurationMinutes
+    ? formatSleepMinutesThai(result.extracted.actualSleepDurationMinutes)
+    : result.extracted.sleepDuration
+      ? formatDuration(result.extracted.sleepDuration)
+      : null;
+  const timeInBed = result.extracted.timeInBedMinutes ? formatSleepMinutesThai(result.extracted.timeInBedMinutes) : null;
 
   return (
     <section className="card p-5">
@@ -23,11 +31,13 @@ export function SleepResultCard({ result }: { result: SleepAnalysis }) {
       </div>
       <MetricGrid
         items={[
-          { label: "Sleep duration", value: result.extracted.sleepDuration ? formatDuration(result.extracted.sleepDuration) : null },
+          { label: durationLabel, value: primaryDuration },
+          { label: "เวลาบนเตียง", value: timeInBed },
           { label: "Sleep score", value: result.extracted.sleepScore != null ? formatScore(result.extracted.sleepScore) : null },
           { label: "Energy score", value: result.extracted.energyScore != null ? formatScore(result.extracted.energyScore) : null },
-          { label: "Resting HR", value: result.extracted.restingHR != null ? formatHeartRate(result.extracted.restingHR) : null },
+          { label: "Sleeping HR", value: result.extracted.restingHR != null ? formatHeartRate(result.extracted.restingHR) : null },
           { label: "HRV", value: result.extracted.hrv != null ? `${formatScore(result.extracted.hrv)} ms` : null },
+          { label: "Respiratory", value: result.extracted.avgRespiratoryRate != null ? `${result.extracted.avgRespiratoryRate} /min` : null },
           { label: "Quality", value: result.extracted.sleepQualityLabel },
         ]}
       />

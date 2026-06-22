@@ -34,6 +34,8 @@ type TrainingPlanRow = {
   current_phase: string | null;
   plan_summary: string | null;
   phases_json: RacePlan | null;
+  created_at: string | null;
+  updated_at: string | null;
 };
 
 export async function loadActiveRaceGoalAndPlan(): Promise<
@@ -194,7 +196,12 @@ function rowToGoal(row: RaceGoalRow): RaceGoal {
 }
 
 function planRowToPlan(row: TrainingPlanRow | null): RacePlan | null {
-  return row?.phases_json ?? null;
+  if (!row?.phases_json) return null;
+  return {
+    ...row.phases_json,
+    createdAt: row.created_at ?? row.phases_json.createdAt ?? null,
+    updatedAt: row.updated_at ?? row.created_at ?? row.phases_json.updatedAt ?? null,
+  };
 }
 
 function sessionMessage(session: { reason: string; message?: string }) {

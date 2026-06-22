@@ -3,6 +3,7 @@
 import { loadHistoryItems } from "@/lib/cloudHistory";
 import { loadProfileFromSupabase } from "@/lib/profileStorage";
 import { loadActiveRaceGoalAndPlan } from "@/lib/raceStorage";
+import { formatSleepMinutesThai } from "@/lib/sleepDuration";
 import { loadRaceResults } from "@/lib/raceResults";
 import type { LocalHistoryItem } from "@/lib/localHistory";
 import type { SleepAnalysis, WorkoutAnalysis, BodyCompositionAnalysis, MealAnalysis } from "@/types/logs";
@@ -154,7 +155,9 @@ export function buildCoachContextFromData(input: {
     const d = item.data as SleepAnalysis;
     return {
       date: item.createdAt.slice(0, 10),
-      durationH: d?.extracted?.sleepDuration ?? null,
+      durationH: d?.extracted?.actualSleepDurationMinutes
+        ? formatSleepMinutesThai(d.extracted.actualSleepDurationMinutes)
+        : d?.extracted?.sleepDuration ?? null,
       score: d?.extracted?.sleepScore ?? null,
       readiness: d?.coach?.readinessScore ?? null,
       restingHR: d?.extracted?.restingHR ?? null,

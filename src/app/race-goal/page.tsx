@@ -8,10 +8,20 @@ import { LoadingButton } from "@/components/LoadingButton";
 import { TrainingPhaseCard } from "@/components/TrainingPhaseCard";
 import { WeeklyPlanCard } from "@/components/WeeklyPlanCard";
 import { buildCoachContextFromSupabase } from "@/lib/buildCoachContext";
+import { loadHistoryItems } from "@/lib/cloudHistory";
 import { invalidateCoachCache } from "@/lib/invalidateCoachCache";
 import { loadRaceResults } from "@/lib/raceResults";
 import { deleteRaceGoalAndPlan, loadActiveRaceGoalAndPlan, saveRaceGoalAndPlan } from "@/lib/raceStorage";
+import type { HistoryType } from "@/lib/localHistory";
 import type { RaceGoal, RacePlan, RaceResult, WeekWorkout } from "@/types/race";
+
+const RACE_PLAN_FRESHNESS_TYPES: HistoryType[] = ["sleep", "workout", "pain", "meal", "body", "summary", "strength"];
+
+type PlanFreshness = {
+  isStale: boolean;
+  planTime: string | null;
+  latestReportTime: string | null;
+};
 
 export default function RaceGoalPage() {
   const [goal, setGoal] = useState<RaceGoal | null>(null);
@@ -20,22 +30,50 @@ export default function RaceGoalPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [refreshError, setRefreshError] = useState(false);
   const [raceResults, setRaceResults] = useState<RaceResult[]>([]);
+  const [planFreshness, setPlanFreshness] = useState<PlanFreshness | null>(null);
 
   useEffect(() => {
     Promise.all([loadActiveRaceGoalAndPlan(), loadRaceResults(10)]).then(([result, completed]) => {
+      let loadedPlan: RacePlan | null = null;
+      let loadedResults: RaceResult[] = [];
       if (result.ok) {
         setGoal(result.goal);
         setPlan(result.plan);
+        loadedPlan = result.plan;
       }
       if (completed.ok) {
         setRaceResults(completed.results);
+        loadedResults = completed.results;
         if (process.env.NODE_ENV === "development") {
           console.info("[race-history-debug]", { raceResultsCount: completed.results.length, ids: completed.results.map((r) => r.id) });
         }
       }
       setMounted(true);
+      void refreshRacePlanFreshness(loadedPlan, loadedResults);
     });
   }, []);
+
+  useEffect(() => {
+    function handleCloudUpdate() {
+      void refreshRacePlanFreshness(plan, raceResults);
+    }
+    window.addEventListener("runmate:cloud-data-updated", handleCloudUpdate);
+    return () => window.removeEventListener("runmate:cloud-data-updated", handleCloudUpdate);
+  }, [plan, raceResults]);
+
+  async function refreshRacePlanFreshness(nextPlan: RacePlan | null, nextResults: RaceResult[]) {
+    if (!nextPlan) {
+      setPlanFreshness(null);
+      return;
+    }
+    const latestReportTime = await loadLatestRelevantReportTime(nextResults);
+    const planTime = nextPlan.updatedAt ?? nextPlan.createdAt ?? null;
+    setPlanFreshness({
+      isStale: Boolean(planTime && latestReportTime && Date.parse(latestReportTime) > Date.parse(planTime)),
+      planTime,
+      latestReportTime,
+    });
+  }
 
   async function refreshPlan() {
     if (!goal) return;
@@ -54,7 +92,9 @@ export default function RaceGoalPage() {
       const saveResult = await saveRaceGoalAndPlan(goal, result.data);
       if (!saveResult.ok) throw new Error(saveResult.error);
       invalidateCoachCache();
-      setPlan(result.data);
+      const refreshedPlan = { ...result.data, updatedAt: new Date().toISOString() };
+      setPlan(refreshedPlan);
+      void refreshRacePlanFreshness(refreshedPlan, raceResults);
     } catch {
       setRefreshError(true);
     }
@@ -80,7 +120,7 @@ export default function RaceGoalPage() {
       ) : (
         <>
           <RaceCountdownCard goal={goal} phase={plan.currentPhase} />
-          <PlanAtGlance plan={plan} />
+          <PlanAtGlance plan={plan} freshness={planFreshness} />
           {plan.todayWorkout ? <TodayWorkoutCard workout={normalizeForDisplay(plan.todayWorkout)} /> : null}
           {plan.weeklyPlan?.length ? <ActionableWeekCard workouts={plan.weeklyPlan.map(normalizeForDisplay)} /> : null}
 
@@ -129,7 +169,7 @@ function LatestRacePrompt({ result }: { result: RaceResult }) {
   );
 }
 
-function PlanAtGlance({ plan }: { plan: RacePlan }) {
+function PlanAtGlance({ plan, freshness }: { plan: RacePlan; freshness: PlanFreshness | null }) {
   return (
     <section className="card p-5">
       <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#6f8fa6]">Plan at a glance</p>
@@ -138,8 +178,35 @@ function PlanAtGlance({ plan }: { plan: RacePlan }) {
         <MiniMetric label="เริ่มแผน" value={formatShortDate(plan.planStartDate)} />
         <MiniMetric label="เฟส" value={plan.currentPhase || "-"} />
       </div>
+      <RacePlanFreshnessNote freshness={freshness} />
       {plan.safetyNotes ? <p className="mt-4 text-xs leading-5 text-slate-500">{sanitizePaceInText(plan.safetyNotes)}</p> : null}
     </section>
+  );
+}
+
+function RacePlanFreshnessNote({ freshness }: { freshness: PlanFreshness | null }) {
+  if (!freshness?.planTime) {
+    return (
+      <p className="mt-4 rounded-2xl bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-500">
+        กดรีเฟรชแผนเพื่อปรับตามข้อมูลล่าสุดเมื่อพร้อม
+      </p>
+    );
+  }
+
+  if (freshness.isStale) {
+    return (
+      <div className="mt-4 rounded-2xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
+        <p className="font-bold">มีข้อมูลใหม่หลังจากแผนล่าสุด</p>
+        <p>แนะนำกดรีเฟรชแผนเพื่อให้ AI ปรับตาม sleep / pain / workout ล่าสุด</p>
+        {freshness.latestReportTime ? <p className="mt-1 text-amber-700">ข้อมูลใหม่ล่าสุด: {formatDateTimeThai(freshness.latestReportTime)}</p> : null}
+      </div>
+    );
+  }
+
+  return (
+    <p className="mt-4 text-xs leading-5 text-slate-400">
+      อัปเดตล่าสุด: {formatDateTimeThai(freshness.planTime)}
+    </p>
   );
 }
 
@@ -262,6 +329,38 @@ function formatShortDate(value: string | null | undefined) {
   const match = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (!match) return value;
   return `${match[3]}/${match[2]}/${match[1]}`;
+}
+
+function formatDateTimeThai(value: string | null | undefined) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("th-TH", {
+    timeZone: "Asia/Bangkok",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
+async function loadLatestRelevantReportTime(raceResults: RaceResult[]) {
+  const reportResult = await loadHistoryItems(RACE_PLAN_FRESHNESS_TYPES);
+  const historyLatest = reportResult.ok
+    ? reportResult.items
+        .map((item) => item.createdAt)
+        .filter((value): value is string => Boolean(value && !Number.isNaN(Date.parse(value))))
+        .sort((a, b) => Date.parse(b) - Date.parse(a))[0] ?? null
+    : null;
+  const raceLatest = raceResults
+    .map((result) => result.updatedAt ?? result.createdAt ?? null)
+    .filter((value): value is string => Boolean(value && !Number.isNaN(Date.parse(value))))
+    .sort((a, b) => Date.parse(b) - Date.parse(a))[0] ?? null;
+
+  if (!historyLatest) return raceLatest;
+  if (!raceLatest) return historyLatest;
+  return Date.parse(historyLatest) >= Date.parse(raceLatest) ? historyLatest : raceLatest;
 }
 
 function resultBadge(value: RaceResult["goalResult"]) {
