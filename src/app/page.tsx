@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
+import { LoadingButton } from "@/components/LoadingButton";
 import { formatThaiDate } from "@/lib/date";
 import { buildCoachContextFromSupabase, type CoachContext, type NutritionDaySummary, type PainSummary, type TodayCompletedWorkoutSummary } from "@/lib/buildCoachContext";
 import { createHistoryItem, loadHistoryItems, saveHistoryItems } from "@/lib/cloudHistory";
@@ -143,9 +144,9 @@ export default function TodayPage() {
         {insightError && !loading && (
           <div className="space-y-2 py-1">
             <p className="text-sm font-bold text-[#17201d]">วิเคราะห์ด้วย AI ไม่สำเร็จ</p>
-            <button type="button" onClick={() => void generateInsight(true)} className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600">
+            <LoadingButton type="button" loading={loading} loadingText="กำลังวิเคราะห์..." onClick={() => void generateInsight(true)} className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600">
               ลองใหม่
-            </button>
+            </LoadingButton>
           </div>
         )}
 
@@ -165,9 +166,9 @@ export default function TodayPage() {
         {!insight && !loading && !insightError && hasHistory && (
           <div className="flex items-center justify-between gap-3 py-1">
             <p className="text-sm text-slate-500">มีข้อมูลพร้อมแล้ว</p>
-            <button type="button" onClick={() => void generateInsight(true)} className="shrink-0 rounded-full bg-[var(--primary)] px-4 py-1.5 text-xs font-bold text-white">
+            <LoadingButton type="button" loading={loading} loadingText="กำลังวิเคราะห์..." onClick={() => void generateInsight(true)} className="shrink-0 rounded-full bg-[var(--primary)] px-4 py-1.5 text-xs font-bold text-white">
               วิเคราะห์
-            </button>
+            </LoadingButton>
           </div>
         )}
 
@@ -228,17 +229,15 @@ export default function TodayPage() {
           </Link>
         ) : <span />}
         {insight && (
-          <button
+          <LoadingButton
             type="button"
-            disabled={loading}
+            loading={loading}
+            loadingText="กำลังวิเคราะห์..."
             onClick={() => void generateInsight(true)}
             className="flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-500 hover:bg-slate-200 disabled:opacity-40"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className={`h-3 w-3 ${loading ? "animate-spin" : ""}`}>
-              <path fillRule="evenodd" d="M13.836 2.477a.75.75 0 0 1 .75.75v3.182a.75.75 0 0 1-.75.75h-3.182a.75.75 0 0 1 0-1.5h1.37l-.84-.841a4.5 4.5 0 0 0-7.08.932.75.75 0 0 1-1.3-.75 6 6 0 0 1 9.44-1.242l.842.84V3.227a.75.75 0 0 1 .75-.75Zm-.911 7.5A.75.75 0 0 1 13.199 11a6 6 0 0 1-9.44 1.241l-.84-.84v1.371a.75.75 0 0 1-1.5 0V9.591a.75.75 0 0 1 .75-.75H5.35a.75.75 0 0 1 0 1.5H3.98l.841.841a4.5 4.5 0 0 0 7.08-.932.75.75 0 0 1 1.024-.273Z" clipRule="evenodd" />
-            </svg>
             วิเคราะห์ใหม่
-          </button>
+          </LoadingButton>
         )}
       </div>
 
@@ -619,9 +618,9 @@ function EndOfDaySummaryCard({
           <button type="button" onClick={() => setExpanded(true)} className="flex-1 rounded-full bg-slate-100 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200">
             ดูสรุป
           </button>
-          <button type="button" disabled={loading} onClick={onGenerate} className="flex-1 rounded-full bg-slate-100 py-2 text-xs font-bold text-slate-600 hover:bg-slate-200 disabled:opacity-50">
-            {loading ? "กำลังอัปเดต..." : "อัปเดต"}
-          </button>
+          <LoadingButton type="button" loading={loading} loadingText="กำลังอัปเดต..." onClick={onGenerate} className="flex-1 rounded-full bg-slate-100 py-2 text-xs font-bold text-slate-600 hover:bg-slate-200 disabled:opacity-50">
+            อัปเดต
+          </LoadingButton>
         </div>
       </section>
     );
@@ -647,9 +646,9 @@ function EndOfDaySummaryCard({
         </div>
         {message && <p className="text-xs font-semibold text-green-600">{message}</p>}
         {error && <p className="rounded-2xl bg-red-50 px-3 py-2 text-xs font-bold text-red-500">{error}</p>}
-        <button type="button" disabled={loading} onClick={onGenerate} className="w-full rounded-full bg-slate-100 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-200 disabled:opacity-50">
-          {loading ? "กำลังอัปเดตสรุป..." : "อัปเดตสรุปท้ายวัน"}
-        </button>
+        <LoadingButton type="button" loading={loading} loadingText="กำลังอัปเดตสรุป..." onClick={onGenerate} className="w-full rounded-full bg-slate-100 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-200 disabled:opacity-50">
+          อัปเดตสรุปท้ายวัน
+        </LoadingButton>
       </section>
     );
   }
@@ -663,9 +662,9 @@ function EndOfDaySummaryCard({
       </div>
       {message && <p className="text-xs font-semibold text-green-600">{message}</p>}
       {error && <p className="rounded-2xl bg-red-50 px-3 py-2 text-xs font-bold text-red-500">{error}</p>}
-      <button type="button" disabled={loading} onClick={onGenerate} className="btn-primary w-full py-3 text-sm font-bold disabled:opacity-50">
-        {loading ? "กำลังสร้างสรุป..." : "สร้างสรุปท้ายวัน"}
-      </button>
+      <LoadingButton type="button" loading={loading} loadingText="กำลังสร้างสรุป..." onClick={onGenerate} className="btn-primary w-full py-3 text-sm font-bold disabled:opacity-50">
+        สร้างสรุปท้ายวัน
+      </LoadingButton>
     </section>
   );
 }

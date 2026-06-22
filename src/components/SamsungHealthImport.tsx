@@ -5,6 +5,7 @@ import { unzip } from "fflate";
 import { parseSamsungHealthFiles } from "@/lib/parseSamsungHealth";
 import { invalidateCoachCache } from "@/lib/invalidateCoachCache";
 import { saveHistoryItems } from "@/lib/cloudHistory";
+import { LoadingButton } from "@/components/LoadingButton";
 import type { LocalHistoryItem } from "@/lib/localHistory";
 
 type Step = "idle" | "loading" | "preview" | "done" | "error";
@@ -24,6 +25,7 @@ export function SamsungHealthImport() {
   const [preview, setPreview] = useState<Preview | null>(null);
   const [error, setError] = useState("");
   const [cloudSyncMessage, setCloudSyncMessage] = useState("");
+  const [importing, setImporting] = useState(false);
 
   async function handleFile(file: File) {
     setStep("loading");
@@ -59,15 +61,20 @@ export function SamsungHealthImport() {
   async function confirmImport() {
     if (!preview) return;
     setCloudSyncMessage("");
+    setImporting(true);
 
-    invalidateCoachCache({ clearChat: true });
-    const syncResult = await saveHistoryItems(preview.items);
-    if (syncResult.ok) {
-      setCloudSyncMessage("บันทึกแล้ว");
-      setStep("done");
-    } else {
-      setCloudSyncMessage(`บันทึกไม่สำเร็จ กรุณาลองใหม่: ${syncResult.error ?? "ไม่ทราบสาเหตุ"}`);
-      setStep("preview");
+    try {
+      invalidateCoachCache({ clearChat: true });
+      const syncResult = await saveHistoryItems(preview.items);
+      if (syncResult.ok) {
+        setCloudSyncMessage("บันทึกแล้ว");
+        setStep("done");
+      } else {
+        setCloudSyncMessage(`บันทึกไม่สำเร็จ กรุณาลองใหม่: ${syncResult.error ?? "ไม่ทราบสาเหตุ"}`);
+        setStep("preview");
+      }
+    } finally {
+      setImporting(false);
     }
   }
 
@@ -131,10 +138,10 @@ export function SamsungHealthImport() {
             <p className="text-xs text-red-500">ไม่พบข้อมูลในช่วงนี้ ลอง export ใหม่ให้ครอบคลุมช่วงที่ต้องการ</p>
           ) : (
             <div className="flex gap-2">
-              <button type="button" className="flex-1 btn-primary text-sm py-3" onClick={confirmImport}>
+              <LoadingButton type="button" className="flex-1 btn-primary text-sm py-3" loading={importing} loadingText="กำลังบันทึก..." onClick={confirmImport}>
                 Import ทั้งหมด
-              </button>
-              <button type="button" className="flex-1 btn-secondary text-sm py-3" onClick={() => setStep("idle")}>
+              </LoadingButton>
+              <button type="button" disabled={importing} className="flex-1 btn-secondary text-sm py-3 disabled:opacity-50" onClick={() => setStep("idle")}>
                 ยกเลิก
               </button>
             </div>

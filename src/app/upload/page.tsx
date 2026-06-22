@@ -10,6 +10,7 @@ import { BodyResultCard } from "@/components/BodyResultCard";
 import { AIReadQualityNote } from "@/components/AIReadQualityNote";
 import { PostRunAnalysisCard } from "@/components/PostRunAnalysisCard";
 import { StrengthWorkoutCard } from "@/components/StrengthWorkoutCard";
+import { LoadingButton } from "@/components/LoadingButton";
 import { invalidateCoachCache } from "@/lib/invalidateCoachCache";
 import { createHistoryItem, findMealSlotByDateAndType, saveHistoryItems } from "@/lib/cloudHistory";
 import { buildMergedMeal, extractMealData, normalizeMealNutrition } from "@/lib/mealMerge";
@@ -562,6 +563,7 @@ export default function UploadPage() {
           initialMeal={(result as { data: MealAnalysis }).data}
           profile={profile}
           context={coachContext}
+          saving={saveStatus === "saving"}
           onCancel={() => { setResult(null); setSaveStatus("idle"); }}
           onSave={(meal) => void saveMeal(meal)}
         />
@@ -698,12 +700,12 @@ function RaceResultConfirmCard({
       ) : null}
       {error ? <p className="rounded-2xl bg-red-50 p-3 text-xs font-semibold text-red-600">{error}</p> : null}
       <div className="space-y-2">
-        <button className="btn-primary w-full py-3 text-sm" type="button" disabled={saving} onClick={() => onSaveRace(workout)}>
+        <LoadingButton className="btn-primary w-full py-3 text-sm" type="button" loading={saving} loadingText="กำลังบันทึก..." onClick={() => onSaveRace(workout)}>
           บันทึกเป็น Race Result
-        </button>
-        <button className="btn-secondary w-full py-3 text-sm" type="button" disabled={saving} onClick={() => onWorkoutOnly(workout)}>
+        </LoadingButton>
+        <LoadingButton className="btn-secondary w-full py-3 text-sm" type="button" loading={saving} loadingText="กำลังบันทึก..." onClick={() => onWorkoutOnly(workout)}>
           เก็บเป็น Workout ปกติ
-        </button>
+        </LoadingButton>
         <button className="w-full rounded-full py-2.5 text-sm text-slate-400" type="button" disabled={saving} onClick={onCancel}>
           ยกเลิก
         </button>
@@ -758,14 +760,15 @@ function ManualMealLogForm({
 
       {error ? <p className="rounded-xl bg-red-50 p-3 text-xs font-semibold text-red-600">{error}</p> : null}
 
-      <button
+      <LoadingButton
         type="button"
-        disabled={loading}
+        loading={loading}
+        loadingText="กำลังประเมิน..."
         onClick={onAnalyze}
         className="btn-primary w-full py-3 text-sm font-bold disabled:opacity-60"
       >
-        {loading ? "กำลังให้โค้ชประเมิน..." : "ให้โค้ชประเมิน"}
-      </button>
+        ให้โค้ชประเมิน
+      </LoadingButton>
     </div>
   );
 }
@@ -774,12 +777,14 @@ function MealReviewCard({
   initialMeal,
   profile,
   context,
+  saving,
   onSave,
   onCancel,
 }: {
   initialMeal: MealAnalysis;
   profile: UserProfile | null;
   context: CoachContext | null;
+  saving: boolean;
   onSave: (meal: MealAnalysis) => void;
   onCancel: () => void;
 }) {
@@ -862,13 +867,13 @@ function MealReviewCard({
       )}
 
       <div className="grid grid-cols-3 gap-2">
-        <button type="button" className="btn-primary py-3 text-sm" onClick={() => onSave(meal)}>
+        <LoadingButton type="button" className="btn-primary py-3 text-sm" loading={saving} loadingText="กำลังบันทึก..." onClick={() => onSave(meal)}>
           บันทึก
-        </button>
+        </LoadingButton>
         <button type="button" className="btn-secondary py-3 text-sm" onClick={() => setEditing((value) => !value)}>
           แก้ไข
         </button>
-        <button type="button" className="rounded-full bg-slate-50 py-3 text-sm font-bold text-slate-500" onClick={onCancel}>
+        <button type="button" disabled={saving} className="rounded-full bg-slate-50 py-3 text-sm font-bold text-slate-500 disabled:opacity-50" onClick={onCancel}>
           ยกเลิก
         </button>
       </div>
@@ -975,14 +980,15 @@ function BodySaveBar({
         </div>
       ) : (
         <>
-          <button
+          <LoadingButton
             type="button"
-            disabled={saveStatus === "saving"}
+            loading={saveStatus === "saving"}
+            loadingText="กำลังบันทึก..."
             onClick={onSave}
             className="btn-primary w-full py-3 text-sm disabled:opacity-60"
           >
-            {saveStatus === "saving" ? "กำลังบันทึก..." : saveStatus === "error" ? "ลองบันทึกอีกครั้ง" : "บันทึกเข้า Report"}
-          </button>
+            {saveStatus === "error" ? "ลองบันทึกอีกครั้ง" : "บันทึกเข้า Report"}
+          </LoadingButton>
           {saveStatus === "error" && (
             <p className="text-center text-xs font-semibold text-[var(--status-rest)]">
               {saveError || "บันทึกไม่สำเร็จ กรุณาลองใหม่"}
@@ -1128,16 +1134,16 @@ function MealSlotConflictCard({
         <p className="text-sm font-semibold text-[#17201d]">{existingFoods}</p>
       </div>
       <div className="space-y-2">
-        <button type="button" className="btn-primary w-full py-3 text-sm" onClick={onMerge} disabled={saving}>
+        <LoadingButton type="button" className="btn-primary w-full py-3 text-sm" onClick={onMerge} loading={saving} loadingText="กำลังบันทึก...">
           เพิ่มเข้าเมื้อเดิม
-        </button>
+        </LoadingButton>
         <p className="text-center text-[11px] text-slate-400">รวมอาหารและโภชนาการเข้าด้วยกัน</p>
-        <button type="button" className="btn-secondary w-full py-3 text-sm" onClick={onReplace} disabled={saving}>
+        <LoadingButton type="button" className="btn-secondary w-full py-3 text-sm" onClick={onReplace} loading={saving} loadingText="กำลังบันทึก...">
           แทนที่ข้อมูลเดิม
-        </button>
-        <button type="button" className="w-full rounded-full bg-slate-50 py-3 text-sm font-bold text-slate-600" onClick={onSeparate} disabled={saving}>
+        </LoadingButton>
+        <LoadingButton type="button" className="w-full rounded-full bg-slate-50 py-3 text-sm font-bold text-slate-600" onClick={onSeparate} loading={saving} loadingText="กำลังบันทึก...">
           บันทึกเป็นมื้อใหม่
-        </button>
+        </LoadingButton>
         <button type="button" className="w-full pt-1 text-xs text-slate-400" onClick={onCancel} disabled={saving}>
           ยกเลิก
         </button>
@@ -1301,9 +1307,9 @@ function ManualWorkoutLogForm({
 
       {error && <p className="text-xs font-semibold text-red-600 bg-red-50 p-2.5 rounded-xl">{error}</p>}
 
-      <button type="submit" disabled={saving} className="btn-primary w-full py-3 text-sm font-bold">
-        {saving ? "กำลังบันทึก…" : "บันทึกกิจกรรม"}
-      </button>
+      <LoadingButton type="submit" loading={saving} loadingText="กำลังบันทึก..." className="btn-primary w-full py-3 text-sm font-bold">
+        บันทึกกิจกรรม
+      </LoadingButton>
     </form>
   );
 }

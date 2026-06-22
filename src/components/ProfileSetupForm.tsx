@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { LoadingButton } from "@/components/LoadingButton";
 import { invalidateCoachCache } from "@/lib/invalidateCoachCache";
 import {
   loadProfileFromSupabase,
@@ -1086,9 +1087,9 @@ export function ProfileSetupForm({
         <p className={`rounded-2xl p-3 text-sm font-semibold ${statusClass(status.tone)}`}>{status.text}</p>
       ) : null}
 
-      <button className="btn-primary w-full py-3" type="submit" disabled={saving}>
-        {saving ? "กำลังบันทึก…" : "บันทึกโปรไฟล์"}
-      </button>
+      <LoadingButton className="btn-primary w-full py-3" type="submit" loading={saving} loadingText="กำลังบันทึก...">
+        บันทึกโปรไฟล์
+      </LoadingButton>
 
       {IS_DEV && (
         <div className="rounded-2xl border border-dashed border-slate-200">

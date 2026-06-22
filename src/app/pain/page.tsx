@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
+import { LoadingButton } from "@/components/LoadingButton";
 import { fileToDataUrl } from "@/lib/storage";
 import { createHistoryItem, loadHistoryItemById, saveHistoryItems } from "@/lib/cloudHistory";
 import type { PainLog, PainAnalysisResult, PainSide, PainTriYesNo, PainRiskLevel, PainTrainingImpact } from "@/types/pain";
@@ -458,13 +459,14 @@ function PainPageContent() {
             <p className="rounded-2xl bg-red-50 p-3 text-sm font-semibold text-red-600">{error}</p>
           )}
 
-          <button
+          <LoadingButton
             type="submit"
-            disabled={submitting}
+            loading={submitting}
+            loadingText="กำลังวิเคราะห์..."
             className="btn-primary w-full py-3 text-sm"
           >
-            {submitting ? "กำลังวิเคราะห์…" : "วิเคราะห์และบันทึก"}
-          </button>
+            วิเคราะห์และบันทึก
+          </LoadingButton>
           {submitting && (
             <p className="text-center text-xs text-slate-400">AI กำลังประเมินอาการ กรุณารอสักครู่…</p>
           )}

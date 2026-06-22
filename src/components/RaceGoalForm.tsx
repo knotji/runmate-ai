@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useRef, useState } from "react";
 import type { RaceGoal, RacePlan } from "@/types/race";
-import { LoadingState } from "@/components/LoadingState";
+import { LoadingButton } from "@/components/LoadingButton";
 import { invalidateCoachCache } from "@/lib/invalidateCoachCache";
 import { loadProfileFromSupabase } from "@/lib/profileStorage";
 import { buildCoachContextFromSupabase } from "@/lib/buildCoachContext";
@@ -222,10 +222,9 @@ export function RaceGoalForm({ onCreated }: { onCreated: (goal: RaceGoal, plan: 
         )}
       </div>
 
-      <button className="btn-primary w-full py-3 font-bold" disabled={loading} type="submit">
-        {loading ? "กำลังสร้างแผน…" : "สร้างแผนซ้อม"}
-      </button>
-      {loading && <LoadingState />}
+      <LoadingButton className="btn-primary w-full py-3 font-bold" loading={loading} loadingText="กำลังสร้าง..." type="submit">
+        สร้างแผนซ้อม
+      </LoadingButton>
     </form>
   );
 }

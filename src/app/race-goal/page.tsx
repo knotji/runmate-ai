@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { RaceCountdownCard } from "@/components/RaceCountdownCard";
 import { RaceGoalForm } from "@/components/RaceGoalForm";
+import { LoadingButton } from "@/components/LoadingButton";
 import { TrainingPhaseCard } from "@/components/TrainingPhaseCard";
 import { WeeklyPlanCard } from "@/components/WeeklyPlanCard";
 import { buildCoachContextFromSupabase } from "@/lib/buildCoachContext";
@@ -86,17 +87,15 @@ export default function RaceGoalPage() {
           <section className="card space-y-3 p-5">
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-xl font-bold">ภาพรวมแผน</h2>
-              <button
+              <LoadingButton
                 type="button"
-                disabled={refreshing}
+                loading={refreshing}
+                loadingText="กำลังอัปเดตแผน..."
                 onClick={refreshPlan}
                 className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold text-[#42677f] transition-colors hover:bg-slate-100 disabled:opacity-40"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`}>
-                  <path fillRule="evenodd" d="M15.312 11.424a5.5 5.5 0 01-9.201 2.466l-.312-.311h2.433a.75.75 0 000-1.5H3.989a.75.75 0 00-.75.75v4.242a.75.75 0 001.5 0v-2.43l.31.31a7 7 0 0011.712-3.138.75.75 0 00-1.449-.39zm1.23-3.723a.75.75 0 00.219-.53V2.929a.75.75 0 00-1.5 0V5.36l-.31-.31A7 7 0 003.239 8.188a.75.75 0 101.448.389A5.5 5.5 0 0113.89 6.11l.311.31h-2.432a.75.75 0 000 1.5h4.243a.75.75 0 00.53-.219z" clipRule="evenodd" />
-                </svg>
-                {refreshing ? "กำลัง generate..." : "รีเฟรชแผน"}
-              </button>
+                รีเฟรชแผน
+              </LoadingButton>
             </div>
             {refreshError ? <p className="text-xs text-red-500">Generate ไม่สำเร็จ ลองใหม่อีกครั้ง</p> : null}
             <p className="text-sm leading-6 text-slate-600">{sanitizePaceInText(plan.planSummary)}</p>

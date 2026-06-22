@@ -2,8 +2,8 @@
 
 import { FormEvent, useState } from "react";
 import { fileToDataUrl, type UploadKind } from "@/lib/storage";
-import { LoadingState } from "@/components/LoadingState";
 import { ErrorState } from "@/components/ErrorState";
+import { LoadingButton } from "@/components/LoadingButton";
 
 const MEAL_MAX_FILE_BYTES = 5 * 1024 * 1024;
 
@@ -162,10 +162,9 @@ export function ImageUploader({
       <p className="text-center text-[11px] leading-5 text-[var(--muted-text)]/80">
         ระบบจะใช้รูปเพื่อให้ AI อ่านข้อมูลเท่านั้น และบันทึกเฉพาะผลลัพธ์เข้า Report
       </p>
-      <button className="btn-primary w-full" type="submit" disabled={loading}>
+      <LoadingButton className="btn-primary w-full" type="submit" loading={loading} loadingText="กำลังวิเคราะห์...">
         วิเคราะห์ด้วยโค้ช AI
-      </button>
-      {loading ? <LoadingState label="กำลังวิเคราะห์..." /> : null}
+      </LoadingButton>
       {error ? <ErrorState message={error} /> : null}
     </form>
   );

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { DetailBlock, MetricGrid } from "@/components/ResultDetail";
+import { LoadingButton } from "@/components/LoadingButton";
 import { buildCoachContextFromSupabase } from "@/lib/buildCoachContext";
 import { invalidateCoachCache } from "@/lib/invalidateCoachCache";
 import { createHistoryItem, saveHistoryItems } from "@/lib/cloudHistory";
@@ -10,6 +11,7 @@ import type { DailySummary, PostRunAnalysis, WorkoutAnalysis } from "@/types/log
 export function PostRunAnalysisCard({ workout }: { workout: WorkoutAnalysis }) {
   const [analysis, setAnalysis] = useState<PostRunAnalysis | null>(null);
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
 
@@ -38,6 +40,8 @@ export function PostRunAnalysisCard({ workout }: { workout: WorkoutAnalysis }) {
 
   async function saveToReport() {
     if (!analysis) return;
+    setSaving(true);
+    setError("");
     const summary: DailySummary = {
       readinessScore: null,
       overallSummary: analysis.workoutSummary,
@@ -49,14 +53,18 @@ export function PostRunAnalysisCard({ workout }: { workout: WorkoutAnalysis }) {
       tomorrowPlan: analysis.tomorrowRecommendation,
       coachMessage: analysis.coachMessage,
     };
-    const saved = createHistoryItem("summary", summary, workout.extracted.date ?? undefined);
-    const result = await saveHistoryItems([saved]);
-    if (!result.ok) {
-      setError("บันทึกไม่สำเร็จ กรุณาลองใหม่");
-      return;
+    try {
+      const saved = createHistoryItem("summary", summary, workout.extracted.date ?? undefined);
+      const result = await saveHistoryItems([saved]);
+      if (!result.ok) {
+        setError("บันทึกไม่สำเร็จ กรุณาลองใหม่");
+        return;
+      }
+      invalidateCoachCache();
+      setSaved(true);
+    } finally {
+      setSaving(false);
     }
-    invalidateCoachCache();
-    setSaved(true);
   }
 
   return (
@@ -69,14 +77,15 @@ export function PostRunAnalysisCard({ workout }: { workout: WorkoutAnalysis }) {
             ใช้ workout นี้ + sleep/readiness + weekly load + race goal เพื่อสรุปว่าซ้อมนี้ส่งผลยังไง
           </p>
         </div>
-        <button
+        <LoadingButton
           type="button"
           onClick={analyze}
-          disabled={loading}
+          loading={loading}
+          loadingText="กำลังวิเคราะห์..."
           className="shrink-0 rounded-full bg-[#17201d] px-4 py-2 text-xs font-bold text-white disabled:opacity-50"
         >
-          {loading ? "กำลังดู..." : analysis ? "วิเคราะห์ใหม่" : "วิเคราะห์"}
-        </button>
+          {analysis ? "วิเคราะห์ใหม่" : "วิเคราะห์"}
+        </LoadingButton>
       </div>
 
       {error ? <p className="rounded-2xl bg-red-50 p-3 text-sm text-red-600">{error}</p> : null}
@@ -103,13 +112,15 @@ export function PostRunAnalysisCard({ workout }: { workout: WorkoutAnalysis }) {
             <DetailBlock title="Risk Flags">{analysis.riskFlags.map((flag) => `- ${flag}`).join("\n")}</DetailBlock>
           ) : null}
           <DetailBlock title="Coach Message">{analysis.coachMessage}</DetailBlock>
-          <button
+          <LoadingButton
             type="button"
             onClick={() => void saveToReport()}
+            loading={saving}
+            loadingText="กำลังบันทึก..."
             className="btn-secondary w-full py-3 text-sm"
           >
             {saved ? "บันทึกลง Report แล้ว" : "บันทึกลง Report"}
-          </button>
+          </LoadingButton>
         </div>
       ) : null}
     </section>

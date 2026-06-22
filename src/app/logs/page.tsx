@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
+import { LoadingButton } from "@/components/LoadingButton";
 import { deleteHistoryItem, loadHistoryItems } from "@/lib/cloudHistory";
 import { deleteRaceResult, loadRaceResults } from "@/lib/raceResults";
 import { loadProfileFromSupabase } from "@/lib/profileStorage";
@@ -37,6 +38,7 @@ export default function ReportPage() {
   const [activeFilter, setActiveFilter] = useState<"all" | "run" | "meal" | "strength" | "pain">("all");
   const [showOlderDays, setShowOlderDays] = useState(false);
   const [deleteStatus, setDeleteStatus] = useState("");
+  const [deletingKey, setDeletingKey] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -109,13 +111,18 @@ export default function ReportPage() {
     const confirmed = window.confirm("ลบรายการนี้?\n\nรายการนี้จะถูกลบออกจาก Report และจะไม่ถูกใช้เป็นบริบทให้ Coach อีก");
     if (!confirmed) return;
     setDeleteStatus("");
-    const result = await deleteHistoryItem(item.id);
-    if (!result.ok) {
-      setDeleteStatus(result.error ? `ลบไม่สำเร็จ: ${result.error}` : "ลบไม่สำเร็จ ลองใหม่อีกครั้ง");
-      return;
+    setDeletingKey(item.id);
+    try {
+      const result = await deleteHistoryItem(item.id);
+      if (!result.ok) {
+        setDeleteStatus(result.error ? `ลบไม่สำเร็จ: ${result.error}` : "ลบไม่สำเร็จ ลองใหม่อีกครั้ง");
+        return;
+      }
+      setItems((current) => current.filter((next) => next.id !== item.id));
+      setDeleteStatus("ลบรายการแล้ว");
+    } finally {
+      setDeletingKey(null);
     }
-    setItems((current) => current.filter((next) => next.id !== item.id));
-    setDeleteStatus("ลบรายการแล้ว");
   }
 
   async function handleDeleteRaceResult(result: RaceResult) {
@@ -123,13 +130,18 @@ export default function ReportPage() {
     const confirmed = window.confirm("ลบ Race Result นี้?\n\nรายการนี้จะถูกลบออกจาก Report และจะไม่ถูกใช้เป็นบริบทให้ Coach อีก");
     if (!confirmed) return;
     setDeleteStatus("");
-    const response = await deleteRaceResult(result.id);
-    if (!response.ok) {
-      setDeleteStatus(response.error ? `ลบไม่สำเร็จ: ${response.error}` : "ลบไม่สำเร็จ ลองใหม่อีกครั้ง");
-      return;
+    setDeletingKey(`race:${result.id}`);
+    try {
+      const response = await deleteRaceResult(result.id);
+      if (!response.ok) {
+        setDeleteStatus(response.error ? `ลบไม่สำเร็จ: ${response.error}` : "ลบไม่สำเร็จ ลองใหม่อีกครั้ง");
+        return;
+      }
+      setRaceResults((current) => current.filter((next) => next.id !== result.id));
+      setDeleteStatus("ลบรายการแล้ว");
+    } finally {
+      setDeletingKey(null);
     }
-    setRaceResults((current) => current.filter((next) => next.id !== result.id));
-    setDeleteStatus("ลบรายการแล้ว");
   }
 
   return (
@@ -187,7 +199,7 @@ export default function ReportPage() {
 
           {activeFilter === "pain" && (
             <div className="mb-4">
-              <PainHistoryCompactList items={items} onDelete={handleDeleteItem} />
+              <PainHistoryCompactList items={items} onDelete={handleDeleteItem} deletingKey={deletingKey} />
             </div>
           )}
 
@@ -203,6 +215,7 @@ export default function ReportPage() {
                   proteinTarget={pTarget}
                   onDeleteItem={handleDeleteItem}
                   onDeleteRaceResult={handleDeleteRaceResult}
+                  deletingKey={deletingKey}
                 />
               ))}
               {olderDays.length > 0 && (
@@ -265,12 +278,14 @@ function DayCard({
   proteinTarget,
   onDeleteItem,
   onDeleteRaceResult,
+  deletingKey,
 }: {
   day: DayGroup;
   raceResults: RaceResult[];
   proteinTarget: number;
   onDeleteItem: (item: LocalHistoryItem) => void;
   onDeleteRaceResult: (result: RaceResult) => void;
+  deletingKey: string | null;
 }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -362,16 +377,16 @@ function DayCard({
 
       {expanded && (
         <div className="border-t border-[#d9e8df]/70 space-y-3 px-4 pb-4 pt-3">
-          {sleeps.map((item) => <SleepDetail key={item.id} item={item} onDelete={onDeleteItem} />)}
-          {pains.map((item) => <PainDetail key={item.id} item={item} meta={painMetaById.get(item.id)} onDelete={onDeleteItem} />)}
-          {strengths.map((item) => <StrengthDetail key={item.id} item={item} onDelete={onDeleteItem} />)}
-          {raceResults.map((result) => <RaceResultDetail key={result.id ?? `${result.raceDate}-${result.raceName}`} result={result} onDelete={onDeleteRaceResult} />)}
-          {workouts.map((item) => <WorkoutDetail key={item.id} item={item} onDelete={onDeleteItem} />)}
+          {sleeps.map((item) => <SleepDetail key={item.id} item={item} onDelete={onDeleteItem} deleting={deletingKey === item.id} />)}
+          {pains.map((item) => <PainDetail key={item.id} item={item} meta={painMetaById.get(item.id)} onDelete={onDeleteItem} deleting={deletingKey === item.id} />)}
+          {strengths.map((item) => <StrengthDetail key={item.id} item={item} onDelete={onDeleteItem} deleting={deletingKey === item.id} />)}
+          {raceResults.map((result) => <RaceResultDetail key={result.id ?? `${result.raceDate}-${result.raceName}`} result={result} onDelete={onDeleteRaceResult} deleting={Boolean(result.id && deletingKey === `race:${result.id}`)} />)}
+          {workouts.map((item) => <WorkoutDetail key={item.id} item={item} onDelete={onDeleteItem} deleting={deletingKey === item.id} />)}
           {mealCount > 0 && <MealNutritionDaySummary summary={mealNutrition} mealCount={mealCount} proteinTarget={proteinTarget} />}
-          {meals.map((item) => <MealDetail key={item.id} item={item} onDelete={onDeleteItem} />)}
-          {bodies.map((item) => <BodyDetail key={item.id} item={item} onDelete={onDeleteItem} />)}
+          {meals.map((item) => <MealDetail key={item.id} item={item} onDelete={onDeleteItem} deleting={deletingKey === item.id} />)}
+          {bodies.map((item) => <BodyDetail key={item.id} item={item} onDelete={onDeleteItem} deleting={deletingKey === item.id} />)}
           {summaries.length > 0 && (sleeps.length + workouts.length + meals.length + bodies.length + pains.length + strengths.length === 0) &&
-            summaries.map((item) => <SummaryDetail key={item.id} item={item} onDelete={onDeleteItem} />)}
+            summaries.map((item) => <SummaryDetail key={item.id} item={item} onDelete={onDeleteItem} deleting={deletingKey === item.id} />)}
           {summaries.length > 0 && (sleeps.length + workouts.length + meals.length + bodies.length + pains.length + strengths.length > 0) && (
             <div className="rounded-2xl bg-slate-50 p-3">
               <p className="text-xs font-bold text-slate-500 mb-1">สรุปท้ายวัน ({summaries.length})</p>
@@ -380,7 +395,7 @@ function DayCard({
                   <p className="text-sm text-slate-700 leading-5">
                     {truncate(getSummaryText(item), 120)}
                   </p>
-                  <DeleteRecordButton onDelete={() => onDeleteItem(item)} />
+                  <DeleteRecordButton onDelete={() => onDeleteItem(item)} loading={deletingKey === item.id} />
                 </div>
               ))}
             </div>
@@ -391,7 +406,7 @@ function DayCard({
   );
 }
 
-function RaceResultDetail({ result, onDelete }: { result: RaceResult; onDelete: (result: RaceResult) => void }) {
+function RaceResultDetail({ result, onDelete, deleting }: { result: RaceResult; onDelete: (result: RaceResult) => void; deleting: boolean }) {
   return (
     <div className="rounded-2xl bg-[#e7efea] p-4">
       <p className="mb-1 text-xs font-bold uppercase tracking-wide text-[#2a5a39]">🏁 Race Day</p>
@@ -402,14 +417,14 @@ function RaceResultDetail({ result, onDelete }: { result: RaceResult; onDelete: 
         <Metric label="Result" value={raceResultLabel(result.goalResult)} />
       </div>
       {result.coachSummary ? <p className="mt-3 text-sm leading-6 text-slate-700">{truncate(result.coachSummary, 160)}</p> : null}
-      <DeleteRecordButton onDelete={() => onDelete(result)} />
+      <DeleteRecordButton onDelete={() => onDelete(result)} loading={deleting} />
     </div>
   );
 }
 
 // ─── Detail panels ────────────────────────────────────────────────────────────
 
-function SleepDetail({ item, onDelete }: { item: LocalHistoryItem; onDelete: (item: LocalHistoryItem) => void }) {
+function SleepDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; onDelete: (item: LocalHistoryItem) => void; deleting: boolean }) {
   const d = item.data as SleepAnalysis;
   const ext = d?.extracted ?? {};
   const coach = d?.coach ?? {};
@@ -430,12 +445,12 @@ function SleepDetail({ item, onDelete }: { item: LocalHistoryItem; onDelete: (it
       {coach.todayRecommendation && (
         <p className="mt-2 text-sm font-bold text-[#17201d]">→ {polishSleepInsightText(coach.todayRecommendation)}</p>
       )}
-      <DeleteRecordButton onDelete={() => onDelete(item)} />
+      <DeleteRecordButton onDelete={() => onDelete(item)} loading={deleting} />
     </div>
   );
 }
 
-function WorkoutDetail({ item, onDelete }: { item: LocalHistoryItem; onDelete: (item: LocalHistoryItem) => void }) {
+function WorkoutDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; onDelete: (item: LocalHistoryItem) => void; deleting: boolean }) {
   const d = item.data as WorkoutAnalysis;
   const ext = d?.extracted ?? {};
   const coach = d?.coach ?? {};
@@ -471,12 +486,12 @@ function WorkoutDetail({ item, onDelete }: { item: LocalHistoryItem; onDelete: (
       {coach.workoutSummary && (
         <p className="text-sm leading-6 text-slate-700">{truncate(formatSummaryText(coach.workoutSummary), 160)}</p>
       )}
-      <DeleteRecordButton onDelete={() => onDelete(item)} />
+      <DeleteRecordButton onDelete={() => onDelete(item)} loading={deleting} />
     </div>
   );
 }
 
-function MealDetail({ item, onDelete }: { item: LocalHistoryItem; onDelete: (item: LocalHistoryItem) => void }) {
+function MealDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; onDelete: (item: LocalHistoryItem) => void; deleting: boolean }) {
   const d = extractMealData(item);
   const n = normalizeMealNutrition(d as unknown as Record<string, unknown>);
   const foodNames = d.detectedFoods?.map((food) => food.name).filter(Boolean).join(", ") || d?.extracted?.detectedFood || "";
@@ -504,7 +519,7 @@ function MealDetail({ item, onDelete }: { item: LocalHistoryItem; onDelete: (ite
       {note && (
         <p className="text-sm leading-6 text-slate-700">{truncate(note, 140)}</p>
       )}
-      <DeleteRecordButton onDelete={() => onDelete(item)} />
+      <DeleteRecordButton onDelete={() => onDelete(item)} loading={deleting} />
     </div>
   );
 }
@@ -547,7 +562,7 @@ function MealNutritionDaySummary({ summary, mealCount, proteinTarget }: { summar
   );
 }
 
-function BodyDetail({ item, onDelete }: { item: LocalHistoryItem; onDelete: (item: LocalHistoryItem) => void }) {
+function BodyDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; onDelete: (item: LocalHistoryItem) => void; deleting: boolean }) {
   const d = item.data as BodyCompositionAnalysis;
   const ext = d?.extracted ?? {};
   const coach = d?.coach ?? {};
@@ -570,12 +585,12 @@ function BodyDetail({ item, onDelete }: { item: LocalHistoryItem; onDelete: (ite
       {confidenceLabel && (
         <p className="mt-2 text-xs text-slate-400">{confidenceLabel}</p>
       )}
-      <DeleteRecordButton onDelete={() => onDelete(item)} />
+      <DeleteRecordButton onDelete={() => onDelete(item)} loading={deleting} />
     </div>
   );
 }
 
-function SummaryDetail({ item, onDelete }: { item: LocalHistoryItem; onDelete: (item: LocalHistoryItem) => void }) {
+function SummaryDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; onDelete: (item: LocalHistoryItem) => void; deleting: boolean }) {
   const d = item.data as DailySummary & { coachMessage?: string };
 
   return (
@@ -584,14 +599,14 @@ function SummaryDetail({ item, onDelete }: { item: LocalHistoryItem; onDelete: (
       <p className="text-sm leading-6 text-slate-700 whitespace-pre-line">
         {truncate(d?.coachMessage ?? d?.overallSummary ?? "", 240)}
       </p>
-      <DeleteRecordButton onDelete={() => onDelete(item)} />
+      <DeleteRecordButton onDelete={() => onDelete(item)} loading={deleting} />
     </div>
   );
 }
 
 // ─── Small components ─────────────────────────────────────────────────────────
 
-function PainDetail({ item, meta, onDelete }: { item: LocalHistoryItem; meta?: PainDisplayMeta; onDelete: (item: LocalHistoryItem) => void }) {
+function PainDetail({ item, meta, onDelete, deleting }: { item: LocalHistoryItem; meta?: PainDisplayMeta; onDelete: (item: LocalHistoryItem) => void; deleting: boolean }) {
   const painLog = item.data as PainLog;
   if (!painLog) return null;
 
@@ -686,12 +701,12 @@ function PainDetail({ item, meta, onDelete }: { item: LocalHistoryItem; meta?: P
           อัปเดตอาการ
         </Link>
       </div>
-      <DeleteRecordButton onDelete={() => onDelete(item)} />
+      <DeleteRecordButton onDelete={() => onDelete(item)} loading={deleting} />
     </div>
   );
 }
 
-function StrengthDetail({ item, onDelete }: { item: LocalHistoryItem; onDelete: (item: LocalHistoryItem) => void }) {
+function StrengthDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; onDelete: (item: LocalHistoryItem) => void; deleting: boolean }) {
   const log = item.data as StrengthLog;
   if (!log) return null;
 
@@ -752,21 +767,23 @@ function StrengthDetail({ item, onDelete }: { item: LocalHistoryItem; onDelete: 
       <div className="text-[10px] text-slate-400">
         ความเหนื่อย: {INTENSITY_LABELS[log.intensity] ?? log.intensity}
       </div>
-      <DeleteRecordButton onDelete={() => onDelete(item)} />
+      <DeleteRecordButton onDelete={() => onDelete(item)} loading={deleting} />
     </div>
   );
 }
 
-function DeleteRecordButton({ onDelete }: { onDelete: () => void }) {
+function DeleteRecordButton({ onDelete, loading = false }: { onDelete: () => void; loading?: boolean }) {
   return (
     <div className="mt-3 flex justify-end">
-      <button
+      <LoadingButton
         type="button"
+        loading={loading}
+        loadingText="กำลังลบ..."
         onClick={onDelete}
         className="rounded-full border border-red-100 bg-white/80 px-3 py-1.5 text-xs font-bold text-red-500 transition hover:bg-red-50"
       >
         ลบรายการ
-      </button>
+      </LoadingButton>
     </div>
   );
 }
@@ -1117,9 +1134,11 @@ function dashboardNote(input: {
 function PainHistoryCompactList({
   items,
   onDelete,
+  deletingKey,
 }: {
   items: LocalHistoryItem[];
   onDelete: (item: LocalHistoryItem) => void;
+  deletingKey: string | null;
 }) {
   const painItems = items
     .filter((i) => i.type === "pain")
@@ -1181,13 +1200,15 @@ function PainHistoryCompactList({
                   </td>
                   <td className="py-2.5 text-slate-600 font-medium">{IMPACT_LABELS[p.trainingImpact] || p.trainingImpact}</td>
                   <td className="py-2.5 text-right">
-                    <button
+                    <LoadingButton
                       type="button"
+                      loading={deletingKey === item.id}
+                      loadingText="กำลังลบ..."
                       onClick={() => onDelete(item)}
                       className="rounded-full border border-red-100 bg-white px-2.5 py-1 text-[10px] font-bold text-red-500 hover:bg-red-50"
                     >
                       ลบ
-                    </button>
+                    </LoadingButton>
                   </td>
                 </tr>
               );

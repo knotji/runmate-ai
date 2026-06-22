@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { ErrorState } from "@/components/ErrorState";
+import { LoadingButton } from "@/components/LoadingButton";
 import { LoadingState } from "@/components/LoadingState";
 import { buildCoachContextFromSupabase } from "@/lib/buildCoachContext";
 import { compressImage } from "@/lib/imageCompression";
@@ -309,13 +310,15 @@ export function CoachChat() {
           onChange={(event) => setInput(event.target.value)}
           placeholder={previewUrl ? `ถามต่อเกี่ยวกับรูปนี้ หรือกดส่งเพื่อให้โค้ชดูรูป...` : "ถามโค้ชเรื่องซ้อม กิน นอน หรืออะไรก็ได้..."}
         />
-        <button
+        <LoadingButton
           className="rounded-2xl bg-[var(--primary)] px-5 py-3 text-sm font-bold text-white transition-opacity disabled:opacity-40"
           type="submit"
-          disabled={loading || (!input.trim() && !previewUrl)}
+          loading={loading}
+          loadingText="กำลังตอบ..."
+          disabled={!input.trim() && !previewUrl}
         >
           ส่ง
-        </button>
+        </LoadingButton>
       </form>
       <p className="mt-1.5 text-center text-[10px] font-medium text-[var(--muted-text)]/80">
         แชทนี้ใช้ถามชั่วคราว ไม่บันทึกเข้า Report อัตโนมัติ รูปที่แนบไม่ถูกเก็บถาวร
