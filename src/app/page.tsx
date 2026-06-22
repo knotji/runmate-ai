@@ -603,6 +603,9 @@ function EndOfDaySummaryCard({
   const summary = item?.data as DailySummary | undefined;
   const hasSummary = Boolean(summary);
   const [expanded, setExpanded] = useState(false);
+  const generatedAt = item ? formatSummaryGeneratedAt(item.createdAt) : "";
+  const existingSummaryNote = `AI สรุปจาก Report ตอนกดล่าสุด${generatedAt ? ` · อัปเดตล่าสุด: ${generatedAt}` : ""} หากเพิ่งเพิ่ม/ลบข้อมูล แนะนำกดอัปเดตอีกครั้ง`;
+  const newSummaryNote = "AI จะสรุปจากข้อมูลใน Report ตอนกดสร้าง อาจคลาดเคลื่อนได้ถ้าข้อมูลยังไม่ครบ";
 
   if (hasSummary && !expanded) {
     return (
@@ -614,6 +617,7 @@ function EndOfDaySummaryCard({
         {summary?.overallSummary && (
           <p className="line-clamp-2 text-sm leading-6 text-slate-700">{summary.overallSummary}</p>
         )}
+        <p className="text-[11px] leading-5 text-slate-400">{existingSummaryNote}</p>
         <div className="flex gap-2">
           <button type="button" onClick={() => setExpanded(true)} className="flex-1 rounded-full bg-slate-100 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200">
             ดูสรุป
@@ -643,6 +647,7 @@ function EndOfDaySummaryCard({
               {summary.coachMessage}
             </p>
           )}
+          <p className="text-[11px] leading-5 text-slate-400">{existingSummaryNote}</p>
         </div>
         {message && <p className="text-xs font-semibold text-green-600">{message}</p>}
         {error && <p className="rounded-2xl bg-red-50 px-3 py-2 text-xs font-bold text-red-500">{error}</p>}
@@ -659,6 +664,7 @@ function EndOfDaySummaryCard({
       <div>
         <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">สรุปท้ายวัน</p>
         <p className="mt-1 text-sm leading-6 text-slate-500">กดก่อนนอนเพื่อให้ AI สรุปวันนี้และวางแผนพรุ่งนี้จากข้อมูลใน Report</p>
+        <p className="mt-1 text-[11px] leading-5 text-slate-400">{newSummaryNote}</p>
       </div>
       {message && <p className="text-xs font-semibold text-green-600">{message}</p>}
       {error && <p className="rounded-2xl bg-red-50 px-3 py-2 text-xs font-bold text-red-500">{error}</p>}
@@ -689,6 +695,18 @@ function historyItemBangkokDate(item: LocalHistoryItem): string {
   const date = new Date(item.createdAt);
   if (Number.isNaN(date.getTime())) return item.createdAt.slice(0, 10);
   return bangkokDateKey(date);
+}
+
+function formatSummaryGeneratedAt(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("th-TH", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Asia/Bangkok",
+  }).format(date);
 }
 
 function findTodaysSummary(items: LocalHistoryItem[]): LocalHistoryItem | null {

@@ -19,6 +19,16 @@ Prefer this content structure:
 "สิ่งที่ควรระวัง" → cautions (injury, fatigue, nutrition gaps)
 "แผนพรุ่งนี้" → conservative recommendation with lighter alternative when appropriate
 
+Data trust and wording rules:
+- The summary is generated from the Report context provided at generation time. Do not imply it includes records added after this request.
+- If data is missing or unclear, say it is based on available Report data. Do not invent sleep, meals, workouts, pain, or body values.
+- When mentioning sleep, be precise about timeframe:
+  - If using the latest sleep row, write "การนอนล่าสุด..." or "จากบันทึกนอนล่าสุด..."
+  - If using an average or multi-day pattern, write "การนอนเฉลี่ยช่วงล่าสุด..." or "จากข้อมูลใน Report ช่วงล่าสุด..."
+  - Do NOT write ambiguous phrasing like "การนอนเฉลี่ย 4.5 ชม." without "ช่วงล่าสุด" or "จากข้อมูลใน Report".
+  - Do NOT imply "เมื่อคืน" unless the value clearly comes from the latest sleep record for today/last night.
+- Prefer careful Thai wording such as "จากข้อมูลใน Report ตอนนี้..." when the context may be incomplete.
+
 ═══ INJURY / PAIN OVERRIDE RULES (mandatory) ═══
 
 When the context includes active pain/injury reports, these rules override all other training suggestions. Injury is always the primary constraint.
