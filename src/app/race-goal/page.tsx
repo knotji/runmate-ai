@@ -99,7 +99,7 @@ export default function RaceGoalPage() {
               </button>
             </div>
             {refreshError ? <p className="text-xs text-red-500">Generate ไม่สำเร็จ ลองใหม่อีกครั้ง</p> : null}
-            <p className="text-sm leading-6 text-slate-600">{plan.planSummary}</p>
+            <p className="text-sm leading-6 text-slate-600">{sanitizePaceInText(plan.planSummary)}</p>
             {plan.phases?.map((phase) => <TrainingPhaseCard key={phase.name} phase={phase} />)}
           </section>
 
@@ -139,7 +139,7 @@ function PlanAtGlance({ plan }: { plan: RacePlan }) {
         <MiniMetric label="เริ่มแผน" value={formatShortDate(plan.planStartDate)} />
         <MiniMetric label="เฟส" value={plan.currentPhase || "-"} />
       </div>
-      {plan.safetyNotes ? <p className="mt-4 text-xs leading-5 text-slate-500">{plan.safetyNotes}</p> : null}
+      {plan.safetyNotes ? <p className="mt-4 text-xs leading-5 text-slate-500">{sanitizePaceInText(plan.safetyNotes)}</p> : null}
     </section>
   );
 }
@@ -286,36 +286,52 @@ function normalizeForDisplay(workout: WeekWorkout): WeekWorkout {
   let targetHR = workout.targetHR;
 
   if (isRestOnly || isStrength) {
-    if (targetPace && /\d+:\d{2}/.test(targetPace)) targetPace = "ไม่เน้น pace";
+    // Always show natural label — never show a running pace or "-"
+    targetPace = "ไม่เน้น pace";
     targetHR = "ไม่เน้น HR";
   } else if (isRecovery) {
+    // Pace: round to 30 s if numeric; null → natural label
     if (targetPace && /\d+:\d{2}/.test(targetPace)) {
-      targetPace = roundPaceRangeDisplay(targetPace);
+      targetPace = roundPaceRangeDisplay(targetPace, 30);
+    } else {
+      targetPace = "ไม่เน้น pace";
     }
+    // HR: keep AI value if sensible; otherwise default zone
     if (!targetHR || /n\/a/i.test(targetHR)) {
-      targetHR = "โซน 1–2 · หายใจสบาย คุยได้";
+      targetHR = "โซน 1–2 · หายใจสบาย";
     }
   } else if (targetPace && /\d+:\d{2}/.test(targetPace)) {
-    targetPace = roundPaceRangeDisplay(targetPace);
+    // Running workouts: round to nearest 10 s
+    targetPace = roundPaceRangeDisplay(targetPace, 10);
   }
 
   return { ...workout, targetPace, targetHR };
 }
 
-function roundPaceRangeDisplay(raw: string): string {
+// Round a pace range string like "6:57–8:01/km" to nearest toNearest seconds
+function roundPaceRangeDisplay(raw: string, toNearest = 10): string {
   const rangeM = raw.match(/(\d+:\d{2})\s*[–\-]\s*(\d+:\d{2})/);
   if (rangeM) {
-    return `${roundPaceSecDisplay(rangeM[1])}–${roundPaceSecDisplay(rangeM[2])}/km`;
+    return `${roundPaceSecDisplay(rangeM[1], toNearest)}–${roundPaceSecDisplay(rangeM[2], toNearest)}/km`;
   }
   const singleM = raw.match(/(\d+:\d{2})/);
-  if (singleM) return `${roundPaceSecDisplay(singleM[1])}/km`;
+  if (singleM) return `${roundPaceSecDisplay(singleM[1], toNearest)}/km`;
   return raw;
 }
 
-function roundPaceSecDisplay(pace: string, toNearest = 10): string {
+function roundPaceSecDisplay(pace: string, toNearest: number): string {
   const m = pace.match(/^(\d+):(\d{2})$/);
   if (!m) return pace;
   const total = parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
   const rounded = Math.round(total / toNearest) * toNearest;
   return `${Math.floor(rounded / 60)}:${(rounded % 60).toString().padStart(2, "0")}`;
+}
+
+// Sanitize free-form AI text: round any MM:SS–MM:SS pace ranges to nearest 10 s
+function sanitizePaceInText(text: string | null | undefined): string {
+  if (!text) return "";
+  return text.replace(
+    /(\d{1,2}:\d{2})\s*[–\-]\s*(\d{1,2}:\d{2})(\/km|\/กม\.?|(?:\s*น\.\/กม\.?))?/g,
+    (_full, lo: string, hi: string) => `${roundPaceSecDisplay(lo, 10)}–${roundPaceSecDisplay(hi, 10)}/km`,
+  );
 }
