@@ -45,15 +45,21 @@ const fallback: MealAnalysis = {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    const inputMode = body.inputMode === "text" ? "text" : "image";
     const imageDataUrl = typeof body.imageDataUrl === "string" ? body.imageDataUrl : "";
     const mealType = typeof body.mealType === "string" ? body.mealType.trim() : "";
+    const mealText = typeof body.mealText === "string" ? body.mealText.trim() : "";
+    const note = typeof body.note === "string" ? body.note.trim() : "";
     const freshSleep = await loadFreshLatestSleepContext();
 
     logMealApi("request", {
       method: request.method,
+      inputMode,
       hasImageDataUrl: Boolean(imageDataUrl),
       imageDataUrlPrefix: imageDataUrl.slice(0, 30),
       mealType,
+      hasMealText: Boolean(mealText),
+      mealTextLength: mealText.length,
       hasContext: Boolean(body.context),
       freshSleepDate: freshSleep?.date ?? null,
       freshSleepCreatedAt: freshSleep?.createdAt ?? null,
@@ -61,16 +67,19 @@ export async function POST(request: Request) {
       modelUsed,
     });
 
-    if (!imageDataUrl) {
-      return NextResponse.json({ error: "missing_image", message: "ไม่พบรูปอาหาร" }, { status: 400 });
-    }
-    if (!imageDataUrl.startsWith("data:image/")) {
-      return NextResponse.json({ error: "missing_image", message: "ไม่พบรูปอาหาร" }, { status: 400 });
-    }
     if (!mealType) {
       return NextResponse.json({ error: "missing_meal_type", message: "ไม่พบประเภทมื้ออาหาร" }, { status: 400 });
     }
-    if (estimateDataUrlBytes(imageDataUrl) > MAX_IMAGE_BYTES) {
+    if (inputMode === "text" && mealText.length < 2) {
+      return NextResponse.json({ error: "missing_meal_text", message: "พิมพ์เมนูที่กินก่อนครับ" }, { status: 400 });
+    }
+    if (inputMode === "image" && !imageDataUrl) {
+      return NextResponse.json({ error: "missing_image", message: "ไม่พบรูปอาหาร" }, { status: 400 });
+    }
+    if (inputMode === "image" && !imageDataUrl.startsWith("data:image/")) {
+      return NextResponse.json({ error: "missing_image", message: "ไม่พบรูปอาหาร" }, { status: 400 });
+    }
+    if (inputMode === "image" && estimateDataUrlBytes(imageDataUrl) > MAX_IMAGE_BYTES) {
       return NextResponse.json({ error: "image_too_large", message: "รูปภาพใหญ่เกินไป ลองลดขนาดรูปแล้วอัปโหลดใหม่" }, { status: 413 });
     }
 
@@ -81,13 +90,19 @@ export async function POST(request: Request) {
     logMealApi("openai-call-start", { modelUsed });
     const result = await jsonFromAI<MealAnalysis>({
       system,
-      user: `Analyze this ${mealType} photo for a runner. Return JSON only. If uncertain, return nullable nutrition values and low confidence instead of failing.`,
-      imageDataUrl,
+      user: inputMode === "text"
+        ? buildManualMealUserPrompt({ mealType, mealText, note })
+        : `Analyze this ${mealType} photo for a runner. Return JSON only. If uncertain, return nullable nutrition values and low confidence instead of failing.`,
+      imageDataUrl: inputMode === "image" ? imageDataUrl : undefined,
       fallback,
     });
     logMealApi("openai-call-success", { source: result.source });
 
-    const data = normalizeMealResult(mergeWithFallback(result.data, { ...fallback, mealType }), freshSleep);
+    const data = normalizeMealResult(mergeWithFallback(result.data, { ...fallback, mealType }), freshSleep, {
+      inputMode,
+      mealText,
+      note,
+    });
     logMealApi("json-parse-success", {
       source: result.source,
       detectedFoodCount: data.detectedFoods.length,
@@ -195,23 +210,60 @@ function buildMealContext(context: unknown, latestSleep: LatestSleepContext | nu
   ].join("\n");
 }
 
-function normalizeMealResult(data: MealAnalysis, latestSleep: LatestSleepContext | null): MealAnalysis {
+function buildManualMealUserPrompt({
+  mealType,
+  mealText,
+  note,
+}: {
+  mealType: string;
+  mealText: string;
+  note: string;
+}) {
+  return [
+    `Analyze this manually typed ${mealType} meal for a runner.`,
+    `Meal text: ${mealText}`,
+    note ? `User note: ${note}` : "User note: none",
+    "",
+    "This is text input, not a photo. Do not say the estimate is based on visible food or image.",
+    "Estimate calories and macros roughly from the text only. Prefer ranges when portion is unclear.",
+    "If portion size is unclear, use medium/low confidence, needsReview true, and list unclearFields.",
+    "Return JSON only using the existing meal schema. Thai coachNote should say this is a rough estimate from the typed text.",
+  ].join("\n");
+}
+
+function normalizeMealResult(
+  data: MealAnalysis,
+  latestSleep: LatestSleepContext | null,
+  meta: { inputMode: "image" | "text"; mealText?: string; note?: string } = { inputMode: "image" },
+): MealAnalysis {
   const nutritionValues = Object.values(data.nutrition ?? {});
   const hasNutrition = nutritionValues.some((value) => typeof value === "number" && Number.isFinite(value));
   const hasFood = Array.isArray(data.detectedFoods) && data.detectedFoods.length > 0;
   const isNonFoodOrUnclear = !hasFood && !hasNutrition;
-  const coachNote = sanitizeSleepReference(
-    data.trainingFit?.coachNote || (isNonFoodOrUnclear ? NON_FOOD_MESSAGE : fallback.trainingFit?.coachNote ?? ""),
+  const unclearMessage = meta.inputMode === "text"
+    ? "AI ยังประเมินเมนูจากข้อความนี้ได้ไม่ชัดเจน ลองเพิ่มปริมาณหรือรายละเอียดอาหารอีกนิด"
+    : NON_FOOD_MESSAGE;
+  const rawCoachNote = sanitizeSleepReference(
+    data.trainingFit?.coachNote || (isNonFoodOrUnclear ? unclearMessage : fallback.trainingFit?.coachNote ?? ""),
     latestSleep,
   );
+  const coachNote = meta.inputMode === "text"
+    ? rawCoachNote
+        .replace(/จากภาพ/g, "จากข้อความที่กรอก")
+        .replace(/จากสิ่งที่มองเห็น/g, "จากรายละเอียดที่กรอก")
+        .replace(/รูปอาหาร/g, "ข้อความอาหาร")
+    : rawCoachNote;
 
   return {
     ...data,
+    inputMode: meta.inputMode,
+    originalMealText: meta.inputMode === "text" ? meta.mealText ?? "" : data.originalMealText,
+    note: meta.note || data.note,
     detectedFoods: Array.isArray(data.detectedFoods) ? data.detectedFoods : [],
     confidence: data.confidence ?? "low",
     unclearFields: Array.isArray(data.unclearFields) ? data.unclearFields : [],
     needsReview: data.needsReview ?? true,
-    errorLikeMessage: data.errorLikeMessage ?? (isNonFoodOrUnclear ? NON_FOOD_MESSAGE : null),
+    errorLikeMessage: data.errorLikeMessage ?? (isNonFoodOrUnclear ? unclearMessage : null),
     trainingFit: {
       bestFor: data.trainingFit?.bestFor ?? fallback.trainingFit?.bestFor ?? [],
       carbAdequacy: data.trainingFit?.carbAdequacy ?? fallback.trainingFit?.carbAdequacy ?? "unknown",

@@ -25,6 +25,7 @@ import type { UserProfile } from "@/types/profile";
 
 type UploadType = "sleep" | "meal" | "workout" | "body";
 type WorkoutSubtype = "run" | "strength" | "walk" | "other";
+type MealInputMode = "image" | "text";
 
 const IMAGE_REPORT_KEYS = new Set([
   "imageUrl",
@@ -77,6 +78,11 @@ export default function UploadPage() {
     newMeal: MealAnalysis;
   } | null>(null);
   const [workoutSubtype, setWorkoutSubtype] = useState<WorkoutSubtype>("run");
+  const [mealInputMode, setMealInputMode] = useState<MealInputMode>("image");
+  const [manualMealText, setManualMealText] = useState("");
+  const [manualMealNote, setManualMealNote] = useState("");
+  const [manualMealError, setManualMealError] = useState("");
+  const [manualMealLoading, setManualMealLoading] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -99,7 +105,7 @@ export default function UploadPage() {
       }
     }
   }, []);
-  const [mealType, setMealType] = useState<MealType>("breakfast");
+  const [mealType, setMealType] = useState<MealType>(() => inferMealTypeFromBangkokTime());
   const [result, setResult] = useState<unknown>(null);
 
   useEffect(() => {
@@ -255,6 +261,51 @@ export default function UploadPage() {
     setResult(null);
   }
 
+  async function analyzeManualMeal() {
+    const mealText = manualMealText.trim();
+    if (mealText.length < 2) {
+      setManualMealError("พิมพ์เมนูที่กินก่อนครับ");
+      return;
+    }
+
+    setManualMealError("");
+    setManualMealLoading(true);
+    setSaveStatus("idle");
+    try {
+      const response = await fetch("/api/analyze-meal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "meal",
+          inputMode: "text",
+          mealText,
+          mealType,
+          mealSlot: mealType,
+          note: manualMealNote.trim(),
+          profile,
+          context: coachContext,
+        }),
+      });
+      const payload = await response.json() as { data?: MealAnalysis; message?: string };
+      if (!response.ok || !payload.data) {
+        throw new Error(payload.message || "วิเคราะห์เมนูไม่สำเร็จ ลองพิมพ์ใหม่อีกครั้ง");
+      }
+      const meal = normalizeMealAnalysis({
+        ...payload.data,
+        mealType,
+        inputMode: "text",
+        originalMealText: mealText,
+        note: manualMealNote.trim(),
+      });
+      setResult({ data: meal });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "วิเคราะห์เมนูไม่สำเร็จ ลองพิมพ์ใหม่อีกครั้ง";
+      setManualMealError(message);
+    } finally {
+      setManualMealLoading(false);
+    }
+  }
+
   async function saveMealWithAction(
     action: "merge" | "replace" | "separate",
     existing: import("@/lib/localHistory").LocalHistoryItem,
@@ -321,6 +372,7 @@ export default function UploadPage() {
   function selectUploadType(nextType: UploadType) {
     setType(nextType);
     setWorkoutSubtype("run");
+    if (nextType !== "meal") setMealInputMode("image");
     setResult(null);
     setSaveStatus("idle");
     setRaceMatch(null);
@@ -328,6 +380,7 @@ export default function UploadPage() {
     setMealSlotConflict(null);
     setWorkoutSavedItem(null);
     setSaveFeedback("");
+    setManualMealError("");
   }
 
   async function saveWorkoutOnce(workout: WorkoutAnalysis): Promise<import("@/lib/localHistory").LocalHistoryItem> {
@@ -396,17 +449,40 @@ export default function UploadPage() {
           ))}
         </div>
         {type === "meal" && (
-          <div className="flex flex-wrap gap-1.5">
-            {(["breakfast", "lunch", "dinner", "snack", "pre-run", "post-run"] as const).map((m) => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => setMealType(m)}
-                className={`rounded-full px-3 py-1.5 text-sm font-semibold transition-colors ${mealType === m ? "bg-[var(--primary)] text-white" : "bg-[var(--surface-muted)] text-[var(--muted-text)] hover:bg-[var(--primary-soft)]"}`}
-              >
-                {MEAL_TYPE_LABELS[m]}
-              </button>
-            ))}
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 rounded-2xl bg-[var(--surface-muted)] p-1">
+              {([
+                ["image", "อัปโหลดรูป"],
+                ["text", "พิมพ์เอง"],
+              ] as const).map(([mode, label]) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => {
+                    setMealInputMode(mode);
+                    setResult(null);
+                    setSaveStatus("idle");
+                    setMealSlotConflict(null);
+                    setManualMealError("");
+                  }}
+                  className={`rounded-xl px-3 py-2 text-sm font-bold transition-colors ${mealInputMode === mode ? "bg-white text-[#17201d] shadow-sm" : "text-[var(--muted-text)]"}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {(["breakfast", "lunch", "dinner", "snack", "pre-run", "post-run"] as const).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setMealType(m)}
+                  className={`rounded-full px-3 py-1.5 text-sm font-semibold transition-colors ${mealType === m ? "bg-[var(--primary)] text-white" : "bg-[var(--surface-muted)] text-[var(--muted-text)] hover:bg-[var(--primary-soft)]"}`}
+                >
+                  {MEAL_TYPE_LABELS[m]}
+                </button>
+              ))}
+            </div>
           </div>
         )}
         {type === "workout" && (
@@ -428,7 +504,18 @@ export default function UploadPage() {
             ))}
           </div>
         )}
-        {!(type === "workout" && (workoutSubtype === "strength" || workoutSubtype === "walk" || workoutSubtype === "other")) ? (
+        {type === "meal" && mealInputMode === "text" ? (
+          <ManualMealLogForm
+            mealText={manualMealText}
+            note={manualMealNote}
+            error={manualMealError}
+            loading={manualMealLoading}
+            onMealTextChange={setManualMealText}
+            onNoteChange={setManualMealNote}
+            onAnalyze={() => void analyzeManualMeal()}
+          />
+        ) : null}
+        {!(type === "workout" && (workoutSubtype === "strength" || workoutSubtype === "walk" || workoutSubtype === "other")) && !(type === "meal" && mealInputMode === "text") ? (
           <>
             <ImageUploader
               key={type + (type === "workout" ? `-${workoutSubtype}` : "")}
@@ -625,6 +712,64 @@ function RaceResultConfirmCard({
   );
 }
 
+function ManualMealLogForm({
+  mealText,
+  note,
+  error,
+  loading,
+  onMealTextChange,
+  onNoteChange,
+  onAnalyze,
+}: {
+  mealText: string;
+  note: string;
+  error: string;
+  loading: boolean;
+  onMealTextChange: (value: string) => void;
+  onNoteChange: (value: string) => void;
+  onAnalyze: () => void;
+}) {
+  return (
+    <div className="space-y-4 rounded-2xl bg-slate-50/80 p-4">
+      <div>
+        <h3 className="text-base font-bold text-[#17201d]">พิมพ์เมนูเอง</h3>
+        <p className="mt-1 text-xs leading-5 text-slate-500">ประเมินจากข้อความที่กรอก อาจคลาดเคลื่อนได้</p>
+      </div>
+
+      <label className="block space-y-1.5">
+        <span className="text-xs font-bold uppercase tracking-wide text-slate-400">กินอะไร?</span>
+        <textarea
+          className="control min-h-[96px]"
+          placeholder="เช่น ข้าวต้มปลา 1 ชาม + ไข่ลวก 1 ฟอง"
+          value={mealText}
+          onChange={(event) => onMealTextChange(event.target.value)}
+        />
+      </label>
+
+      <label className="block space-y-1.5">
+        <span className="text-xs font-bold uppercase tracking-wide text-slate-400">หมายเหตุ (ไม่บังคับ)</span>
+        <textarea
+          className="control min-h-[72px]"
+          placeholder="เช่น หลังวิ่ง, หิวมาก, ไม่ใส่น้ำตาล, กินครึ่งจาน"
+          value={note}
+          onChange={(event) => onNoteChange(event.target.value)}
+        />
+      </label>
+
+      {error ? <p className="rounded-xl bg-red-50 p-3 text-xs font-semibold text-red-600">{error}</p> : null}
+
+      <button
+        type="button"
+        disabled={loading}
+        onClick={onAnalyze}
+        className="btn-primary w-full py-3 text-sm font-bold disabled:opacity-60"
+      >
+        {loading ? "กำลังให้โค้ชประเมิน..." : "ให้โค้ชประเมิน"}
+      </button>
+    </div>
+  );
+}
+
 function MealReviewCard({
   initialMeal,
   profile,
@@ -642,6 +787,7 @@ function MealReviewCard({
   const [meal, setMeal] = useState<MealAnalysis>(initialMeal);
   const foodText = meal.detectedFoods.map((food) => food.name).join(", ");
   const cannotEstimateNutrition = meal.detectedFoods.length > 0 && !hasAnyNutrition(meal);
+  const isTextEstimate = meal.inputMode === "text";
 
   function updateNutrition(key: keyof MealAnalysis["nutrition"], value: string) {
     const numberValue = value === "" ? null : Number(value);
@@ -669,8 +815,15 @@ function MealReviewCard({
       <div>
         <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#6f8fa6]">Meal Review</p>
         <h2 className="mt-2 text-xl font-bold text-[#17201d]">ตรวจโภชนาการก่อนบันทึก</h2>
+        {isTextEstimate ? (
+          <span className="mt-2 inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-600">
+            กรอกจากข้อความ
+          </span>
+        ) : null}
         <p className="mt-1 text-xs leading-5 text-amber-700">
-          ตัวเลขโภชนาการเป็นการประเมินคร่าว ๆ จากรูปอาหาร อาจคลาดเคลื่อนได้
+          {isTextEstimate
+            ? "ตัวเลขโภชนาการเป็นการประเมินคร่าว ๆ จากข้อความที่กรอก อาจคลาดเคลื่อนได้"
+            : "ตัวเลขโภชนาการเป็นการประเมินคร่าว ๆ จากรูปอาหาร อาจคลาดเคลื่อนได้"}
         </p>
       </div>
 
@@ -754,11 +907,15 @@ function NutritionInput({
 function MealReviewSummary({ meal, profile, context }: { meal: MealAnalysis; profile: UserProfile | null; context: CoachContext | null }) {
   const foods = meal.detectedFoods.map((food) => food.name).join(", ") || "มื้ออาหาร";
   const target = buildNutritionTargetSummary({ profile, context, meal });
+  const isTextEstimate = meal.inputMode === "text";
   return (
     <div className="space-y-3 rounded-2xl bg-slate-50 p-4">
       <div>
         <p className="text-xs font-semibold text-slate-400">{meal.mealType}</p>
         <p className="text-lg font-bold text-[#17201d]">{foods}</p>
+        {isTextEstimate && meal.originalMealText ? (
+          <p className="mt-1 text-xs leading-5 text-slate-500">จากข้อความ: {meal.originalMealText}</p>
+        ) : null}
       </div>
       <AIReadQualityNote confidence={meal.confidence} unclearFields={meal.unclearFields} compact />
       {meal.errorLikeMessage ? (
@@ -782,7 +939,9 @@ function MealReviewSummary({ meal, profile, context }: { meal: MealAnalysis; pro
         </p>
       ) : null}
       <p className="text-sm leading-6 text-slate-700">{meal.trainingFit?.coachNote ?? ""}</p>
-      <p className="text-xs text-slate-500">{CONFIDENCE_LABELS[meal.confidence ?? "low"]} · ตัวเลขเป็นการประเมินคร่าว ๆ จากรูปอาหาร</p>
+      <p className="text-xs text-slate-500">
+        {CONFIDENCE_LABELS[meal.confidence ?? "low"]} · ตัวเลขเป็นการประเมินคร่าว ๆ จาก{isTextEstimate ? "ข้อความที่กรอก" : "รูปอาหาร"}
+      </p>
     </div>
   );
 }
@@ -869,7 +1028,10 @@ function normalizeMealAnalysis(meal: MealAnalysis): MealAnalysis {
   };
   return {
     mealType: meal.mealType || "meal",
-    detectedFoods: normalizeDetectedFoods(meal.detectedFoods, legacyFood),
+    inputMode: meal.inputMode,
+    originalMealText: meal.originalMealText,
+    note: meal.note,
+    detectedFoods: normalizeDetectedFoods(meal.detectedFoods, legacyFood, meal.inputMode),
     nutrition,
     nutritionRange: ranges,
     trainingFit,
@@ -900,17 +1062,18 @@ function midpointFromRange(range?: { min: number; max: number } | null): number 
   return Math.round((min + max) / 2);
 }
 
-function normalizeDetectedFoods(foods: MealAnalysis["detectedFoods"] | undefined, legacyFood?: string): MealAnalysis["detectedFoods"] {
+function normalizeDetectedFoods(foods: MealAnalysis["detectedFoods"] | undefined, legacyFood?: string, inputMode?: MealAnalysis["inputMode"]): MealAnalysis["detectedFoods"] {
+  const portionFallback = inputMode === "text" ? "จากข้อความ" : "จากภาพ";
   if (Array.isArray(foods) && foods.length) {
     return foods
       .map((food) => ({
         name: typeof food.name === "string" ? food.name.trim() : "",
-        portionEstimate: food.portionEstimate ?? "จากภาพ",
+        portionEstimate: food.portionEstimate ?? portionFallback,
         confidence: food.confidence ?? "low",
       }))
       .filter((food) => food.name);
   }
-  return legacyFood ? [{ name: legacyFood, portionEstimate: "จากภาพ", confidence: "low" }] : [];
+  return legacyFood ? [{ name: legacyFood, portionEstimate: portionFallback, confidence: "low" }] : [];
 }
 
 function hasAnyNutrition(meal: MealAnalysis) {
@@ -922,6 +1085,14 @@ function hasAnyNutrition(meal: MealAnalysis) {
 function toBangkokDate(date: Date): string {
   const bangkokMs = date.getTime() + 7 * 60 * 60 * 1000;
   return new Date(bangkokMs).toISOString().slice(0, 10);
+}
+
+function inferMealTypeFromBangkokTime(): MealType {
+  const hour = new Date(Date.now() + 7 * 60 * 60 * 1000).getUTCHours();
+  if (hour >= 5 && hour <= 10) return "breakfast";
+  if (hour >= 11 && hour <= 15) return "lunch";
+  if (hour >= 16 && hour <= 20) return "dinner";
+  return "snack";
 }
 
 function MealSlotConflictCard({

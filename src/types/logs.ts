@@ -40,6 +40,9 @@ export type MealEntry = {
 
 export type MealAnalysis = {
   mealType: string;
+  inputMode?: "image" | "text";
+  originalMealText?: string;
+  note?: string;
   detectedFoods: {
     name: string;
     portionEstimate?: string;
