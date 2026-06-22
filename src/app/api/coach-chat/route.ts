@@ -50,9 +50,11 @@ IMAGE INTENT HINT: "${imageIntent}".
 - Chat images are temporary and are not saved to Report.
 ` : "";
 
+    const contextGuidance = buildContextGuidance(latest, context);
     const systemExtra = [
       `Current Bangkok date/time: ${dateTimeStr}`,
       buildRunnerProfileContext(profile),
+      contextGuidance,
       `Context from Report/Profile/Race Goal:\n${JSON.stringify(context)}`,
       imageIntentInstruction,
     ].filter(Boolean).join("\n\n");
@@ -126,6 +128,70 @@ function raceEveGuard(question: string, context: unknown, dateTimeStr: string) {
     "",
     "สรุป: วันนี้ชนะด้วยการไม่ซ่าครับ เก็บขาไว้ใช้วันแข่งดีกว่า",
   ].join("\n");
+}
+
+function buildContextGuidance(question: string, context: unknown) {
+  const ctx = context as Record<string, unknown>;
+  const latestPain = readRecord(ctx.latestPain);
+  const recentMaxPain = readRecord(ctx.recentMaxPain);
+  const todayWorkout = readRecord(ctx.todayPrimaryWorkout);
+  const lines: string[] = [];
+
+  if (isSimpleFollowUp(question)) {
+    lines.push("RESPONSE LENGTH HINT: This looks like a simple follow-up. Answer in 3-5 short Thai lines unless the user asks for detail.");
+  }
+
+  if (isColdSoakQuestion(question)) {
+    lines.push([
+      "COLD SOAK ANSWER HINT:",
+      "- Answer directly: ได้ครับ/ทำได้ครับ.",
+      "- Say 10-15 minutes is enough.",
+      "- Use comfortably cold water; avoid very icy water or lots of ice.",
+      "- Rest the foot/light mobility after; no extra training today.",
+      "- Mention latest pain first, recent max only as caution if relevant.",
+      "- Add red-flag warning only if swelling/redness, numbness, worsening pain, cannot bear weight, or severe pain exists.",
+    ].join("\n"));
+  }
+
+  if (latestPain) {
+    const area = stringValue(latestPain.painLocation) ?? "อาการเจ็บ";
+    const score = numberValue(latestPain.painLevel);
+    lines.push(`PAIN WORDING HINT: Current/latest pain is ${area}${score != null ? ` ${score}/10` : ""}. Always mention this before older pain values.`);
+    const recentScore = numberValue(recentMaxPain?.painLevel);
+    if (recentMaxPain && score != null && recentScore != null && recentScore > score) {
+      lines.push(`RECENT MAX PAIN HINT: Recent max was ${recentScore}/10. Mention only as safety history, not as current pain.`);
+    }
+  }
+
+  if (todayWorkout) {
+    const label = stringValue(todayWorkout.label) ?? stringValue(todayWorkout.kind) ?? "workout";
+    const distance = numberValue(todayWorkout.distanceKm);
+    const duration = stringValue(todayWorkout.durationText);
+    lines.push(`TODAY WORKOUT HINT: User already completed ${label}${distance != null ? ` ${distance} km` : ""}${duration ? ` in ${duration}` : ""}. For recovery questions, do not recommend more hard training today.`);
+  }
+
+  return lines.length ? `Coach response guidance:\n${lines.join("\n")}` : "";
+}
+
+function isSimpleFollowUp(question: string) {
+  return /ได้ไหม|ได้มั้ย|ควรไหม|ควรมั้ย|พักไหม|พักมั้ย|เดิน|นอนต่อ|กิน|แช่|ประคบ|ice|cold|เจ็บ/.test(question.toLowerCase()) && question.length <= 180;
+}
+
+function isColdSoakQuestion(question: string) {
+  return /แช่.*น้ำเย็น|น้ำเย็น|ประคบเย็น|ice|cold|น้ำแข็ง/.test(question.toLowerCase());
+}
+
+function readRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
+}
+
+function stringValue(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function numberValue(value: unknown): number | null {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
 }
 
 function hasActiveRaceGoal(context: unknown) {
