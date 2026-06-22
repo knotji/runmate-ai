@@ -53,6 +53,11 @@ export type PainSummary = {
   canBearWeight: string;
   redFlags: string[];
   painType: string[];
+  painStatus: "active" | "resolved";
+  hasActivePain: boolean;
+  hasResolvedPain: boolean;
+  resolved: boolean;
+  resolvedAt: string | null;
 };
 
 export type CoachContext = {
@@ -106,12 +111,42 @@ export type NutritionDaySummary = {
 
 const TZ_OFFSET_MS = 7 * 60 * 60 * 1000;
 
+function painHasRedFlag(input: {
+  swellingOrRedness?: string | null;
+  canBearWeight?: string | null;
+  redFlags?: string[] | null;
+  painType?: string[] | null;
+}): boolean {
+  return input.swellingOrRedness === "yes"
+    || input.canBearWeight === "no"
+    || Boolean(input.redFlags?.length)
+    || Boolean(input.painType?.some((type) => /sharp|numb|แปลบ|ชา/i.test(type)));
+}
+
+function isResolvedPainLog(log: PainLog | undefined, painLevel: number, redFlags: string[], painType: string[]): boolean {
+  if (!log) return false;
+  const markedResolved = log.resolved === true || log.status === "resolved";
+  if (!markedResolved || painLevel !== 0) return false;
+  return !painHasRedFlag({
+    swellingOrRedness: log.swellingOrRedness,
+    canBearWeight: log.canBearWeight,
+    redFlags,
+    painType,
+  });
+}
+
 function todayBangkok(): string {
   return new Date(Date.now() + TZ_OFFSET_MS).toISOString().slice(0, 10);
 }
 
 function dateBefore(days: number): string {
   return new Date(Date.now() + TZ_OFFSET_MS - days * 86400000).toISOString().slice(0, 10);
+}
+
+function bangkokDateKey(isoString: string): string {
+  const d = new Date(isoString);
+  if (Number.isNaN(d.getTime())) return isoString.slice(0, 10);
+  return new Date(d.getTime() + TZ_OFFSET_MS).toISOString().slice(0, 10);
 }
 
 export function buildCoachContext(): CoachContext {
@@ -150,11 +185,11 @@ export function buildCoachContextFromData(input: {
 
   const sleepItems = items
     .filter((i) => i.type === "sleep")
-    .filter((i) => i.createdAt.slice(0, 10) >= cutoff);
+    .filter((i) => bangkokDateKey(i.createdAt) >= cutoff);
   const sleep7d: WeekSleepRow[] = sleepItems.map((item) => {
     const d = item.data as SleepAnalysis;
     return {
-      date: item.createdAt.slice(0, 10),
+      date: bangkokDateKey(item.createdAt),
       durationH: d?.extracted?.actualSleepDurationMinutes
         ? formatSleepMinutesThai(d.extracted.actualSleepDurationMinutes)
         : d?.extracted?.sleepDuration ?? null,
@@ -171,11 +206,11 @@ export function buildCoachContextFromData(input: {
 
   const workoutItems = items
     .filter((i) => i.type === "workout")
-    .filter((i) => i.createdAt.slice(0, 10) >= cutoff);
+    .filter((i) => bangkokDateKey(i.createdAt) >= cutoff);
 
   const strengthItems = items
     .filter((i) => i.type === "strength")
-    .filter((i) => i.createdAt.slice(0, 10) >= cutoff);
+    .filter((i) => bangkokDateKey(i.createdAt) >= cutoff);
 
   const dayMap = new Map<string, DayWorkoutSummary>();
   const ensureDay = (date: string) => {
@@ -190,7 +225,7 @@ export function buildCoachContextFromData(input: {
   const todayWorkouts: TodayCompletedWorkoutSummary[] = [];
 
   for (const item of workoutItems) {
-    const date = item.createdAt.slice(0, 10);
+    const date = bangkokDateKey(item.createdAt);
     const d = item.data as WorkoutAnalysis;
     const ext = d?.extracted;
     if (!ext) continue;
@@ -231,7 +266,7 @@ export function buildCoachContextFromData(input: {
   }
 
   for (const item of strengthItems) {
-    const date = item.createdAt.slice(0, 10);
+    const date = bangkokDateKey(item.createdAt);
     const d = item.data as StrengthLog;
     if (!d) continue;
 
@@ -278,23 +313,41 @@ export function buildCoachContextFromData(input: {
   // Pain logs — last 7 days, most recent first
   const painItems = items
     .filter((i) => i.type === "pain")
-    .filter((i) => i.createdAt.slice(0, 10) >= cutoff)
+    .filter((i) => bangkokDateKey(i.createdAt) >= cutoff)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const recentPainLogs: PainSummary[] = painItems.map((item) => {
     const d = item.data as PainLog;
+    const redFlags = Array.isArray(d?.redFlags) ? d.redFlags : [];
+    const painType = Array.isArray(d?.painType) ? d.painType : [];
+    const painLevel = Number.isFinite(Number(d?.painLevel)) ? Number(d?.painLevel) : 0;
+    const resolved = isResolvedPainLog(d, painLevel, redFlags, painType);
+    const hasActivePain = !resolved && (
+      painLevel > 0
+      || painHasRedFlag({
+        swellingOrRedness: d?.swellingOrRedness,
+        canBearWeight: d?.canBearWeight,
+        redFlags,
+        painType,
+      })
+    );
     return {
       id: item.id,
-      date: item.createdAt.slice(0, 10),
+      date: bangkokDateKey(item.createdAt),
       painLocation: d?.painLocation ?? "ไม่ระบุ",
       painSide: d?.painSide ?? "unknown",
-      painLevel: d?.painLevel ?? 0,
+      painLevel,
       riskLevel: d?.riskLevel ?? "unknown",
       trainingImpact: d?.trainingImpact ?? "unknown",
       coachAdvice: d?.coachAdvice ?? "",
       swellingOrRedness: d?.swellingOrRedness ?? "unknown",
       canBearWeight: d?.canBearWeight ?? "unknown",
-      redFlags: Array.isArray(d?.redFlags) ? d.redFlags : [],
-      painType: Array.isArray(d?.painType) ? d.painType : [],
+      redFlags,
+      painType,
+      painStatus: resolved ? "resolved" : "active",
+      hasActivePain,
+      hasResolvedPain: resolved,
+      resolved,
+      resolvedAt: d?.resolvedAt ?? null,
     };
   });
   const recentPainCutoff3d = dateBefore(3);
@@ -366,7 +419,7 @@ export function buildCoachContextFromData(input: {
       recentPainLogs,
       latestPain,
       recentMaxPain,
-      strengthCount: items.filter((i) => i.type === "strength" && i.createdAt.slice(0, 10) >= cutoff).length,
+      strengthCount: items.filter((i) => i.type === "strength" && bangkokDateKey(i.createdAt) >= cutoff).length,
     }),
   };
 }
@@ -374,10 +427,10 @@ export function buildCoachContextFromData(input: {
 function buildNutritionSummaries(items: LocalHistoryItem[], cutoff: string): NutritionDaySummary[] {
   const mealItems = items
     .filter((item) => item.type === "meal")
-    .filter((item) => item.createdAt.slice(0, 10) >= cutoff);
+    .filter((item) => bangkokDateKey(item.createdAt) >= cutoff);
   const byDate = new Map<string, MealAnalysis[]>();
   for (const item of mealItems) {
-    const date = item.createdAt.slice(0, 10);
+    const date = bangkokDateKey(item.createdAt);
     const list = byDate.get(date) ?? [];
     list.push(item.data as MealAnalysis);
     byDate.set(date, list);
@@ -521,8 +574,14 @@ function buildContextNotes(input: {
     const recentMax = input.recentMaxPain ?? input.recentPainLogs
       .filter((pain) => pain.date >= recentCutoff3d)
       .reduce<PainSummary | null>((max, pain) => (!max || pain.painLevel > max.painLevel ? pain : max), null);
-    const highMedium = input.recentPainLogs.filter((p) => p.riskLevel === "high" || p.riskLevel === "medium");
-    notes.push(`CURRENT PAIN STATUS: latest ${latest.painLocation} level ${latest.painLevel}/10 on ${latest.date}. Use this as current pain wording.`);
+    const activeLatest = latest.hasActivePain || painHasRedFlag(latest);
+    const latestResolved = latest.hasResolvedPain && !activeLatest;
+    const highMedium = input.recentPainLogs.filter((p) => p.hasActivePain && (p.riskLevel === "high" || p.riskLevel === "medium"));
+    if (latestResolved) {
+      notes.push(`RESOLVED PAIN STATUS: latest ${latest.painLocation} is marked resolved on ${latest.resolvedAt ?? latest.date}. Do NOT describe this as an active injury. Use gradual ramp-up wording.`);
+    } else {
+      notes.push(`CURRENT PAIN STATUS: latest ${latest.painLocation} level ${latest.painLevel}/10 on ${latest.date}. Use this as current pain wording.`);
+    }
     if (recentMax && recentMax.painLevel > latest.painLevel) {
       notes.push(`RECENT MAX PAIN SAFETY CONTEXT: ${recentMax.painLocation} reached ${recentMax.painLevel}/10 within the last 3 days. Mention only as history/safety context, not current pain.`);
     }
@@ -533,15 +592,18 @@ function buildContextNotes(input: {
       if (pain.redFlags?.length) flags.push(`redFlags: ${pain.redFlags.slice(0, 3).join(", ")}`);
       const sideStr = pain.painSide !== "unknown" ? ` (${pain.painSide})` : "";
       const flagStr = flags.length ? ` [${flags.join("; ")}]` : "";
-      notes.push(`Pain report (${pain.date}): ${pain.painLocation}${sideStr} level ${pain.painLevel}/10 risk=${pain.riskLevel} impact=${pain.trainingImpact}${flagStr}.`);
+      const statusStr = pain.hasResolvedPain ? "resolved" : "active";
+      notes.push(`Pain report (${pain.date}): ${pain.painLocation}${sideStr} level ${pain.painLevel}/10 status=${statusStr} risk=${pain.riskLevel} impact=${pain.trainingImpact}${flagStr}.`);
     }
     if (highMedium.length > 0) {
       notes.push("IMPORTANT: User has recent medium/high risk pain history. Do NOT recommend hard training, speed work, or races. Prioritize rest or low-impact recovery.");
     }
-    const activePain = input.recentPainLogs.filter((p) => p.date >= recentCutoff3d && p.painLevel >= 3);
+    const activePain = input.recentPainLogs.filter((p) => p.date >= recentCutoff3d && p.hasActivePain && p.painLevel >= 3);
     if (activePain.length > 0) {
       const safetyPain = latest.painLevel >= 3 ? latest : (recentMax ?? activePain[0]);
-      if (latest.painLevel >= 3) {
+      if (latestResolved) {
+        notes.push(`RESOLVED PAIN RAMP-UP: Latest pain is resolved, but recent max was ${safetyPain.painLevel}/10. Avoid sudden hard sessions and ramp load gradually.`);
+      } else if (latest.painLevel >= 3) {
         notes.push(`INJURY CONSTRAINT: Current ${latest.painLocation} pain is level ${latest.painLevel}/10. Today/tomorrow plan MUST prioritize Rest/Recovery. Do NOT recommend 'Easy Run' as default. Easy run only as conditional if walking and warm-up are pain-free.`);
       } else {
         notes.push(`INJURY SAFETY HISTORY: Current pain is mild (${latest.painLocation} ${latest.painLevel}/10), but recent max was ${safetyPain.painLevel}/10. Today/tomorrow plan should still reduce load and avoid hard training.`);

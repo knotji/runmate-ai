@@ -331,7 +331,7 @@ function DayCard({
                   <Badge icon="🏋️" label="เวท" color="blue" />
                 )}
                 {pains.length > 0 && (
-                  <Badge icon="🩹" label={`เจ็บ ${getPainLevel(pains[0])}/10`} color="red" />
+                  <Badge icon="🩹" label={isResolvedPainItem(pains[0]) ? "หายแล้ว" : `เจ็บ ${getPainLevel(pains[0])}/10`} color={isResolvedPainItem(pains[0]) ? "green" : "red"} />
                 )}
                 {workouts.some((w) => isWalk(w)) && <Badge icon="🚶" label={walkKm ? formatDistanceKm(walkKm) : "เดิน"} />}
                 {bodies.length > 0 && <Badge icon="⚖️" label="ชั่งน้ำหนัก" />}
@@ -643,6 +643,7 @@ function PainDetail({ item, meta, onDelete, deleting }: { item: LocalHistoryItem
     return "Easy run ได้ถ้าอาการไม่แย่ลง";
   }
   const hasRedFlags = Array.isArray(painLog.redFlags) && painLog.redFlags.length > 0;
+  const isResolved = isResolvedPainItem(item);
   const metaLabel = meta ? `${meta.statusLabel}${meta.timeLabel ? ` · ${meta.timeLabel}` : ""}` : "";
 
   return (
@@ -661,8 +662,8 @@ function PainDetail({ item, meta, onDelete, deleting }: { item: LocalHistoryItem
           {metaLabel && <p className="mt-0.5 text-[11px] font-semibold text-slate-500">{metaLabel}</p>}
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1">
-          <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${painLog.riskLevel === "high" ? "bg-red-100 text-red-700" : painLog.riskLevel === "medium" ? "bg-amber-100 text-amber-700" : "bg-[#e7efea] text-[#2a5a39]"}`}>
-            {painLog.painLevel}/10
+          <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${isResolved ? "bg-[#e7efea] text-[#2a5a39]" : painLog.riskLevel === "high" ? "bg-red-100 text-red-700" : painLog.riskLevel === "medium" ? "bg-amber-100 text-amber-700" : "bg-[#e7efea] text-[#2a5a39]"}`}>
+            {isResolved ? "หายแล้ว" : `${painLog.painLevel}/10`}
           </span>
           <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${riskBadgeClass(painLog.riskLevel)}`}>
             {riskLabel(painLog.riskLevel)}
@@ -671,7 +672,7 @@ function PainDetail({ item, meta, onDelete, deleting }: { item: LocalHistoryItem
       </div>
 
       <p className="rounded-xl bg-white/65 px-3 py-2 text-xs font-semibold leading-5 text-[#17201d]">
-        {impactLabel(painLog.trainingImpact)}
+        {isResolved ? "อาการนี้ถูกทำเครื่องหมายว่าหายแล้ว ค่อย ๆ เพิ่มโหลดกลับและหยุดถ้าอาการกลับมา" : impactLabel(painLog.trainingImpact)}
       </p>
 
       {hasRedFlags && (
@@ -841,7 +842,7 @@ type MealNutritionSummary = {
 
 function buildDashboard(items: LocalHistoryItem[]): Dashboard {
   const cutoff = dateKeyBefore(7);
-  const recent = items.filter((item) => item.createdAt.slice(0, 10) >= cutoff);
+  const recent = items.filter((item) => bangkokDateKey(item.createdAt) >= cutoff);
   const runs = recent.filter((item) => item.type === "workout" && isRun(item));
   const sleeps = recent.filter((item) => item.type === "sleep");
   const meals = recent.filter((item) => item.type === "meal");
@@ -890,7 +891,7 @@ function buildDashboard(items: LocalHistoryItem[]): Dashboard {
 function groupByDay(items: LocalHistoryItem[]): DayGroup[] {
   const map = new Map<string, LocalHistoryItem[]>();
   for (const item of items) {
-    const date = item.createdAt.slice(0, 10);
+    const date = bangkokDateKey(item.createdAt);
     const list = map.get(date) ?? [];
     list.push(item);
     map.set(date, list);
@@ -983,6 +984,15 @@ function getPainLevel(item: LocalHistoryItem): number | string {
   const data = item.data as { painLevel?: unknown };
   const painLevel = Number(data?.painLevel);
   return Number.isFinite(painLevel) ? painLevel : "-";
+}
+
+function isResolvedPainItem(item: LocalHistoryItem): boolean {
+  const data = item.data as PainLog | undefined;
+  const painLevel = Number(data?.painLevel);
+  const hasRedFlags = data?.swellingOrRedness === "yes"
+    || data?.canBearWeight === "no"
+    || Boolean(data?.redFlags?.length);
+  return painLevel === 0 && !hasRedFlags && Boolean(data?.resolved || data?.status === "resolved");
 }
 
 function getTotalKm(workouts: LocalHistoryItem[]): number | null {
@@ -1078,6 +1088,12 @@ function truncate(text: string, max: number): string {
 function dateKeyBefore(days: number): string {
   const TZ_OFFSET_MS = 7 * 60 * 60 * 1000;
   return new Date(Date.now() + TZ_OFFSET_MS - days * 86_400_000).toISOString().slice(0, 10);
+}
+
+function bangkokDateKey(isoString: string): string {
+  const d = new Date(isoString);
+  if (Number.isNaN(d.getTime())) return isoString.slice(0, 10);
+  return new Date(d.getTime() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
 }
 
 function formatSleepAverageHours(value: number | null | undefined): string {

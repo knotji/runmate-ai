@@ -130,9 +130,10 @@ export default function UploadPage() {
     if (overrideType === "body") setBodySaveError("");
     const data = sanitizeReportDataForSave((next as { data?: unknown }).data ?? next);
     const extractedDate = (data as { extracted?: { date?: string | null } }).extracted?.date;
-    // Body items always use upload time as createdAt — using the measurement date from the image
-    // would file the item under that day in Report, not today, making it hard to find.
-    const saveDate = overrideType === "body" ? undefined : (extractedDate ?? undefined);
+    // Body and meal items always use save time as createdAt.
+    // Body: measurement date from image would file it under that day, not today.
+    // Meal: Report day must be the day the user taps Save, not an AI-detected image date.
+    const saveDate = (overrideType === "body" || overrideType === "meal") ? undefined : (extractedDate ?? undefined);
     const saved = createHistoryItem(overrideType, data, saveDate);
     if (process.env.NODE_ENV === "development") {
       console.info("[upload-debug]", {
