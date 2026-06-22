@@ -38,19 +38,37 @@ const fallback: WorkoutAnalysis = {
 
 export async function POST(request: Request) {
   const body = await request.json();
+  const imageDataUrls = readImageDataUrls(body);
   const profileCtx = buildRunnerProfileContext(body.profile ?? null);
   const contextCtx = buildAnalysisContext(body.context);
   const system = [workoutPrompt, profileCtx, contextCtx].filter(Boolean).join("\n\n");
 
   const result = await jsonFromAI<WorkoutAnalysis>({
     system,
-    user: "Analyze these workout screenshots together and return JSON.",
-    imageDataUrls: body.imageDataUrls,
-    imageDataUrl: body.imageDataUrl,
+    user: imageDataUrls.length > 1
+      ? `Analyze these ${imageDataUrls.length} workout screenshots together and merge them into one workout record. Apply the multi-image merge rules from the system prompt.`
+      : "Analyze this workout screenshot and return JSON in the requested schema.",
+    imageDataUrl: imageDataUrls[0],
+    imageDataUrls,
     fallback,
   });
 
-  return NextResponse.json({ ...result, data: normalizeReadQuality(mergeWithFallback(result.data, fallback)) });
+  const normalized = normalizeWorkoutExtraction(
+    normalizeReadQuality(mergeWithFallback(result.data, fallback)),
+    imageDataUrls.length,
+  );
+
+  return NextResponse.json({ ...result, data: normalized });
+}
+
+function readImageDataUrls(body: Record<string, unknown>): string[] {
+  const urls = Array.isArray(body.imageDataUrls)
+    ? body.imageDataUrls.filter((v): v is string => typeof v === "string" && v.startsWith("data:image/"))
+    : [];
+  if (urls.length) return urls;
+  return typeof body.imageDataUrl === "string" && body.imageDataUrl.startsWith("data:image/")
+    ? [body.imageDataUrl]
+    : [];
 }
 
 function normalizeReadQuality(data: WorkoutAnalysis): WorkoutAnalysis {
@@ -59,6 +77,51 @@ function normalizeReadQuality(data: WorkoutAnalysis): WorkoutAnalysis {
     confidence: data.confidence ?? "low",
     unclearFields: Array.isArray(data.unclearFields) ? data.unclearFields : [],
   };
+}
+
+function normalizeWorkoutExtraction(data: WorkoutAnalysis, imageCount: number): WorkoutAnalysis {
+  const ext = data.extracted;
+  let { avgPace } = ext;
+
+  // Derive average pace from distance + duration when AI left it null
+  if (!avgPace && ext.distanceKm && ext.distanceKm > 0 && ext.duration) {
+    const totalMin = parseDurationToMinutes(ext.duration);
+    if (totalMin && totalMin > 0) {
+      const paceMinPerKm = totalMin / ext.distanceKm;
+      const paceMin = Math.floor(paceMinPerKm);
+      const paceSec = Math.round((paceMinPerKm - paceMin) * 60);
+      avgPace = `${paceMin}:${paceSec.toString().padStart(2, "0")}`;
+    }
+  }
+
+  const unclearFields = recomputeUnclearFields(data.unclearFields ?? [], ext, avgPace);
+
+  return {
+    ...data,
+    extracted: {
+      ...ext,
+      avgPace,
+      mergedFromMultipleImages: imageCount > 1,
+    },
+    unclearFields,
+  };
+}
+
+function recomputeUnclearFields(existing: string[], ext: WorkoutAnalysis["extracted"], avgPace: string | null): string[] {
+  const cleared = new Set<string>();
+  if (ext.distanceKm != null) cleared.add("distanceKm");
+  if (ext.duration) cleared.add("duration");
+  if (ext.avgHR != null) cleared.add("avgHR");
+  if (avgPace) cleared.add("avgPace");
+  if (ext.date) cleared.add("date");
+  return existing.filter((field) => !cleared.has(field));
+}
+
+function parseDurationToMinutes(duration: string): number | null {
+  const parts = duration.split(":").map(Number);
+  if (parts.length === 3) return parts[0] * 60 + parts[1] + parts[2] / 60;
+  if (parts.length === 2) return parts[0] + parts[1] / 60;
+  return null;
 }
 
 function buildAnalysisContext(context: unknown) {

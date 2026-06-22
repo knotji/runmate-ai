@@ -157,6 +157,7 @@ export type WorkoutAnalysis = {
     vo2Max: number | null;
     sweatLossMl: number | null;
     visibleMetrics: string[];
+    mergedFromMultipleImages?: boolean;
   };
   coach: {
     workoutSummary: string;
