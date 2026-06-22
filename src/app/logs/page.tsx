@@ -247,7 +247,7 @@ function WeeklyDashboard({ dashboard, proteinTarget }: { dashboard: Dashboard; p
         <DashboardMetric label="Run volume" value={dashboard.runKm > 0 ? formatDistanceKm(dashboard.runKm) : "-"} sub={`${dashboard.runSessions} sessions`} />
         <DashboardMetric label="Longest run" value={dashboard.longestRunKm != null ? formatDistanceKm(dashboard.longestRunKm) : "-"} sub="last 7 days" />
         <DashboardMetric label="Readiness avg" value={dashboard.avgReadiness != null ? formatScore(dashboard.avgReadiness) : "-"} sub={dashboard.readinessTrend} />
-        <DashboardMetric label="Sleep avg" value={dashboard.avgSleepHours != null ? `${formatDecimal(dashboard.avgSleepHours)} h` : "-"} sub={`${dashboard.sleepCount} nights`} />
+        <DashboardMetric label="Sleep avg 7 วัน" value={formatSleepAverageHours(dashboard.avgSleepHours)} sub={sleepAverageSubtext(dashboard.sleepCount)} />
         <DashboardMetric label="Meal kcal avg" value={dashboard.avgMealCalories != null ? formatCalories(dashboard.avgMealCalories) : "-"} sub="ประเมินจากรูปอาหาร" />
         <DashboardMetric label="Protein avg / day" value={dashboard.avgMealProtein != null ? formatMacro(dashboard.avgMealProtein) : "-"} sub={`target ${proteinTarget} g`} />
       </div>
@@ -437,7 +437,7 @@ function SleepDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; onD
           <Metric label="Readiness" value={formatScore(coach.readinessScore)} sub={coach.readinessLabel} />
         )}
         {ext.sleepScore != null && <Metric label="Sleep score" value={formatScore(ext.sleepScore)} />}
-        {ext.sleepDuration && <Metric label="ระยะเวลา" value={formatDuration(ext.sleepDuration)} />}
+        {ext.sleepDuration && <Metric label="นอน" value={formatSleepDuration(ext.sleepDuration)} />}
         {ext.hrv != null && <Metric label="HRV" value={formatScore(ext.hrv)} sub="ms" />}
         {ext.restingHR != null && <Metric label="Resting HR" value={formatScore(ext.restingHR)} sub="bpm" />}
       </div>
@@ -1079,8 +1079,37 @@ function dateKeyBefore(days: number): string {
   return new Date(Date.now() + TZ_OFFSET_MS - days * 86_400_000).toISOString().slice(0, 10);
 }
 
+function formatSleepAverageHours(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(value)) return "-";
+  const rounded = Math.round(value * 10) / 10;
+  return `${rounded.toFixed(1).replace(/\.0$/, "")} ชม.`;
+}
+
+function sleepAverageSubtext(count: number): string {
+  if (count <= 0) return "ยังไม่มีข้อมูลนอน";
+  return `จากข้อมูล ${count} คืน`;
+}
+
+function formatSleepDuration(value: string | number | null | undefined): string {
+  if (value == null || value === "") return "-";
+  const raw = String(value).trim();
+  const hours = parseSleepHours(raw);
+  if (hours == null) return formatDuration(raw);
+  const totalMinutes = Math.round(hours * 60);
+  if (totalMinutes <= 0) return "-";
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  if (h > 0 && m > 0) return `${h} ชม. ${m} นาที`;
+  if (h > 0) return `${h} ชม.`;
+  return `${m} นาที`;
+}
+
 function parseSleepHours(value: string | null | undefined): number | null {
   if (!value) return null;
+  const colonMatch = value.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+  if (colonMatch) {
+    return Number(colonMatch[1]) + Number(colonMatch[2]) / 60;
+  }
   const hourMatch = value.match(/(\d+(?:\.\d+)?)\s*h/i);
   const minMatch = value.match(/(\d+)\s*m/i);
   if (hourMatch || minMatch) {
@@ -1127,7 +1156,7 @@ function dashboardNote(input: {
   if (input.runSessions > 0) parts.push(`วิ่ง ${Math.round(input.runKm * 10) / 10} km จาก ${input.runSessions} sessions`);
   if (input.longestRunKm != null) parts.push(`longest ${input.longestRunKm.toFixed(1)} km`);
   if (input.avgReadiness != null) parts.push(`readiness เฉลี่ย ${input.avgReadiness}`);
-  if (input.avgSleepHours != null) parts.push(`นอนเฉลี่ย ${input.avgSleepHours.toFixed(1)} ชม.`);
+  if (input.avgSleepHours != null) parts.push(`นอนเฉลี่ยช่วงล่าสุด ${formatSleepAverageHours(input.avgSleepHours)}`);
   return parts.join(" · ");
 }
 

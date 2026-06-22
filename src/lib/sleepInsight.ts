@@ -16,6 +16,9 @@ export function polishSleepInsightText(text: string | null | undefined): string 
     .replace(/ระบบแจ้งเตือนเรื่อง\s*Sleeping HR\s*ที่ยังผันผวนอยู่/g, "ชีพจรตอนนอนยังไม่นิ่งนัก")
     .replace(/Sleeping HR\s*ยังผันผวนอยู่/g, "ชีพจรตอนนอนยังไม่นิ่งนัก")
     .replace(/Sleeping HR/g, "ชีพจรตอนนอน")
+    .replace(/การนอนเฉลี่ย\s*(\d+(?:\.\d+)?)\s*ชม\./g, "การนอนเฉลี่ยช่วงล่าสุดประมาณ $1 ชม.")
+    .replace(/การนอนเฉลี่ย\s*(\d+(?:\.\d+)?)\s*ชั่วโมง/g, "การนอนเฉลี่ยช่วงล่าสุดประมาณ $1 ชั่วโมง")
+    .replace(/sleep\s*avg(?:erage)?\s*(\d+(?:\.\d+)?)\s*h/gi, "การนอนเฉลี่ยช่วงล่าสุดประมาณ $1 ชม.")
     .replace(/ยังผันผวนอยู่/g, "ยังไม่นิ่งนัก")
     .replace(/\s{2,}/g, " ")
     .trim();
