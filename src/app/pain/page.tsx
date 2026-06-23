@@ -201,7 +201,7 @@ function PainPageContent() {
         ? {
           riskLevel: "low",
           trainingImpact: "run_ok_easy",
-          coachAdvice: "อาการนี้ถูกทำเครื่องหมายว่าหายแล้ว ค่อย ๆ เพิ่มโหลดกลับแบบคุมความรู้สึก และหยุดทันทีถ้ามีอาการกลับมา",
+          coachAdvice: "ล่าสุดบันทึกว่าอาการหายแล้ว ค่อย ๆ เพิ่มโหลดกลับแบบคุมความรู้สึก และหยุดทันทีถ้ามีอาการกลับมา",
           redFlags: [],
         }
         : analysis;
@@ -219,7 +219,7 @@ function PainPageContent() {
         swellingOrRedness,
         canBearWeight,
         notes: canSaveResolved
-          ? [notes.trim(), "ผู้ใช้ทำเครื่องหมายว่าอาการหายแล้ว"].filter(Boolean).join(" · ")
+          ? [notes.trim(), "ผู้ใช้บันทึกว่าอาการหายแล้ว"].filter(Boolean).join(" · ")
           : notes.trim() || undefined,
         riskLevel: savedAnalysis.riskLevel,
         trainingImpact: savedAnalysis.trainingImpact,

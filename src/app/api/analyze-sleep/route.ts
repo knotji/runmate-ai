@@ -317,8 +317,8 @@ function buildInjuryAwareSleepRecommendation(input: {
 
   if (latest.hasResolvedPain) {
     return input.recentMaxPain && input.recentMaxPain.painLevel >= 3 && input.recentMaxPain.painLevel > latest.painLevel
-      ? `ล่าสุด${latest.painLocation}ทำเครื่องหมายว่าหายแล้ว แต่ช่วงไม่กี่วันที่ผ่านมาเคยขึ้นถึง ${input.recentMaxPain.painLevel}/10 วันนี้ค่อย ๆ เพิ่มโหลดกลับได้แบบ conservative เริ่มจากเดิน/วอร์มอัปให้ไม่เจ็บก่อน และหลีกเลี่ยงซ้อมหนักทันทีครับ`
-      : `ล่าสุด${latest.painLocation}ทำเครื่องหมายว่าหายแล้ว ถ้าเดินและวอร์มอัปไม่เจ็บ ค่อย ๆ กลับเข้า easy movement ได้ แต่หยุดถ้าอาการกลับมาครับ`;
+      ? `ล่าสุดบันทึกว่าอาการเจ็บ${latest.painLocation}หายแล้ว แต่ช่วงไม่กี่วันที่ผ่านมาเคยมีอาการถึง ${input.recentMaxPain.painLevel}/10 วันนี้ค่อย ๆ เพิ่มโหลดกลับได้แบบ conservative เริ่มจากเดิน/วอร์มอัปให้ไม่เจ็บก่อน และหลีกเลี่ยงซ้อมหนักทันทีครับ`
+      : `ล่าสุดบันทึกว่าอาการเจ็บ${latest.painLocation}หายแล้ว ถ้าเดินและวอร์มอัปไม่เจ็บ ค่อย ๆ กลับเข้า easy movement ได้ แต่หยุดถ้าอาการกลับมาครับ`;
   }
 
   if (latest.painLevel <= 1) {

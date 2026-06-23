@@ -251,7 +251,7 @@ function derivePlanInputs(goal: RaceGoal, ctx: CoachContext | undefined, _todayS
   const sleepNote = ctx?.avgReadiness != null ? `readiness เฉลี่ย ${ctx.avgReadiness}` : "ยังไม่มี readiness เฉลี่ย";
   const painNote = latestPain
     ? latestPain.hasResolvedPain
-      ? `ล่าสุด${painLabel(latestPain)}ทำเครื่องหมายว่าหายแล้ว`
+      ? `ล่าสุดบันทึกว่าอาการเจ็บ${painLabel(latestPain)}หายแล้ว`
       : `ล่าสุด${painLabel(latestPain)} ${latestPain.painLevel}/10`
     : "ไม่มี pain log ล่าสุด";
 

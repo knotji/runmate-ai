@@ -3,6 +3,7 @@ import { jsonFromAI } from "@/lib/ai";
 import { buildRunnerProfileContext } from "@/lib/buildRunnerProfileContext";
 import type { CoachContext, TodayCompletedWorkoutSummary } from "@/lib/buildCoachContext";
 import type { DailyCoachInsight } from "@/types/ai";
+import type { RacePlan, WeekWorkout } from "@/types/race";
 
 const FALLBACK: DailyCoachInsight = {
   todayReadiness: 70,
@@ -301,6 +302,13 @@ function buildUserPrompt(ctx: CoachContext): string {
     lines.push("- Rule: Today Focus may answer what to train today, while respecting sleep/readiness/race/pain safety.");
   }
 
+  const plannedWorkout = getTodayPlannedWorkout(ctx);
+  if (plannedWorkout) {
+    lines.push(`\nRace plan workout today: ${formatPlannedWorkout(plannedWorkout)}`);
+    lines.push("- Product rule: Race is the main training plan. Today is an adaptive recommendation based on current sleep, recovery, and pain.");
+    lines.push("- If Today softens the Race workout, explain the original plan first, then why today's safer option is lighter.");
+  }
+
   if (ctx.latestPain) {
     lines.push(`\nPain status for Today Focus:`);
     if (ctx.latestPain.hasResolvedPain) {
@@ -446,14 +454,19 @@ function applyTodayPainGuard(insight: DailyCoachInsight, ctx: CoachContext): Dai
 
   const recentMax = ctx.recentMaxPain ?? latest;
   const hasRecentSafetyHistory = recentMax.painLevel >= 3 && recentMax.painLevel > latest.painLevel;
+  const plannedWorkout = getTodayPlannedWorkout(ctx);
+  const planLine = plannedWorkout ? `ตามแผนวันนี้คือ ${formatPlannedWorkout(plannedWorkout)}` : "";
   if (latest.hasResolvedPain) {
     const resolvedLine = hasRecentSafetyHistory
-      ? `ล่าสุด${latest.painLocation}ทำเครื่องหมายว่าหายแล้ว แต่ช่วง 3 วันที่ผ่านมาเคยขึ้นถึง ${recentMax.painLevel}/10`
-      : `ล่าสุด${latest.painLocation}ทำเครื่องหมายว่าหายแล้ว`;
+      ? `ล่าสุดบันทึกว่าอาการเจ็บ${latest.painLocation}หายแล้ว แต่ช่วง 3 วันที่ผ่านมาเคยมีอาการถึง ${recentMax.painLevel}/10`
+      : `ล่าสุดบันทึกว่าอาการเจ็บ${latest.painLocation}หายแล้ว`;
+    const adaptiveMessage = hasRecentSafetyHistory
+      ? `${planLine ? `${planLine} แต่` : ""}${resolvedLine} วันนี้ให้เริ่มแบบ Easy/Active Recovery ก่อน 10–15 นาที ถ้าไม่มีอาการค่อยทำต่อให้ครบตามแผน แต่ถ้าเริ่มเจ็บให้หยุดทันทีครับ`
+      : `${planLine ? `${planLine} และ` : ""}${resolvedLine} ค่อย ๆ กลับเข้าโหลดตามแผนได้ โดยเริ่มเบาและหยุดถ้าอาการกลับมาครับ`;
     return {
       ...cleaned,
       keyObservation: resolvedLine,
-      coachMessage: `${resolvedLine} วันนี้ค่อย ๆ เพิ่มโหลดกลับได้แบบ conservative เริ่มจากเดิน/วอร์มอัปให้ไม่เจ็บก่อน หลีกเลี่ยงซ้อมหนักทันที และหยุดถ้าอาการกลับมาครับ`,
+      coachMessage: adaptiveMessage,
     };
   }
   const painLine = hasRecentSafetyHistory
@@ -468,7 +481,7 @@ function applyTodayPainGuard(insight: DailyCoachInsight, ctx: CoachContext): Dai
       workoutRec: "Recovery / Walk + Mobility",
       workoutTarget: "ไม่เน้น HR วันนี้ · เดินเบา ๆ, mobility และประคบเย็นถ้ายังระบม",
       keyObservation: painLine,
-      coachMessage: `${contextLine} จึงยังให้ลดโหลดก่อน อาการดีขึ้นแล้ว แต่ควรคุมโหลดเพื่อไม่ให้กลับมาเจ็บซ้ำ Easy run ทำได้เฉพาะถ้าเดินและวอร์มอัปแล้วไม่เจ็บครับ`,
+      coachMessage: `${planLine ? `${planLine} แต่` : ""}${contextLine} จึงยังให้ลดโหลดก่อน อาการดีขึ้นแล้ว แต่ควรคุมโหลดเพื่อไม่ให้กลับมาเจ็บซ้ำ Easy run ทำได้เฉพาะถ้าเดินและวอร์มอัปแล้วไม่เจ็บครับ`,
     };
   }
 
@@ -478,7 +491,7 @@ function applyTodayPainGuard(insight: DailyCoachInsight, ctx: CoachContext): Dai
       workoutRec: "Recovery / Walk + Mobility",
       workoutTarget: "เน้นฟื้นตัว · เดินเบา ๆ ถ้าไม่เจ็บ",
       keyObservation: painLine,
-      coachMessage: `${contextLine} วันนี้ให้ conservative ไว้ก่อน ลดแรงกระแทกและดูอาการระหว่างวัน วิ่งได้เฉพาะแบบสั้นเบามากถ้าเดินกับวอร์มอัปแล้วไม่เจ็บครับ`,
+      coachMessage: `${planLine ? `${planLine} แต่` : ""}${contextLine} วันนี้ให้ conservative ไว้ก่อน ลดแรงกระแทกและดูอาการระหว่างวัน วิ่งได้เฉพาะแบบสั้นเบามากถ้าเดินกับวอร์มอัปแล้วไม่เจ็บครับ`,
     };
   }
 
@@ -488,7 +501,7 @@ function applyTodayPainGuard(insight: DailyCoachInsight, ctx: CoachContext): Dai
       workoutRec: "Rest / Recovery",
       workoutTarget: "Recovery Day · ไม่ต้องจับ pace",
       keyObservation: painLine,
-      coachMessage: `${contextLine} วันนี้ไม่ควรวางวิ่งเป็น default ให้พักจากแรงกระแทกก่อน เลือก mobility เบา ๆ หรือเดินสั้น ๆ เฉพาะถ้าไม่ทำให้อาการเพิ่มครับ`,
+      coachMessage: `${planLine ? `${planLine} แต่` : ""}${contextLine} วันนี้ให้พัก/เดินเบา ๆ หรือ mobility แทนก่อน ไม่ควรวางวิ่งเป็นค่าเริ่มต้นครับ`,
     };
   }
 
@@ -498,7 +511,7 @@ function applyTodayPainGuard(insight: DailyCoachInsight, ctx: CoachContext): Dai
       workoutRec: "งดวิ่ง / พักและประเมินอาการ",
       workoutTarget: "ไม่เน้น HR วันนี้ · พักจากการวิ่ง",
       keyObservation: painLine,
-      coachMessage: `${contextLine} วันนี้งดวิ่งก่อนครับ ถ้าอาการยังไม่ดีขึ้น แย่ลง บวม แดง ชา หรือลงน้ำหนักลำบาก ควรพบแพทย์หรือนักกายภาพ`,
+      coachMessage: `${planLine ? `${planLine} แต่` : ""}${contextLine} วันนี้งดวิ่งก่อนครับ ถ้าอาการยังไม่ดีขึ้น แย่ลง บวม แดง ชา หรือลงน้ำหนักลำบาก ควรพบแพทย์หรือนักกายภาพ`,
     };
   }
 
@@ -514,6 +527,57 @@ function formatWorkoutForPrompt(workout: TodayCompletedWorkoutSummary): string {
     formatCalories(workout.calories),
   ].filter(Boolean);
   return `${workout.label}${details.length ? ` (${details.join(", ")})` : ""}`;
+}
+
+function getTodayPlannedWorkout(ctx: CoachContext): WeekWorkout | null {
+  const plan = isRecord(ctx.racePlan) ? ctx.racePlan as RacePlan : null;
+  if (!plan) return null;
+  const weeklyPlan = Array.isArray(plan.weeklyPlan) ? plan.weeklyPlan : [];
+  if (!weeklyPlan.length) return plan.todayWorkout ?? null;
+
+  for (const workout of weeklyPlan) {
+    const raw = workout as WeekWorkout & { date?: string; dateKey?: string; dayDate?: string };
+    const workoutDate = raw.date ?? raw.dateKey ?? raw.dayDate;
+    if (workoutDate?.slice(0, 10) === ctx.todayDate) return workout;
+  }
+
+  const todayWeekday = bangkokWeekdayIndex(ctx.todayDate);
+  for (const workout of weeklyPlan) {
+    if (normalizeWeekdayLabel(workout.day) === todayWeekday) return workout;
+  }
+
+  if (plan.planStartDate) {
+    const startMs = Date.parse(`${plan.planStartDate}T12:00:00+07:00`);
+    const todayMs = Date.parse(`${ctx.todayDate}T12:00:00+07:00`);
+    if (!Number.isNaN(startMs) && !Number.isNaN(todayMs)) {
+      const offset = Math.round((todayMs - startMs) / 86_400_000);
+      if (offset >= 0 && offset < weeklyPlan.length) return weeklyPlan[offset] ?? null;
+    }
+  }
+
+  return plan.todayWorkout ?? null;
+}
+
+function formatPlannedWorkout(workout: WeekWorkout): string {
+  const distance = toFiniteNumber(workout.distanceKm);
+  return `${workout.workoutType || "การซ้อม"}${distance != null && distance > 0 ? ` ${formatKm(distance)} km` : ""}`;
+}
+
+function bangkokWeekdayIndex(date: string): number {
+  const parsed = new Date(`${date}T12:00:00+07:00`);
+  return Number.isNaN(parsed.getTime()) ? -1 : parsed.getDay();
+}
+
+function normalizeWeekdayLabel(day: string): number {
+  const value = day.trim().toLowerCase();
+  if (/^(sun|sunday|อา\.|อาทิตย์|วันอาทิตย์)/i.test(value)) return 0;
+  if (/^(mon|monday|จ\.|จันทร์|วันจันทร์)/i.test(value)) return 1;
+  if (/^(tue|tuesday|อ\.|อังคาร|วันอังคาร)/i.test(value)) return 2;
+  if (/^(wed|wednesday|พ\.|พุธ|วันพุธ)/i.test(value)) return 3;
+  if (/^(thu|thursday|พฤ\.|พฤหัส|วันพฤหัส)/i.test(value)) return 4;
+  if (/^(fri|friday|ศ\.|ศุกร์|วันศุกร์)/i.test(value)) return 5;
+  if (/^(sat|saturday|ส\.|เสาร์|วันเสาร์)/i.test(value)) return 6;
+  return -1;
 }
 
 function formatWorkoutShortThai(workout: TodayCompletedWorkoutSummary): string {
@@ -588,8 +652,8 @@ function buildPostWorkoutPainLine(ctx: CoachContext): string {
   const hasRecentSafetyHistory = recentMax.painLevel >= 3 && recentMax.painLevel > latest.painLevel;
   if (latest.hasResolvedPain) {
     return hasRecentSafetyHistory
-      ? `ล่าสุด${latest.painLocation}ทำเครื่องหมายว่าหายแล้ว แต่เคยขึ้นถึง ${recentMax.painLevel}/10 ในช่วงล่าสุด จึงยังค่อย ๆ เพิ่มโหลด`
-      : `ล่าสุด${latest.painLocation}ทำเครื่องหมายว่าหายแล้ว ค่อย ๆ เพิ่มโหลดกลับ`;
+      ? `ล่าสุดบันทึกว่าอาการเจ็บ${latest.painLocation}หายแล้ว แต่ช่วงล่าสุดเคยมีอาการถึง ${recentMax.painLevel}/10 จึงยังค่อย ๆ เพิ่มโหลด`
+      : `ล่าสุดบันทึกว่าอาการเจ็บ${latest.painLocation}หายแล้ว ค่อย ๆ เพิ่มโหลดกลับ`;
   }
   const base = hasRecentSafetyHistory
     ? `ล่าสุดเจ็บ${latest.painLocation} ${latest.painLevel}/10 แต่เคยขึ้นถึง ${recentMax.painLevel}/10 ในช่วงล่าสุด`

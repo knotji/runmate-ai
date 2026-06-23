@@ -229,7 +229,7 @@ export default function TodayPage() {
         {insight && !loading && (
           hasWorkoutToday && coachCtx?.todayPrimaryWorkout
             ? <PostWorkoutFocusContent insight={insight} context={coachCtx} />
-            : <PreWorkoutFocusContent insight={insight} hasPace={hasPace} />
+            : <PreWorkoutFocusContent insight={insight} hasPace={hasPace} context={coachCtx} />
         )}
 
         {!insight && !loading && !insightError && !hasHistory && (
@@ -331,9 +331,14 @@ export default function TodayPage() {
 
 // ─── Today Snapshot ────────────────────────────────────────────────────────────
 
-function PreWorkoutFocusContent({ insight, hasPace }: { insight: DailyCoachInsight; hasPace: boolean }) {
+function PreWorkoutFocusContent({ insight, hasPace, context }: { insight: DailyCoachInsight; hasPace: boolean; context: CoachContext | null }) {
   return (
     <div>
+      {context?.racePlan ? (
+        <p className="mb-2 text-xs font-semibold leading-5 text-[#42677f]">
+          Race คือแผนหลัก · คำแนะนำวันนี้ปรับตามการนอน recovery และอาการล่าสุด
+        </p>
+      ) : null}
       <h2 className="line-clamp-2 text-2xl font-bold text-[#17201d]">{insight.workoutRec}</h2>
       {hasPace && (
         <span className="mt-2 inline-block rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
@@ -462,9 +467,9 @@ function buildPostWorkoutInjuryNote(context: CoachContext): string {
   const hasRecentHigher = recentMax && recentMax.painLevel > latest.painLevel;
   if (latest.hasResolvedPain) {
     if (hasRecentHigher) {
-      return `ล่าสุด${latest.painLocation}ทำเครื่องหมายว่าหายแล้ว แต่ช่วงล่าสุดเคยขึ้นถึง ${recentMax.painLevel}/10 วันนี้ค่อย ๆ เพิ่มโหลดและหลีกเลี่ยงซ้อมหนัก`;
+      return `ล่าสุดบันทึกว่าอาการเจ็บ${latest.painLocation}หายแล้ว แต่ช่วงล่าสุดเคยมีอาการถึง ${recentMax.painLevel}/10 วันนี้ค่อย ๆ เพิ่มโหลดและหลีกเลี่ยงซ้อมหนัก`;
     }
-    return `ล่าสุด${latest.painLocation}ทำเครื่องหมายว่าหายแล้ว วันนี้ค่อย ๆ กลับเข้าโหลดเบา ๆ และหยุดถ้าอาการกลับมา`;
+    return `ล่าสุดบันทึกว่าอาการเจ็บ${latest.painLocation}หายแล้ว วันนี้ค่อย ๆ กลับเข้าโหลดเบา ๆ และหยุดถ้าอาการกลับมา`;
   }
   if (latest.painLevel >= 3) {
     return `ล่าสุดเจ็บ${latest.painLocation} ${latest.painLevel}/10 วันนี้งดซ้อมเพิ่ม เน้นพักและประคบเย็นถ้ายังระบม`;
@@ -688,7 +693,7 @@ function buildTodayStrengthSafety(context: CoachContext): { blockWorkout: boolea
   if (latest.hasResolvedPain) {
     return {
       blockWorkout: false,
-      note: `ล่าสุด${latest.painLocation}ทำเครื่องหมายว่าหายแล้ว ทำเวทเบา ๆ ได้ แต่ค่อย ๆ เพิ่มโหลดและหยุดถ้าอาการกลับมา`,
+      note: `ล่าสุดบันทึกว่าอาการเจ็บ${latest.painLocation}หายแล้ว ถ้าทำเบา ๆ ได้ ให้เพิ่มโหลดอย่างค่อยเป็นค่อยไปและหยุดถ้าอาการกลับมา`,
     };
   }
   const cannotBearWeight = /no|cannot|can't|ไม่ได้|ไม่ไหว|ลงน้ำหนักไม่ได้/i.test(latest.canBearWeight);
@@ -898,10 +903,10 @@ function CompactPainCard({ pains }: { pains: PainSummary[] }) {
       painfulWhen: [],
       swellingOrRedness: "no",
       canBearWeight: "yes",
-      notes: "ผู้ใช้ทำเครื่องหมายว่าอาการหายแล้วจากหน้า Today",
+      notes: "ผู้ใช้บันทึกว่าอาการหายแล้วจากหน้า Today",
       riskLevel: "low",
       trainingImpact: "run_ok_easy",
-      coachAdvice: "อาการนี้ถูกทำเครื่องหมายว่าหายแล้ว ค่อย ๆ เพิ่มโหลดกลับ และหยุดทันทีถ้าอาการกลับมา",
+      coachAdvice: "ล่าสุดบันทึกว่าอาการหายแล้ว ค่อย ๆ เพิ่มโหลดกลับ และหยุดทันทีถ้าอาการกลับมา",
       redFlags: [],
       createdAt: now,
       resolved: true,
@@ -918,7 +923,7 @@ function CompactPainCard({ pains }: { pains: PainSummary[] }) {
   }
 
   const impactNote =
-    isResolved ? "อาการล่าสุดถูกทำเครื่องหมายว่าหายแล้ว ค่อย ๆ เพิ่มโหลดกลับและสังเกตอาการ"
+    isResolved ? "ล่าสุดบันทึกว่าอาการหายแล้ว ค่อย ๆ เพิ่มโหลดกลับและสังเกตอาการ"
     : latest.trainingImpact === "seek_professional" ? "ควรพักและพบผู้เชี่ยวชาญหากบวม/ลงน้ำหนักไม่ได้"
     : latest.trainingImpact === "rest" ? "ควรพักจากการวิ่งก่อน"
     : latest.trainingImpact === "reduce_load" ? "ควรลดโหลดซ้อม 24–48 ชม."

@@ -735,7 +735,7 @@ function PainDetail({ item, meta, onDelete, deleting }: { item: LocalHistoryItem
       </div>
 
       <p className="rounded-xl bg-white/65 px-3 py-2 text-xs font-semibold leading-5 text-[#17201d]">
-        {isResolved ? "อาการนี้ถูกทำเครื่องหมายว่าหายแล้ว ค่อย ๆ เพิ่มโหลดกลับและหยุดถ้าอาการกลับมา" : impactLabel(painLog.trainingImpact)}
+        {isResolved ? "ล่าสุดบันทึกว่าอาการหายแล้ว ค่อย ๆ เพิ่มโหลดกลับและหยุดถ้าอาการกลับมา" : impactLabel(painLog.trainingImpact)}
       </p>
 
       {hasRedFlags && (
