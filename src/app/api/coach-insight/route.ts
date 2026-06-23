@@ -348,8 +348,9 @@ function buildUserPrompt(ctx: CoachContext): string {
   lines.push(`\nการออกกำลังกาย 7 วันล่าสุด (รวม ${ctx.totalRunKm} km วิ่ง, ${ctx.totalSessions} sessions):`);
   lines.push(`Run days: ${ctx.runDays7d}, longest run: ${ctx.longestRun7dKm ?? "unknown"} km, last workout: ${ctx.lastWorkoutDate ?? "unknown"}`);
   if (ctx.lastRun) {
-    const lastRunKm = typeof ctx.lastRun.km === "number" ? ctx.lastRun.km.toFixed(2) : String(ctx.lastRun.km ?? "?");
-    lines.push(`Last run: ${ctx.lastRun.date}, ${lastRunKm} km, ${ctx.lastRun.durationMin} min, HR ${ctx.lastRun.avgHR ?? "unknown"}, pace ${ctx.lastRun.pace ?? "unknown"}`);
+    const lastRunKm = formatKm(ctx.lastRun.km) ?? "unknown";
+    const duration = formatDurationMin(ctx.lastRun.durationMin) ?? "unknown duration";
+    lines.push(`Last run: ${ctx.lastRun.date}, ${lastRunKm} km, ${duration}, HR ${formatPlainNumber(ctx.lastRun.avgHR) ?? "unknown"}, pace ${ctx.lastRun.pace ?? "unknown"}`);
   }
 
   if (ctx.workouts7d.length === 0) {
@@ -358,13 +359,18 @@ function buildUserPrompt(ctx: CoachContext): string {
     for (const day of ctx.workouts7d) {
       const parts: string[] = [`${day.date}:`];
       for (const r of day.runs) {
-        parts.push(`วิ่ง ${Number(r.km).toFixed(2)}km ${r.durationMin}min${r.avgHR ? ` HR${r.avgHR}` : ""}${r.pace ? ` pace${r.pace}` : ""}`);
+        const distance = formatKm(r.km);
+        const duration = formatDurationMin(r.durationMin);
+        const hr = formatPlainNumber(r.avgHR);
+        parts.push(`วิ่ง${distance ? ` ${distance}km` : ""}${duration ? ` ${duration}` : ""}${hr ? ` HR${hr}` : ""}${r.pace ? ` pace${r.pace}` : ""}`);
       }
       for (const w of day.walks) {
-        parts.push(`เดิน${w.km != null ? ` ${Number(w.km).toFixed(2)}km` : ""} ${w.durationMin}min`);
+        const distance = formatKm(w.km);
+        const duration = formatDurationMin(w.durationMin);
+        parts.push(`เดิน${distance ? ` ${distance}km` : ""}${duration ? ` ${duration}` : ""}`);
       }
       for (const o of day.other) {
-        parts.push(`${o.label} ${o.durationMin}min`);
+        parts.push(`${o.label}${formatDurationMin(o.durationMin) ? ` ${formatDurationMin(o.durationMin)}` : ""}`);
       }
       lines.push(`  ${parts.join(" | ")}`);
     }
@@ -500,11 +506,11 @@ function applyTodayPainGuard(insight: DailyCoachInsight, ctx: CoachContext): Dai
 
 function formatWorkoutForPrompt(workout: TodayCompletedWorkoutSummary): string {
   const details = [
-    workout.distanceKm != null ? `${workout.distanceKm.toFixed(2)} km` : null,
-    workout.durationText ?? (workout.durationMin != null ? `${workout.durationMin} min` : null),
-    workout.avgHR != null ? `avg HR ${workout.avgHR}` : null,
+    formatDistanceKm(workout.distanceKm),
+    workout.durationText ?? formatDurationMin(workout.durationMin),
+    formatAvgHr(workout.avgHR),
     workout.pace ? `pace ${workout.pace}` : null,
-    workout.calories != null ? `${workout.calories} kcal` : null,
+    formatCalories(workout.calories),
   ].filter(Boolean);
   return `${workout.label}${details.length ? ` (${details.join(", ")})` : ""}`;
 }
@@ -517,18 +523,20 @@ function formatWorkoutShortThai(workout: TodayCompletedWorkoutSummary): string {
   else if (workout.kind === "walk") parts.push("วันนี้เดิน/ขยับตัวไปแล้ว");
   else parts.push(`วันนี้${workout.label}ไปแล้ว`);
 
-  if (workout.distanceKm != null && workout.distanceKm > 0) parts.push(`${formatKm(workout.distanceKm)} km`);
+  const distanceKm = toFiniteNumber(workout.distanceKm);
+  if (distanceKm != null && distanceKm > 0) parts.push(`${formatKm(distanceKm)} km`);
   if (workout.durationText) parts.push(`เวลา ${workout.durationText}`);
-  else if (workout.durationMin != null) parts.push(`เวลา ${workout.durationMin} นาที`);
-  if (workout.avgHR != null) parts.push(`เฉลี่ย HR ${workout.avgHR}`);
+  else if (formatDurationMin(workout.durationMin)) parts.push(`เวลา ${formatDurationMin(workout.durationMin)}`);
+  if (formatPlainNumber(workout.avgHR)) parts.push(`เฉลี่ย HR ${formatPlainNumber(workout.avgHR)}`);
   return parts.join(" ");
 }
 
 function postWorkoutTitle(workout: TodayCompletedWorkoutSummary): string {
   if (workout.kind === "race") return "Recovery หลัง Race วันนี้";
   if (workout.kind === "run") {
-    return workout.distanceKm != null
-      ? `ฟื้นตัวหลังวิ่ง ${formatKm(workout.distanceKm)} km`
+    const distance = formatKm(workout.distanceKm);
+    return distance
+      ? `ฟื้นตัวหลังวิ่ง ${distance} km`
       : "Recovery หลังวิ่งวันนี้";
   }
   if (workout.kind === "strength") return "ฟื้นตัวหลังเวทวันนี้";
@@ -536,8 +544,8 @@ function postWorkoutTitle(workout: TodayCompletedWorkoutSummary): string {
 }
 
 function buildHydrationLine(workout: TodayCompletedWorkoutSummary): string {
-  const distance = workout.distanceKm ?? 0;
-  const calories = workout.calories ?? 0;
+  const distance = toFiniteNumber(workout.distanceKm) ?? 0;
+  const calories = toFiniteNumber(workout.calories) ?? 0;
   if (distance >= 8 || calories >= 500 || workout.kind === "race") {
     return "ดื่มน้ำเพิ่มประมาณ 600–900 ml และเติมเกลือแร่ถ้าเหงื่อออกเยอะ";
   }
@@ -607,8 +615,47 @@ function proteinTarget(ctx: CoachContext): number | null {
   return null;
 }
 
-function formatKm(km: number): string {
+function toFiniteNumber(value: unknown): number | null {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const match = trimmed.replace(/,/g, "").match(/-?\d+(?:\.\d+)?/);
+  if (!match) return null;
+  const parsed = Number(match[0]);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function formatKm(value: unknown): string | null {
+  const km = toFiniteNumber(value);
+  if (km == null) return null;
   return Number.isInteger(km) ? String(km) : km.toFixed(2).replace(/0$/, "").replace(/\.0$/, "");
+}
+
+function formatDistanceKm(value: unknown): string | null {
+  const distance = formatKm(value);
+  return distance ? `${distance} km` : null;
+}
+
+function formatDurationMin(value: unknown): string | null {
+  const duration = toFiniteNumber(value);
+  if (duration == null) return null;
+  return `${Math.round(duration)} min`;
+}
+
+function formatAvgHr(value: unknown): string | null {
+  const hr = toFiniteNumber(value);
+  return hr == null ? null : `avg HR ${Math.round(hr)}`;
+}
+
+function formatPlainNumber(value: unknown): string | null {
+  const number = toFiniteNumber(value);
+  return number == null ? null : String(Math.round(number));
+}
+
+function formatCalories(value: unknown): string | null {
+  const calories = toFiniteNumber(value);
+  return calories == null ? null : `${Math.round(calories)} kcal`;
 }
 
 function cleanWorkoutTarget(value: string | null | undefined): string {

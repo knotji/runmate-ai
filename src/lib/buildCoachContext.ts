@@ -191,6 +191,35 @@ function averageSleepMinutes(rows: WeekSleepRow[]): number | null {
   return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
 }
 
+function toFiniteNumber(value: unknown): number | null {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const match = trimmed.replace(/,/g, "").match(/-?\d+(?:\.\d+)?/);
+  if (!match) return null;
+  const parsed = Number(match[0]);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function formatDistanceKm(value: unknown): string | null {
+  const distance = toFiniteNumber(value);
+  if (distance == null) return null;
+  return `${distance.toFixed(2)} km`;
+}
+
+function formatDurationMin(value: unknown): string | null {
+  const duration = toFiniteNumber(value);
+  if (duration == null) return null;
+  return `${Math.round(duration)} min`;
+}
+
+function formatAvgHr(value: unknown): string | null {
+  const hr = toFiniteNumber(value);
+  if (hr == null) return null;
+  return `avg HR ${Math.round(hr)}`;
+}
+
 export function buildCoachContext(): CoachContext {
   const ctx = buildCoachContextFromData({ items: [], profile: null, raceGoal: null, racePlan: null });
   return ctx;
@@ -281,17 +310,20 @@ export function buildCoachContextFromData(input: {
     if (!ext) continue;
 
     const durationMin = parseDurationToMin(ext.duration);
+    const distanceKm = toFiniteNumber(ext.distanceKm);
+    const avgHR = toFiniteNumber(ext.avgHR);
+    const calories = toFiniteNumber(ext.calories);
     if (date === today) {
       todayWorkouts.push({
         date,
         kind: workoutKindToTodayKind(ext.workoutKind),
         label: workoutKindLabel(ext.workoutKind),
-        distanceKm: ext.distanceKm ?? null,
+        distanceKm,
         durationMin,
-        durationText: ext.duration ?? null,
-        avgHR: ext.avgHR ?? null,
+        durationText: typeof ext.duration === "string" && ext.duration.trim() ? ext.duration : null,
+        avgHR,
         pace: ext.avgPace ?? null,
-        calories: ext.calories ?? null,
+        calories,
       });
     }
     if (!durationMin) continue;
@@ -300,15 +332,15 @@ export function buildCoachContextFromData(input: {
     totalSessions++;
 
     if (ext.workoutKind === "outdoor_run" || ext.workoutKind === "treadmill") {
-      const km = ext.distanceKm ?? 0;
+      const km = distanceKm ?? 0;
       totalRunKm += km;
-      day.runs.push({ km, durationMin, avgHR: ext.avgHR ?? null, pace: ext.avgPace ?? null });
+      day.runs.push({ km, durationMin, avgHR, pace: ext.avgPace ?? null });
       longestRun7dKm = Math.max(longestRun7dKm ?? 0, km);
       if (!lastRun || date > lastRun.date) {
-        lastRun = { date, km, durationMin, avgHR: ext.avgHR ?? null, pace: ext.avgPace ?? null };
+        lastRun = { date, km, durationMin, avgHR, pace: ext.avgPace ?? null };
       }
     } else if (ext.workoutKind === "walk") {
-      day.walks.push({ km: ext.distanceKm ?? null, durationMin });
+      day.walks.push({ km: distanceKm, durationMin });
     } else {
       const label = ext.workoutKind === "strength" ? "เวท" : ext.workoutKind === "cycling" ? "ปั่นจักรยาน" : "ออกกำลังกาย";
       day.other.push({ label, durationMin });
@@ -319,18 +351,19 @@ export function buildCoachContextFromData(input: {
     const date = bangkokDateKey(item.createdAt);
     const d = item.data as StrengthLog;
     if (!d) continue;
+    const durationMin = toFiniteNumber(d.durationMin) ?? 15;
 
     const day = ensureDay(date);
     totalSessions++;
-    day.other.push({ label: `เวท (${d.routineName})`, durationMin: d.durationMin || 15 });
+    day.other.push({ label: `เวท (${d.routineName})`, durationMin });
     if (date === today) {
       todayWorkouts.push({
         date,
         kind: "strength",
         label: d.routineName ? `เวท (${d.routineName})` : "เวทเทรนนิ่ง",
         distanceKm: null,
-        durationMin: d.durationMin || null,
-        durationText: d.durationMin ? `${d.durationMin} นาที` : null,
+        durationMin,
+        durationText: `${durationMin} นาที`,
         avgHR: null,
         pace: null,
         calories: null,
@@ -347,10 +380,10 @@ export function buildCoachContextFromData(input: {
       date: today,
       kind: "race",
       label: result.raceName ? `Race ${result.raceName}` : "Race Result",
-      distanceKm: result.actualDistanceKm ?? null,
+      distanceKm: toFiniteNumber(result.actualDistanceKm),
       durationMin: parseDurationToMin(result.actualTime ?? null),
       durationText: result.actualTime ?? null,
-      avgHR: result.avgHr ?? null,
+      avgHR: toFiniteNumber(result.avgHr),
       pace: result.actualPace ?? null,
       calories: null,
     });
@@ -630,15 +663,17 @@ function buildContextNotes(input: {
   if (input.hasWorkoutToday && input.todayPrimaryWorkout) {
     const workout = input.todayPrimaryWorkout;
     const details = [
-      workout.distanceKm != null ? `${workout.distanceKm.toFixed(2)} km` : null,
-      workout.durationText ?? (workout.durationMin != null ? `${workout.durationMin} min` : null),
-      workout.avgHR != null ? `avg HR ${workout.avgHR}` : null,
+      formatDistanceKm(workout.distanceKm),
+      workout.durationText ?? formatDurationMin(workout.durationMin),
+      formatAvgHr(workout.avgHR),
       workout.pace ? `pace ${workout.pace}` : null,
     ].filter(Boolean).join(", ");
     notes.push(`TODAY WORKOUT COMPLETED: ${workout.label}${details ? ` (${details})` : ""}. Today Focus should switch to post-workout recovery and must not recommend extra hard training.`);
   }
-  if (input.totalRunKm > 0) notes.push(`Last 7 days running load: ${Math.round(input.totalRunKm * 10) / 10} km across ${input.runDays7d} run days.`);
-  if (input.longestRun7dKm != null) notes.push(`Longest run in last 7 days: ${input.longestRun7dKm.toFixed(1)} km.`);
+  const totalRunKm = toFiniteNumber(input.totalRunKm);
+  const longestRun7dKm = toFiniteNumber(input.longestRun7dKm);
+  if (totalRunKm != null && totalRunKm > 0) notes.push(`Last 7 days running load: ${Math.round(totalRunKm * 10) / 10} km across ${input.runDays7d} run days.`);
+  if (longestRun7dKm != null) notes.push(`Longest run in last 7 days: ${longestRun7dKm.toFixed(1)} km.`);
   if (input.lastWorkoutDate) notes.push(`Last workout date: ${input.lastWorkoutDate}.`);
   if (input.strengthCount && input.strengthCount > 0) {
     notes.push(`Strength training in last 7 days: completed ${input.strengthCount} strength session(s).`);
@@ -731,10 +766,14 @@ function stringOrNull(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
-function parseDurationToMin(dur: string | null): number | null {
-  if (!dur) return null;
-  const parts = dur.split(":").map(Number);
-  if (parts.length === 3) return Math.round(parts[0] * 60 + parts[1] + parts[2] / 60);
-  if (parts.length === 2) return Math.round(parts[0] + parts[1] / 60);
-  return null;
+function parseDurationToMin(dur: unknown): number | null {
+  if (dur == null) return null;
+  if (typeof dur === "number") return Number.isFinite(dur) ? Math.round(dur) : null;
+  if (typeof dur !== "string") return null;
+  const trimmed = dur.trim();
+  if (!trimmed) return null;
+  const parts = trimmed.split(":").map(Number);
+  if (parts.length === 3 && parts.every(Number.isFinite)) return Math.round(parts[0] * 60 + parts[1] + parts[2] / 60);
+  if (parts.length === 2 && parts.every(Number.isFinite)) return Math.round(parts[0] + parts[1] / 60);
+  return toFiniteNumber(trimmed);
 }

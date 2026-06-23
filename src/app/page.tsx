@@ -62,7 +62,7 @@ function buildClientTodayFallback(ctx: CoachContext | null): DailyCoachInsight {
       todayReadiness: readiness,
       readinessLabel: label,
       readinessNote: ctx?.latestSleepDurationText ? `นอนล่าสุด ${ctx.latestSleepDurationText}` : "ใช้ข้อมูลล่าสุดจาก Report",
-      workoutRec: latestWorkout.kind === "race" ? "Recovery หลัง Race วันนี้" : latestWorkout.kind === "run" ? `ฟื้นตัวหลังวิ่ง${latestWorkout.distanceKm != null ? ` ${formatKm(latestWorkout.distanceKm)} km` : ""}` : "Recovery หลังซ้อมวันนี้",
+      workoutRec: latestWorkout.kind === "race" ? "Recovery หลัง Race วันนี้" : latestWorkout.kind === "run" ? `ฟื้นตัวหลังวิ่ง${formatKm(latestWorkout.distanceKm) ? ` ${formatKm(latestWorkout.distanceKm)} km` : ""}` : "Recovery หลังซ้อมวันนี้",
       workoutTarget: "ไม่ต้องซ้อมเพิ่ม · เน้นฟื้นตัว",
       weekSummary: weekParts.length ? weekParts.join(" / ") : "ยังมีข้อมูลสัปดาห์นี้ไม่มาก",
       keyObservation: latestWorkout.label,
@@ -389,8 +389,9 @@ function buildPostWorkoutTitle(workout: TodayCompletedWorkoutSummary | null, ins
   if (!workout) return insight.workoutRec || "Recovery หลังซ้อมวันนี้";
   if (workout.kind === "race") return "Recovery หลัง Race วันนี้";
   if (workout.kind === "run") {
-    return workout.distanceKm != null
-      ? `ฟื้นตัวหลังวิ่ง ${formatKm(workout.distanceKm)} km`
+    const distance = formatKm(workout.distanceKm);
+    return distance
+      ? `ฟื้นตัวหลังวิ่ง ${distance} km`
       : "Recovery หลังวิ่งวันนี้";
   }
   if (workout.kind === "strength") return "ฟื้นตัวหลังเวทวันนี้";
@@ -401,9 +402,11 @@ function buildPostWorkoutTitle(workout: TodayCompletedWorkoutSummary | null, ins
 function buildPostWorkoutSubtitle(context: CoachContext, workout: TodayCompletedWorkoutSummary | null): string {
   const parts: string[] = [];
   if (workout) {
-    if (workout.kind === "run" && workout.distanceKm != null) parts.push(`วิ่งแล้ว ${formatKm(workout.distanceKm)} km`);
+    const distance = formatKm(workout.distanceKm);
+    if (workout.kind === "run" && distance) parts.push(`วิ่งแล้ว ${distance} km`);
     else parts.push(`${workout.label}วันนี้แล้ว`);
-    if (workout.avgHR != null) parts.push(`Avg HR ${Math.round(workout.avgHR)}`);
+    const avgHR = toFiniteNumber(workout.avgHR);
+    if (avgHR != null) parts.push(`Avg HR ${Math.round(avgHR)}`);
   }
   const latestPain = context.latestPain;
   if (latestPain) {
@@ -428,8 +431,8 @@ function buildPostWorkoutChecklist(context: CoachContext, workout: TodayComplete
 }
 
 function buildHydrationRecoveryItem(workout: TodayCompletedWorkoutSummary | null): string {
-  const distance = workout?.distanceKm ?? 0;
-  const calories = workout?.calories ?? 0;
+  const distance = toFiniteNumber(workout?.distanceKm) ?? 0;
+  const calories = toFiniteNumber(workout?.calories) ?? 0;
   if (workout?.kind === "race" || distance >= 8 || calories >= 500) return "ดื่มน้ำเพิ่ม 600–900 ml แบ่งจิบ ไม่ต้องรีบอัดทีเดียว";
   if (distance >= 5 || calories >= 250) return "ดื่มน้ำเพิ่ม 500–700 ml และสังเกตสีปัสสาวะ";
   return "ดื่มน้ำเพิ่ม 400–600 ml ให้ร่างกายค่อย ๆ กลับมาสมดุล";
@@ -732,9 +735,19 @@ function formatStrengthExerciseLine(exercise: StrengthExercise): string {
   return `${exercise.sets} x ${exercise.reps}`;
 }
 
-function formatKm(value: number): string {
-  if (!Number.isFinite(value)) return "-";
-  return value.toFixed(2).replace(/\.?0+$/, "");
+function toFiniteNumber(value: unknown): number | null {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value !== "string") return null;
+  const match = value.trim().replace(/,/g, "").match(/-?\d+(?:\.\d+)?/);
+  if (!match) return null;
+  const parsed = Number(match[0]);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function formatKm(value: unknown): string | null {
+  const number = toFiniteNumber(value);
+  if (number == null) return null;
+  return number.toFixed(2).replace(/\.?0+$/, "");
 }
 
 type TodayChecklistItem = { label: string; href: string; done: boolean };
