@@ -4,6 +4,7 @@ import { loadHistoryItems } from "@/lib/cloudHistory";
 import { loadProfileFromSupabase } from "@/lib/profileStorage";
 import { loadActiveRaceGoalAndPlan } from "@/lib/raceStorage";
 import { formatSleepMinutesThai } from "@/lib/sleepDuration";
+import { dedupeSleepItems } from "@/lib/sleepDedupe";
 import { loadRaceResults } from "@/lib/raceResults";
 import type { LocalHistoryItem } from "@/lib/localHistory";
 import type { SleepAnalysis, WorkoutAnalysis, BodyCompositionAnalysis, MealAnalysis } from "@/types/logs";
@@ -183,9 +184,11 @@ export function buildCoachContextFromData(input: {
   const race = buildRaceContext(input.raceGoal, today);
   const items = input.items.filter((item) => normalizeDateString(item.createdAt));
 
-  const sleepItems = items
-    .filter((i) => i.type === "sleep")
-    .filter((i) => bangkokDateKey(i.createdAt) >= cutoff);
+  const sleepItems = dedupeSleepItems(
+    items
+      .filter((i) => i.type === "sleep")
+      .filter((i) => bangkokDateKey(i.createdAt) >= cutoff),
+  );
   const sleep7d: WeekSleepRow[] = sleepItems.map((item) => {
     const d = item.data as SleepAnalysis;
     return {

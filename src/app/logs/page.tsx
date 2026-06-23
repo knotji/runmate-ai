@@ -26,6 +26,7 @@ import {
 } from "@/lib/format";
 import { extractMealData, normalizeMealNutrition } from "@/lib/mealMerge";
 import { polishSleepInsightText } from "@/lib/sleepInsight";
+import { dedupeSleepItems } from "@/lib/sleepDedupe";
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -290,6 +291,7 @@ function DayCard({
   const [expanded, setExpanded] = useState(false);
 
   const sleeps = day.items.filter((i) => i.type === "sleep");
+  const dedupedSleeps = dedupeSleepItems(sleeps);
   const workouts = day.items.filter((i) => i.type === "workout");
   const meals = day.items.filter((i) => i.type === "meal");
   const summaries = day.items.filter((i) => i.type === "summary");
@@ -297,9 +299,9 @@ function DayCard({
   const pains = day.items.filter((i) => i.type === "pain");
   const strengths = day.items.filter((i) => i.type === "strength");
   const painMetaById = buildPainDisplayMeta(pains);
-  const latestSleepDuration = getLatestSleepDuration(sleeps);
+  const latestSleepDuration = getLatestSleepDuration(dedupedSleeps);
 
-  const readiness = getReadiness(sleeps);
+  const readiness = getReadiness(dedupedSleeps);
   const totalKm = getTotalKm(workouts);
   const runKm = getTotalKm(workouts.filter(isRun));
   const walkKm = getTotalKm(workouts.filter(isWalk));
@@ -324,7 +326,7 @@ function DayCard({
             <div className="mt-2 space-y-1.5">
               {/* Activity row (Row 1) */}
               <div className="flex flex-wrap gap-1.5">
-                {sleeps.length > 0 && <Badge icon="🌙" label={latestSleepDuration ? formatSleepBadgeDuration(latestSleepDuration) : "นอน"} />}
+                {dedupedSleeps.length > 0 && <Badge icon="🌙" label={latestSleepDuration ? formatSleepBadgeDuration(latestSleepDuration) : "นอน"} />}
                 {workouts.some((w) => isRun(w)) && <Badge icon="🏃" label={runKm ? formatDistanceKm(runKm) : "วิ่ง"} color="green" />}
                 {raceResults.length > 0 && <Badge icon="🏁" label="Race Result" color="green" />}
                 {(strengths.length > 0 || workouts.some((w) => !isRun(w) && !isWalk(w) && (w.data as WorkoutAnalysis)?.extracted?.workoutKind === "strength")) && (
@@ -378,7 +380,7 @@ function DayCard({
 
       {expanded && (
         <div className="border-t border-[#d9e8df]/70 space-y-3 px-4 pb-4 pt-3">
-          {sleeps.map((item) => <SleepDetail key={item.id} item={item} onDelete={onDeleteItem} deleting={deletingKey === item.id} />)}
+          {dedupedSleeps.map((item) => <SleepDetail key={item.id} item={item} onDelete={onDeleteItem} deleting={deletingKey === item.id} />)}
           {pains.map((item) => <PainDetail key={item.id} item={item} meta={painMetaById.get(item.id)} onDelete={onDeleteItem} deleting={deletingKey === item.id} />)}
           {strengths.map((item) => <StrengthDetail key={item.id} item={item} onDelete={onDeleteItem} deleting={deletingKey === item.id} />)}
           {raceResults.map((result) => <RaceResultDetail key={result.id ?? `${result.raceDate}-${result.raceName}`} result={result} onDelete={onDeleteRaceResult} deleting={Boolean(result.id && deletingKey === `race:${result.id}`)} />)}
@@ -386,9 +388,9 @@ function DayCard({
           {mealCount > 0 && <MealNutritionDaySummary summary={mealNutrition} mealCount={mealCount} proteinTarget={proteinTarget} />}
           {meals.map((item) => <MealDetail key={item.id} item={item} onDelete={onDeleteItem} deleting={deletingKey === item.id} />)}
           {bodies.map((item) => <BodyDetail key={item.id} item={item} onDelete={onDeleteItem} deleting={deletingKey === item.id} />)}
-          {summaries.length > 0 && (sleeps.length + workouts.length + meals.length + bodies.length + pains.length + strengths.length === 0) &&
+          {summaries.length > 0 && (dedupedSleeps.length + workouts.length + meals.length + bodies.length + pains.length + strengths.length === 0) &&
             summaries.map((item) => <SummaryDetail key={item.id} item={item} onDelete={onDeleteItem} deleting={deletingKey === item.id} />)}
-          {summaries.length > 0 && (sleeps.length + workouts.length + meals.length + bodies.length + pains.length + strengths.length > 0) && (
+          {summaries.length > 0 && (dedupedSleeps.length + workouts.length + meals.length + bodies.length + pains.length + strengths.length > 0) && (
             <div className="rounded-2xl bg-slate-50 p-3">
               <p className="text-xs font-bold text-slate-500 mb-1">สรุปท้ายวัน ({summaries.length})</p>
               {summaries.slice(0, 2).map((item) => (
@@ -429,6 +431,7 @@ function SleepDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; onD
   const d = item.data as SleepAnalysis;
   const ext = d?.extracted ?? {};
   const coach = d?.coach ?? {};
+  const merged = item as { mergedFromDuplicates?: boolean; duplicateCount?: number };
 
   return (
     <div className="rounded-2xl bg-[#e7efea] p-4">
@@ -445,6 +448,9 @@ function SleepDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; onD
       {coach.aiSummary && <p className="text-sm leading-6 text-slate-700">{polishSleepInsightText(coach.aiSummary)}</p>}
       {coach.todayRecommendation && (
         <p className="mt-2 text-sm font-bold text-[#17201d]">→ {polishSleepInsightText(coach.todayRecommendation)}</p>
+      )}
+      {merged.mergedFromDuplicates && (
+        <p className="mt-2 text-xs text-slate-400">รวมข้อมูลจากหลายบันทึก{merged.duplicateCount ? ` (${merged.duplicateCount})` : ""}</p>
       )}
       <DeleteRecordButton onDelete={() => onDelete(item)} loading={deleting} />
     </div>
@@ -844,7 +850,7 @@ function buildDashboard(items: LocalHistoryItem[]): Dashboard {
   const cutoff = dateKeyBefore(7);
   const recent = items.filter((item) => bangkokDateKey(item.createdAt) >= cutoff);
   const runs = recent.filter((item) => item.type === "workout" && isRun(item));
-  const sleeps = recent.filter((item) => item.type === "sleep");
+  const sleeps = dedupeSleepItems(recent.filter((item) => item.type === "sleep"));
   const meals = recent.filter((item) => item.type === "meal");
   const bodies = items.filter((item) => item.type === "body");
   const mealDays = groupByDay(meals);
