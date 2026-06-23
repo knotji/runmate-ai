@@ -406,6 +406,7 @@ function buildHistorySummary(ctx: CoachContext): string {
       const parts = [s.date, s.durationH && `นอน ${s.durationH}`, s.readiness && `readiness ${s.readiness}`].filter(Boolean);
       lines.push(`  - ${parts.join(", ")}`);
     }
+    if (ctx.sleepAvg7dText) lines.push(`  Sleep avg 7d source of truth: ${ctx.sleepAvg7dText} from ${ctx.sleepNightCount7d} deduped night(s).`);
     if (ctx.avgReadiness != null) lines.push(`  เฉลี่ย readiness: ${ctx.avgReadiness}`);
   }
 

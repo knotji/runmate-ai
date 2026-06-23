@@ -23,6 +23,9 @@ export async function POST(request: Request) {
         raceDate: (context as Record<string, unknown>).raceDate ?? null,
         isRaceToday: Boolean((context as Record<string, unknown>).isRaceToday),
         isRaceTomorrow: Boolean((context as Record<string, unknown>).isRaceTomorrow),
+        sleepAvg7dText: (context as Record<string, unknown>).sleepAvg7dText ?? null,
+        sleepNightCount7d: (context as Record<string, unknown>).sleepNightCount7d ?? null,
+        latestSleepDateKey: (context as Record<string, unknown>).latestSleepDateKey ?? null,
       });
     }
 
@@ -53,6 +56,7 @@ IMAGE INTENT HINT: "${imageIntent}".
     const contextGuidance = buildContextGuidance(latest, context);
     const systemExtra = [
       `Current Bangkok date/time: ${dateTimeStr}`,
+      buildLatestReportContextOverride(context),
       buildRunnerProfileContext(profile),
       contextGuidance,
       `Context from Report/Profile/Race Goal:\n${JSON.stringify(context)}`,
@@ -73,6 +77,28 @@ IMAGE INTENT HINT: "${imageIntent}".
     }
     return NextResponse.json({ message: "โค้ชตอบไม่สำเร็จ ลองใหม่อีกครั้ง" }, { status: 200 });
   }
+}
+
+function buildLatestReportContextOverride(context: unknown): string {
+  const ctx = context as Record<string, unknown>;
+  const lines = [
+    "LATEST REPORT CONTEXT OVERRIDES CHAT HISTORY:",
+    "- Treat the current Report/Profile/Race context below as the source of truth.",
+    "- Ignore older sleep averages or health metrics mentioned in prior chat messages when they conflict with this context.",
+  ];
+  const sleepAvg = stringValue(ctx.sleepAvg7dText);
+  const sleepCount = numberValue(ctx.sleepNightCount7d);
+  const latestSleep = stringValue(ctx.latestSleepDurationText);
+  const latestSleepDate = stringValue(ctx.latestSleepDateKey);
+  if (sleepAvg) {
+    lines.push(`- Current sleepAvg7dText: ${sleepAvg}${sleepCount != null ? ` from ${sleepCount} deduped sleep night(s)` : ""}. Use this exact value if mentioning sleep average.`);
+  } else {
+    lines.push("- Current sleepAvg7dText: unavailable. Do not mention a numeric sleep average.");
+  }
+  if (latestSleep) {
+    lines.push(`- Latest sleep: ${latestSleepDate ?? "latest"} duration ${latestSleep}.`);
+  }
+  return lines.join("\n");
 }
 
 function buildToneInstruction(coachingTone?: string) {
@@ -135,7 +161,22 @@ function buildContextGuidance(question: string, context: unknown) {
   const latestPain = readRecord(ctx.latestPain);
   const recentMaxPain = readRecord(ctx.recentMaxPain);
   const todayWorkout = readRecord(ctx.todayPrimaryWorkout);
+  const sleepAvg7dText = stringValue(ctx.sleepAvg7dText);
+  const sleepNightCount7d = numberValue(ctx.sleepNightCount7d);
+  const latestSleepDurationText = stringValue(ctx.latestSleepDurationText);
+  const latestSleepDateKey = stringValue(ctx.latestSleepDateKey);
+  const latestSleepScore = numberValue(ctx.latestSleepScore);
+  const latestEnergyScore = numberValue(ctx.latestEnergyScore);
   const lines: string[] = [];
+
+  if (sleepAvg7dText) {
+    lines.push(`SLEEP SOURCE OF TRUTH: Current Report sleep average is ${sleepAvg7dText}${sleepNightCount7d != null ? ` from ${sleepNightCount7d} deduped sleep night(s)` : ""}. Never reuse older sleep averages from chat history.`);
+  } else {
+    lines.push("SLEEP SOURCE OF TRUTH: Current Report context has no sleep average. Do not invent or reuse old sleep averages.");
+  }
+  if (latestSleepDurationText) {
+    lines.push(`LATEST SLEEP: ${latestSleepDateKey ?? "latest"} duration ${latestSleepDurationText}, sleep score ${latestSleepScore ?? "unknown"}, energy score ${latestEnergyScore ?? "unknown"}.`);
+  }
 
   if (isSimpleFollowUp(question)) {
     lines.push("RESPONSE LENGTH HINT: This looks like a simple follow-up. Answer in 3-5 short Thai lines unless the user asks for detail.");

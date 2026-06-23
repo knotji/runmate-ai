@@ -20,9 +20,11 @@ export function AIContextCard() {
     }
     void load();
     window.addEventListener("runmate:cloud-data-updated", load);
+    window.addEventListener("focus", load);
     return () => {
       alive = false;
       window.removeEventListener("runmate:cloud-data-updated", load);
+      window.removeEventListener("focus", load);
     };
   }, []);
 
@@ -176,17 +178,11 @@ export function AIContextCard() {
             {(() => {
               const scores = context.sleep7d.map((s) => s.score).filter((s): s is number => s != null);
               const avgScore = scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null;
-              const durations = context.sleep7d.map((s) => {
-                if (!s.durationH) return null;
-                const match = s.durationH.match(/(\d+(\.\d+)?)/);
-                return match ? parseFloat(match[1]) : null;
-              }).filter((n): n is number => n != null);
-              const avgDur = durations.length ? (durations.reduce((a, b) => a + b, 0) / durations.length).toFixed(1) : null;
-              
               const parts = [
                 context.avgReadiness != null && `ความพร้อมเฉลี่ย (Readiness) ${context.avgReadiness}%`,
                 avgScore != null && `คะแนนการนอนเฉลี่ย ${avgScore}`,
-                avgDur != null && `เวลานอนเฉลี่ย ${avgDur} ชม.`,
+                context.sleepAvg7dText && `เวลานอนเฉลี่ย ${context.sleepAvg7dText}`,
+                context.sleepNightCount7d > 0 && `จาก ${context.sleepNightCount7d} คืน`,
               ].filter(Boolean);
               return parts.length ? parts.join(" · ") : "ไม่มีข้อมูลสำหรับคำนวณค่าเฉลี่ย";
             })()}
@@ -328,7 +324,7 @@ function buildSourceSummary(context: CoachContext) {
     context.avgReadiness != null && `Readiness ${context.avgReadiness}`,
     (context.latestPain || context.recentPainLogs.length > 0) && `เจ็บ ${(context.latestPain ?? context.recentPainLogs[0]).painLocation} ${(context.latestPain ?? context.recentPainLogs[0]).painLevel}/10`,
     context.runDays7d > 0 && `วิ่ง ${context.runDays7d} วันใน 7 วันล่าสุด`,
-    context.sleep7d.length > 0 && `Sleep ${context.sleep7d.length} รายการ`,
+    context.sleepAvg7dText && `Sleep ${context.sleepAvg7dText} / ${context.sleepNightCount7d} คืน`,
     context.nutritionToday && `อาหารวันนี้ ${context.nutritionToday.mealCount} มื้อ`,
     context.raceGoal && (
       [context.raceName, context.raceDistance, context.daysUntilRace != null ? `อีก ${context.daysUntilRace} วัน` : null]
@@ -369,6 +365,13 @@ const emptyContext: CoachContext = {
   targetTime: null,
   sleep7d: [],
   avgReadiness: null,
+  sleepAvg7dHours: null,
+  sleepAvg7dText: null,
+  sleepNightCount7d: 0,
+  latestSleepDurationText: null,
+  latestSleepScore: null,
+  latestEnergyScore: null,
+  latestSleepDateKey: null,
   workouts7d: [],
   hasWorkoutToday: false,
   todayWorkouts: [],

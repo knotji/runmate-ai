@@ -3,7 +3,7 @@
 import { loadHistoryItems } from "@/lib/cloudHistory";
 import { loadProfileFromSupabase } from "@/lib/profileStorage";
 import { loadActiveRaceGoalAndPlan } from "@/lib/raceStorage";
-import { formatSleepMinutesThai } from "@/lib/sleepDuration";
+import { formatSleepMinutesShortThai, formatSleepMinutesThai, parseSleepDurationToMinutes } from "@/lib/sleepDuration";
 import { dedupeSleepItems } from "@/lib/sleepDedupe";
 import { loadRaceResults } from "@/lib/raceResults";
 import type { LocalHistoryItem } from "@/lib/localHistory";
@@ -34,6 +34,7 @@ export type TodayCompletedWorkoutSummary = {
 export type WeekSleepRow = {
   date: string;
   durationH: string | null;
+  durationMinutes: number | null;
   score: number | null;
   readiness: number | null;
   restingHR: number | null;
@@ -78,6 +79,13 @@ export type CoachContext = {
   targetTime: string | null;
   sleep7d: WeekSleepRow[];
   avgReadiness: number | null;
+  sleepAvg7dHours: number | null;
+  sleepAvg7dText: string | null;
+  sleepNightCount7d: number;
+  latestSleepDurationText: string | null;
+  latestSleepScore: number | null;
+  latestEnergyScore: number | null;
+  latestSleepDateKey: string | null;
   workouts7d: DayWorkoutSummary[];
   hasWorkoutToday: boolean;
   todayWorkouts: TodayCompletedWorkoutSummary[];
@@ -150,6 +158,39 @@ function bangkokDateKey(isoString: string): string {
   return new Date(d.getTime() + TZ_OFFSET_MS).toISOString().slice(0, 10);
 }
 
+function getSleepDurationMinutes(item: LocalHistoryItem): number | null {
+  const data = item.data as Record<string, unknown> | null;
+  const extracted = data?.extracted as Record<string, unknown> | undefined;
+  const sleep = data?.sleep as Record<string, unknown> | undefined;
+  const candidates = [
+    extracted?.actualSleepDurationMinutes,
+    extracted?.actualSleepDurationText,
+    extracted?.sleepDuration,
+    extracted?.duration,
+    extracted?.sleepTime,
+    data?.sleepDuration,
+    data?.duration,
+    data?.sleepTime,
+    data?.sleepDurationHours,
+    data?.sleepDurationMinutes,
+    data?.totalSleepMinutes,
+    sleep?.duration,
+    sleep?.sleepDuration,
+    sleep?.totalSleepMinutes,
+  ];
+  for (const candidate of candidates) {
+    const minutes = parseSleepDurationToMinutes(candidate);
+    if (minutes != null) return minutes;
+  }
+  return null;
+}
+
+function averageSleepMinutes(rows: WeekSleepRow[]): number | null {
+  const values = rows.map((row) => row.durationMinutes).filter((value): value is number => value != null && value > 0);
+  if (!values.length) return null;
+  return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
+}
+
 export function buildCoachContext(): CoachContext {
   const ctx = buildCoachContextFromData({ items: [], profile: null, raceGoal: null, racePlan: null });
   return ctx;
@@ -191,11 +232,13 @@ export function buildCoachContextFromData(input: {
   );
   const sleep7d: WeekSleepRow[] = sleepItems.map((item) => {
     const d = item.data as SleepAnalysis;
+    const durationMinutes = getSleepDurationMinutes(item);
     return {
       date: bangkokDateKey(item.createdAt),
-      durationH: d?.extracted?.actualSleepDurationMinutes
-        ? formatSleepMinutesThai(d.extracted.actualSleepDurationMinutes)
+      durationH: durationMinutes
+        ? formatSleepMinutesThai(durationMinutes)
         : d?.extracted?.sleepDuration ?? null,
+      durationMinutes,
       score: d?.extracted?.sleepScore ?? null,
       readiness: d?.coach?.readinessScore ?? null,
       restingHR: d?.extracted?.restingHR ?? null,
@@ -206,6 +249,10 @@ export function buildCoachContextFromData(input: {
 
   const scores = sleep7d.map((s) => s.readiness).filter((n): n is number => n != null);
   const avgReadiness = scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null;
+  const avgSleepMinutes = averageSleepMinutes(sleep7d);
+  const sleepAvg7dHours = avgSleepMinutes != null ? Math.round((avgSleepMinutes / 60) * 10) / 10 : null;
+  const sleepAvg7dText = avgSleepMinutes != null ? formatSleepMinutesShortThai(avgSleepMinutes) : null;
+  const latestSleep = sleep7d[0] ?? null;
 
   const workoutItems = items
     .filter((i) => i.type === "workout")
@@ -387,6 +434,13 @@ export function buildCoachContextFromData(input: {
     targetTime: race.targetTime,
     sleep7d,
     avgReadiness,
+    sleepAvg7dHours,
+    sleepAvg7dText,
+    sleepNightCount7d: sleep7d.length,
+    latestSleepDurationText: latestSleep?.durationMinutes ? formatSleepMinutesThai(latestSleep.durationMinutes) : latestSleep?.durationH ?? null,
+    latestSleepScore: latestSleep?.score ?? null,
+    latestEnergyScore: latestSleep?.energyScore ?? null,
+    latestSleepDateKey: latestSleep?.date ?? null,
     workouts7d,
     hasWorkoutToday: todayWorkouts.length > 0,
     todayWorkouts,
@@ -419,6 +473,12 @@ export function buildCoachContextFromData(input: {
       runDays7d,
       longestRun7dKm,
       lastWorkoutDate,
+      sleepAvg7dText,
+      sleepNightCount7d: sleep7d.length,
+      latestSleepDurationText: latestSleep?.durationMinutes ? formatSleepMinutesThai(latestSleep.durationMinutes) : latestSleep?.durationH ?? null,
+      latestSleepScore: latestSleep?.score ?? null,
+      latestEnergyScore: latestSleep?.energyScore ?? null,
+      latestSleepDateKey: latestSleep?.date ?? null,
       recentPainLogs,
       latestPain,
       recentMaxPain,
@@ -524,6 +584,12 @@ function buildContextNotes(input: {
   racePlan: Record<string, unknown> | null;
   raceResults: RaceResult[];
   sleep7d: WeekSleepRow[];
+  sleepAvg7dText?: string | null;
+  sleepNightCount7d?: number;
+  latestSleepDurationText?: string | null;
+  latestSleepScore?: number | null;
+  latestEnergyScore?: number | null;
+  latestSleepDateKey?: string | null;
   workouts7d: DayWorkoutSummary[];
   hasWorkoutToday?: boolean;
   todayPrimaryWorkout?: TodayCompletedWorkoutSummary | null;
@@ -554,6 +620,12 @@ function buildContextNotes(input: {
   }
   if (!input.racePlan) notes.push("No active weekly/race plan is set. For tomorrow questions, state that the plan is inferred from recent data.");
   if (input.sleep7d.length === 0) notes.push("No sleep data in the last 7 days.");
+  if (input.sleepAvg7dText) {
+    notes.push(`SLEEP AVG 7D SOURCE OF TRUTH: ${input.sleepAvg7dText} from ${input.sleepNightCount7d ?? input.sleep7d.length} deduped sleep night(s). Never use older sleep averages from chat history.`);
+  }
+  if (input.latestSleepDurationText) {
+    notes.push(`LATEST SLEEP SOURCE OF TRUTH: ${input.latestSleepDateKey ?? "latest"} duration ${input.latestSleepDurationText}, sleep score ${input.latestSleepScore ?? "unknown"}, energy ${input.latestEnergyScore ?? "unknown"}.`);
+  }
   if (input.workouts7d.length === 0) notes.push("No workout data in the last 7 days.");
   if (input.hasWorkoutToday && input.todayPrimaryWorkout) {
     const workout = input.todayPrimaryWorkout;

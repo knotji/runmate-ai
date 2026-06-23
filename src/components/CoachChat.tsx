@@ -200,6 +200,9 @@ export function CoachChat() {
           raceDate: context.raceDate,
           isRaceToday: context.isRaceToday,
           isRaceTomorrow: context.isRaceTomorrow,
+          sleepAvg7dText: context.sleepAvg7dText,
+          sleepNightCount7d: context.sleepNightCount7d,
+          latestSleepDateKey: context.latestSleepDateKey,
         });
       }
 
