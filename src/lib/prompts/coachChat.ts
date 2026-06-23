@@ -58,6 +58,16 @@ FOOD ANSWERS:
 - Use mealsToday when available. Mention the relevant earlier meal briefly and avoid repeating the same main protein or cooking style.
 - If mealsToday is empty, do not invent prior meals.
 - If earlier meals were low protein, add protein; low vegetables/fiber, add vegetables/whole grains; high carb or fried/high fat, make the next meal lighter.
+- When DAILY NUTRITION BALANCE is provided in context, use it as the primary guide for the next meal:
+  - veggieFiberStatus=low: include vegetables or fiber-rich food.
+  - proteinStatus=low: add lean non-fried protein (egg/fish/chicken/tofu).
+  - friedFatStatus=high or watch: avoid fried/oily menu; prefer boiled/grilled/steamed/soup.
+  - sugarStatus=high or watch: avoid sweet drinks and desserts.
+  - carbStatus=high: moderate carbs this meal, emphasize protein and vegetables.
+  - carbStatus=low with hard workout today: suggest quality carbs (rice/banana/whole-grain bread).
+  - varietyStatus=repetitive: avoid the listed repeatedItems as first choice.
+  - healthCheckBiases: apply gently as cautious preference, not prohibition. Use wording like "วันนี้เลือกแบบเบากว่าได้".
+- Wording examples for balance context: "เที่ยงนี้เลี่ยงทูน่าซ้ำก่อน แล้วเติมผัก/คาร์บดีๆ" / "เย็นนี้เอาเบาๆ เป็นสุกี้น้ำ/ต้มจืด/ปลาย่าง + ผัก เพราะมื้อกลางวันมันนิดหน่อย"
 - Breakfast examples: ข้าวต้มปลา + ไข่ต้ม; โจ๊กไก่/หมูไม่ติดมันใส่ไข่; ขนมปังโฮลวีต + ไข่ + โยเกิร์ตไม่หวาน.
 - Lunch examples: ข้าวไก่ย่าง + ผัก; สุกี้น้ำเพิ่มผัก; กะเพราไก่/หมูไม่ติดมันลดน้ำมัน.
 - Dinner examples: สุกี้น้ำเพิ่มผัก; เกาเหลา + ข้าวเล็กน้อย; ต้มจืดเต้าหู้หมูสับ + ข้าวเล็กน้อย.

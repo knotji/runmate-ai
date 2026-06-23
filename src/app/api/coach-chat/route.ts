@@ -242,6 +242,7 @@ function buildContextGuidance(question: string, context: unknown) {
   if (mealRecommendation) {
     const mealSlot = detectMealSlot(question);
     const nutritionToday = readRecord(ctx.nutritionToday);
+    const nutritionBalance = readRecord(ctx.nutritionBalanceToday);
     lines.push([
       "PERSONALIZED MEAL RECOMMENDATION MODE:",
       "- FOOD INTENT OVERRIDES unrelated sleep, pain, cold-soak, and general recovery instructions. Answer the meal request only.",
@@ -258,7 +259,36 @@ function buildContextGuidance(question: string, context: unknown) {
     } else {
       lines.push("MEALS ALREADY LOGGED TODAY: none. Do not invent an earlier meal. You may say 'ถ้ายังไม่ได้กินอะไรมาก่อน...'.");
     }
-    if (nutritionToday) {
+    if (nutritionBalance && numberValue(nutritionBalance.mealCount)) {
+      const proteinStatus = stringValue(nutritionBalance.proteinStatus);
+      const carbStatus = stringValue(nutritionBalance.carbStatus);
+      const veggieStatus = stringValue(nutritionBalance.veggieFiberStatus);
+      const friedStatus = stringValue(nutritionBalance.friedFatStatus);
+      const sugarStatus = stringValue(nutritionBalance.sugarStatus);
+      const varietyStatus = stringValue(nutritionBalance.varietyStatus);
+      const repeatedItems = Array.isArray(nutritionBalance.repeatedItems) ? nutritionBalance.repeatedItems.filter((x): x is string => typeof x === "string") : [];
+      const nextHints = Array.isArray(nutritionBalance.nextMealHints) ? nutritionBalance.nextMealHints.filter((x): x is string => typeof x === "string") : [];
+      const hcBiases = Array.isArray(nutritionBalance.healthCheckBiases) ? nutritionBalance.healthCheckBiases.filter((x): x is string => typeof x === "string") : [];
+      const balanceParts = [
+        `protein=${proteinStatus}`,
+        `carbs=${carbStatus}`,
+        `veggie/fiber=${veggieStatus}`,
+        `fried/fat=${friedStatus}`,
+        `sugar=${sugarStatus}`,
+      ].join(", ");
+      lines.push([
+        `DAILY NUTRITION BALANCE: ${balanceParts}. Variety=${varietyStatus}.`,
+        repeatedItems.length ? `Repeated proteins/menus today: ${repeatedItems.join(", ")} — avoid these as first option.` : "",
+        nextHints.length ? `Next meal hints from balance: ${nextHints.join("; ")}.` : "",
+        hcBiases.length ? `Health check biases: ${hcBiases.join("; ")}.` : "",
+        "Apply nutrition balance rules first before suggesting menus:",
+        veggieStatus === "low" ? "- Veggie/fiber is low: include vegetables or fiber-rich food in this meal." : "",
+        proteinStatus === "low" ? "- Protein is low: add lean non-fried protein (egg, fish, chicken, tofu)." : "",
+        (friedStatus === "high" || friedStatus === "watch") ? "- Fried/fat is high/watch: avoid fried or greasy menu." : "",
+        (sugarStatus === "high" || sugarStatus === "watch") ? "- Sugar is high/watch: avoid sweet drinks and desserts." : "",
+        carbStatus === "high" ? "- Carbs are high: moderate carbs this meal, emphasize protein and vegetables." : "",
+      ].filter(Boolean).join("\n"));
+    } else if (nutritionToday) {
       lines.push(`NUTRITION TODAY ESTIMATE: meals=${numberValue(nutritionToday.mealCount) ?? mealsToday.length}, protein=${numberValue(nutritionToday.proteinG) ?? "unknown"} g, carbs=${numberValue(nutritionToday.carbsG) ?? "unknown"} g, fat=${numberValue(nutritionToday.fatG) ?? "unknown"} g.`);
     }
     if (todayWorkout) {

@@ -7,6 +7,8 @@ import { formatSleepMinutesShortThai, formatSleepMinutesThai, parseSleepDuration
 import { dedupeSleepItems } from "@/lib/sleepDedupe";
 import { loadRaceResults } from "@/lib/raceResults";
 import { extractMealData, normalizeMealNutrition } from "@/lib/mealMerge";
+import { buildDailyNutritionBalance } from "@/lib/dailyNutritionBalance";
+import type { DailyNutritionBalance } from "@/lib/dailyNutritionBalance";
 import type { LocalHistoryItem } from "@/lib/localHistory";
 import type { SleepAnalysis, WorkoutAnalysis, BodyCompositionAnalysis, MealAnalysis, HealthCheckAnalysis, LabValue } from "@/types/logs";
 import type { PainLog } from "@/types/pain";
@@ -112,6 +114,7 @@ export type CoachContext = {
   activePain: boolean;
   recentPainHistory: boolean;
   painResolved: boolean;
+  nutritionBalanceToday: DailyNutritionBalance | null;
 };
 
 export type NutritionDaySummary = {
@@ -483,6 +486,16 @@ export function buildCoachContextFromData(input: {
     && (painResolved || recentMaxPain.painLevel > (latestPain?.painLevel ?? 0))
   );
 
+  const nutritionBalanceToday = mealsToday.length > 0
+    ? buildDailyNutritionBalance({
+        dateKey: today,
+        mealsToday,
+        latestHealthCheck,
+        todayPrimaryWorkout: pickTodayPrimaryWorkout(todayWorkouts),
+        isRecoveryDay: todayWorkouts.length === 0,
+      })
+    : null;
+
   const latestBodyItem = items.filter((i) => i.type === "body")[0];
   let latestBody: CoachContext["latestBody"] = null;
   if (latestBodyItem) {
@@ -542,6 +555,7 @@ export function buildCoachContextFromData(input: {
     activePain,
     recentPainHistory,
     painResolved,
+    nutritionBalanceToday,
     contextNotes: buildContextNotes({
       raceGoal: input.raceGoal,
       racePlan: input.racePlan,
@@ -566,6 +580,7 @@ export function buildCoachContextFromData(input: {
       recentMaxPain,
       latestHealthCheck,
       mealsToday,
+      nutritionBalanceToday,
       strengthCount: items.filter((i) => i.type === "strength" && bangkokDateKey(i.createdAt) >= cutoff).length,
     }),
   };
@@ -762,6 +777,7 @@ function buildContextNotes(input: {
   recentMaxPain?: PainSummary | null;
   latestHealthCheck?: HealthCheckContext | null;
   mealsToday?: MealContextSummary[];
+  nutritionBalanceToday?: DailyNutritionBalance | null;
   longestRun7dKm: number | null;
   lastWorkoutDate: string | null;
   strengthCount?: number;
@@ -797,6 +813,19 @@ function buildContextNotes(input: {
     notes.push(`MEALS TODAY: ${input.mealsToday.map((meal) => `${meal.mealType}: ${meal.foods.join(", ") || "foods not specified"}`).join(" | ")}. Use this to avoid repeating the same main protein or menu style in the next meal.`);
   } else {
     notes.push("No meals logged today. Do not pretend the user already ate a meal.");
+  }
+  if (input.nutritionBalanceToday && input.nutritionBalanceToday.mealCount > 0) {
+    const nb = input.nutritionBalanceToday;
+    const parts = [
+      `protein=${nb.proteinStatus}`,
+      `carbs=${nb.carbStatus}`,
+      `veggie/fiber=${nb.veggieFiberStatus}`,
+      `fried/fat=${nb.friedFatStatus}`,
+      `sugar=${nb.sugarStatus}`,
+      `variety=${nb.varietyStatus}`,
+    ];
+    if (nb.repeatedItems.length) parts.push(`repeated: ${nb.repeatedItems.join(", ")}`);
+    notes.push(`DAILY NUTRITION BALANCE: ${parts.join("; ")}. Summary: ${nb.summaryText}. Next meal hints: ${nb.nextMealHints.join("; ") || "none"}.${nb.healthCheckBiases.length ? ` Health check biases: ${nb.healthCheckBiases.join("; ")}.` : ""} Confidence: ${nb.confidence}.`);
   }
   if (!input.racePlan) notes.push("No active weekly/race plan is set. For tomorrow questions, state that the plan is inferred from recent data.");
   if (input.sleep7d.length === 0) notes.push("No sleep data in the last 7 days.");

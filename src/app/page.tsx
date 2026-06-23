@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { LoadingButton } from "@/components/LoadingButton";
+import { NutritionBalanceCard } from "@/components/NutritionBalanceCard";
 import { formatThaiDate } from "@/lib/date";
 import { buildCoachContextFromSupabase, type CoachContext, type NutritionDaySummary, type PainSummary, type TodayCompletedWorkoutSummary } from "@/lib/buildCoachContext";
 import { createHistoryItem, loadHistoryItems, saveHistoryItems } from "@/lib/cloudHistory";
@@ -295,6 +296,10 @@ export default function TodayPage() {
 
       {coachCtx?.nutritionToday && (
         <CompactNutritionCard nutrition={coachCtx.nutritionToday} profile={coachCtx.profile} />
+      )}
+
+      {coachCtx?.nutritionBalanceToday && (
+        <NutritionBalanceCard balance={coachCtx.nutritionBalanceToday} />
       )}
 
       <EndOfDaySummaryCard

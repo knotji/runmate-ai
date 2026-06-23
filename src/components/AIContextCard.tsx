@@ -397,6 +397,7 @@ const emptyContext: CoachContext = {
   activePain: false,
   recentPainHistory: false,
   painResolved: false,
+  nutritionBalanceToday: null,
 };
 
 // Same priority order as normalizeWeekdayLabel in race-goal/page.tsx.

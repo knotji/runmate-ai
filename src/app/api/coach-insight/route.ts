@@ -171,6 +171,7 @@ function normalizeCoachContext(value: unknown): CoachContext {
     activePain: Boolean(raw.activePain),
     recentPainHistory: Boolean(raw.recentPainHistory),
     painResolved: Boolean(raw.painResolved),
+    nutritionBalanceToday: isRecord(raw.nutritionBalanceToday) ? raw.nutritionBalanceToday as CoachContext["nutritionBalanceToday"] : null,
   };
 }
 
