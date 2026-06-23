@@ -151,8 +151,8 @@ function normalizeWorkout(workout: WeekWorkout, index: number, derived: DerivedP
   return {
     day: cleanText(workout.day) || (index === 0 ? "วันนี้" : `วันที่ ${index + 1}`),
     workoutType: type,
-    distanceKm: typeof workout.distanceKm === "number" ? workout.distanceKm : isRest ? null : derived.easyDistanceKm,
-    durationMin: typeof workout.durationMin === "number" ? workout.durationMin : isRest ? 20 : null,
+    distanceKm: (isRest || isStrength) ? null : typeof workout.distanceKm === "number" ? workout.distanceKm : derived.easyDistanceKm,
+    durationMin: typeof workout.durationMin === "number" ? workout.durationMin : isStrength ? 25 : isRest ? 20 : null,
     targetPace,
     targetHR,
     purpose: cleanText(workout.purpose) || (isRest ? "ลดความล้าและคุมความเสี่ยงเจ็บซ้ำ" : "สะสมความฟิตให้พร้อมสำหรับวันแข่ง"),

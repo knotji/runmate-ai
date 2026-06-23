@@ -83,6 +83,9 @@ Rules:
 - Use target race time, profile easy pace, easy HR cap, recent run pace, recent weekly km, sleep readiness, and pain status.
 - Do not hardcode one pace for every runner. Derive realistic pace guidance from the data.
 - Never output "HR N/A" or "Pace N/A". Use natural Thai wording instead.
+- Non-run days (Rest, Strength, Cross Training, Gym, Core, Mobility, Recovery, Shakeout, Walk) MUST have distanceKm: null. Use durationMin only.
+- For Strength/Gym/Cross Training days, write a brief Thai description that mentions the routine focus (e.g., "Full Body", "Recovery Strength", "Core & Abs"). Do not assign any km distance.
+- Keep daily plan text concise and actionable. Each field should be one short sentence, not a paragraph.
 - If days until race <= 2, return Race Week only with rest/shakeout/race execution guidance.
 - If days until race <= 7, prioritize taper and freshness.
 - If avg readiness < 70, reduce load and add recovery.
@@ -108,9 +111,12 @@ Workout-type specific rules (MUST follow exactly):
     targetHR: "ใกล้ LT แต่ไม่เกิน [LT] bpm" if LT HR known, else "คุมเหนื่อยระดับ 7/10". Do NOT use easy HR cap as tempo HR.
 - Intervals:
     targetHR: "Effort 8–9/10" or "พักให้ HR ลงก่อนเริ่มรอบถัดไป". Do NOT use easy HR cap as interval HR.
-- Strength / Cross Training / Gym:
+- Strength / Cross Training / Gym / Core:
+    distanceKm: null (never assign distance to strength days)
+    durationMin: 20–30
     targetPace: null
     targetHR: "ไม่เน้น HR" or "RPE 6–7/10"
+    description: include routine focus — "Full Body", "Recovery Strength", or "Core & Abs" based on context
 
 Pace format rules (MUST follow):
 - Round ALL planned pace values to nearest 5 seconds. Examples: 6:57 → 7:00, 8:01 → 8:00, 7:13 → 7:15, 9:10 → 9:10.

@@ -9,6 +9,7 @@ import { TrainingPhaseCard } from "@/components/TrainingPhaseCard";
 import { WeeklyPlanCard } from "@/components/WeeklyPlanCard";
 import { buildCoachContextFromSupabase } from "@/lib/buildCoachContext";
 import { loadHistoryItems } from "@/lib/cloudHistory";
+import { suggestStrengthRoutine } from "@/lib/strengthRoutineSelect";
 import { invalidateCoachCache } from "@/lib/invalidateCoachCache";
 import { loadRaceResults } from "@/lib/raceResults";
 import { deleteRaceGoalAndPlan, loadActiveRaceGoalAndPlan, saveRaceGoalAndPlan } from "@/lib/raceStorage";
@@ -196,9 +197,9 @@ function RacePlanFreshnessNote({ freshness }: { freshness: PlanFreshness | null 
   if (freshness.isStale) {
     return (
       <div className="mt-4 rounded-2xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
-        <p className="font-bold">มีข้อมูลใหม่หลังจากแผนล่าสุด</p>
-        <p>แนะนำกดรีเฟรชแผนเพื่อให้ AI ปรับตาม sleep / pain / workout ล่าสุด</p>
-        {freshness.latestReportTime ? <p className="mt-1 text-amber-700">ข้อมูลใหม่ล่าสุด: {formatDateTimeThai(freshness.latestReportTime)}</p> : null}
+        <p className="font-bold">มีข้อมูลใหม่หลังแผนล่าสุด</p>
+        <p>แนะนำกดรีเฟรชแผน เพื่อให้ AI ปรับตาม sleep / pain / workout ล่าสุด</p>
+        {freshness.latestReportTime ? <p className="mt-1 text-amber-700">อัปเดตล่าสุด: {formatDateTimeThai(freshness.latestReportTime)}</p> : null}
       </div>
     );
   }
@@ -227,6 +228,9 @@ function TodayWorkoutCard({ workout }: { workout: WeekWorkout }) {
         <MiniMetric label="Pace" value={safeValue(workout.targetPace)} />
         <MiniMetric label="HR / Effort" value={safeValue(workout.targetHR)} />
       </div>
+      {isStrengthType(workout.workoutType) && (
+        <InfoLine label="Routine" value={suggestStrengthRoutine(workout.workoutType, workout.purpose, workout.adjustment)} />
+      )}
       {workout.purpose ? <InfoLine label="ทำไปเพื่อ" value={workout.purpose} /> : null}
       {workout.adjustment ? <InfoLine label="ปรับยังไง" value={workout.adjustment} /> : null}
     </section>
@@ -255,6 +259,9 @@ function ActionableWeekCard({ workouts }: { workouts: WeekWorkout[] }) {
               <MiniMetric label="Pace" value={safeValue(workout.targetPace)} />
               <MiniMetric label="HR / Effort" value={safeValue(workout.targetHR)} />
             </div>
+            {isStrengthType(workout.workoutType) && (
+              <InfoLine label="Routine" value={suggestStrengthRoutine(workout.workoutType, workout.purpose, workout.adjustment)} />
+            )}
             {workout.purpose ? <InfoLine label="Purpose" value={workout.purpose} /> : null}
             {workout.adjustment ? <InfoLine label="Adjustment" value={workout.adjustment} /> : null}
           </div>
@@ -313,8 +320,16 @@ function InfoLine({ label, value }: { label: string; value: string }) {
   );
 }
 
+function isRunType(workoutType: string): boolean {
+  return !/^(rest|strength|gym|cross.?training|core|mobility|shakeout|post.?race|recovery|walk|ฟื้น|พัก)/i.test(workoutType.trim());
+}
+
+function isStrengthType(workoutType: string): boolean {
+  return /^(strength|cross.?training|gym|core)/i.test(workoutType.trim());
+}
+
 function formatWorkoutAmount(workout: WeekWorkout) {
-  if (workout.distanceKm != null) return `${workout.distanceKm} km`;
+  if (isRunType(workout.workoutType ?? "") && workout.distanceKm != null) return `${workout.distanceKm} km`;
   if (workout.durationMin != null) return `${workout.durationMin} min`;
   return "พัก";
 }
@@ -403,7 +418,12 @@ function normalizeForDisplay(workout: WeekWorkout): WeekWorkout {
     targetPace = roundPaceRangeDisplay(targetPace, 10);
   }
 
-  return { ...workout, targetPace, targetHR };
+  // Clear distance and ensure duration for non-run types (handles old saved data)
+  const nonRun = isRestOnly || isStrength || isRecovery;
+  const distanceKm = nonRun ? null : workout.distanceKm;
+  const durationMin = workout.durationMin ?? (isStrength ? 25 : nonRun ? 20 : null);
+
+  return { ...workout, targetPace, targetHR, distanceKm, durationMin };
 }
 
 // Round a pace range string like "6:57–8:01/km" to nearest toNearest seconds
