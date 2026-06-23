@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
-import { PDFParse } from "pdf-parse";
 import { jsonFromAI } from "@/lib/ai";
+import { extractPdfText } from "@/lib/server/extractPdfText";
 import type { HealthCheckAnalysis, LabValue } from "@/types/logs";
+
+export const runtime = "nodejs";
 
 const MAX_PDF_BYTES = 8 * 1024 * 1024;
 const MAX_TEXT_CHARS = 24000;
@@ -47,21 +49,31 @@ export async function POST(request: Request) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const text = await extractPdfText(buffer);
-    if (text.trim().length < 80) {
+    const extraction = await extractPdfText(buffer, MAX_TEXT_CHARS);
+    if (!extraction.ok) {
+      if (process.env.NODE_ENV === "development") {
+        console.warn("[health-check-pdf-extraction]", {
+          fileSize: file.size,
+          method: extraction.method,
+          errorCode: extraction.errorCode,
+          errorName: extraction.debugMessage?.split(":")[0] ?? null,
+          errorMessage: extraction.debugMessage ?? null,
+        });
+      }
       return NextResponse.json({
         ok: false,
-        errorCode: "PDF_TEXT_EXTRACTION_FAILED",
-        message: "อ่านไฟล์ PDF ไม่สำเร็จ กรุณาลองอัปโหลดเป็นภาพหน้าผลตรวจหรือ PDF ที่เลือกข้อความได้",
+        errorCode: extraction.errorCode,
+        message: extraction.message,
+        debugMessage: process.env.NODE_ENV === "development" ? extraction.debugMessage : undefined,
       }, { status: 422 });
     }
+    const text = extraction.text;
 
     if (process.env.NODE_ENV === "development") {
       console.info("[health-check-analysis]", {
-        fileName: file.name,
         fileSize: file.size,
+        extractionMethod: extraction.method,
         extractedTextChars: text.length,
-        textPrefix: text.slice(0, 80),
       });
     }
 
@@ -80,24 +92,18 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     if (process.env.NODE_ENV === "development") {
-      console.warn("[health-check-analysis-error]", error);
+      console.warn("[health-check-analysis-error]", {
+        errorCode: "PDF_TEXT_EXTRACTION_FAILED",
+        errorName: error instanceof Error ? error.name : "UnknownError",
+        errorMessage: error instanceof Error ? error.message : String(error),
+      });
     }
     return NextResponse.json({
       ok: false,
       errorCode: "PDF_TEXT_EXTRACTION_FAILED",
-      message: "อ่านไฟล์ PDF ไม่สำเร็จ กรุณาลองอัปโหลดเป็นภาพหน้าผลตรวจหรือ PDF ที่เลือกข้อความได้",
+      message: "อ่านไฟล์ PDF ไม่สำเร็จ ลองใช้ PDF ที่เลือกข้อความได้ หรือรอรองรับภาพผลตรวจในเวอร์ชันถัดไป",
       debugMessage: process.env.NODE_ENV === "development" ? (error instanceof Error ? error.message : String(error)) : undefined,
     }, { status: 500 });
-  }
-}
-
-async function extractPdfText(buffer: Buffer): Promise<string> {
-  const parser = new PDFParse({ data: buffer });
-  try {
-    const result = await parser.getText();
-    return result.text.slice(0, MAX_TEXT_CHARS);
-  } finally {
-    await parser.destroy();
   }
 }
 
