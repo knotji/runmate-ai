@@ -7,7 +7,7 @@ import { formatSleepMinutesShortThai, formatSleepMinutesThai, parseSleepDuration
 import { dedupeSleepItems } from "@/lib/sleepDedupe";
 import { loadRaceResults } from "@/lib/raceResults";
 import type { LocalHistoryItem } from "@/lib/localHistory";
-import type { SleepAnalysis, WorkoutAnalysis, BodyCompositionAnalysis, MealAnalysis } from "@/types/logs";
+import type { SleepAnalysis, WorkoutAnalysis, BodyCompositionAnalysis, MealAnalysis, HealthCheckAnalysis, LabValue } from "@/types/logs";
 import type { PainLog } from "@/types/pain";
 import type { RaceResult } from "@/types/race";
 import type { StrengthLog } from "@/types/strength";
@@ -94,6 +94,7 @@ export type CoachContext = {
   nutrition7d: NutritionDaySummary[];
   latestCompletedRace: RaceResult | null;
   recentRaceResults: RaceResult[];
+  latestHealthCheck: HealthCheckContext | null;
   totalRunKm: number;
   totalSessions: number;
   runDays7d: number;
@@ -116,6 +117,16 @@ export type NutritionDaySummary = {
   carbsG: number | null;
   fatG: number | null;
   notes: string[];
+};
+
+export type HealthCheckContext = {
+  checkupDate: string | null;
+  createdAt: string;
+  nutritionFlags: HealthCheckAnalysis["nutritionFlags"];
+  coachSummary: string;
+  foodGuidance: HealthCheckAnalysis["foodGuidance"];
+  keyLabs: { key: string; label: string; value: string; status: string }[];
+  confidence: HealthCheckAnalysis["confidence"];
 };
 
 const TZ_OFFSET_MS = 7 * 60 * 60 * 1000;
@@ -227,7 +238,7 @@ export function buildCoachContext(): CoachContext {
 
 export async function buildCoachContextFromSupabase(): Promise<CoachContext> {
   const [historyResult, profileResult, raceResult, completedRaceResult] = await Promise.all([
-    loadHistoryItems(["sleep", "workout", "body", "meal", "pain", "strength"]),
+    loadHistoryItems(["sleep", "workout", "body", "meal", "pain", "strength", "health_check"]),
     loadProfileFromSupabase(),
     loadActiveRaceGoalAndPlan(),
     loadRaceResults(5),
@@ -374,6 +385,11 @@ export function buildCoachContextFromData(input: {
   const workouts7d = [...dayMap.values()].sort((a, b) => b.date.localeCompare(a.date));
   const nutrition7d = buildNutritionSummaries(items, cutoff);
   const nutritionToday = nutrition7d.find((day) => day.date === today) ?? null;
+  const latestHealthCheck = items
+    .filter((i) => i.type === "health_check")
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .map(compactHealthCheck)
+    .find((item): item is HealthCheckContext => Boolean(item)) ?? null;
   const recentRaceResults = (input.raceResults ?? []).map(compactRaceResult);
   for (const result of recentRaceResults.filter((raceResult) => raceResult.raceDate === today)) {
     todayWorkouts.push({
@@ -482,6 +498,7 @@ export function buildCoachContextFromData(input: {
     nutrition7d,
     latestCompletedRace,
     recentRaceResults,
+    latestHealthCheck,
     totalRunKm: Math.round(totalRunKm * 10) / 10,
     totalSessions,
     runDays7d,
@@ -515,6 +532,7 @@ export function buildCoachContextFromData(input: {
       recentPainLogs,
       latestPain,
       recentMaxPain,
+      latestHealthCheck,
       strengthCount: items.filter((i) => i.type === "strength" && bangkokDateKey(i.createdAt) >= cutoff).length,
     }),
   };
@@ -556,6 +574,63 @@ function sumMeals(meals: MealAnalysis[], key: keyof MealAnalysis["nutrition"]): 
     }
   }
   return found ? Math.round(total) : null;
+}
+
+function compactHealthCheck(item: LocalHistoryItem): HealthCheckContext | null {
+  const data = item.data as HealthCheckAnalysis | null;
+  if (!data) return null;
+  const keyLabs = getHealthCheckKeyLabs(data).slice(0, 10).map(([key, lab]) => ({
+    key,
+    label: lab.label,
+    value: formatHealthLabValue(lab),
+    status: lab.status ?? "unknown",
+  }));
+  return {
+    checkupDate: data.checkupDate ?? null,
+    createdAt: item.createdAt,
+    nutritionFlags: data.nutritionFlags,
+    coachSummary: data.coachSummary,
+    foodGuidance: data.foodGuidance,
+    keyLabs,
+    confidence: data.confidence,
+  };
+}
+
+function getHealthCheckKeyLabs(healthCheck: HealthCheckAnalysis): [string, LabValue][] {
+  const order: (keyof HealthCheckAnalysis["labs"])[] = [
+    "fbs",
+    "hba1c",
+    "totalCholesterol",
+    "triglyceride",
+    "ldl",
+    "hdl",
+    "uricAcid",
+    "creatinine",
+    "egfr",
+    "sgotAst",
+    "sgptAlt",
+  ];
+  const labs = healthCheck.labs ?? {};
+  return order
+    .map((key) => [key, labs[key]] as [string, LabValue | undefined])
+    .filter((entry): entry is [string, LabValue] => Boolean(entry[1]?.label || entry[1]?.value != null));
+}
+
+function formatHealthLabValue(lab: LabValue): string {
+  const value = lab.value == null || lab.value === "" ? "-" : String(lab.value);
+  return lab.unit ? `${value} ${lab.unit}` : value;
+}
+
+function healthFlagLabels(flags: HealthCheckAnalysis["nutritionFlags"]): string[] {
+  const labels: string[] = [];
+  if (flags.watchLDL) labels.push("LDL/cholesterol caution");
+  if (flags.watchTotalCholesterol) labels.push("total cholesterol caution");
+  if (flags.watchTriglyceride) labels.push("triglyceride caution");
+  if (flags.watchBloodSugar) labels.push("blood sugar caution");
+  if (flags.watchUricAcid) labels.push("uric acid caution");
+  if (flags.watchLiverEnzymes) labels.push("liver enzyme caution");
+  if (flags.watchKidney) labels.push("kidney caution");
+  return labels;
 }
 
 function compactRaceResult(result: RaceResult): RaceResult {
@@ -632,6 +707,7 @@ function buildContextNotes(input: {
   recentPainLogs?: PainSummary[];
   latestPain?: PainSummary | null;
   recentMaxPain?: PainSummary | null;
+  latestHealthCheck?: HealthCheckContext | null;
   longestRun7dKm: number | null;
   lastWorkoutDate: string | null;
   strengthCount?: number;
@@ -650,6 +726,18 @@ function buildContextNotes(input: {
     const latest = input.raceResults[0];
     notes.push(`Latest completed race: ${latest.raceName ?? "race"} ${latest.raceDistance ?? ""} target ${latest.targetTime ?? "none"} actual ${latest.actualTime ?? "unknown"} result ${latest.goalResult ?? "unknown"}.`);
     if (latest.coachSummary) notes.push(`Race coach summary: ${latest.coachSummary}`);
+  }
+  if (input.latestHealthCheck) {
+    const health = input.latestHealthCheck;
+    const flagLabels = healthFlagLabels(health.nutritionFlags);
+    notes.push(`LATEST HEALTH CHECK CONTEXT: checkupDate=${health.checkupDate ?? "unknown"}, confidence=${health.confidence}. Use for food/nutrition questions only as cautious context, not diagnosis.`);
+    if (flagLabels.length) notes.push(`Health check nutrition flags: ${flagLabels.join(", ")}.`);
+    if (health.keyLabs.length) {
+      notes.push(`Key lab values: ${health.keyLabs.map((lab) => `${lab.label} ${lab.value}${lab.status !== "unknown" ? ` (${lab.status})` : ""}`).join("; ")}.`);
+    }
+    if (health.foodGuidance.prefer.length) notes.push(`Health check food guidance prefer: ${health.foodGuidance.prefer.slice(0, 5).join(", ")}.`);
+    if (health.foodGuidance.limit.length) notes.push(`Health check food guidance limit: ${health.foodGuidance.limit.slice(0, 5).join(", ")}.`);
+    if (health.coachSummary) notes.push(`Health check summary: ${health.coachSummary}`);
   }
   if (!input.racePlan) notes.push("No active weekly/race plan is set. For tomorrow questions, state that the plan is inferred from recent data.");
   if (input.sleep7d.length === 0) notes.push("No sleep data in the last 7 days.");

@@ -26,6 +26,7 @@ export async function POST(request: Request) {
         sleepAvg7dText: (context as Record<string, unknown>).sleepAvg7dText ?? null,
         sleepNightCount7d: (context as Record<string, unknown>).sleepNightCount7d ?? null,
         latestSleepDateKey: (context as Record<string, unknown>).latestSleepDateKey ?? null,
+        hasLatestHealthCheck: Boolean((context as Record<string, unknown>).latestHealthCheck),
       });
     }
 
@@ -167,6 +168,7 @@ function buildContextGuidance(question: string, context: unknown) {
   const latestSleepDateKey = stringValue(ctx.latestSleepDateKey);
   const latestSleepScore = numberValue(ctx.latestSleepScore);
   const latestEnergyScore = numberValue(ctx.latestEnergyScore);
+  const latestHealthCheck = readRecord(ctx.latestHealthCheck);
   const lines: string[] = [];
 
   if (sleepAvg7dText) {
@@ -216,6 +218,26 @@ function buildContextGuidance(question: string, context: unknown) {
     lines.push(`TODAY WORKOUT HINT: User already completed ${label}${distance != null ? ` ${distance} km` : ""}${duration ? ` in ${duration}` : ""}. For recovery questions, do not recommend more hard training today.`);
   }
 
+  if (latestHealthCheck && isFoodOrHealthNutritionQuestion(question)) {
+    const flags = readRecord(latestHealthCheck.nutritionFlags);
+    const guidance = readRecord(latestHealthCheck.foodGuidance);
+    const keyLabs = Array.isArray(latestHealthCheck.keyLabs) ? latestHealthCheck.keyLabs : [];
+    const activeFlags = Object.entries(flags ?? {}).filter(([, value]) => value === true).map(([key]) => key);
+    lines.push("HEALTH CHECK NUTRITION HINT: Latest health check is available. Use it only as cautious nutrition context, never as diagnosis or treatment.");
+    if (activeFlags.length) lines.push(`Health caution flags: ${activeFlags.join(", ")}.`);
+    if (keyLabs.length) {
+      lines.push(`Key labs: ${keyLabs.slice(0, 8).map((lab) => {
+        const record = readRecord(lab);
+        return `${stringValue(record?.label) ?? "lab"} ${stringValue(record?.value) ?? "-"}${stringValue(record?.status) ? ` (${stringValue(record?.status)})` : ""}`;
+      }).join("; ")}.`);
+    }
+    const prefer = Array.isArray(guidance?.prefer) ? guidance.prefer.filter((item): item is string => typeof item === "string").slice(0, 5) : [];
+    const limit = Array.isArray(guidance?.limit) ? guidance.limit.filter((item): item is string => typeof item === "string").slice(0, 5) : [];
+    if (prefer.length) lines.push(`Prefer foods: ${prefer.join(", ")}.`);
+    if (limit.length) lines.push(`Limit/caution foods: ${limit.join(", ")}.`);
+    lines.push("Use wording like 'จากค่าที่บันทึกไว้ ควรระวัง...' and recommend seeing a doctor for abnormal/persistent concerns.");
+  }
+
   return lines.length ? `Coach response guidance:\n${lines.join("\n")}` : "";
 }
 
@@ -225,6 +247,10 @@ function isSimpleFollowUp(question: string) {
 
 function isColdSoakQuestion(question: string) {
   return /แช่.*น้ำเย็น|น้ำเย็น|ประคบเย็น|ice|cold|น้ำแข็ง/.test(question.toLowerCase());
+}
+
+function isFoodOrHealthNutritionQuestion(question: string) {
+  return /กิน|อาหาร|เมนู|คอเลส|chol|ldl|triglyceride|น้ำตาล|ไขมัน|ตับ|ไต|uric|โปรตีน|คาร์บ|สุขภาพ|ผลตรวจ|meal|food|nutrition|diet/i.test(question);
 }
 
 function readRecord(value: unknown): Record<string, unknown> | null {

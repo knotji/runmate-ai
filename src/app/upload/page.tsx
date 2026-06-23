@@ -22,10 +22,10 @@ import { loadActiveRaceGoalAndPlan, markRaceGoalCompleted } from "@/lib/raceStor
 import { formatCalories, formatMacro, formatNutritionRange } from "@/lib/format";
 import { buildNutritionTargetSummary } from "@/lib/nutritionTargets";
 import type { LocalHistoryItem } from "@/lib/localHistory";
-import type { BodyCompositionAnalysis, MealAnalysis, MealType, SleepAnalysis, WorkoutAnalysis } from "@/types/logs";
+import type { BodyCompositionAnalysis, HealthCheckAnalysis, LabValue, MealAnalysis, MealType, SleepAnalysis, WorkoutAnalysis } from "@/types/logs";
 import type { UserProfile } from "@/types/profile";
 
-type UploadType = "sleep" | "meal" | "workout" | "body";
+type UploadType = "sleep" | "meal" | "workout" | "body" | "health_check";
 type WorkoutSubtype = "run" | "strength" | "walk" | "other";
 type MealInputMode = "image" | "text";
 
@@ -48,6 +48,7 @@ const UPLOAD_LABELS: Record<UploadType, string> = {
   meal: "อาหาร",
   workout: "ซ้อม",
   body: "ร่างกาย",
+  health_check: "สุขภาพ",
 };
 
 const MEAL_TYPE_LABELS: Record<string, string> = {
@@ -94,7 +95,7 @@ export default function UploadPage() {
     const params = new URLSearchParams(window.location.search);
     const raw = params.get("type") ?? "";
     const aliasMap: Record<string, UploadType> = {
-      sleep: "sleep", meal: "meal", workout: "workout", body: "body",
+      sleep: "sleep", meal: "meal", workout: "workout", body: "body", health: "health_check", health_check: "health_check",
       run: "workout", วิ่ง: "workout",
     };
     const resolved: UploadType | undefined = aliasMap[raw.toLowerCase()];
@@ -129,17 +130,24 @@ export default function UploadPage() {
         ? "/api/analyze-meal"
         : type === "workout"
           ? "/api/analyze-workout"
-          : "/api/analyze-body";
+          : type === "body"
+            ? "/api/analyze-body"
+            : "/api/analyze-health-check";
 
   async function store(next: unknown, overrideType: UploadType = type): Promise<LocalHistoryItem> {
     setSaveStatus("saving");
     if (overrideType === "body") setBodySaveError("");
     const data = sanitizeReportDataForSave((next as { data?: unknown }).data ?? next);
     const extractedDate = (data as { extracted?: { date?: string | null } }).extracted?.date;
+    const healthDate = (data as { checkupDate?: string | null }).checkupDate;
     // Body and meal items always use save time as createdAt.
     // Body: measurement date from image would file it under that day, not today.
     // Meal: Report day must be the day the user taps Save, not an AI-detected image date.
-    const saveDate = (overrideType === "body" || overrideType === "meal") ? undefined : (extractedDate ?? undefined);
+    const saveDate = (overrideType === "body" || overrideType === "meal")
+      ? undefined
+      : overrideType === "health_check"
+        ? (healthDate ?? undefined)
+        : (extractedDate ?? undefined);
     const saved = createHistoryItem(overrideType, data, saveDate);
     if (process.env.NODE_ENV === "development") {
       console.info("[upload-debug]", {
@@ -471,8 +479,8 @@ export default function UploadPage() {
         <p className="text-xs leading-5 text-slate-500">
           เมื่อวิเคราะห์และกดบันทึก ข้อมูลจะเข้า Report และถูกใช้เป็นบริบทให้ Coach Chat
         </p>
-        <div className="grid grid-cols-4 gap-2">
-          {(["sleep", "meal", "workout", "body"] as UploadType[]).map((item) => (
+        <div className="grid grid-cols-5 gap-2">
+          {(["sleep", "meal", "workout", "body", "health_check"] as UploadType[]).map((item) => (
             <button key={item} className={`rounded-2xl px-3 py-3 text-sm font-bold ${type === item ? "bg-[var(--primary)] text-white shadow-sm" : "bg-[var(--surface-muted)] text-[var(--muted-text)]"}`} onClick={() => selectUploadType(item)}>
               {UPLOAD_LABELS[item]}
             </button>
@@ -545,7 +553,16 @@ export default function UploadPage() {
             onAnalyze={() => void analyzeManualMeal()}
           />
         ) : null}
-        {!(type === "workout" && (workoutSubtype === "strength" || workoutSubtype === "walk" || workoutSubtype === "other")) && !(type === "meal" && mealInputMode === "text") ? (
+        {type === "health_check" ? (
+          <HealthCheckUploader
+            saving={saveStatus === "saving"}
+            onResult={(healthCheck) => {
+              setResult({ data: healthCheck });
+              setSaveStatus("idle");
+            }}
+          />
+        ) : null}
+        {!(type === "workout" && (workoutSubtype === "strength" || workoutSubtype === "walk" || workoutSubtype === "other")) && !(type === "meal" && mealInputMode === "text") && type !== "health_check" ? (
           <>
             <ImageUploader
               key={type + (type === "workout" ? `-${workoutSubtype}` : "")}
@@ -653,11 +670,36 @@ export default function UploadPage() {
           <BodySaveBar saveStatus={saveStatus} saveError={bodySaveError} onSave={() => void store(result)} />
         </>
       ) : null}
+      {result && type === "health_check" ? (
+        <HealthCheckReviewCard
+          healthCheck={(result as { data: HealthCheckAnalysis }).data}
+          saveStatus={saveStatus}
+          saving={saveStatus === "saving"}
+          onCancel={() => {
+            setResult(null);
+            setSaveStatus("idle");
+          }}
+          onSave={() => void store(result, "health_check")}
+        />
+      ) : null}
     </AppShell>
   );
 }
 
 function UploadEmptyGuide({ type }: { type: UploadType }) {
+  if (type === "health_check") {
+    return (
+      <div className="rounded-2xl bg-slate-50/80 px-4 py-3 text-sm text-slate-600">
+        <p className="font-bold text-[#17201d]">อัปโหลด PDF ผลตรวจสุขภาพ</p>
+        <p className="mt-1 text-xs leading-5 text-slate-500">
+          ระบบจะอ่านค่าเลือดที่เกี่ยวกับโภชนาการและ recovery แล้วบันทึกเฉพาะค่าที่สรุปแล้วเข้า Report
+        </p>
+        <p className="mt-2 text-xs leading-5 text-slate-400">
+          ไฟล์ต้นฉบับและข้อความดิบจาก PDF จะไม่ถูกบันทึกถาวร
+        </p>
+      </div>
+    );
+  }
   if (type === "body") {
     return (
       <div className="rounded-2xl bg-slate-50/80 px-4 py-3 text-sm text-slate-600">
@@ -701,6 +743,209 @@ function ReportSavedNote({ saveStatus }: { saveStatus: "idle" | "saving" | "save
       )}
       <span> ข้อมูลนี้ถูกบันทึกเป็น structured data เท่านั้น รูปต้นฉบับไม่ถูกเก็บถาวร</span>
     </section>
+  );
+}
+
+function HealthCheckUploader({
+  saving,
+  onResult,
+}: {
+  saving: boolean;
+  onResult: (healthCheck: HealthCheckAnalysis) => void;
+}) {
+  const [file, setFile] = useState<File | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  async function analyze() {
+    if (!file) {
+      setError("กรุณาเลือกไฟล์ PDF ผลตรวจสุขภาพก่อน");
+      return;
+    }
+    if (!file.type.includes("pdf") && !file.name.toLowerCase().endsWith(".pdf")) {
+      setError("รองรับเฉพาะไฟล์ PDF");
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      setError("ไฟล์ใหญ่เกินไป กรุณาใช้ PDF ไม่เกิน 8 MB");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const response = await fetch("/api/analyze-health-check", {
+        method: "POST",
+        body: formData,
+      });
+      const payload = await response.json().catch(() => null) as { data?: HealthCheckAnalysis; message?: string } | null;
+      if (!response.ok || !payload?.data) {
+        setError(payload?.message || "อ่านผลตรวจสุขภาพไม่สำเร็จ ลองเลือกไฟล์ใหม่อีกครั้ง");
+        return;
+      }
+      onResult(payload.data);
+    } catch {
+      setError("อ่านผลตรวจสุขภาพไม่สำเร็จ ลองเลือกไฟล์ใหม่อีกครั้ง");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="space-y-4 rounded-2xl bg-slate-50/80 p-4">
+      <div>
+        <h3 className="text-base font-bold text-[#17201d]">Health Check PDF</h3>
+        <p className="mt-1 text-xs leading-5 text-slate-500">
+          อัปโหลดผลตรวจสุขภาพประจำปีเพื่อให้โค้ชใช้ประกอบคำแนะนำอาหารและ recovery
+        </p>
+        <p className="mt-2 rounded-2xl bg-white px-3 py-2 text-xs leading-5 text-slate-500">
+          ใช้ไฟล์เพื่ออ่านค่าแล็บเท่านั้น บันทึกเฉพาะ structured summary ไม่บันทึก PDF ต้นฉบับหรือข้อความดิบ
+        </p>
+      </div>
+      <input
+        className="control"
+        type="file"
+        accept="application/pdf,.pdf"
+        disabled={loading || saving}
+        onChange={(event) => {
+          setError("");
+          setFile(event.target.files?.[0] ?? null);
+        }}
+      />
+      {file ? (
+        <p className="text-xs text-slate-500">{file.name} · {Math.round(file.size / 1024)} KB</p>
+      ) : null}
+      {error ? <p className="rounded-xl bg-red-50 p-3 text-xs font-semibold text-red-600">{error}</p> : null}
+      <LoadingButton
+        type="button"
+        className="btn-primary w-full py-3 text-sm"
+        loading={loading}
+        loadingText="กำลังอ่าน PDF..."
+        onClick={() => void analyze()}
+        disabled={saving}
+      >
+        วิเคราะห์ผลตรวจสุขภาพ
+      </LoadingButton>
+      <p className="text-xs leading-5 text-slate-400">
+        คำแนะนำจากผลตรวจเป็นแนวทางทั่วไป ไม่ใช่การวินิจฉัยหรือการรักษา หากมีค่าผิดปกติควรปรึกษาแพทย์
+      </p>
+    </div>
+  );
+}
+
+function HealthCheckReviewCard({
+  healthCheck,
+  saveStatus,
+  saving,
+  onSave,
+  onCancel,
+}: {
+  healthCheck: HealthCheckAnalysis;
+  saveStatus: "idle" | "saving" | "saved" | "error";
+  saving: boolean;
+  onSave: () => void;
+  onCancel: () => void;
+}) {
+  const labs = getVisibleHealthLabs(healthCheck);
+  const flags = getHealthFlagLabels(healthCheck);
+
+  return (
+    <section className="card space-y-4 p-5">
+      <div>
+        <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#6f8fa6]">Health Check Review</p>
+        <h2 className="mt-2 text-xl font-bold text-[#17201d]">ตรวจทานก่อนบันทึก</h2>
+        <p className="mt-1 text-xs leading-5 text-slate-500">
+          ระบบจะบันทึกเฉพาะค่าที่สรุปแล้วเข้า Report ไม่เก็บไฟล์ PDF ต้นฉบับ
+        </p>
+      </div>
+
+      <div className="rounded-2xl bg-slate-50 p-4">
+        <p className="text-xs font-semibold text-slate-400">{healthCheck.checkupDate ?? "ไม่พบวันที่ตรวจ"}</p>
+        <p className="mt-1 text-sm leading-6 text-slate-700">{healthCheck.coachSummary}</p>
+      </div>
+
+      {flags.length > 0 ? (
+        <div className="flex flex-wrap gap-1.5">
+          {flags.map((flag) => (
+            <span key={flag} className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">
+              {flag}
+            </span>
+          ))}
+        </div>
+      ) : null}
+
+      {labs.length > 0 ? (
+        <div className="grid grid-cols-2 gap-2">
+          {labs.map(([key, lab]) => (
+            <HealthLabMetric key={key} lab={lab} />
+          ))}
+        </div>
+      ) : (
+        <p className="rounded-2xl bg-amber-50 p-3 text-xs font-semibold leading-5 text-amber-700">
+          อ่านค่าแล็บได้ไม่ชัดเจน กรุณาตรวจทานไฟล์หรืออัปโหลด PDF ที่เลือกข้อความได้
+        </p>
+      )}
+
+      <HealthGuidanceList title="ควรเน้น" items={healthCheck.foodGuidance.prefer} />
+      <HealthGuidanceList title="ควรระวัง" items={healthCheck.foodGuidance.limit} tone="limit" />
+      {healthCheck.foodGuidance.notes.length > 0 ? (
+        <HealthGuidanceList title="หมายเหตุ" items={healthCheck.foodGuidance.notes} />
+      ) : null}
+
+      <p className="rounded-2xl bg-slate-50 p-3 text-xs leading-5 text-slate-500">
+        {healthCheck.disclaimer || "ข้อมูลนี้ใช้เพื่อช่วยปรับคำแนะนำอาหารและไลฟ์สไตล์ ไม่ใช่การวินิจฉัยโรค หากมีค่าผิดปกติควรปรึกษาแพทย์"}
+      </p>
+
+      {saveStatus === "saved" ? (
+        <div className="space-y-2 text-center">
+          <p className="text-sm font-bold text-[var(--status-ready)]">บันทึกเข้า Report แล้ว</p>
+          <Link href="/logs" className="block text-xs font-semibold text-[var(--primary-strong)] underline underline-offset-2">
+            ดูใน Report →
+          </Link>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-2">
+          <LoadingButton type="button" className="btn-primary py-3 text-sm" loading={saving} loadingText="กำลังบันทึก..." onClick={onSave}>
+            บันทึกเข้า Report
+          </LoadingButton>
+          <button type="button" disabled={saving} className="rounded-full bg-slate-50 py-3 text-sm font-bold text-slate-500 disabled:opacity-50" onClick={onCancel}>
+            ยกเลิก
+          </button>
+        </div>
+      )}
+      {saveStatus === "error" ? <p className="text-center text-xs font-semibold text-[var(--status-rest)]">บันทึกไม่สำเร็จ กรุณาลองใหม่</p> : null}
+    </section>
+  );
+}
+
+function HealthLabMetric({ lab }: { lab: LabValue }) {
+  const color =
+    lab.status === "high" ? "text-amber-700" :
+    lab.status === "low" ? "text-blue-700" :
+    lab.status === "borderline" ? "text-amber-600" :
+    "text-[#17201d]";
+  return (
+    <div className="rounded-2xl bg-slate-50 p-3">
+      <p className="text-xs text-slate-400">{lab.label}</p>
+      <p className={`mt-1 font-bold ${color}`}>{formatHealthLabValue(lab)}</p>
+      {lab.ref ? <p className="mt-1 text-[11px] text-slate-400">ref {lab.ref}</p> : null}
+    </div>
+  );
+}
+
+function HealthGuidanceList({ title, items, tone = "prefer" }: { title: string; items: string[]; tone?: "prefer" | "limit" }) {
+  if (!items.length) return null;
+  return (
+    <div className={`rounded-2xl p-4 ${tone === "limit" ? "bg-amber-50" : "bg-[#e7efea]"}`}>
+      <p className={`text-xs font-bold uppercase tracking-wide ${tone === "limit" ? "text-amber-700" : "text-[#2a5a39]"}`}>{title}</p>
+      <ul className="mt-2 space-y-1 text-sm leading-6 text-slate-700">
+        {items.slice(0, 5).map((item) => (
+          <li key={item}>• {item}</li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
@@ -1168,6 +1413,48 @@ function normalizeDetectedFoods(foods: MealAnalysis["detectedFoods"] | undefined
 
 function hasAnyNutrition(meal: MealAnalysis) {
   return Object.values(meal.nutrition ?? {}).some((value) => value !== null && value !== undefined);
+}
+
+function getVisibleHealthLabs(healthCheck: HealthCheckAnalysis): [string, LabValue][] {
+  const preferredOrder: (keyof HealthCheckAnalysis["labs"])[] = [
+    "fbs",
+    "hba1c",
+    "totalCholesterol",
+    "triglyceride",
+    "ldl",
+    "hdl",
+    "uricAcid",
+    "bun",
+    "creatinine",
+    "egfr",
+    "sgotAst",
+    "sgptAlt",
+  ];
+  const labs = healthCheck.labs ?? {};
+  const ordered = preferredOrder
+    .map((key) => [key, labs[key]] as [string, LabValue | undefined])
+    .filter((entry): entry is [string, LabValue] => Boolean(entry[1]?.label || entry[1]?.value != null));
+  const extra = Object.entries(labs)
+    .filter(([key, lab]) => !preferredOrder.includes(key as keyof HealthCheckAnalysis["labs"]) && Boolean(lab?.label || lab?.value != null)) as [string, LabValue][];
+  return [...ordered, ...extra].slice(0, 12);
+}
+
+function getHealthFlagLabels(healthCheck: HealthCheckAnalysis): string[] {
+  const flags = healthCheck.nutritionFlags;
+  const labels: string[] = [];
+  if (flags.watchLDL) labels.push("ระวัง LDL");
+  if (flags.watchTotalCholesterol) labels.push("ระวัง Cholesterol");
+  if (flags.watchTriglyceride) labels.push("ระวัง Triglyceride");
+  if (flags.watchBloodSugar) labels.push("ระวังน้ำตาล");
+  if (flags.watchUricAcid) labels.push("ระวัง Uric acid");
+  if (flags.watchLiverEnzymes) labels.push("ระวังค่าตับ");
+  if (flags.watchKidney) labels.push("ระวังไต");
+  return labels;
+}
+
+function formatHealthLabValue(lab: LabValue): string {
+  const value = lab.value == null || lab.value === "" ? "-" : String(lab.value);
+  return lab.unit ? `${value} ${lab.unit}` : value;
 }
 
 // ── Meal slot helpers ───────────────────────────────────────────────────────

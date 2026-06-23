@@ -1,4 +1,4 @@
-export type HistoryType = "sleep" | "meal" | "workout" | "body" | "summary" | "pain" | "strength" | "strength_template";
+export type HistoryType = "sleep" | "meal" | "workout" | "body" | "summary" | "pain" | "strength" | "strength_template" | "health_check";
 
 export type LocalHistoryItem = {
   id: string;

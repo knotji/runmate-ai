@@ -205,6 +205,61 @@ export type DailySummary = {
   coachMessage: string;
 };
 
+export type LabValue = {
+  value: number | string | null;
+  unit?: string | null;
+  ref?: string | null;
+  label: string;
+  status?: "low" | "normal" | "borderline" | "high" | "unknown";
+};
+
+export type HealthCheckAnalysis = {
+  checkupDate: string | null;
+  sourceLabel: string | null;
+  labs: {
+    fbs?: LabValue;
+    hba1c?: LabValue;
+    totalCholesterol?: LabValue;
+    triglyceride?: LabValue;
+    ldl?: LabValue;
+    hdl?: LabValue;
+    uricAcid?: LabValue;
+    bun?: LabValue;
+    creatinine?: LabValue;
+    egfr?: LabValue;
+    sgotAst?: LabValue;
+    sgptAlt?: LabValue;
+    alp?: LabValue;
+    hemoglobin?: LabValue;
+    hematocrit?: LabValue;
+    wbc?: LabValue;
+    platelet?: LabValue;
+    urineProtein?: LabValue;
+    urineSugar?: LabValue;
+    urineBlood?: LabValue;
+    hbsAg?: LabValue;
+    antiHbs?: LabValue;
+  };
+  nutritionFlags: {
+    watchLDL: boolean;
+    watchTotalCholesterol: boolean;
+    watchTriglyceride: boolean;
+    watchBloodSugar: boolean;
+    watchUricAcid: boolean;
+    watchLiverEnzymes: boolean;
+    watchKidney: boolean;
+  };
+  coachSummary: string;
+  foodGuidance: {
+    prefer: string[];
+    limit: string[];
+    notes: string[];
+  };
+  disclaimer: string;
+  confidence: "low" | "medium" | "high";
+  unclearFields: string[];
+};
+
 export type PostRunAnalysis = {
   sessionTitle: string;
   effortScore: number;

@@ -8,7 +8,7 @@ import { deleteHistoryItem, loadHistoryItems } from "@/lib/cloudHistory";
 import { deleteRaceResult, loadRaceResults } from "@/lib/raceResults";
 import { loadProfileFromSupabase } from "@/lib/profileStorage";
 import type { LocalHistoryItem } from "@/lib/localHistory";
-import type { SleepAnalysis, WorkoutAnalysis, MealAnalysis, DailySummary, BodyCompositionAnalysis } from "@/types/logs";
+import type { SleepAnalysis, WorkoutAnalysis, MealAnalysis, DailySummary, BodyCompositionAnalysis, HealthCheckAnalysis, LabValue } from "@/types/logs";
 import type { RaceResult } from "@/types/race";
 import type { UserProfile } from "@/types/profile";
 import type { PainLog } from "@/types/pain";
@@ -36,7 +36,7 @@ export default function ReportPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [activeFilter, setActiveFilter] = useState<"all" | "run" | "meal" | "strength" | "pain">("all");
+  const [activeFilter, setActiveFilter] = useState<"all" | "run" | "meal" | "strength" | "pain" | "health">("all");
   const [showOlderDays, setShowOlderDays] = useState(false);
   const [deleteStatus, setDeleteStatus] = useState("");
   const [deletingKey, setDeletingKey] = useState<string | null>(null);
@@ -101,6 +101,9 @@ export default function ReportPage() {
     }
     if (activeFilter === "pain") {
       return day.items.some((i) => i.type === "pain");
+    }
+    if (activeFilter === "health") {
+      return day.items.some((i) => i.type === "health_check");
     }
     return true;
   });
@@ -182,6 +185,7 @@ export default function ReportPage() {
                 { id: "meal", label: "อาหาร" },
                 { id: "strength", label: "เวท" },
                 { id: "pain", label: "เจ็บ" },
+                { id: "health", label: "สุขภาพ" },
               ] as const
             ).map((f) => (
               <button
@@ -296,6 +300,7 @@ function DayCard({
   const meals = day.items.filter((i) => i.type === "meal");
   const summaries = day.items.filter((i) => i.type === "summary");
   const bodies = day.items.filter((i) => i.type === "body");
+  const healthChecks = day.items.filter((i) => i.type === "health_check");
   // Body records can vary by time of day; Report shows the latest only to reduce noise.
   const latestBodies = bodies.slice(0, 1);
   const hasMultipleBodies = bodies.length > 1;
@@ -340,7 +345,8 @@ function DayCard({
                 )}
                 {workouts.some((w) => isWalk(w)) && <Badge icon="🚶" label={walkKm ? formatDistanceKm(walkKm) : "เดิน"} />}
                 {bodies.length > 0 && <Badge icon="⚖️" label="ชั่งน้ำหนัก" />}
-                {summaries.length > 0 && sleeps.length === 0 && workouts.length === 0 && pains.length === 0 && strengths.length === 0 && (
+                {healthChecks.length > 0 && <Badge icon="" label="ผลตรวจสุขภาพ" color="blue" />}
+                {summaries.length > 0 && sleeps.length === 0 && workouts.length === 0 && pains.length === 0 && strengths.length === 0 && healthChecks.length === 0 && (
                   <Badge icon="💬" label="บทสนทนา" />
                 )}
               </div>
@@ -390,13 +396,14 @@ function DayCard({
           {workouts.map((item) => <WorkoutDetail key={item.id} item={item} onDelete={onDeleteItem} deleting={deletingKey === item.id} />)}
           {mealCount > 0 && <MealNutritionDaySummary summary={mealNutrition} mealCount={mealCount} proteinTarget={proteinTarget} />}
           {meals.map((item) => <MealDetail key={item.id} item={item} onDelete={onDeleteItem} deleting={deletingKey === item.id} />)}
+          {healthChecks.map((item) => <HealthCheckDetail key={item.id} item={item} onDelete={onDeleteItem} deleting={deletingKey === item.id} />)}
           {latestBodies.map((item) => <BodyDetail key={item.id} item={item} onDelete={onDeleteItem} deleting={deletingKey === item.id} />)}
           {hasMultipleBodies && (
             <p className="px-1 text-xs text-slate-400">มีบันทึกร่างกายหลายรายการ แสดงรายการล่าสุด</p>
           )}
-          {summaries.length > 0 && (dedupedSleeps.length + workouts.length + meals.length + bodies.length + pains.length + strengths.length === 0) &&
+          {summaries.length > 0 && (dedupedSleeps.length + workouts.length + meals.length + bodies.length + pains.length + strengths.length + healthChecks.length === 0) &&
             summaries.map((item) => <SummaryDetail key={item.id} item={item} onDelete={onDeleteItem} deleting={deletingKey === item.id} />)}
-          {summaries.length > 0 && (dedupedSleeps.length + workouts.length + meals.length + bodies.length + pains.length + strengths.length > 0) && (
+          {summaries.length > 0 && (dedupedSleeps.length + workouts.length + meals.length + bodies.length + pains.length + strengths.length + healthChecks.length > 0) && (
             <div className="rounded-2xl bg-slate-50 p-3">
               <p className="text-xs font-bold text-slate-500 mb-1">สรุปท้ายวัน ({summaries.length})</p>
               {summaries.slice(0, 2).map((item) => (
@@ -532,6 +539,50 @@ function MealDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; onDe
       {note && (
         <p className="text-sm leading-6 text-slate-700">{truncate(note, 140)}</p>
       )}
+      <DeleteRecordButton onDelete={() => onDelete(item)} loading={deleting} />
+    </div>
+  );
+}
+
+function HealthCheckDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; onDelete: (item: LocalHistoryItem) => void; deleting: boolean }) {
+  const d = item.data as HealthCheckAnalysis;
+  const labs = getHealthLabs(d).slice(0, 8);
+  const flags = getHealthFlagLabels(d);
+
+  return (
+    <div className="rounded-2xl bg-blue-50 p-4">
+      <p className="mb-1 text-xs font-bold uppercase tracking-wide text-[#42677f]">ผลตรวจสุขภาพ</p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="font-bold text-[#17201d]">{d.sourceLabel || "Health Check"}</p>
+          <p className="mt-0.5 text-xs text-slate-500">{d.checkupDate ?? formatDayLabel(bangkokDateKey(item.createdAt))}</p>
+        </div>
+        <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-[#42677f]">{d.confidence ?? "low"}</span>
+      </div>
+      {flags.length > 0 ? (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {flags.map((flag) => (
+            <span key={flag} className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-amber-700">
+              {flag}
+            </span>
+          ))}
+        </div>
+      ) : null}
+      {labs.length > 0 ? (
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          {labs.map(([key, lab]) => (
+            <Metric key={key} label={lab.label} value={formatHealthLabValue(lab)} />
+          ))}
+        </div>
+      ) : null}
+      {d.coachSummary ? <p className="mt-3 text-sm leading-6 text-slate-700">{truncate(d.coachSummary, 180)}</p> : null}
+      {(d.foodGuidance?.prefer?.length || d.foodGuidance?.limit?.length) ? (
+        <div className="mt-3 grid gap-2 text-xs leading-5 text-slate-600">
+          {d.foodGuidance.prefer?.length ? <p><span className="font-bold text-[#17201d]">เน้น:</span> {d.foodGuidance.prefer.slice(0, 3).join(", ")}</p> : null}
+          {d.foodGuidance.limit?.length ? <p><span className="font-bold text-[#17201d]">ระวัง:</span> {d.foodGuidance.limit.slice(0, 3).join(", ")}</p> : null}
+        </div>
+      ) : null}
+      <p className="mt-3 text-xs leading-5 text-slate-500">ข้อมูลนี้ใช้ช่วยปรับคำแนะนำอาหาร ไม่ใช่การวินิจฉัยหรือการรักษา</p>
       <DeleteRecordButton onDelete={() => onDelete(item)} loading={deleting} />
     </div>
   );
@@ -1025,6 +1076,47 @@ function getMealNutrition(meals: LocalHistoryItem[]): MealNutritionSummary {
     fatG: sumNutrition(meals, "fatG"),
   };
   return totals;
+}
+
+function getHealthLabs(healthCheck: HealthCheckAnalysis): [string, LabValue][] {
+  const order: (keyof HealthCheckAnalysis["labs"])[] = [
+    "fbs",
+    "hba1c",
+    "totalCholesterol",
+    "triglyceride",
+    "ldl",
+    "hdl",
+    "uricAcid",
+    "creatinine",
+    "egfr",
+    "sgotAst",
+    "sgptAlt",
+  ];
+  const labs = healthCheck.labs ?? {};
+  const ordered = order
+    .map((key) => [key, labs[key]] as [string, LabValue | undefined])
+    .filter((entry): entry is [string, LabValue] => Boolean(entry[1]?.label || entry[1]?.value != null));
+  const extra = Object.entries(labs)
+    .filter(([key, lab]) => !order.includes(key as keyof HealthCheckAnalysis["labs"]) && Boolean(lab?.label || lab?.value != null)) as [string, LabValue][];
+  return [...ordered, ...extra];
+}
+
+function getHealthFlagLabels(healthCheck: HealthCheckAnalysis): string[] {
+  const flags = healthCheck.nutritionFlags;
+  const labels: string[] = [];
+  if (flags.watchLDL) labels.push("ระวัง LDL");
+  if (flags.watchTotalCholesterol) labels.push("ระวัง Cholesterol");
+  if (flags.watchTriglyceride) labels.push("ระวัง Triglyceride");
+  if (flags.watchBloodSugar) labels.push("ระวังน้ำตาล");
+  if (flags.watchUricAcid) labels.push("ระวัง Uric acid");
+  if (flags.watchLiverEnzymes) labels.push("ระวังค่าตับ");
+  if (flags.watchKidney) labels.push("ระวังไต");
+  return labels;
+}
+
+function formatHealthLabValue(lab: LabValue): string {
+  const value = lab.value == null || lab.value === "" ? "-" : String(lab.value);
+  return lab.unit ? `${value} ${lab.unit}` : value;
 }
 
 function proteinTargetGrams(profile: UserProfile | null): number {

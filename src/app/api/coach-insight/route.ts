@@ -152,6 +152,7 @@ function normalizeCoachContext(value: unknown): CoachContext {
     nutrition7d: nutrition7d as CoachContext["nutrition7d"],
     latestCompletedRace: isRecord(raw.latestCompletedRace) ? raw.latestCompletedRace as CoachContext["latestCompletedRace"] : null,
     recentRaceResults: recentRaceResults as CoachContext["recentRaceResults"],
+    latestHealthCheck: isRecord(raw.latestHealthCheck) ? raw.latestHealthCheck as CoachContext["latestHealthCheck"] : null,
     totalRunKm: numberOrNull(raw.totalRunKm) ?? 0,
     totalSessions: numberOrNull(raw.totalSessions) ?? 0,
     runDays7d: numberOrNull(raw.runDays7d) ?? 0,
