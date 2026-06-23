@@ -61,16 +61,16 @@ function buildQuickQuestions(race: RaceQuickContext | null) {
       label: "กินหลังวิ่ง",
       prompt: "หลังวิ่งควรกินอะไรดีครับ ดูจากข้อมูลล่าสุดเท่าที่มี",
     },
-    {
-      label: "วันนี้กินอะไรดี",
-      prompt: "วันนี้ควรกินอะไรดีครับ ดูจาก Report ล่าสุดและผลตรวจสุขภาพถ้ามี",
-    },
-    {
-      label: "เมนูไหนเหมาะ",
-      prompt: "ถ้าดูจากผลตรวจสุขภาพล่าสุด เมนูแบบไหนเหมาะกับผมครับ",
-    },
   ];
 }
+
+const MEAL_QUICK_QUESTIONS = [
+  { label: "เช้านี้กินอะไรดี", prompt: "เช้านี้กินอะไรดีครับ ขอ 3 ตัวเลือกที่เหมาะกับข้อมูลวันนี้" },
+  { label: "เที่ยงกินอะไรดี", prompt: "เที่ยงกินอะไรดีครับ ดูมื้อที่กินไปแล้ววันนี้และอย่าแนะนำซ้ำ" },
+  { label: "เย็นนี้กินอะไรดี", prompt: "เย็นนี้กินอะไรดีครับ ช่วยดูมื้อก่อนหน้าวันนี้และจัดให้สมดุล" },
+  { label: "กินอะไรไม่ซ้ำ", prompt: "มื้อต่อไปกินอะไรดีแบบไม่ซ้ำจากที่กินวันนี้ครับ" },
+  { label: "จัดมื้อวันนี้", prompt: "ช่วยจัดมื้อวันนี้ให้สมดุลกับการซ้อมและผลตรวจสุขภาพล่าสุดถ้ามีครับ" },
+] as const;
 
 const INTENT_OPTIONS = [
   { key: "อาหาร", label: "อาหาร" },
@@ -98,6 +98,7 @@ export function CoachChat() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [raceQuickContext, setRaceQuickContext] = useState<RaceQuickContext | null>(null);
+  const [showMealQuestions, setShowMealQuestions] = useState(false);
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -276,6 +277,27 @@ export function CoachChat() {
             </button>
           ))}
         </div>
+        <button
+          type="button"
+          onClick={() => setShowMealQuestions((value) => !value)}
+          className="text-xs font-semibold text-[var(--muted-text)] hover:text-[var(--foreground)]"
+        >
+          {showMealQuestions ? "ซ่อนคำถามเรื่องอาหาร" : "คำถามเรื่องอาหาร"}
+        </button>
+        {showMealQuestions ? (
+          <div className="flex flex-wrap gap-1.5">
+            {MEAL_QUICK_QUESTIONS.map((item) => (
+              <button
+                key={item.label}
+                type="button"
+                onClick={() => void ask(item.prompt)}
+                className="rounded-full bg-[var(--surface-muted)] px-3 py-2 text-xs font-semibold text-[var(--foreground)] transition hover:bg-[var(--primary-soft)]"
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        ) : null}
       </div>
 
       <div className="flex flex-1 flex-col gap-3 rounded-3xl border border-[var(--border-warm)] bg-[var(--surface)]/70 p-3 shadow-sm">

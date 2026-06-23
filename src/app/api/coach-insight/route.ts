@@ -110,6 +110,7 @@ function normalizeCoachContext(value: unknown): CoachContext {
   const workouts7d = arrayValue(raw.workouts7d);
   const todayWorkouts = arrayValue(raw.todayWorkouts);
   const nutrition7d = arrayValue(raw.nutrition7d);
+  const mealsToday = arrayValue(raw.mealsToday);
   const recentRaceResults = arrayValue(raw.recentRaceResults);
   const recentPainLogs = arrayValue(raw.recentPainLogs);
   const contextNotes = arrayValue(raw.contextNotes).filter((note): note is string => typeof note === "string");
@@ -151,6 +152,7 @@ function normalizeCoachContext(value: unknown): CoachContext {
     todayPrimaryWorkout,
     nutritionToday,
     nutrition7d: nutrition7d as CoachContext["nutrition7d"],
+    mealsToday: mealsToday as CoachContext["mealsToday"],
     latestCompletedRace: isRecord(raw.latestCompletedRace) ? raw.latestCompletedRace as CoachContext["latestCompletedRace"] : null,
     recentRaceResults: recentRaceResults as CoachContext["recentRaceResults"],
     latestHealthCheck: isRecord(raw.latestHealthCheck) ? raw.latestHealthCheck as CoachContext["latestHealthCheck"] : null,

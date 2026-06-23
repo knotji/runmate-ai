@@ -6,6 +6,7 @@ import { loadActiveRaceGoalAndPlan } from "@/lib/raceStorage";
 import { formatSleepMinutesShortThai, formatSleepMinutesThai, parseSleepDurationToMinutes } from "@/lib/sleepDuration";
 import { dedupeSleepItems } from "@/lib/sleepDedupe";
 import { loadRaceResults } from "@/lib/raceResults";
+import { extractMealData, normalizeMealNutrition } from "@/lib/mealMerge";
 import type { LocalHistoryItem } from "@/lib/localHistory";
 import type { SleepAnalysis, WorkoutAnalysis, BodyCompositionAnalysis, MealAnalysis, HealthCheckAnalysis, LabValue } from "@/types/logs";
 import type { PainLog } from "@/types/pain";
@@ -92,6 +93,7 @@ export type CoachContext = {
   todayPrimaryWorkout: TodayCompletedWorkoutSummary | null;
   nutritionToday: NutritionDaySummary | null;
   nutrition7d: NutritionDaySummary[];
+  mealsToday: MealContextSummary[];
   latestCompletedRace: RaceResult | null;
   recentRaceResults: RaceResult[];
   latestHealthCheck: HealthCheckContext | null;
@@ -117,6 +119,18 @@ export type NutritionDaySummary = {
   carbsG: number | null;
   fatG: number | null;
   notes: string[];
+};
+
+export type MealContextSummary = {
+  mealType: string;
+  foods: string[];
+  caloriesKcal: number | null;
+  proteinG: number | null;
+  carbsG: number | null;
+  fatG: number | null;
+  fiberG: number | null;
+  fatLoad: string | null;
+  coachNote: string | null;
 };
 
 export type HealthCheckContext = {
@@ -385,6 +399,10 @@ export function buildCoachContextFromData(input: {
   const workouts7d = [...dayMap.values()].sort((a, b) => b.date.localeCompare(a.date));
   const nutrition7d = buildNutritionSummaries(items, cutoff);
   const nutritionToday = nutrition7d.find((day) => day.date === today) ?? null;
+  const mealsToday = items
+    .filter((item) => item.type === "meal" && bangkokDateKey(item.createdAt) === today)
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+    .map(compactMealForCoach);
   const latestHealthCheck = items
     .filter((i) => i.type === "health_check")
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
@@ -496,6 +514,7 @@ export function buildCoachContextFromData(input: {
     todayPrimaryWorkout,
     nutritionToday,
     nutrition7d,
+    mealsToday,
     latestCompletedRace,
     recentRaceResults,
     latestHealthCheck,
@@ -533,6 +552,7 @@ export function buildCoachContextFromData(input: {
       latestPain,
       recentMaxPain,
       latestHealthCheck,
+      mealsToday,
       strengthCount: items.filter((i) => i.type === "strength" && bangkokDateKey(i.createdAt) >= cutoff).length,
     }),
   };
@@ -546,7 +566,7 @@ function buildNutritionSummaries(items: LocalHistoryItem[], cutoff: string): Nut
   for (const item of mealItems) {
     const date = bangkokDateKey(item.createdAt);
     const list = byDate.get(date) ?? [];
-    list.push(item.data as MealAnalysis);
+    list.push(extractMealData(item));
     byDate.set(date, list);
   }
 
@@ -561,6 +581,26 @@ function buildNutritionSummaries(items: LocalHistoryItem[], cutoff: string): Nut
       notes: meals.map((meal) => meal.trainingFit?.coachNote).filter((note): note is string => Boolean(note)).slice(0, 2),
     }))
     .sort((a, b) => b.date.localeCompare(a.date));
+}
+
+function compactMealForCoach(item: LocalHistoryItem): MealContextSummary {
+  const meal = extractMealData(item);
+  const nutrition = normalizeMealNutrition(meal as unknown as Record<string, unknown>);
+  const foods = (meal.detectedFoods ?? [])
+    .map((food) => food.name?.trim())
+    .filter((food): food is string => Boolean(food))
+    .slice(0, 8);
+  return {
+    mealType: meal.mealType || "meal",
+    foods,
+    caloriesKcal: nutrition.caloriesKcal,
+    proteinG: nutrition.proteinG,
+    carbsG: nutrition.carbsG,
+    fatG: nutrition.fatG,
+    fiberG: nutrition.fiberG,
+    fatLoad: meal.trainingFit?.fatLoad ?? null,
+    coachNote: meal.trainingFit?.coachNote ?? meal.coachNote ?? null,
+  };
 }
 
 function sumMeals(meals: MealAnalysis[], key: keyof MealAnalysis["nutrition"]): number | null {
@@ -708,6 +748,7 @@ function buildContextNotes(input: {
   latestPain?: PainSummary | null;
   recentMaxPain?: PainSummary | null;
   latestHealthCheck?: HealthCheckContext | null;
+  mealsToday?: MealContextSummary[];
   longestRun7dKm: number | null;
   lastWorkoutDate: string | null;
   strengthCount?: number;
@@ -738,6 +779,11 @@ function buildContextNotes(input: {
     if (health.foodGuidance.prefer.length) notes.push(`Health check food guidance prefer: ${health.foodGuidance.prefer.slice(0, 5).join(", ")}.`);
     if (health.foodGuidance.limit.length) notes.push(`Health check food guidance limit: ${health.foodGuidance.limit.slice(0, 5).join(", ")}.`);
     if (health.coachSummary) notes.push(`Health check summary: ${health.coachSummary}`);
+  }
+  if (input.mealsToday?.length) {
+    notes.push(`MEALS TODAY: ${input.mealsToday.map((meal) => `${meal.mealType}: ${meal.foods.join(", ") || "foods not specified"}`).join(" | ")}. Use this to avoid repeating the same main protein or menu style in the next meal.`);
+  } else {
+    notes.push("No meals logged today. Do not pretend the user already ate a meal.");
   }
   if (!input.racePlan) notes.push("No active weekly/race plan is set. For tomorrow questions, state that the plan is inferred from recent data.");
   if (input.sleep7d.length === 0) notes.push("No sleep data in the last 7 days.");

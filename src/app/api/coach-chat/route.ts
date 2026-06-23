@@ -27,6 +27,7 @@ export async function POST(request: Request) {
         sleepNightCount7d: (context as Record<string, unknown>).sleepNightCount7d ?? null,
         latestSleepDateKey: (context as Record<string, unknown>).latestSleepDateKey ?? null,
         hasLatestHealthCheck: Boolean((context as Record<string, unknown>).latestHealthCheck),
+        mealsTodayCount: Array.isArray((context as Record<string, unknown>).mealsToday) ? ((context as Record<string, unknown>).mealsToday as unknown[]).length : 0,
       });
     }
 
@@ -169,22 +170,26 @@ function buildContextGuidance(question: string, context: unknown) {
   const latestSleepScore = numberValue(ctx.latestSleepScore);
   const latestEnergyScore = numberValue(ctx.latestEnergyScore);
   const latestHealthCheck = readRecord(ctx.latestHealthCheck);
+  const mealsToday = Array.isArray(ctx.mealsToday) ? ctx.mealsToday : [];
+  const mealRecommendation = isMealRecommendationQuestion(question);
   const lines: string[] = [];
 
-  if (sleepAvg7dText) {
-    lines.push(`SLEEP SOURCE OF TRUTH: Current Report sleep average is ${sleepAvg7dText}${sleepNightCount7d != null ? ` from ${sleepNightCount7d} deduped sleep night(s)` : ""}. Never reuse older sleep averages from chat history.`);
-  } else {
-    lines.push("SLEEP SOURCE OF TRUTH: Current Report context has no sleep average. Do not invent or reuse old sleep averages.");
-  }
-  if (latestSleepDurationText) {
-    lines.push(`LATEST SLEEP: ${latestSleepDateKey ?? "latest"} duration ${latestSleepDurationText}, sleep score ${latestSleepScore ?? "unknown"}, energy score ${latestEnergyScore ?? "unknown"}.`);
+  if (!mealRecommendation) {
+    if (sleepAvg7dText) {
+      lines.push(`SLEEP SOURCE OF TRUTH: Current Report sleep average is ${sleepAvg7dText}${sleepNightCount7d != null ? ` from ${sleepNightCount7d} deduped sleep night(s)` : ""}. Never reuse older sleep averages from chat history.`);
+    } else {
+      lines.push("SLEEP SOURCE OF TRUTH: Current Report context has no sleep average. Do not invent or reuse old sleep averages.");
+    }
+    if (latestSleepDurationText) {
+      lines.push(`LATEST SLEEP: ${latestSleepDateKey ?? "latest"} duration ${latestSleepDurationText}, sleep score ${latestSleepScore ?? "unknown"}, energy score ${latestEnergyScore ?? "unknown"}.`);
+    }
   }
 
-  if (isSimpleFollowUp(question)) {
+  if (!mealRecommendation && isSimpleFollowUp(question)) {
     lines.push("RESPONSE LENGTH HINT: This looks like a simple follow-up. Answer in 3-5 short Thai lines unless the user asks for detail.");
   }
 
-  if (isColdSoakQuestion(question)) {
+  if (!mealRecommendation && isColdSoakQuestion(question)) {
     lines.push([
       "COLD SOAK ANSWER HINT:",
       "- Answer directly: ได้ครับ/ทำได้ครับ.",
@@ -196,7 +201,7 @@ function buildContextGuidance(question: string, context: unknown) {
     ].join("\n"));
   }
 
-  if (latestPain) {
+  if (latestPain && !mealRecommendation) {
     const area = stringValue(latestPain.painLocation) ?? "อาการเจ็บ";
     const score = numberValue(latestPain.painLevel);
     const resolved = Boolean(latestPain.hasResolvedPain || latestPain.resolved || latestPain.status === "resolved");
@@ -218,6 +223,39 @@ function buildContextGuidance(question: string, context: unknown) {
     lines.push(`TODAY WORKOUT HINT: User already completed ${label}${distance != null ? ` ${distance} km` : ""}${duration ? ` in ${duration}` : ""}. For recovery questions, do not recommend more hard training today.`);
   }
 
+  if (mealRecommendation) {
+    const mealSlot = detectMealSlot(question);
+    const nutritionToday = readRecord(ctx.nutritionToday);
+    lines.push([
+      "PERSONALIZED MEAL RECOMMENDATION MODE:",
+      "- FOOD INTENT OVERRIDES unrelated sleep, pain, cold-soak, and general recovery instructions. Answer the meal request only.",
+      `- Meal slot: ${mealSlot}.`,
+      "- Answer in concise Thai: one principle line, exactly 3 numbered practical menu options, one short reason paragraph, and one small avoid/adjust note.",
+      "- Use realistic Thai meals. Vary the main protein and cooking style.",
+      "- Do not repeat the same main protein/menu style already logged today unless the user asks for it.",
+      "- If the slot is unclear, call it 'มื้อนี้' and still give useful options without forcing a follow-up.",
+      `- Suggested menu pool for this slot: ${mealExamples(mealSlot).join(" | ")}.`,
+    ].join("\n"));
+    if (mealsToday.length) {
+      lines.push(`MEALS ALREADY LOGGED TODAY: ${mealsToday.map(formatMealContext).join(" | ")}.`);
+      lines.push("- Briefly acknowledge the relevant earlier meal, then choose different first options.");
+    } else {
+      lines.push("MEALS ALREADY LOGGED TODAY: none. Do not invent an earlier meal. You may say 'ถ้ายังไม่ได้กินอะไรมาก่อน...'.");
+    }
+    if (nutritionToday) {
+      lines.push(`NUTRITION TODAY ESTIMATE: meals=${numberValue(nutritionToday.mealCount) ?? mealsToday.length}, protein=${numberValue(nutritionToday.proteinG) ?? "unknown"} g, carbs=${numberValue(nutritionToday.carbsG) ?? "unknown"} g, fat=${numberValue(nutritionToday.fatG) ?? "unknown"} g.`);
+    }
+    if (todayWorkout) {
+      lines.push("- Training context: a workout is already completed today. Include practical protein + carbs and hydration for recovery.");
+    } else if (Boolean(ctx.isRaceToday || ctx.isRaceTomorrow)) {
+      lines.push("- Training context: race today/tomorrow. Favor easy-to-digest carbs, moderate protein, hydration, and avoid greasy meals close to race.");
+    } else if (latestPain) {
+      lines.push("- Training context: recent pain/recovery context exists. Favor moderate carbs, non-fried protein, vegetables/fruit, and water.");
+    } else {
+      lines.push("- Training context: keep carbs proportional to training load and include protein plus vegetables.");
+    }
+  }
+
   if (latestHealthCheck && isFoodOrHealthNutritionQuestion(question)) {
     const flags = readRecord(latestHealthCheck.nutritionFlags);
     const guidance = readRecord(latestHealthCheck.foodGuidance);
@@ -235,7 +273,15 @@ function buildContextGuidance(question: string, context: unknown) {
     const limit = Array.isArray(guidance?.limit) ? guidance.limit.filter((item): item is string => typeof item === "string").slice(0, 5) : [];
     if (prefer.length) lines.push(`Prefer foods: ${prefer.join(", ")}.`);
     if (limit.length) lines.push(`Limit/caution foods: ${limit.join(", ")}.`);
-    lines.push("Use wording like 'จากค่าที่บันทึกไว้ ควรระวัง...' and recommend seeing a doctor for abnormal/persistent concerns.");
+    lines.push([
+      "Translate flags into practical choices:",
+      "- LDL/total cholesterol/triglyceride: non-fried fish/chicken/tofu/beans, vegetables, oats/whole grains; reduce fried food, crispy pork, processed meat, butter/cream, coconut-milk-heavy meals.",
+      "- Blood sugar: balanced carbs + protein + fiber, unsweetened drinks; reduce sugary drinks/desserts and refined-carb-heavy meals.",
+      "- Liver enzymes: lighter non-fried meals, vegetables, water; reduce alcohol and heavy fatty late meals.",
+      "- Uric acid: balanced protein and hydration; reduce organ meats, alcohol, and high-purine-heavy patterns.",
+      "- Kidney caution: do not push aggressive high-protein targets; suggest medical guidance for abnormal values.",
+      "Use wording like 'จากผลตรวจล่าสุด ควรระวัง...' or 'ไม่ใช่ข้อห้ามเด็ดขาด แต่วันนี้เลือกแบบเบากว่าได้'. Never diagnose.",
+    ].join("\n"));
   }
 
   return lines.length ? `Coach response guidance:\n${lines.join("\n")}` : "";
@@ -251,6 +297,60 @@ function isColdSoakQuestion(question: string) {
 
 function isFoodOrHealthNutritionQuestion(question: string) {
   return /กิน|อาหาร|เมนู|คอเลส|chol|ldl|triglyceride|น้ำตาล|ไขมัน|ตับ|ไต|uric|โปรตีน|คาร์บ|สุขภาพ|ผลตรวจ|meal|food|nutrition|diet/i.test(question);
+}
+
+function isMealRecommendationQuestion(question: string) {
+  return /กินอะไร|มื้อเช้า|มื้อกลางวัน|มื้อเที่ยง|มื้อเย็น|มื้อค่ำ|มื้อนี้|จัดมื้อ|ไม่ซ้ำ|สมดุล|breakfast|lunch|dinner|snack|what.*eat/i.test(question);
+}
+
+function detectMealSlot(question: string): "breakfast" | "lunch" | "dinner" | "snack" | "meal" {
+  if (/เช้า|มื้อเช้า|breakfast/i.test(question)) return "breakfast";
+  if (/เที่ยง|กลางวัน|มื้อกลางวัน|lunch/i.test(question)) return "lunch";
+  if (/เย็น|ค่ำ|มื้อเย็น|dinner/i.test(question)) return "dinner";
+  if (/ของว่าง|ว่าง|snack/i.test(question)) return "snack";
+  return "meal";
+}
+
+function mealExamples(slot: ReturnType<typeof detectMealSlot>): string[] {
+  if (slot === "breakfast") return [
+    "ข้าวต้มปลา + ไข่ต้ม",
+    "โจ๊กไก่/หมูไม่ติดมันใส่ไข่ ลดปาท่องโก๋",
+    "ขนมปังโฮลวีต + ไข่ + โยเกิร์ตไม่หวาน",
+  ];
+  if (slot === "lunch") return [
+    "ข้าวไก่ย่าง/อกไก่ + ผัก + ไข่ต้ม",
+    "สุกี้น้ำไก่หรือเต้าหู้ เพิ่มผัก ลดน้ำจิ้ม",
+    "กะเพราไก่/หมูไม่ติดมัน ลดน้ำมัน + ไข่ต้ม",
+  ];
+  if (slot === "dinner") return [
+    "สุกี้น้ำไก่/เต้าหู้ เพิ่มผัก",
+    "เกาเหลา + ข้าวเล็กน้อย",
+    "ต้มจืดเต้าหู้หมูสับ + ข้าวเล็กน้อย",
+  ];
+  if (slot === "snack") return [
+    "โยเกิร์ตไม่หวาน + ผลไม้",
+    "ไข่ต้ม + กล้วย",
+    "นมหรือโปรตีนไม่หวาน + ถั่วไม่เค็มเล็กน้อย",
+  ];
+  return [
+    "ข้าว + โปรตีนไม่ทอด + ผัก",
+    "สุกี้น้ำเพิ่มผัก ลดน้ำจิ้ม",
+    "ต้มจืด/เกาเหลา + ข้าวพอประมาณ",
+  ];
+}
+
+function formatMealContext(value: unknown): string {
+  const meal = readRecord(value);
+  if (!meal) return "meal: details unavailable";
+  const foods = Array.isArray(meal.foods)
+    ? meal.foods.filter((food): food is string => typeof food === "string").slice(0, 6)
+    : [];
+  const macros = [
+    numberValue(meal.proteinG) != null ? `protein ${numberValue(meal.proteinG)}g` : null,
+    numberValue(meal.carbsG) != null ? `carbs ${numberValue(meal.carbsG)}g` : null,
+    numberValue(meal.fatG) != null ? `fat ${numberValue(meal.fatG)}g` : null,
+  ].filter(Boolean).join(", ");
+  return `${stringValue(meal.mealType) ?? "meal"}: ${foods.join(", ") || "foods not specified"}${macros ? ` (${macros})` : ""}`;
 }
 
 function readRecord(value: unknown): Record<string, unknown> | null {
