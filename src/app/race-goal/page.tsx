@@ -111,6 +111,10 @@ export default function RaceGoalPage() {
 
   if (!mounted) return null;
 
+  // Display-layer selection: pick today's workout from weeklyPlan by Bangkok date.
+  // Do not mutate stored plan data — this is read-only.
+  const selectedTodayWorkout = plan ? (selectTodayFromWeeklyPlan(plan) ?? plan.todayWorkout ?? null) : null;
+
   return (
     <AppShell title="Race Goal" subtitle="วางแผนจากวันนี้ไปถึงวันแข่ง">
       {!goal || !plan ? (
@@ -122,7 +126,7 @@ export default function RaceGoalPage() {
         <>
           <RaceCountdownCard goal={goal} phase={plan.currentPhase} />
           <PlanAtGlance plan={plan} freshness={planFreshness} />
-          {plan.todayWorkout ? <TodayWorkoutCard workout={normalizeForDisplay(plan.todayWorkout)} /> : null}
+          {selectedTodayWorkout ? <TodayWorkoutCard workout={normalizeForDisplay(selectedTodayWorkout)} /> : null}
           {plan.weeklyPlan?.length ? <ActionableWeekCard workouts={plan.weeklyPlan.map(normalizeForDisplay)} /> : null}
 
           <section className="card space-y-3 p-5">
@@ -383,6 +387,52 @@ function resultBadge(value: RaceResult["goalResult"]) {
   if (value === "missed") return "Missed";
   if (value === "completed") return "Completed";
   return "Race Result";
+}
+
+// ── Today workout selection (display-layer, does not mutate stored plan) ─────
+
+// Returns the WeekWorkout from weeklyPlan that matches today's Bangkok date.
+// Strategy 1: offset from planStartDate (reliable for plans < 7 days old).
+// Strategy 2: weekday-name matching (fallback for older plans or when offset is out of range).
+function selectTodayFromWeeklyPlan(plan: RacePlan): WeekWorkout | null {
+  const weeklyPlan = plan.weeklyPlan;
+  if (!weeklyPlan?.length) return null;
+
+  const todayDate = new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+  if (plan.planStartDate) {
+    const startMs = Date.parse(`${plan.planStartDate}T12:00:00+07:00`);
+    const todayMs = Date.parse(`${todayDate}T12:00:00+07:00`);
+    if (!Number.isNaN(startMs) && !Number.isNaN(todayMs)) {
+      const offsetDays = Math.round((todayMs - startMs) / 86_400_000);
+      if (offsetDays >= 0 && offsetDays < weeklyPlan.length) {
+        return weeklyPlan[offsetDays];
+      }
+    }
+  }
+
+  // Fallback: match by weekday label (Thai or English) when offset is unavailable or out of range.
+  const todayWeekday = new Date(Date.now() + 7 * 60 * 60 * 1000).getUTCDay();
+  for (const workout of weeklyPlan) {
+    const wd = weekdayFromDayLabel(workout.day ?? "");
+    if (wd !== null && wd === todayWeekday) return workout;
+  }
+
+  return null;
+}
+
+// Maps Thai and English day label strings to JS weekday numbers (0=Sun, 1=Mon, … 6=Sat).
+function weekdayFromDayLabel(day: string): number | null {
+  if (!day) return null;
+  const d = day.trim();
+  if (/^(จ\.|จันทร์|วันจันทร์|Mon)/i.test(d)) return 1;
+  if (/^(อ\.|อังคาร|วันอังคาร|Tue)/i.test(d)) return 2;
+  if (/^(พ\.|พุธ|วันพุธ|Wed)/i.test(d)) return 3;
+  if (/^(พฤ\.|พฤหัส|วันพฤหัส|Thu)/i.test(d)) return 4;
+  if (/^(ศ\.|ศุกร์|วันศุกร์|Fri)/i.test(d)) return 5;
+  if (/^(ส\.|เสาร์|วันเสาร์|Sat)/i.test(d)) return 6;
+  if (/^(อา\.|อาทิตย์|วันอาทิตย์|Sun)/i.test(d)) return 0;
+  return null;
 }
 
 // ── Display-layer normalization (applied to stored plans before render) ──────
