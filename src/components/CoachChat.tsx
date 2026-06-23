@@ -15,24 +15,54 @@ const INITIAL_MESSAGE: ChatMessage = {
   content: "เล่าให้โค้ชฟังได้เลย วันนี้อยากคุยเรื่องซ้อม กิน นอน recovery หรืออะไรก็ได้",
 };
 
-const quickQuestions = [
-  {
-    label: "วันนี้ควรซ้อมอะไร",
-    prompt: "วันนี้ควรซ้อมอะไรดีครับ ใช้ข้อมูล Report ล่าสุดช่วยดูให้หน่อย",
-  },
-  {
-    label: "สรุปวันนี้",
-    prompt: "สรุปวันนี้ให้หน่อยครับ เอาแบบเข้าใจง่ายและใช้ข้อมูล Report ล่าสุด",
-  },
-  {
-    label: "Recovery",
-    prompt: "วันนี้ควร recovery ยังไงดีครับ",
-  },
-  {
-    label: "กินหลังวิ่ง",
-    prompt: "หลังวิ่งควรกินอะไรดีครับ ดูจากข้อมูลล่าสุดเท่าที่มี",
-  },
-];
+type RaceQuickContext = { raceName: string | null; raceDistance: string | null; daysUntilRace: number | null };
+
+function buildQuickQuestions(race: RaceQuickContext | null) {
+  const raceTag = race
+    ? [race.raceName, race.raceDistance, race.daysUntilRace != null ? `อีก ${race.daysUntilRace} วัน` : null]
+        .filter(Boolean).join(" · ")
+    : null;
+
+  if (race) {
+    return [
+      {
+        label: "ซ้อมวันนี้",
+        prompt: `วันนี้ควรซ้อมอะไรดีครับ${raceTag ? ` (${raceTag})` : ""} ใช้ข้อมูล Report และแผนซ้อมช่วยดูให้หน่อย`,
+      },
+      {
+        label: "Pace เป้าหมาย",
+        prompt: `Pace เป้าหมายแข่ง${race.raceName ? ` ${race.raceName}` : ""}${race.raceDistance ? ` ${race.raceDistance}` : ""} ควรเป็นเท่าไหร่ครับ ดูจาก Report ล่าสุดด้วย`,
+      },
+      {
+        label: "Recovery วันนี้",
+        prompt: "วันนี้ควร recovery ยังไงดีครับ ดูจากข้อมูลล่าสุดด้วย",
+      },
+      {
+        label: "โภชนาการก่อนแข่ง",
+        prompt: `ควรกินยังไงในช่วง${race.daysUntilRace != null && race.daysUntilRace <= 3 ? "ก่อนแข่ง" : "ซ้อมเตรียมแข่ง"}ครับ เน้น carb และ timing ที่เหมาะสม`,
+      },
+    ];
+  }
+
+  return [
+    {
+      label: "วันนี้ควรซ้อมอะไร",
+      prompt: "วันนี้ควรซ้อมอะไรดีครับ ใช้ข้อมูล Report ล่าสุดช่วยดูให้หน่อย",
+    },
+    {
+      label: "สรุปวันนี้",
+      prompt: "สรุปวันนี้ให้หน่อยครับ เอาแบบเข้าใจง่ายและใช้ข้อมูล Report ล่าสุด",
+    },
+    {
+      label: "Recovery",
+      prompt: "วันนี้ควร recovery ยังไงดีครับ",
+    },
+    {
+      label: "กินหลังวิ่ง",
+      prompt: "หลังวิ่งควรกินอะไรดีครับ ดูจากข้อมูลล่าสุดเท่าที่มี",
+    },
+  ];
+}
 
 const INTENT_OPTIONS = [
   { key: "อาหาร", label: "อาหาร" },
@@ -59,6 +89,7 @@ export function CoachChat() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [raceQuickContext, setRaceQuickContext] = useState<RaceQuickContext | null>(null);
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -78,6 +109,14 @@ export function CoachChat() {
       objectUrls.forEach((url) => URL.revokeObjectURL(url));
       objectUrls.clear();
     };
+  }, []);
+
+  useEffect(() => {
+    buildCoachContextFromSupabase().then((ctx) => {
+      if (ctx.raceGoal) {
+        setRaceQuickContext({ raceName: ctx.raceName, raceDistance: ctx.raceDistance, daysUntilRace: ctx.daysUntilRace });
+      }
+    }).catch(() => {});
   }, []);
 
   function revokeObjectUrl(url: string | null | undefined) {
@@ -216,7 +255,7 @@ export function CoachChat() {
           </button>
         </div>
         <div className="grid grid-cols-2 gap-2">
-          {quickQuestions.map((item) => (
+          {buildQuickQuestions(raceQuickContext).map((item) => (
             <button
               key={item.label}
               className="rounded-full border border-[var(--border-warm)] bg-[var(--surface)]/85 px-3 py-2.5 text-xs font-bold text-[var(--foreground)] shadow-sm transition hover:bg-[var(--primary-soft)]"

@@ -53,11 +53,11 @@ export function ReadinessCard() {
           setSleepScore(latestSleep?.score ?? 75);
           setEnergyScore(latestSleep?.energyScore ?? 70);
 
-          // Pain logs override (if there's a recent medium/high risk or high level pain log)
-          const hasRecentPain = next.recentPainLogs && next.recentPainLogs.some(
-            (p) => p.painLevel >= 3
+          // Pain logs override — only flag active (non-resolved) pain
+          const hasActiveRecentPain = next.recentPainLogs && next.recentPainLogs.some(
+            (p) => p.painLevel >= 3 && !p.resolved
           );
-          setInjuryFlag(hasRecentPain);
+          setInjuryFlag(hasActiveRecentPain);
 
           // Yesterday load check
           let loadVal: "none" | "light" | "heavy" = "none";

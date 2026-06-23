@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { buildCoachContextFromSupabase, type CoachContext } from "@/lib/buildCoachContext";
 import type { UserProfile } from "@/types/profile";
+import type { RacePlan, WeekWorkout } from "@/types/race";
 
 export function AIContextCard() {
   const [context, setContext] = useState<CoachContext>(emptyContext);
@@ -75,6 +76,32 @@ export function AIContextCard() {
   }, [lastWorkout]);
 
   const profile = context.profile as UserProfile | null;
+  const racePlan = context.racePlan as RacePlan | null;
+
+  const todayRacePlanWorkout = useMemo((): WeekWorkout | null => {
+    if (!racePlan) return null;
+    const weeklyPlan = racePlan.weeklyPlan;
+    if (!weeklyPlan?.length) return racePlan.todayWorkout ?? null;
+    const todayDate = new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    if (racePlan.planStartDate) {
+      const startMs = Date.parse(`${racePlan.planStartDate}T12:00:00+07:00`);
+      const todayMs = Date.parse(`${todayDate}T12:00:00+07:00`);
+      if (!Number.isNaN(startMs) && !Number.isNaN(todayMs)) {
+        const offsetDays = Math.round((todayMs - startMs) / 86_400_000);
+        if (offsetDays >= 0 && offsetDays < weeklyPlan.length) return weeklyPlan[offsetDays] ?? null;
+      }
+    }
+    return racePlan.todayWorkout ?? null;
+  }, [racePlan]);
+
+  const isPlanStale = useMemo(() => {
+    if (!racePlan?.weeklyPlan?.length || !racePlan.planStartDate) return false;
+    const todayDate = new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const startMs = Date.parse(`${racePlan.planStartDate}T12:00:00+07:00`);
+    const todayMs = Date.parse(`${todayDate}T12:00:00+07:00`);
+    if (Number.isNaN(startMs) || Number.isNaN(todayMs)) return false;
+    return Math.round((todayMs - startMs) / 86_400_000) >= racePlan.weeklyPlan.length;
+  }, [racePlan]);
 
   return (
     <details className="group rounded-3xl border border-[var(--border-warm)] bg-[var(--surface)]/75 px-4 py-3 shadow-sm">
@@ -104,7 +131,15 @@ export function AIContextCard() {
           </div>
         )}
         <div className="grid grid-cols-2 gap-2">
-          <ContextMetric label="เป้าหมาย" value={context.raceGoal ? String(context.raceGoal.raceName ?? "มีเป้าหมายแข่ง") : "ยังไม่มี"} />
+          <ContextMetric
+            label="เป้าหมายแข่ง"
+            value={context.raceName ?? (context.raceGoal ? "มีเป้าหมายแข่ง" : "ยังไม่มี")}
+            sub={
+              context.raceGoal
+                ? [context.raceDistance, context.daysUntilRace != null ? `อีก ${context.daysUntilRace} วัน` : null].filter(Boolean).join(" · ") || undefined
+                : undefined
+            }
+          />
           <ContextMetric label="วิ่ง 7 วัน" value={`${context.totalRunKm} กม.`} sub={`${context.runDays7d} วัน`} />
         </div>
 
@@ -211,6 +246,32 @@ export function AIContextCard() {
           </ContextBlock>
         ) : null}
 
+        {context.raceGoal && (todayRacePlanWorkout || isPlanStale) && (
+          <ContextBlock title="ซ้อมตามแผนวันนี้">
+            {isPlanStale ? (
+              <p className="font-medium text-amber-600">แผนนี้อาจเกินช่วงซ้อมแล้ว — ไปที่ Race Goal เพื่อรีเฟรชแผน</p>
+            ) : todayRacePlanWorkout ? (
+              <div className="space-y-0.5">
+                <p className="font-semibold">{todayRacePlanWorkout.workoutType}</p>
+                {[
+                  todayRacePlanWorkout.distanceKm != null && `${todayRacePlanWorkout.distanceKm} กม.`,
+                  todayRacePlanWorkout.targetPace && `Pace ${todayRacePlanWorkout.targetPace}`,
+                  todayRacePlanWorkout.targetHR && `HR ${todayRacePlanWorkout.targetHR}`,
+                ].filter(Boolean).length > 0 && (
+                  <p>{[
+                    todayRacePlanWorkout.distanceKm != null && `${todayRacePlanWorkout.distanceKm} กม.`,
+                    todayRacePlanWorkout.targetPace && `Pace ${todayRacePlanWorkout.targetPace}`,
+                    todayRacePlanWorkout.targetHR && `HR ${todayRacePlanWorkout.targetHR}`,
+                  ].filter(Boolean).join(" · ")}</p>
+                )}
+                {todayRacePlanWorkout.description && (
+                  <p className="mt-1 text-xs text-slate-500">{todayRacePlanWorkout.description}</p>
+                )}
+              </div>
+            ) : null}
+          </ContextBlock>
+        )}
+
         {context.contextNotes.length > 0 && (
           <div className="rounded-2xl bg-amber-50/80 p-3">
             <p className="text-xs font-bold text-amber-700">ข้อควรระวังจากข้อมูล</p>
@@ -252,7 +313,10 @@ function buildSourceSummary(context: CoachContext) {
     context.runDays7d > 0 && `วิ่ง ${context.runDays7d} วันใน 7 วันล่าสุด`,
     context.sleep7d.length > 0 && `Sleep ${context.sleep7d.length} รายการ`,
     context.nutritionToday && `อาหารวันนี้ ${context.nutritionToday.mealCount} มื้อ`,
-    context.raceGoal && "Race Goal active",
+    context.raceGoal && (
+      [context.raceName, context.raceDistance, context.daysUntilRace != null ? `อีก ${context.daysUntilRace} วัน` : null]
+        .filter(Boolean).join(" · ") || "Race Goal active"
+    ),
   ].filter(Boolean);
 
   return parts.length
