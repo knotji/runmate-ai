@@ -35,7 +35,7 @@ export function ReadinessCard() {
   const [energyScore, setEnergyScore] = useState<number | null>(null);
   const [yesterdayLoad, setYesterdayLoad] = useState<"none" | "light" | "heavy">("none");
   const [muscleSoreness, setMuscleSoreness] = useState<"none" | "light" | "sore">("none");
-  const [injuryFlag, setInjuryFlag] = useState(false);
+  const [manualCurrentPain, setManualCurrentPain] = useState(false);
   
   const [showConfig, setShowConfig] = useState(false);
   const [collapsed, setCollapsed] = useState(true);
@@ -53,11 +53,12 @@ export function ReadinessCard() {
           setSleepScore(latestSleep?.score ?? 75);
           setEnergyScore(latestSleep?.energyScore ?? 70);
 
-          // Pain logs override — only flag active (non-resolved) pain
-          const hasActiveRecentPain = next.recentPainLogs && next.recentPainLogs.some(
-            (p) => p.painLevel >= 3 && !p.resolved
-          );
-          setInjuryFlag(hasActiveRecentPain);
+          // The toggle represents current pain only. Older/resolved pain stays safety context.
+          setManualCurrentPain(next.activePain);
+          window.dispatchEvent(new CustomEvent("runmate:coach-current-pain-changed", {
+            // Report-derived active pain already travels in CoachContext; this resets only the manual override.
+            detail: { active: false },
+          }));
 
           // Yesterday load check
           let loadVal: "none" | "light" | "heavy" = "none";
@@ -101,6 +102,13 @@ export function ReadinessCard() {
   const normalRestingHr = profile?.normalRestingHr ? Number(profile.normalRestingHr) : null;
   const normalHrv = profile?.normalHrv ? Number(profile.normalHrv) : null;
   const latestSleep = context?.sleep7d[0];
+  const reportActivePain = Boolean(context?.activePain);
+  const injuryOverrideActive = reportActivePain || manualCurrentPain;
+  const latestPain = context?.latestPain;
+  const recentMaxPain = context?.recentMaxPain;
+  const recentPainHistoryNote = !injuryOverrideActive && context?.recentPainHistory && latestPain && recentMaxPain
+    ? `ล่าสุดบันทึกว่าอาการเจ็บ${latestPain.painLocation}หายแล้ว แต่ช่วงไม่กี่วันที่ผ่านมาเคยมีอาการถึง ${recentMaxPain.painLevel}/10 จึงแนะนำให้เริ่มเบาก่อน`
+    : null;
 
   const restingHrDelta = (latestSleep?.restingHR && normalRestingHr)
     ? latestSleep.restingHR - normalRestingHr
@@ -116,7 +124,9 @@ export function ReadinessCard() {
     hrvDelta,
     yesterdayLoad,
     muscleSoreness,
-    injuryFlag,
+    injuryFlag: injuryOverrideActive,
+    injurySource: reportActivePain ? "report" : manualCurrentPain ? "manual" : null,
+    recentPainHistoryNote,
     energyScore,
   });
 
@@ -148,7 +158,8 @@ export function ReadinessCard() {
           {collapsed ? (
             <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-[var(--muted-text)]">
               <span>Readiness {result.score}</span>
-              {injuryFlag && <span className="font-semibold text-[var(--status-rest)]">· มีอาการเจ็บ</span>}
+              {injuryOverrideActive && <span className="font-semibold text-[var(--status-rest)]">· มีอาการเจ็บตอนนี้</span>}
+              {!injuryOverrideActive && recentPainHistoryNote && <span className="font-semibold text-[#9b742c]">· เริ่มเบาก่อน</span>}
               {restingHrDelta !== null && <span>· ชีพจร {(restingHrDelta >= 0 ? "+" : "") + restingHrDelta} bpm</span>}
             </div>
           ) : (
@@ -167,10 +178,15 @@ export function ReadinessCard() {
 
       {collapsed ? (
         <>
-          {injuryFlag && (
+          {injuryOverrideActive && (
             <p className="mt-2 text-xs leading-5 text-[var(--status-rest)]">
-              ตอนนี้มีอาการเจ็บ ระบบจึงให้พักฟื้นเป็นหลัก
+              {reportActivePain
+                ? "อาการเจ็บล่าสุดใน Report ยังไม่ถูกบันทึกว่าหาย ระบบจึงให้พักฟื้นเป็นหลัก"
+                : "คุณระบุว่ายังมีอาการเจ็บตอนนี้ ระบบจึงให้พักฟื้นเป็นหลัก"}
             </p>
+          )}
+          {!injuryOverrideActive && recentPainHistoryNote && (
+            <p className="mt-2 text-xs leading-5 text-[#9b742c]">{recentPainHistoryNote}</p>
           )}
           <button
             type="button"
@@ -213,10 +229,15 @@ export function ReadinessCard() {
               <span>ปรับปัจจัยการฟื้นตัววันนี้</span>
               <span className="text-[var(--primary)]">{showConfig ? "⌃" : "⌄"}</span>
             </button>
-            {injuryFlag && (
+            {injuryOverrideActive && (
               <p className="mt-2 text-xs leading-5 text-[var(--status-rest)]">
-                ตอนนี้มีอาการเจ็บ ระบบจึงให้พักฟื้นเป็นหลัก
+                {reportActivePain
+                  ? "อาการเจ็บล่าสุดใน Report ยังไม่ถูกบันทึกว่าหาย ระบบจึงให้พักฟื้นเป็นหลัก"
+                  : "คุณระบุว่ายังมีอาการเจ็บตอนนี้ ระบบจึงให้พักฟื้นเป็นหลัก"}
               </p>
+            )}
+            {!injuryOverrideActive && recentPainHistoryNote && (
+              <p className="mt-2 text-xs leading-5 text-[#9b742c]">{recentPainHistoryNote}</p>
             )}
             {showConfig && (
               <div className="mt-3 space-y-4 rounded-2xl border border-[var(--border-warm)] bg-[var(--surface-muted)]/70 p-4">
@@ -309,14 +330,20 @@ export function ReadinessCard() {
                 {/* Injury Toggle */}
                 <div className="flex items-center justify-between border-t border-[var(--border-warm)]/70 pt-3">
                   <div className="space-y-0.5">
-                    <span className="block text-xs font-bold text-[var(--foreground)]">แจ้งอาการบาดเจ็บ</span>
-                    <span className="block text-[10px] text-[var(--muted-text)]">ข้ามปัจจัยอื่นและปรับเป็นสีแดง (ควรพักฟื้น) ทันที</span>
+                    <span className="block text-xs font-bold text-[var(--foreground)]">ตอนนี้ยังมีอาการเจ็บอยู่</span>
+                    <span className="block text-[10px] leading-4 text-[var(--muted-text)]">เปิดเมื่อวันนี้ยังรู้สึกเจ็บอยู่ ระบบจะลดโหลดและให้พักเป็นหลัก</span>
                   </div>
                   <label className="relative inline-flex cursor-pointer items-center">
                     <input
                       type="checkbox"
-                      checked={injuryFlag}
-                      onChange={(e) => setInjuryFlag(e.target.checked)}
+                      checked={manualCurrentPain}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setManualCurrentPain(checked);
+                        window.dispatchEvent(new CustomEvent("runmate:coach-current-pain-changed", {
+                          detail: { active: checked },
+                        }));
+                      }}
                       className="peer sr-only"
                     />
                     <div className="peer h-6 w-11 rounded-full bg-[#e4d8c8] after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-[#d6c9b8] after:bg-white after:transition-all after:content-[''] peer-checked:bg-[var(--status-rest)] peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none" />

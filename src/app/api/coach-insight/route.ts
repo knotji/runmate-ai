@@ -168,6 +168,9 @@ function normalizeCoachContext(value: unknown): CoachContext {
     recentPainLogs: recentPainLogs as CoachContext["recentPainLogs"],
     latestPain,
     recentMaxPain,
+    activePain: Boolean(raw.activePain),
+    recentPainHistory: Boolean(raw.recentPainHistory),
+    painResolved: Boolean(raw.painResolved),
   };
 }
 

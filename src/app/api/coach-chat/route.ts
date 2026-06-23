@@ -28,6 +28,10 @@ export async function POST(request: Request) {
         latestSleepDateKey: (context as Record<string, unknown>).latestSleepDateKey ?? null,
         hasLatestHealthCheck: Boolean((context as Record<string, unknown>).latestHealthCheck),
         mealsTodayCount: Array.isArray((context as Record<string, unknown>).mealsToday) ? ((context as Record<string, unknown>).mealsToday as unknown[]).length : 0,
+        activePain: Boolean((context as Record<string, unknown>).activePain),
+        recentPainHistory: Boolean((context as Record<string, unknown>).recentPainHistory),
+        painResolved: Boolean((context as Record<string, unknown>).painResolved),
+        manualCurrentPainOverride: Boolean((context as Record<string, unknown>).manualCurrentPainOverride),
       });
     }
 
@@ -172,6 +176,9 @@ function buildContextGuidance(question: string, context: unknown) {
   const latestHealthCheck = readRecord(ctx.latestHealthCheck);
   const mealsToday = Array.isArray(ctx.mealsToday) ? ctx.mealsToday : [];
   const mealRecommendation = isMealRecommendationQuestion(question);
+  const manualCurrentPain = Boolean(ctx.manualCurrentPainOverride);
+  const activePain = Boolean(ctx.activePain) || manualCurrentPain;
+  const recentPainHistory = Boolean(ctx.recentPainHistory);
   const lines: string[] = [];
 
   if (!mealRecommendation) {
@@ -201,12 +208,18 @@ function buildContextGuidance(question: string, context: unknown) {
     ].join("\n"));
   }
 
+  if (manualCurrentPain && !mealRecommendation) {
+    lines.push("CURRENT PAIN OVERRIDE: The user explicitly says they still have pain now. Treat pain as active, recommend rest/recovery, and do not let an older resolved Report status override this current statement.");
+  }
+
   if (latestPain && !mealRecommendation) {
     const area = stringValue(latestPain.painLocation) ?? "อาการเจ็บ";
     const score = numberValue(latestPain.painLevel);
     const resolved = Boolean(latestPain.hasResolvedPain || latestPain.resolved || latestPain.status === "resolved");
-    if (resolved) {
+    if (resolved && !manualCurrentPain) {
       lines.push(`PAIN WORDING HINT: Latest ${area} is marked resolved. Do not describe it as active injury; recommend gradual ramp-up and stop if symptoms return.`);
+    } else if (resolved && manualCurrentPain) {
+      lines.push(`PAIN WORDING HINT: Report marks the previous ${area} pain resolved, but the user currently reports pain again. Do not reuse the old resolved pain score as the current score.`);
     } else {
       lines.push(`PAIN WORDING HINT: Current/latest pain is ${area}${score != null ? ` ${score}/10` : ""}. Always mention this before older pain values.`);
     }
@@ -214,6 +227,9 @@ function buildContextGuidance(question: string, context: unknown) {
     if (recentMaxPain && score != null && recentScore != null && recentScore > score) {
       lines.push(`RECENT MAX PAIN HINT: Recent max was ${recentScore}/10. Mention only as safety history, not as current pain.`);
     }
+  }
+  if (!mealRecommendation && recentPainHistory && !activePain) {
+    lines.push("RECENT PAIN HISTORY ONLY: Latest pain is resolved. Use conservative easy/recovery ramp-up wording, but never say the user is currently injured or that injury status is active.");
   }
 
   if (todayWorkout) {

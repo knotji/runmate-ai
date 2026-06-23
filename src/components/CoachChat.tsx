@@ -99,6 +99,7 @@ export function CoachChat() {
   const [error, setError] = useState("");
   const [raceQuickContext, setRaceQuickContext] = useState<RaceQuickContext | null>(null);
   const [showMealQuestions, setShowMealQuestions] = useState(false);
+  const [manualCurrentPain, setManualCurrentPain] = useState(false);
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -126,6 +127,15 @@ export function CoachChat() {
         setRaceQuickContext({ raceName: ctx.raceName, raceDistance: ctx.raceDistance, daysUntilRace: ctx.daysUntilRace });
       }
     }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    function handleCurrentPainChange(event: Event) {
+      const detail = (event as CustomEvent<{ active?: boolean }>).detail;
+      setManualCurrentPain(Boolean(detail?.active));
+    }
+    window.addEventListener("runmate:coach-current-pain-changed", handleCurrentPainChange);
+    return () => window.removeEventListener("runmate:coach-current-pain-changed", handleCurrentPainChange);
   }, []);
 
   function revokeObjectUrl(url: string | null | undefined) {
@@ -200,7 +210,12 @@ export function CoachChat() {
         base64DataUrl = await fileToDataUrl(compressedFile);
       }
 
-      const context = await buildCoachContextFromSupabase();
+      const reportContext = await buildCoachContextFromSupabase();
+      const context = {
+        ...reportContext,
+        manualCurrentPainOverride: manualCurrentPain,
+        activePain: reportContext.activePain || manualCurrentPain,
+      };
       if (process.env.NODE_ENV === "development") {
         console.info("[coach-context-debug]", {
           hasProfile: Boolean(context.profile),
@@ -212,6 +227,10 @@ export function CoachChat() {
           sleepAvg7dText: context.sleepAvg7dText,
           sleepNightCount7d: context.sleepNightCount7d,
           latestSleepDateKey: context.latestSleepDateKey,
+          activePain: context.activePain,
+          recentPainHistory: context.recentPainHistory,
+          painResolved: context.painResolved,
+          manualCurrentPainOverride: context.manualCurrentPainOverride,
         });
       }
 

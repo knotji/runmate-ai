@@ -109,6 +109,9 @@ export type CoachContext = {
   recentPainLogs: PainSummary[];
   latestPain: PainSummary | null;
   recentMaxPain: PainSummary | null;
+  activePain: boolean;
+  recentPainHistory: boolean;
+  painResolved: boolean;
 };
 
 export type NutritionDaySummary = {
@@ -157,10 +160,10 @@ function painHasRedFlag(input: {
     || Boolean(input.painType?.some((type) => /sharp|numb|แปลบ|ชา/i.test(type)));
 }
 
-function isResolvedPainLog(log: PainLog | undefined, painLevel: number, redFlags: string[], painType: string[]): boolean {
+function isResolvedPainLog(log: PainLog | undefined, redFlags: string[], painType: string[]): boolean {
   if (!log) return false;
   const markedResolved = log.resolved === true || log.status === "resolved";
-  if (!markedResolved || painLevel !== 0) return false;
+  if (!markedResolved) return false;
   return !painHasRedFlag({
     swellingOrRedness: log.swellingOrRedness,
     canBearWeight: log.canBearWeight,
@@ -437,7 +440,7 @@ export function buildCoachContextFromData(input: {
     const redFlags = Array.isArray(d?.redFlags) ? d.redFlags : [];
     const painType = Array.isArray(d?.painType) ? d.painType : [];
     const painLevel = Number.isFinite(Number(d?.painLevel)) ? Number(d?.painLevel) : 0;
-    const resolved = isResolvedPainLog(d, painLevel, redFlags, painType);
+    const resolved = isResolvedPainLog(d, redFlags, painType);
     const hasActivePain = !resolved && (
       painLevel > 0
       || painHasRedFlag({
@@ -472,6 +475,13 @@ export function buildCoachContextFromData(input: {
   const recentMaxPain = recentPainLogs
     .filter((pain) => pain.date >= recentPainCutoff3d)
     .reduce<PainSummary | null>((max, pain) => (!max || pain.painLevel > max.painLevel ? pain : max), null);
+  const activePain = Boolean(latestPain?.hasActivePain);
+  const painResolved = Boolean(latestPain?.hasResolvedPain);
+  const recentPainHistory = Boolean(
+    recentMaxPain
+    && recentMaxPain.painLevel >= 3
+    && (painResolved || recentMaxPain.painLevel > (latestPain?.painLevel ?? 0))
+  );
 
   const latestBodyItem = items.filter((i) => i.type === "body")[0];
   let latestBody: CoachContext["latestBody"] = null;
@@ -529,6 +539,9 @@ export function buildCoachContextFromData(input: {
     recentPainLogs,
     latestPain,
     recentMaxPain,
+    activePain,
+    recentPainHistory,
+    painResolved,
     contextNotes: buildContextNotes({
       raceGoal: input.raceGoal,
       racePlan: input.racePlan,

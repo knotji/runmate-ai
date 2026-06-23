@@ -5,6 +5,8 @@ export interface ReadinessInput {
   yesterdayLoad: "none" | "light" | "heavy";
   muscleSoreness: "none" | "light" | "sore";
   injuryFlag: boolean;
+  injurySource?: "manual" | "report" | null;
+  recentPainHistoryNote?: string | null;
   energyScore: number | null;
 }
 
@@ -19,13 +21,20 @@ export interface ReadinessResult {
 
 export function calculateReadiness(input: ReadinessInput): ReadinessResult {
   if (input.injuryFlag) {
+    const reportPain = input.injurySource === "report";
     return {
       score: 15,
       level: "red",
       label: "ควรพักฟื้นจากอาการเจ็บ",
-      recommendation: "งดซ้อมวิ่งและกิจกรรมที่ลงน้ำหนักเท้า เพื่อให้ร่างกายฟื้นฟูจากอาการเจ็บปวด ควรรักษากับแพทย์หรือนักกายภาพบำบัด",
-      summary: "พบรายงานอาการบาดเจ็บ จำเป็นต้องงดซ้อมและพักฟื้นร่างกาย",
-      reasons: ["แจ้งอาการบาดเจ็บ (Injury Status Active)"],
+      recommendation: "วันนี้ให้งดวิ่งและกิจกรรมที่ทำให้อาการแย่ลง เน้นพักหรือขยับเบา ๆ ที่ไม่เจ็บ หากอาการรุนแรงขึ้นหรือลงน้ำหนักไม่ได้ควรพบแพทย์หรือนักกายภาพ",
+      summary: reportPain
+        ? "อาการเจ็บล่าสุดจาก Report ยังไม่ถูกบันทึกว่าหาย จึงให้พักฟื้นเป็นหลัก"
+        : "คุณระบุว่ายังมีอาการเจ็บตอนนี้ ระบบจึงให้พักฟื้นเป็นหลัก",
+      reasons: [
+        reportPain
+          ? "ยังมีอาการเจ็บล่าสุดที่ยังไม่ถูกบันทึกว่าหาย"
+          : "ผู้ใช้ระบุว่ายังมีอาการเจ็บตอนนี้",
+      ],
     };
   }
 
@@ -111,6 +120,11 @@ export function calculateReadiness(input: ReadinessInput): ReadinessResult {
   } else if (input.muscleSoreness === "light") {
     score -= 5;
     reasons.push("มีอาการตึงล้าของกล้ามเนื้อเล็กน้อย");
+  }
+
+  if (input.recentPainHistoryNote) {
+    score = Math.min(score - 8, 79);
+    reasons.push(input.recentPainHistoryNote);
   }
 
   // Bound score
