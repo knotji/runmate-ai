@@ -4,6 +4,20 @@ import type { ChatCompletionMessageParam } from "openai/resources/chat/completio
 import { aiFailureMessage } from "@/lib/constants";
 
 export type AISource = "gemini" | "openai" | "fallback";
+export type AIErrorCode =
+  | "AI_PROVIDER_ERROR"
+  | "AI_TIMEOUT"
+  | "AI_INVALID_JSON"
+  | "AI_EMPTY_RESPONSE"
+  | "UNKNOWN_ERROR";
+
+export type JSONAIResult<T> = {
+  data: T;
+  source: AISource;
+  usedFallback?: boolean;
+  errorCode?: AIErrorCode;
+  errorMessage?: string;
+};
 
 const provider = (process.env.AI_PROVIDER || "gemini").toLowerCase();
 const geminiModel = process.env.GEMINI_MODEL || "gemini-2.5-flash-lite";
@@ -29,7 +43,7 @@ export async function jsonFromAI<T>({
   imageDataUrl?: string;
   imageDataUrls?: string[];
   fallback: T;
-}): Promise<{ data: T; source: AISource }> {
+}): Promise<JSONAIResult<T>> {
   const prompt = `${system}\n\nReturn valid JSON only. Do not wrap it in markdown.\n\n${user}`;
   const images = imageDataUrls?.length ? imageDataUrls : imageDataUrl ? [imageDataUrl] : [];
 
@@ -43,10 +57,12 @@ export async function jsonFromAI<T>({
           temperature: 0.3,
         },
       });
-      return { data: parseJson<T>(response.text || ""), source: "gemini" };
+      const raw = response.text || "";
+      if (!raw.trim()) throw new AIEmptyResponseError("Empty Gemini response");
+      return { data: parseJson<T>(raw), source: "gemini", usedFallback: false };
     } catch (error) {
-      console.error(aiFailureMessage, error);
-      return { data: fallback, source: "fallback" };
+      logAIError(error);
+      return fallbackResult(fallback, classifyAIError(error), error);
     }
   }
 
@@ -70,14 +86,15 @@ export async function jsonFromAI<T>({
       });
 
       const raw = response.choices[0]?.message.content;
-      if (!raw) throw new Error("Empty OpenAI response");
-      return { data: parseJson<T>(raw), source: "openai" };
+      if (!raw?.trim()) throw new AIEmptyResponseError("Empty OpenAI response");
+      return { data: parseJson<T>(raw), source: "openai", usedFallback: false };
     } catch (error) {
-      console.error(aiFailureMessage, error);
+      logAIError(error);
+      return fallbackResult(fallback, classifyAIError(error), error);
     }
   }
 
-  return { data: fallback, source: "fallback" };
+  return fallbackResult(fallback, "AI_PROVIDER_ERROR", new Error("No configured AI provider"));
 }
 
 export async function textFromAI({
@@ -165,8 +182,22 @@ function parseDataUrl(dataUrl: string) {
   return { mimeType: match[1], base64: match[2] };
 }
 
+class AIJsonParseError extends Error {
+  constructor(message: string, readonly rawPrefix: string) {
+    super(message);
+    this.name = "AIJsonParseError";
+  }
+}
+
+class AIEmptyResponseError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "AIEmptyResponseError";
+  }
+}
+
 function parseJson<T>(raw: string): T {
-  const trimmed = raw.trim().replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```$/i, "");
+  const trimmed = normalizeJsonText(raw);
   try {
     return JSON.parse(trimmed) as T;
   } catch (error) {
@@ -176,6 +207,72 @@ function parseJson<T>(raw: string): T {
         rawResponsePrefix: trimmed.slice(0, 600),
       });
     }
-    throw error;
+    throw new AIJsonParseError(error instanceof Error ? error.message : "Invalid JSON response", trimmed.slice(0, 600));
   }
+}
+
+function normalizeJsonText(raw: string): string {
+  const withoutFence = raw
+    .trim()
+    .replace(/^```json\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/```$/i, "")
+    .trim();
+  if (withoutFence.startsWith("{") && withoutFence.endsWith("}")) return withoutFence;
+  const extracted = extractFirstJsonObject(withoutFence);
+  return extracted ?? withoutFence;
+}
+
+function extractFirstJsonObject(value: string): string | null {
+  const start = value.indexOf("{");
+  if (start < 0) return null;
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let i = start; i < value.length; i++) {
+    const char = value[i];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (char === "\\") escaped = true;
+      else if (char === "\"") inString = false;
+      continue;
+    }
+    if (char === "\"") {
+      inString = true;
+      continue;
+    }
+    if (char === "{") depth++;
+    if (char === "}") {
+      depth--;
+      if (depth === 0) return value.slice(start, i + 1);
+    }
+  }
+  return null;
+}
+
+function fallbackResult<T>(fallback: T, errorCode: AIErrorCode, error: unknown): JSONAIResult<T> {
+  return {
+    data: fallback,
+    source: "fallback",
+    usedFallback: true,
+    errorCode,
+    errorMessage: error instanceof Error ? error.message : String(error),
+  };
+}
+
+function classifyAIError(error: unknown): AIErrorCode {
+  if (error instanceof AIJsonParseError) return "AI_INVALID_JSON";
+  if (error instanceof AIEmptyResponseError) return "AI_EMPTY_RESPONSE";
+  const message = error instanceof Error ? error.message : String(error);
+  if (/timeout|timed out|deadline/i.test(message)) return "AI_TIMEOUT";
+  if (message) return "AI_PROVIDER_ERROR";
+  return "UNKNOWN_ERROR";
+}
+
+function logAIError(error: unknown) {
+  console.error(aiFailureMessage, {
+    name: error instanceof Error ? error.name : "UnknownError",
+    message: error instanceof Error ? error.message : String(error),
+    code: classifyAIError(error),
+  });
 }

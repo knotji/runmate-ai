@@ -38,6 +38,7 @@ function getRecommendedSubtype(insight: DailyCoachInsight | null, ctx: CoachCont
 
 type TodayInsightResponse = {
   ok?: boolean;
+  usedFallback?: boolean;
   data?: DailyCoachInsight;
   errorCode?: string;
   message?: string;
@@ -134,16 +135,16 @@ export default function TodayPage() {
       if (!res.ok && !json.data) throw new Error(json.message ?? "api error");
       if (!json.data) throw new Error("no data");
       setInsight(json.data);
-      if (json.ok === false) {
+      if (json.ok === false || json.usedFallback) {
         setInsightError(true);
-        setInsightErrorMessage(json.message ?? "ใช้คำแนะนำสำรองจากข้อมูลล่าสุด");
+        setInsightErrorMessage(json.message ?? "AI ยังวิเคราะห์ไม่สำเร็จ แต่ระบบใช้ข้อมูลล่าสุดใน Report เพื่อแนะนำวันนี้แทน");
       }
     } catch (error) {
       if (process.env.NODE_ENV === "development") console.warn("[today-analysis-error]", error);
       const fallback = buildClientTodayFallback(fallbackContext);
       setInsight(fallback);
       setInsightError(true);
-      setInsightErrorMessage("วิเคราะห์ไม่สำเร็จ ระบบแสดงคำแนะนำสำรองจากข้อมูลล่าสุด");
+      setInsightErrorMessage("AI ยังวิเคราะห์ไม่สำเร็จ แต่ระบบใช้ข้อมูลล่าสุดใน Report เพื่อแนะนำวันนี้แทน");
     } finally {
       setLoading(false);
     }

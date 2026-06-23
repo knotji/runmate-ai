@@ -15,6 +15,21 @@ const FALLBACK: DailyCoachInsight = {
   coachMessage: "อัปโหลดข้อมูลการนอนหรือออกกำลังกายเพื่อรับ coaching ที่ personalized ครับ",
 };
 
+const TODAY_OUTPUT_CONTRACT = `TODAY INSIGHT OUTPUT CONTRACT:
+Return one valid JSON object only. No markdown. No text outside JSON.
+Required keys:
+{
+  "todayReadiness": number,
+  "readinessLabel": "Low" | "Fair" | "Good" | "Excellent",
+  "readinessNote": string,
+  "workoutRec": string,
+  "workoutTarget": string,
+  "weekSummary": string,
+  "keyObservation": string,
+  "coachMessage": string
+}
+Use concise Thai text for mobile. If uncertain, still return best-effort JSON with conservative guidance.`;
+
 export async function POST(request: Request) {
   try {
     const rawContext = await request.json();
@@ -39,7 +54,7 @@ export async function POST(request: Request) {
       });
     }
     const profileCtx = buildRunnerProfileContext(ctx.profile);
-    const system = profileCtx ? `${SYSTEM_PROMPT}\n\n${profileCtx}` : SYSTEM_PROMPT;
+    const system = [SYSTEM_PROMPT, profileCtx, TODAY_OUTPUT_CONTRACT].filter(Boolean).join("\n\n");
 
     const result = await jsonFromAI<DailyCoachInsight>({
       system,
@@ -47,12 +62,22 @@ export async function POST(request: Request) {
       fallback: FALLBACK,
     });
     const guarded = applyPostWorkoutRecoveryGuard(applyTodayPainGuard(normalizeInsight(result.data, ctx), ctx), ctx);
+    if (process.env.NODE_ENV === "development") {
+      console.info("[today-insight-ai-result]", {
+        source: result.source,
+        usedFallback: Boolean(result.usedFallback),
+        errorCode: result.errorCode ?? null,
+        errorMessage: result.errorMessage ?? null,
+      });
+    }
 
     return NextResponse.json({
-      ...result,
-      ok: result.source !== "fallback",
-      errorCode: result.source === "fallback" ? "ai_fallback" : undefined,
-      message: result.source === "fallback" ? "ใช้คำแนะนำสำรอง เพราะ AI วิเคราะห์ไม่สำเร็จ" : undefined,
+      source: result.source,
+      ok: !result.usedFallback,
+      usedFallback: Boolean(result.usedFallback),
+      errorCode: result.errorCode,
+      message: result.usedFallback ? fallbackMessageForError(result.errorCode) : undefined,
+      debugMessage: process.env.NODE_ENV === "development" ? result.errorMessage : undefined,
       data: guarded,
     });
   } catch (error) {
@@ -61,12 +86,21 @@ export async function POST(request: Request) {
     }
     return NextResponse.json({
       ok: false,
-      errorCode: "today_analysis_failed",
+      usedFallback: true,
+      errorCode: "CONTEXT_SCHEMA_ERROR",
       message: "วิเคราะห์ไม่สำเร็จ ลองใหม่อีกครั้ง",
       debugMessage: process.env.NODE_ENV === "development" ? errorMessage(error) : undefined,
       data: FALLBACK,
     });
   }
+}
+
+function fallbackMessageForError(errorCode: string | undefined): string {
+  if (errorCode === "AI_INVALID_JSON") return "AI ตอบกลับไม่เป็นรูปแบบที่อ่านได้ ระบบจึงใช้คำแนะนำสำรองจาก Report ล่าสุด";
+  if (errorCode === "AI_EMPTY_RESPONSE") return "AI ยังไม่ส่งคำตอบกลับมา ระบบจึงใช้คำแนะนำสำรองจาก Report ล่าสุด";
+  if (errorCode === "AI_TIMEOUT") return "AI ใช้เวลานานเกินไป ระบบจึงใช้คำแนะนำสำรองจาก Report ล่าสุด";
+  if (errorCode === "AI_PROVIDER_ERROR") return "AI ยังวิเคราะห์ไม่สำเร็จ ระบบจึงใช้คำแนะนำสำรองจาก Report ล่าสุด";
+  return "AI ยังวิเคราะห์ไม่สำเร็จ แต่ระบบใช้ข้อมูลล่าสุดใน Report เพื่อแนะนำวันนี้แทน";
 }
 
 function normalizeCoachContext(value: unknown): CoachContext {
