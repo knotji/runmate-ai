@@ -296,6 +296,9 @@ function DayCard({
   const meals = day.items.filter((i) => i.type === "meal");
   const summaries = day.items.filter((i) => i.type === "summary");
   const bodies = day.items.filter((i) => i.type === "body");
+  // Body records can vary by time of day; Report shows the latest only to reduce noise.
+  const latestBodies = bodies.slice(0, 1);
+  const hasMultipleBodies = bodies.length > 1;
   const pains = day.items.filter((i) => i.type === "pain");
   const strengths = day.items.filter((i) => i.type === "strength");
   const painMetaById = buildPainDisplayMeta(pains);
@@ -387,7 +390,10 @@ function DayCard({
           {workouts.map((item) => <WorkoutDetail key={item.id} item={item} onDelete={onDeleteItem} deleting={deletingKey === item.id} />)}
           {mealCount > 0 && <MealNutritionDaySummary summary={mealNutrition} mealCount={mealCount} proteinTarget={proteinTarget} />}
           {meals.map((item) => <MealDetail key={item.id} item={item} onDelete={onDeleteItem} deleting={deletingKey === item.id} />)}
-          {bodies.map((item) => <BodyDetail key={item.id} item={item} onDelete={onDeleteItem} deleting={deletingKey === item.id} />)}
+          {latestBodies.map((item) => <BodyDetail key={item.id} item={item} onDelete={onDeleteItem} deleting={deletingKey === item.id} />)}
+          {hasMultipleBodies && (
+            <p className="px-1 text-xs text-slate-400">มีบันทึกร่างกายหลายรายการ แสดงรายการล่าสุด</p>
+          )}
           {summaries.length > 0 && (dedupedSleeps.length + workouts.length + meals.length + bodies.length + pains.length + strengths.length === 0) &&
             summaries.map((item) => <SummaryDetail key={item.id} item={item} onDelete={onDeleteItem} deleting={deletingKey === item.id} />)}
           {summaries.length > 0 && (dedupedSleeps.length + workouts.length + meals.length + bodies.length + pains.length + strengths.length > 0) && (

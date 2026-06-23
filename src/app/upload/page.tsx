@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
 import { ImageUploader } from "@/components/ImageUploader";
@@ -16,7 +16,8 @@ import { createHistoryItem, findMealSlotByDateAndType, saveHistoryItems } from "
 import { buildMergedMeal, extractMealData, normalizeMealNutrition } from "@/lib/mealMerge";
 import { loadProfileFromSupabase } from "@/lib/profileStorage";
 import { buildCoachContextFromSupabase, type CoachContext } from "@/lib/buildCoachContext";
-import { buildRaceResultFromWorkout, detectRaceMatch, getWorkoutLocalDate, normalizeLocalDate, saveRaceResult, type RaceMatch } from "@/lib/raceResults";
+import { buildRaceResultFromWorkout, detectRaceMatch, getWorkoutLocalDate, loadRaceResults, normalizeLocalDate, saveRaceResult, type RaceMatch } from "@/lib/raceResults";
+import type { RaceResult } from "@/types/race";
 import { loadActiveRaceGoalAndPlan, markRaceGoalCompleted } from "@/lib/raceStorage";
 import { formatCalories, formatMacro, formatNutritionRange } from "@/lib/format";
 import { buildNutritionTargetSummary } from "@/lib/nutritionTargets";
@@ -84,6 +85,10 @@ export default function UploadPage() {
   const [manualMealNote, setManualMealNote] = useState("");
   const [manualMealError, setManualMealError] = useState("");
   const [manualMealLoading, setManualMealLoading] = useState(false);
+  const [existingRaceResults, setExistingRaceResults] = useState<RaceResult[]>([]);
+  const [raceDuplicateConfirm, setRaceDuplicateConfirm] = useState<{ workout: WorkoutAnalysis; match: RaceMatch } | null>(null);
+  // Meal logs are additive; this ref blocks concurrent saves rather than deduping by day.
+  const isSavingMealRef = useRef(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -110,9 +115,10 @@ export default function UploadPage() {
   const [result, setResult] = useState<unknown>(null);
 
   useEffect(() => {
-    Promise.all([loadProfileFromSupabase(), buildCoachContextFromSupabase()]).then(([profileResult, context]) => {
+    Promise.all([loadProfileFromSupabase(), buildCoachContextFromSupabase(), loadRaceResults(20)]).then(([profileResult, context, raceResultsResult]) => {
       if (profileResult.ok) setProfile(profileResult.profile ?? null);
       setCoachContext(context);
+      if (raceResultsResult.ok) setExistingRaceResults(raceResultsResult.results);
     });
   }, []);
 
@@ -178,6 +184,7 @@ export default function UploadPage() {
     setRaceResultError("");
     setWorkoutSavedItem(null);
     setSaveFeedback("");
+    setRaceDuplicateConfirm(null);
     if (type === "meal") {
       const data = ((next as { data?: MealAnalysis }).data ?? next) as MealAnalysis;
       if (process.env.NODE_ENV === "development") {
@@ -244,23 +251,29 @@ export default function UploadPage() {
   }
 
   async function saveMeal(nextMeal: MealAnalysis) {
-    const localDate = toBangkokDate(new Date());
-    const existing = await findMealSlotByDateAndType(localDate, nextMeal.mealType);
-    if (process.env.NODE_ENV === "development") {
-      console.info("[meal-slot-debug]", {
-        localDate,
-        mealType: nextMeal.mealType,
-        existingMealCount: existing ? 1 : 0,
-        action: existing ? "conflict-detected" : "new-save",
-        existingId: existing?.id ?? null,
-      });
+    if (isSavingMealRef.current) return;
+    isSavingMealRef.current = true;
+    try {
+      const localDate = toBangkokDate(new Date());
+      const existing = await findMealSlotByDateAndType(localDate, nextMeal.mealType);
+      if (process.env.NODE_ENV === "development") {
+        console.info("[meal-slot-debug]", {
+          localDate,
+          mealType: nextMeal.mealType,
+          existingMealCount: existing ? 1 : 0,
+          action: existing ? "conflict-detected" : "new-save",
+          existingId: existing?.id ?? null,
+        });
+      }
+      if (existing) {
+        setMealSlotConflict({ existing, newMeal: nextMeal });
+        return;
+      }
+      await store({ data: nextMeal }, "meal");
+      setResult(null);
+    } finally {
+      isSavingMealRef.current = false;
     }
-    if (existing) {
-      setMealSlotConflict({ existing, newMeal: nextMeal });
-      return;
-    }
-    await store({ data: nextMeal }, "meal");
-    setResult(null);
   }
 
   async function analyzeManualMeal() {
@@ -382,6 +395,7 @@ export default function UploadPage() {
     setMealSlotConflict(null);
     setWorkoutSavedItem(null);
     setSaveFeedback("");
+    setRaceDuplicateConfirm(null);
     setManualMealError("");
   }
 
@@ -408,6 +422,20 @@ export default function UploadPage() {
   }
 
   async function saveAsRaceResult(workout: WorkoutAnalysis, match: RaceMatch) {
+    setRaceResultError("");
+    // Warn if a race result with the same date + distance already exists.
+    const duplicate = existingRaceResults.find(
+      (r) => r.raceDate === match.workoutDate && r.raceDistance === match.goal.raceDistance,
+    );
+    if (duplicate) {
+      setRaceDuplicateConfirm({ workout, match });
+      return;
+    }
+    await performRaceResultSave(workout, match);
+  }
+
+  async function performRaceResultSave(workout: WorkoutAnalysis, match: RaceMatch) {
+    setRaceDuplicateConfirm(null);
     setRaceResultError("");
     if (process.env.NODE_ENV === "development") {
       console.info("[race-result-flow]", { chosenAction: "race_result", raceGoalId: match.goal.id, workoutDate: match.workoutDate, alreadySavedWorkout: !!workoutSavedItem });
@@ -596,7 +624,7 @@ export default function UploadPage() {
               <p className="text-sm font-bold text-[#17201d]">บันทึกเป็น Workout แล้ว</p>
             </div>
           )}
-          {raceMatch && !saveFeedback ? (
+          {raceMatch && !saveFeedback && !raceDuplicateConfirm ? (
             <RaceResultConfirmCard
               match={raceMatch}
               workout={(result as { data: WorkoutAnalysis }).data}
@@ -605,6 +633,15 @@ export default function UploadPage() {
               onSaveRace={(workout) => void saveAsRaceResult(workout, raceMatch)}
               onWorkoutOnly={(workout) => void saveWorkoutOnly(workout)}
               onCancel={() => { setRaceMatch(null); }}
+            />
+          ) : null}
+          {raceDuplicateConfirm ? (
+            <RaceDuplicateWarnCard
+              workout={raceDuplicateConfirm.workout}
+              match={raceDuplicateConfirm.match}
+              saving={saveStatus === "saving"}
+              onConfirm={(w, m) => void performRaceResultSave(w, m)}
+              onCancel={() => setRaceDuplicateConfirm(null)}
             />
           ) : null}
           {!raceMatch && <PostRunAnalysisCard workout={(result as { data: WorkoutAnalysis }).data} />}
@@ -708,6 +745,52 @@ function RaceResultConfirmCard({
           เก็บเป็น Workout ปกติ
         </LoadingButton>
         <button className="w-full rounded-full py-2.5 text-sm text-slate-400" type="button" disabled={saving} onClick={onCancel}>
+          ยกเลิก
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function RaceDuplicateWarnCard({
+  workout,
+  match,
+  saving,
+  onConfirm,
+  onCancel,
+}: {
+  workout: WorkoutAnalysis;
+  match: RaceMatch;
+  saving: boolean;
+  onConfirm: (workout: WorkoutAnalysis, match: RaceMatch) => void;
+  onCancel: () => void;
+}) {
+  return (
+    <section className="card space-y-3 border border-amber-200 bg-amber-50 p-5">
+      <div>
+        <p className="text-xs font-bold uppercase tracking-[0.22em] text-amber-600">บันทึกซ้ำ?</p>
+        <h2 className="mt-2 text-xl font-bold text-[#17201d]">รายการนี้ดูเหมือนบันทึกแล้ว</h2>
+        <p className="mt-1 text-sm leading-6 text-slate-600">
+          มีผลแข่งระยะนี้ในวันเดียวกันอยู่แล้ว ต้องการบันทึกซ้ำอีกครั้งไหม?
+        </p>
+        <p className="mt-1 text-xs text-slate-500">{match.goal.raceName} · {match.goal.raceDistance} · {match.workoutDate}</p>
+      </div>
+      <div className="space-y-2">
+        <LoadingButton
+          className="btn-primary w-full py-3 text-sm"
+          type="button"
+          loading={saving}
+          loadingText="กำลังบันทึก..."
+          onClick={() => onConfirm(workout, match)}
+        >
+          บันทึกซ้ำ
+        </LoadingButton>
+        <button
+          className="w-full rounded-full py-2.5 text-sm text-slate-400"
+          type="button"
+          disabled={saving}
+          onClick={onCancel}
+        >
           ยกเลิก
         </button>
       </div>
