@@ -391,47 +391,72 @@ function resultBadge(value: RaceResult["goalResult"]) {
 
 // ── Today workout selection (display-layer, does not mutate stored plan) ─────
 
-// Returns the WeekWorkout from weeklyPlan that matches today's Bangkok date.
-// Strategy 1: offset from planStartDate (reliable for plans < 7 days old).
-// Strategy 2: weekday-name matching (fallback for older plans or when offset is out of range).
-function selectTodayFromWeeklyPlan(plan: RacePlan): WeekWorkout | null {
-  const weeklyPlan = plan.weeklyPlan;
-  if (!weeklyPlan?.length) return null;
-
-  const todayDate = new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
-
-  if (plan.planStartDate) {
-    const startMs = Date.parse(`${plan.planStartDate}T12:00:00+07:00`);
-    const todayMs = Date.parse(`${todayDate}T12:00:00+07:00`);
-    if (!Number.isNaN(startMs) && !Number.isNaN(todayMs)) {
-      const offsetDays = Math.round((todayMs - startMs) / 86_400_000);
-      if (offsetDays >= 0 && offsetDays < weeklyPlan.length) {
-        return weeklyPlan[offsetDays];
-      }
-    }
-  }
-
-  // Fallback: match by weekday label (Thai or English) when offset is unavailable or out of range.
-  const todayWeekday = new Date(Date.now() + 7 * 60 * 60 * 1000).getUTCDay();
-  for (const workout of weeklyPlan) {
-    const wd = weekdayFromDayLabel(workout.day ?? "");
-    if (wd !== null && wd === todayWeekday) return workout;
-  }
-
-  return null;
+function bangkokTodayDateKey(): string {
+  return new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
 }
 
-// Maps Thai and English day label strings to JS weekday numbers (0=Sun, 1=Mon, … 6=Sat).
-function weekdayFromDayLabel(day: string): number | null {
+function bangkokTodayWeekdayIndex(): number {
+  return new Date(Date.now() + 7 * 60 * 60 * 1000).getUTCDay();
+}
+
+// Returns 0=Sun … 6=Sat for Thai and English day labels.
+// "อา." (Sunday) is checked before "อ." (Tuesday) to resolve the shared prefix.
+function normalizeWeekdayLabel(day: string): number | null {
   if (!day) return null;
   const d = day.trim();
+  if (/^(อา\.|อาทิตย์|วันอาทิตย์|Sun)/i.test(d)) return 0;
   if (/^(จ\.|จันทร์|วันจันทร์|Mon)/i.test(d)) return 1;
   if (/^(อ\.|อังคาร|วันอังคาร|Tue)/i.test(d)) return 2;
   if (/^(พ\.|พุธ|วันพุธ|Wed)/i.test(d)) return 3;
   if (/^(พฤ\.|พฤหัส|วันพฤหัส|Thu)/i.test(d)) return 4;
   if (/^(ศ\.|ศุกร์|วันศุกร์|Fri)/i.test(d)) return 5;
   if (/^(ส\.|เสาร์|วันเสาร์|Sat)/i.test(d)) return 6;
-  if (/^(อา\.|อาทิตย์|วันอาทิตย์|Sun)/i.test(d)) return 0;
+  return null;
+}
+
+// Returns the WeekWorkout from weeklyPlan that best matches today (Bangkok time).
+// Priority:
+//  1. Exact date field on the workout item (e.g. workout.date === "2026-06-23")
+//  2. Weekday label match (Thai or English) — wins over planStartDate arithmetic
+//  3. planStartDate offset — fallback for label-free plans
+function selectTodayFromWeeklyPlan(plan: RacePlan): WeekWorkout | null {
+  const weeklyPlan = plan.weeklyPlan;
+  if (!weeklyPlan?.length) return null;
+
+  const todayDate = bangkokTodayDateKey();
+  const todayWeekday = bangkokTodayWeekdayIndex();
+
+  // 1. Exact date match — AI may include date/dateKey/dayDate on workout items.
+  for (const workout of weeklyPlan) {
+    const w = workout as Record<string, unknown>;
+    const d = w.date ?? w.dateKey ?? w.dayDate;
+    if (typeof d === "string" && d.slice(0, 10) === todayDate) return workout;
+  }
+
+  // 2. Weekday label match — checked before offset so day labels win.
+  for (const workout of weeklyPlan) {
+    const wd = normalizeWeekdayLabel(workout.day ?? "");
+    if (wd !== null && wd === todayWeekday) return workout;
+  }
+
+  // 3. planStartDate offset — fallback when no labels/dates are present.
+  if (plan.planStartDate) {
+    const startMs = Date.parse(`${plan.planStartDate}T12:00:00+07:00`);
+    const todayMs = Date.parse(`${todayDate}T12:00:00+07:00`);
+    if (!Number.isNaN(startMs) && !Number.isNaN(todayMs)) {
+      const offsetDays = Math.round((todayMs - startMs) / 86_400_000);
+      if (offsetDays >= 0 && offsetDays < weeklyPlan.length) {
+        if (process.env.NODE_ENV === "development") {
+          console.debug("[race] today workout fallback used", { reason: "planStartDate offset", offsetDays });
+        }
+        return weeklyPlan[offsetDays];
+      }
+    }
+  }
+
+  if (process.env.NODE_ENV === "development") {
+    console.debug("[race] today workout fallback used", { reason: "no match found" });
+  }
   return null;
 }
 

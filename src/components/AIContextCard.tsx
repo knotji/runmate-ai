@@ -8,6 +8,9 @@ import type { RacePlan, WeekWorkout } from "@/types/race";
 export function AIContextCard() {
   const [context, setContext] = useState<CoachContext>(emptyContext);
   const [checkInTime, setCheckInTime] = useState<string>("");
+  // Computed once on mount so useMemo can depend on them without impure Date.now() calls.
+  const [todayDateKey] = useState(() => new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10));
+  const [todayDayOfWeek] = useState(() => new Date(Date.now() + 7 * 60 * 60 * 1000).getUTCDay());
 
   useEffect(() => {
     let alive = true;
@@ -82,26 +85,40 @@ export function AIContextCard() {
     if (!racePlan) return null;
     const weeklyPlan = racePlan.weeklyPlan;
     if (!weeklyPlan?.length) return racePlan.todayWorkout ?? null;
-    const todayDate = new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+    // 1. Exact date field match
+    for (const w of weeklyPlan) {
+      const wr = w as Record<string, unknown>;
+      const d = wr.date ?? wr.dateKey ?? wr.dayDate;
+      if (typeof d === "string" && d.slice(0, 10) === todayDateKey) return w;
+    }
+
+    // 2. Weekday label match — before planStartDate offset
+    for (const w of weeklyPlan) {
+      const wd = cardNormalizeWeekday(w.day ?? "");
+      if (wd !== null && wd === todayDayOfWeek) return w;
+    }
+
+    // 3. planStartDate offset fallback
     if (racePlan.planStartDate) {
       const startMs = Date.parse(`${racePlan.planStartDate}T12:00:00+07:00`);
-      const todayMs = Date.parse(`${todayDate}T12:00:00+07:00`);
+      const todayMs = Date.parse(`${todayDateKey}T12:00:00+07:00`);
       if (!Number.isNaN(startMs) && !Number.isNaN(todayMs)) {
         const offsetDays = Math.round((todayMs - startMs) / 86_400_000);
         if (offsetDays >= 0 && offsetDays < weeklyPlan.length) return weeklyPlan[offsetDays] ?? null;
       }
     }
+
     return racePlan.todayWorkout ?? null;
-  }, [racePlan]);
+  }, [racePlan, todayDateKey, todayDayOfWeek]);
 
   const isPlanStale = useMemo(() => {
     if (!racePlan?.weeklyPlan?.length || !racePlan.planStartDate) return false;
-    const todayDate = new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
     const startMs = Date.parse(`${racePlan.planStartDate}T12:00:00+07:00`);
-    const todayMs = Date.parse(`${todayDate}T12:00:00+07:00`);
+    const todayMs = Date.parse(`${todayDateKey}T12:00:00+07:00`);
     if (Number.isNaN(startMs) || Number.isNaN(todayMs)) return false;
     return Math.round((todayMs - startMs) / 86_400_000) >= racePlan.weeklyPlan.length;
-  }, [racePlan]);
+  }, [racePlan, todayDateKey]);
 
   return (
     <details className="group rounded-3xl border border-[var(--border-warm)] bg-[var(--surface)]/75 px-4 py-3 shadow-sm">
@@ -373,3 +390,18 @@ const emptyContext: CoachContext = {
   latestPain: null,
   recentMaxPain: null,
 };
+
+// Same priority order as normalizeWeekdayLabel in race-goal/page.tsx.
+// "อา." checked before "อ." to avoid the shared prefix matching Sunday as Tuesday.
+function cardNormalizeWeekday(day: string): number | null {
+  if (!day) return null;
+  const d = day.trim();
+  if (/^(อา\.|อาทิตย์|วันอาทิตย์|Sun)/i.test(d)) return 0;
+  if (/^(จ\.|จันทร์|วันจันทร์|Mon)/i.test(d)) return 1;
+  if (/^(อ\.|อังคาร|วันอังคาร|Tue)/i.test(d)) return 2;
+  if (/^(พ\.|พุธ|วันพุธ|Wed)/i.test(d)) return 3;
+  if (/^(พฤ\.|พฤหัส|วันพฤหัส|Thu)/i.test(d)) return 4;
+  if (/^(ศ\.|ศุกร์|วันศุกร์|Fri)/i.test(d)) return 5;
+  if (/^(ส\.|เสาร์|วันเสาร์|Sat)/i.test(d)) return 6;
+  return null;
+}
