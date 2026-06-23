@@ -76,7 +76,7 @@ export function StrengthWorkoutCard({
         throw new Error("วิเคราะห์ไม่สำเร็จ");
       }
     } catch {
-      setError("AI ปรับแผนไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+      setError("ปรับแผนไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
     } finally {
       setLoadingAI(false);
     }
@@ -355,7 +355,7 @@ export function StrengthWorkoutCard({
                   className="btn-secondary flex-1 py-2.5 text-xs font-bold flex items-center justify-center gap-1"
                 >
                   {loadingAI && <div className="h-3 w-3 animate-spin rounded-full border border-slate-300 border-t-slate-600" />}
-                  {loadingAI ? "AI กำลังปรับ…" : "✨ AI ปรับให้วันนี้"}
+                  {loadingAI ? "กำลังปรับ…" : "✨ ปรับให้วันนี้"}
                 </button>
                 <button
                   type="button"

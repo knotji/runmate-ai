@@ -79,7 +79,7 @@ function buildClientTodayFallback(ctx: CoachContext | null): DailyCoachInsight {
       workoutTarget: "Recovery Day · ไม่ต้องจับ pace",
       weekSummary: weekParts.length ? weekParts.join(" / ") : "ยังมีข้อมูลสัปดาห์นี้ไม่มาก",
       keyObservation: `ล่าสุดเจ็บ${latestPain.painLocation} ${latestPain.painLevel}/10`,
-      coachMessage: "AI วิเคราะห์ไม่สำเร็จ ระบบจึงใช้คำแนะนำสำรองแบบ conservative ก่อน ให้พักจากแรงกระแทกและลองใหม่อีกครั้งครับ",
+      coachMessage: "ยังวิเคราะห์ไม่สำเร็จ ระบบจึงใช้คำแนะนำสำรองแบบ conservative ก่อน ให้พักจากแรงกระแทกและลองใหม่อีกครั้งครับ",
     };
   }
 
@@ -91,7 +91,7 @@ function buildClientTodayFallback(ctx: CoachContext | null): DailyCoachInsight {
     workoutTarget: "เน้นฟื้นตัว · เดินเบา ๆ ถ้าไม่เจ็บ",
     weekSummary: weekParts.length ? weekParts.join(" / ") : "ยังมีข้อมูลสัปดาห์นี้ไม่มาก",
     keyObservation: "ใช้คำแนะนำสำรองจากข้อมูลล่าสุด",
-    coachMessage: "ยังวิเคราะห์ด้วย AI ไม่สำเร็จ แต่จากข้อมูลล่าสุดให้เน้นอัปเดตข้อมูลวันนี้ก่อน แล้วลองใหม่อีกครั้งครับ",
+    coachMessage: "ยังวิเคราะห์ไม่สำเร็จ แต่จากข้อมูลล่าสุดให้เน้นอัปเดตข้อมูลวันนี้ก่อน แล้วลองใหม่อีกครั้งครับ",
   };
 }
 
@@ -137,14 +137,14 @@ export default function TodayPage() {
       setInsight(json.data);
       if (json.ok === false || json.usedFallback) {
         setInsightError(true);
-        setInsightErrorMessage(json.message ?? "AI ยังวิเคราะห์ไม่สำเร็จ แต่ระบบใช้ข้อมูลล่าสุดใน Report เพื่อแนะนำวันนี้แทน");
+        setInsightErrorMessage(json.message ?? "ยังวิเคราะห์ไม่สำเร็จ แต่ระบบใช้ข้อมูลล่าสุดใน Report เพื่อแนะนำวันนี้แทน");
       }
     } catch (error) {
       if (process.env.NODE_ENV === "development") console.warn("[today-analysis-error]", error);
       const fallback = buildClientTodayFallback(fallbackContext);
       setInsight(fallback);
       setInsightError(true);
-      setInsightErrorMessage("AI ยังวิเคราะห์ไม่สำเร็จ แต่ระบบใช้ข้อมูลล่าสุดใน Report เพื่อแนะนำวันนี้แทน");
+      setInsightErrorMessage("ยังวิเคราะห์ไม่สำเร็จ แต่ระบบใช้ข้อมูลล่าสุดใน Report เพื่อแนะนำวันนี้แทน");
     } finally {
       setLoading(false);
     }
@@ -216,7 +216,7 @@ export default function TodayPage() {
 
         {insightError && !loading && (
           <div className="space-y-2 rounded-2xl bg-amber-50 px-3 py-2">
-            <p className="text-sm font-bold text-[#17201d]">{insight ? "ใช้คำแนะนำสำรองอยู่" : "วิเคราะห์ด้วย AI ไม่สำเร็จ"}</p>
+            <p className="text-sm font-bold text-[#17201d]">{insight ? "ใช้คำแนะนำสำรองอยู่" : "ยังวิเคราะห์ไม่สำเร็จ"}</p>
             <p className="text-xs leading-5 text-amber-700">
               {insightErrorMessage || "วิเคราะห์ไม่สำเร็จ ลองใหม่อีกครั้ง"}
             </p>
@@ -538,7 +538,7 @@ function TodayStrengthRoutineCard({
       setPrescription(payload.data);
     } catch (err) {
       if (process.env.NODE_ENV === "development") console.warn("[today-strength-debug] ai adjust failed", err);
-      setError("AI ปรับรูทีนไม่สำเร็จ ลองใหม่อีกครั้ง");
+      setError("ปรับรูทีนไม่สำเร็จ ลองใหม่อีกครั้ง");
     } finally {
       setAdjusting(false);
     }
@@ -630,11 +630,11 @@ function TodayStrengthRoutineCard({
           <LoadingButton
             type="button"
             loading={adjusting}
-            loadingText="AI กำลังปรับ..."
+            loadingText="กำลังปรับ..."
             onClick={() => void adjustForToday()}
             className="btn-secondary py-2.5 text-xs font-bold"
           >
-            AI ปรับเป็นเวอร์ชันวันนี้
+            ปรับเป็นเวอร์ชันวันนี้
           </LoadingButton>
           <LoadingButton
             type="button"
@@ -1026,8 +1026,8 @@ function EndOfDaySummaryCard({
   const hasSummary = Boolean(summary);
   const [expanded, setExpanded] = useState(false);
   const generatedAt = item ? formatSummaryGeneratedAt(item.createdAt) : "";
-  const existingSummaryNote = `AI สรุปจาก Report ตอนกดล่าสุด${generatedAt ? ` · อัปเดตล่าสุด: ${generatedAt}` : ""} หากเพิ่งเพิ่ม/ลบข้อมูล แนะนำกดอัปเดตอีกครั้ง`;
-  const newSummaryNote = "AI จะสรุปจากข้อมูลใน Report ตอนกดสร้าง อาจคลาดเคลื่อนได้ถ้าข้อมูลยังไม่ครบ";
+  const existingSummaryNote = `สรุปจาก Report ตอนกดล่าสุด${generatedAt ? ` · อัปเดตล่าสุด: ${generatedAt}` : ""} หากเพิ่งเพิ่ม/ลบข้อมูล แนะนำกดอัปเดตอีกครั้ง`;
+  const newSummaryNote = "ระบบจะสรุปจากข้อมูลใน Report ตอนกดสร้าง อาจคลาดเคลื่อนได้ถ้าข้อมูลยังไม่ครบ";
 
   if (hasSummary && !expanded) {
     return (
@@ -1085,7 +1085,7 @@ function EndOfDaySummaryCard({
     <section id="end-of-day-summary" className="card scroll-mt-6 px-4 py-3 space-y-3">
       <div>
         <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">สรุปท้ายวัน</p>
-        <p className="mt-1 text-sm leading-6 text-slate-500">กดก่อนนอนเพื่อให้ AI สรุปวันนี้และวางแผนพรุ่งนี้จากข้อมูลใน Report</p>
+        <p className="mt-1 text-sm leading-6 text-slate-500">กดก่อนนอนเพื่อสรุปวันนี้และวางแผนพรุ่งนี้จากข้อมูลใน Report</p>
         <p className="mt-1 text-[11px] leading-5 text-slate-400">{newSummaryNote}</p>
       </div>
       {message && <p className="text-xs font-semibold text-green-600">{message}</p>}

@@ -474,7 +474,7 @@ export default function UploadPage() {
   }
 
   return (
-    <AppShell title="Upload" subtitle="อัปโหลดภาพเพื่อสร้างบันทึกใน Report ให้โค้ชใช้เป็นบริบท">
+    <AppShell title="เพิ่มข้อมูล" subtitle="อัปโหลดหรือลงบันทึก เพื่อให้โค้ชเข้าใจวันนี้มากขึ้น">
       <section className="card space-y-3 p-5">
         <p className="text-xs leading-5 text-slate-500">
           เมื่อวิเคราะห์และกดบันทึก ข้อมูลจะเข้า Report และถูกใช้เป็นบริบทให้ Coach Chat
@@ -739,7 +739,7 @@ function ReportSavedNote({ saveStatus }: { saveStatus: "idle" | "saving" | "save
       {saveStatus === "saved" ? (
         <span className="font-bold text-green-700">บันทึกเข้า Report แล้ว</span>
       ) : (
-        <span className="font-bold text-slate-700">ผลวิเคราะห์จาก AI</span>
+        <span className="font-bold text-slate-700">ผลวิเคราะห์</span>
       )}
       <span> ข้อมูลนี้ถูกบันทึกเป็น structured data เท่านั้น รูปต้นฉบับไม่ถูกเก็บถาวร</span>
     </section>
@@ -1185,7 +1185,7 @@ function MealReviewCard({
           </div>
           {cannotEstimateNutrition ? (
             <p className="rounded-2xl bg-amber-50 p-3 text-xs font-semibold leading-5 text-amber-700">
-              AI อ่านอาหารได้ แต่ประเมินโภชนาการไม่ได้ชัดเจน คุณกรอกเองได้
+              อ่านอาหารได้ แต่ประเมินโภชนาการไม่ได้ชัดเจน คุณกรอกเองได้
             </p>
           ) : null}
         </div>
@@ -1269,7 +1269,7 @@ function MealReviewSummary({ meal, profile, context }: { meal: MealAnalysis; pro
       </div>
       {!hasAnyNutrition(meal) && meal.detectedFoods.length > 0 ? (
         <p className="rounded-2xl bg-amber-50 p-3 text-xs font-semibold leading-5 text-amber-700">
-          AI อ่านอาหารได้ แต่ประเมินโภชนาการไม่ได้ชัดเจน คุณกรอกเองได้
+          อ่านอาหารได้ แต่ประเมินโภชนาการไม่ได้ชัดเจน คุณกรอกเองได้
         </p>
       ) : null}
       <p className="text-sm leading-6 text-slate-700">{meal.trainingFit?.coachNote ?? ""}</p>

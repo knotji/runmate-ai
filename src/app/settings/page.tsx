@@ -84,7 +84,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <AppShell title="Settings" subtitle="จัดการโปรไฟล์และข้อมูลการซ้อมของคุณ">
+    <AppShell title="ตั้งค่า" subtitle="จัดการโปรไฟล์ โค้ช และข้อมูลของแอป">
       <div className="mb-5 flex gap-1 rounded-2xl border-b border-slate-100 bg-white/40 p-1">
         <TabButton active={activeTab === "profile"} onClick={() => setActiveTab("profile")}>โปรไฟล์</TabButton>
         <TabButton active={activeTab === "data"} onClick={() => setActiveTab("data")}>ข้อมูล</TabButton>
@@ -95,10 +95,10 @@ export default function SettingsPage() {
         <div className="space-y-4">
           <section className="card space-y-3 p-5">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">AI Analysis</p>
+              <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">วิเคราะห์โปรไฟล์</p>
               <h2 className="mt-1 text-xl font-bold text-[#17201d]">วิเคราะห์โปรไฟล์จากประวัติ</h2>
               <p className="mt-1 text-sm leading-6 text-slate-500">
-                ให้ AI อ่านประวัติการซ้อมและการนอนจาก Supabase แล้วแนะนำค่าโปรไฟล์ที่เหมาะกับคุณ
+                ให้โค้ชอ่านประวัติการซ้อมและการนอนจาก Supabase แล้วแนะนำค่าโปรไฟล์ที่เหมาะกับคุณ
               </p>
             </div>
             <ProfileHistoryAnalyzer onProfileUpdated={handleProfileUpdated} />

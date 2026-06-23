@@ -149,7 +149,7 @@ export default function ReportPage() {
   }
 
   return (
-    <AppShell title="Report" subtitle="บันทึกจาก Upload ที่ Coach Chat ใช้เป็นบริบท">
+    <AppShell title="บันทึกของเรา" subtitle="Report · ข้อมูลจาก Upload ที่โค้ชใช้เป็นบริบท">
       {loading ? (
         <section className="card p-5 text-sm text-slate-500">กำลังโหลดข้อมูล...</section>
       ) : error ? (
@@ -158,7 +158,7 @@ export default function ReportPage() {
         <section className="card space-y-3 p-5 text-sm text-slate-600">
           <div>
             <p className="font-bold text-[#17201d]">ยังไม่มี Report</p>
-            <p className="mt-1 leading-6">เริ่มจาก Upload รูปอาหาร ผลวิ่ง หรือ Sleep score เพื่อให้ AI ช่วยอ่านข้อมูลให้</p>
+            <p className="mt-1 leading-6">เริ่มจาก Upload รูปอาหาร ผลวิ่ง หรือ Sleep score เพื่อให้โค้ชอ่านข้อมูลได้</p>
           </div>
           <Link href="/upload" className="btn-primary block py-3 text-center text-sm">
             ไป Upload
@@ -783,7 +783,7 @@ function StrengthDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; 
 
   const SOURCE_LABELS: Record<string, string> = {
     saved_routine: "เทมเพลตที่บันทึกไว้",
-    ai_prescription: "AI ปรับแนะนำประจำวัน",
+    ai_prescription: "โค้ชปรับแนะนำประจำวัน",
     custom: "ปรับแต่งเอง"
   };
 
@@ -804,7 +804,7 @@ function StrengthDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; 
 
       {log.coachReason && (
         <div className="rounded-xl bg-white/60 p-2 text-xs text-slate-700">
-          <p className="font-semibold text-slate-800">คำแนะนำจากโค้ช AI:</p>
+          <p className="font-semibold text-slate-800">คำแนะนำจากโค้ช:</p>
           <p>{log.coachReason}</p>
         </div>
       )}

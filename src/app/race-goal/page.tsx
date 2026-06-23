@@ -116,7 +116,7 @@ export default function RaceGoalPage() {
   const selectedTodayWorkout = plan ? (selectTodayFromWeeklyPlan(plan) ?? plan.todayWorkout ?? null) : null;
 
   return (
-    <AppShell title="Race Goal" subtitle="วางแผนจากวันนี้ไปถึงวันแข่ง">
+    <AppShell title="แผนแข่ง" subtitle="Race Goal · วางแผนจากวันนี้ไปถึงวันแข่ง">
       {!goal || !plan ? (
         <>
           {raceResults.length > 0 ? <LatestRacePrompt result={raceResults[0]} /> : null}
@@ -202,7 +202,7 @@ function RacePlanFreshnessNote({ freshness }: { freshness: PlanFreshness | null 
     return (
       <div className="mt-4 rounded-2xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
         <p className="font-bold">มีข้อมูลใหม่หลังแผนล่าสุด</p>
-        <p>แนะนำกดรีเฟรชแผน เพื่อให้ AI ปรับตาม sleep / pain / workout ล่าสุด</p>
+        <p>แนะนำกดรีเฟรชแผน เพื่อให้โค้ชปรับตาม sleep / pain / workout ล่าสุด</p>
         {freshness.latestReportTime ? <p className="mt-1 text-amber-700">อัปเดตล่าสุด: {formatDateTimeThai(freshness.latestReportTime)}</p> : null}
       </div>
     );

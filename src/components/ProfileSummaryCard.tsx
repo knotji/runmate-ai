@@ -24,7 +24,7 @@ export function ProfileSummaryCard() {
           </h2>
           <p className="mt-1 text-sm leading-6 text-slate-600">
             {profile
-              ? profile.mainGoal || profile.currentLevel || "โปรไฟล์พร้อมใช้กับ AI แล้ว"
+              ? profile.mainGoal || profile.currentLevel || "โปรไฟล์พร้อมแล้ว"
               : "ตั้งโปรไฟล์เพื่อให้โค้ชใช้ pace, HR cap, injury notes และสไตล์คำตอบได้แม่นขึ้น"}
           </p>
         </div>

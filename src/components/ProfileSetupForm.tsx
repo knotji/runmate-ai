@@ -305,7 +305,7 @@ export function ProfileSetupForm({
           <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">Runner Profile</p>
           <h2 className="mt-1 text-xl font-bold text-[#17201d]">ตั้งค่าเริ่มต้น</h2>
           <p className="mt-1 text-sm leading-6 text-slate-500">
-            ข้อมูลนี้จะช่วยให้ AI Coach วางแผนซ้อมได้เหมาะกับคุณ
+            ข้อมูลนี้จะช่วยให้โค้ชวางแผนซ้อมได้เหมาะกับคุณ
           </p>
         </div>
 
@@ -385,7 +385,7 @@ export function ProfileSetupForm({
         <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">Runner Profile</p>
         <h2 className="mt-1 text-xl font-bold text-[#17201d]">โปรไฟล์นักวิ่ง</h2>
         <p className="mt-1 text-sm leading-6 text-slate-500">
-          ข้อมูลนี้ช่วยให้ AI Coach วางแผนซ้อมได้เหมาะกับคุณ
+          ข้อมูลนี้ช่วยให้โค้ชวางแผนซ้อมได้เหมาะกับคุณ
         </p>
       </div>
 

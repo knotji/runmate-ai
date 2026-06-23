@@ -160,10 +160,10 @@ export function ImageUploader({
         )}
       </label>
       <p className="text-center text-[11px] leading-5 text-[var(--muted-text)]/80">
-        ระบบจะใช้รูปเพื่อให้ AI อ่านข้อมูลเท่านั้น และบันทึกเฉพาะผลลัพธ์เข้า Report
+        ระบบจะใช้รูปเพื่ออ่านข้อมูลเท่านั้น และบันทึกเฉพาะผลลัพธ์เข้า Report
       </p>
       <LoadingButton className="btn-primary w-full" type="submit" loading={loading} loadingText="กำลังวิเคราะห์...">
-        วิเคราะห์ด้วยโค้ช AI
+        วิเคราะห์
       </LoadingButton>
       {error ? <ErrorState message={error} /> : null}
     </form>

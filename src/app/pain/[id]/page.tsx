@@ -222,7 +222,7 @@ function SelfCareGuideCard({ painLog }: { painLog: PainLog }) {
         <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">Self-care</p>
         <h2 className="mt-1 text-xl font-bold text-[#17201d]">วิธีดูแลตัวเองวันนี้</h2>
         <p className="mt-1 text-xs leading-5 text-slate-500">
-          คำแนะนำจาก AI สำหรับการดูแลเบื้องต้น ไม่ใช่การวินิจฉัยทางการแพทย์
+          คำแนะนำสำหรับการดูแลเบื้องต้น ไม่ใช่การวินิจฉัยทางการแพทย์
         </p>
       </div>
 

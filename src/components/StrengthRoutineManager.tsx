@@ -121,7 +121,7 @@ export function StrengthRoutineManager() {
         throw new Error("วิเคราะห์ไม่สำเร็จ");
       }
     } catch {
-      setError("AI ปรับแผนไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+      setError("ปรับแผนไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
     } finally {
       setLoadingAI(false);
     }
@@ -516,7 +516,7 @@ export function StrengthRoutineManager() {
                   className="btn-primary flex-1 py-2.5 text-xs font-bold flex items-center justify-center gap-1.5"
                 >
                   {loadingAI && <div className="h-3 w-3 animate-spin rounded-full border border-slate-300 border-t-slate-600" />}
-                  {loadingAI ? "AI กำลังปรับ…" : "AI ปรับเป็นเวอร์ชันวันนี้"}
+                  {loadingAI ? "กำลังปรับ…" : "ปรับเป็นเวอร์ชันวันนี้"}
                 </button>
                 <button
                   type="button"
