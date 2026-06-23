@@ -36,12 +36,71 @@ function getRecommendedSubtype(insight: DailyCoachInsight | null, ctx: CoachCont
   return "run";
 }
 
+type TodayInsightResponse = {
+  ok?: boolean;
+  data?: DailyCoachInsight;
+  errorCode?: string;
+  message?: string;
+  debugMessage?: string;
+};
+
+function buildClientTodayFallback(ctx: CoachContext | null): DailyCoachInsight {
+  const readiness = ctx?.avgReadiness ?? ctx?.sleep7d?.[0]?.readiness ?? 65;
+  const label: DailyCoachInsight["readinessLabel"] =
+    readiness < 50 ? "Low" : readiness < 65 ? "Fair" : readiness < 80 ? "Good" : "Excellent";
+  const latestPain = ctx?.latestPain ?? null;
+  const latestWorkout = ctx?.todayPrimaryWorkout ?? null;
+  const weekParts = [
+    ctx && ctx.totalRunKm > 0 ? `วิ่ง ${Math.round(ctx.totalRunKm * 10) / 10} km` : null,
+    ctx && ctx.totalSessions > 0 ? `${ctx.totalSessions} sessions` : null,
+    ctx?.sleepAvg7dText ? `นอนเฉลี่ย ${ctx.sleepAvg7dText}` : null,
+  ].filter(Boolean);
+
+  if (latestWorkout) {
+    return {
+      todayReadiness: readiness,
+      readinessLabel: label,
+      readinessNote: ctx?.latestSleepDurationText ? `นอนล่าสุด ${ctx.latestSleepDurationText}` : "ใช้ข้อมูลล่าสุดจาก Report",
+      workoutRec: latestWorkout.kind === "race" ? "Recovery หลัง Race วันนี้" : latestWorkout.kind === "run" ? `ฟื้นตัวหลังวิ่ง${latestWorkout.distanceKm != null ? ` ${formatKm(latestWorkout.distanceKm)} km` : ""}` : "Recovery หลังซ้อมวันนี้",
+      workoutTarget: "ไม่ต้องซ้อมเพิ่ม · เน้นฟื้นตัว",
+      weekSummary: weekParts.length ? weekParts.join(" / ") : "ยังมีข้อมูลสัปดาห์นี้ไม่มาก",
+      keyObservation: latestWorkout.label,
+      coachMessage: "วันนี้มีข้อมูลซ้อมแล้ว ระบบใช้คำแนะนำสำรองให้เน้นฟื้นตัว เติมน้ำ กินโปรตีนกับคาร์บพอประมาณ และนอนให้พอครับ",
+    };
+  }
+
+  if (latestPain && !latestPain.hasResolvedPain && latestPain.painLevel >= 3) {
+    return {
+      todayReadiness: readiness,
+      readinessLabel: label,
+      readinessNote: ctx?.latestSleepDurationText ? `นอนล่าสุด ${ctx.latestSleepDurationText}` : "ใช้ข้อมูลล่าสุดจาก Report",
+      workoutRec: latestPain.painLevel >= 5 ? "งดวิ่ง / พักและประเมินอาการ" : "Rest / Recovery",
+      workoutTarget: "Recovery Day · ไม่ต้องจับ pace",
+      weekSummary: weekParts.length ? weekParts.join(" / ") : "ยังมีข้อมูลสัปดาห์นี้ไม่มาก",
+      keyObservation: `ล่าสุดเจ็บ${latestPain.painLocation} ${latestPain.painLevel}/10`,
+      coachMessage: "AI วิเคราะห์ไม่สำเร็จ ระบบจึงใช้คำแนะนำสำรองแบบ conservative ก่อน ให้พักจากแรงกระแทกและลองใหม่อีกครั้งครับ",
+    };
+  }
+
+  return {
+    todayReadiness: readiness,
+    readinessLabel: label,
+    readinessNote: ctx?.latestSleepDurationText ? `นอนล่าสุด ${ctx.latestSleepDurationText}` : "ใช้ข้อมูลล่าสุดจาก Report",
+    workoutRec: "วันนี้เน้นฟื้นตัวเบา ๆ",
+    workoutTarget: "เน้นฟื้นตัว · เดินเบา ๆ ถ้าไม่เจ็บ",
+    weekSummary: weekParts.length ? weekParts.join(" / ") : "ยังมีข้อมูลสัปดาห์นี้ไม่มาก",
+    keyObservation: "ใช้คำแนะนำสำรองจากข้อมูลล่าสุด",
+    coachMessage: "ยังวิเคราะห์ด้วย AI ไม่สำเร็จ แต่จากข้อมูลล่าสุดให้เน้นอัปเดตข้อมูลวันนี้ก่อน แล้วลองใหม่อีกครั้งครับ",
+  };
+}
+
 export default function TodayPage() {
   const [goal, setGoal] = useState<RaceGoal | null>(null);
   const [insight, setInsight] = useState<DailyCoachInsight | null>(null);
   const [coachCtx, setCoachCtx] = useState<CoachContext | null>(null);
   const [loading, setLoading] = useState(false);
   const [insightError, setInsightError] = useState(false);
+  const [insightErrorMessage, setInsightErrorMessage] = useState("");
   const [hasHistory, setHasHistory] = useState(false);
   const [dailySummaryItem, setDailySummaryItem] = useState<LocalHistoryItem | null>(null);
   const [dailySummaryLoading, setDailySummaryLoading] = useState(false);
@@ -55,10 +114,13 @@ export default function TodayPage() {
 
   const generateInsight = useCallback(async (force = false) => {
     void force;
+    let fallbackContext: CoachContext | null = null;
     setLoading(true);
     setInsightError(false);
+    setInsightErrorMessage("");
     try {
       const ctx = await buildCoachContextFromSupabase();
+      fallbackContext = ctx;
       setCoachCtx(ctx);
       const hasSomeData = ctx.sleep7d.length > 0 || ctx.workouts7d.length > 0 || ctx.nutrition7d.length > 0 || ctx.latestBody != null || !!ctx.raceGoal;
       setHasHistory(hasSomeData);
@@ -68,13 +130,20 @@ export default function TodayPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(ctx),
       });
-      if (!res.ok) throw new Error("api error");
-      const json = await res.json() as { data: DailyCoachInsight };
+      const json = await res.json() as TodayInsightResponse;
+      if (!res.ok && !json.data) throw new Error(json.message ?? "api error");
       if (!json.data) throw new Error("no data");
       setInsight(json.data);
+      if (json.ok === false) {
+        setInsightError(true);
+        setInsightErrorMessage(json.message ?? "ใช้คำแนะนำสำรองจากข้อมูลล่าสุด");
+      }
     } catch (error) {
       if (process.env.NODE_ENV === "development") console.warn("[today-analysis-error]", error);
+      const fallback = buildClientTodayFallback(fallbackContext);
+      setInsight(fallback);
       setInsightError(true);
+      setInsightErrorMessage("วิเคราะห์ไม่สำเร็จ ระบบแสดงคำแนะนำสำรองจากข้อมูลล่าสุด");
     } finally {
       setLoading(false);
     }
@@ -145,8 +214,11 @@ export default function TodayPage() {
         )}
 
         {insightError && !loading && (
-          <div className="space-y-2 py-1">
-            <p className="text-sm font-bold text-[#17201d]">วิเคราะห์ด้วย AI ไม่สำเร็จ</p>
+          <div className="space-y-2 rounded-2xl bg-amber-50 px-3 py-2">
+            <p className="text-sm font-bold text-[#17201d]">{insight ? "ใช้คำแนะนำสำรองอยู่" : "วิเคราะห์ด้วย AI ไม่สำเร็จ"}</p>
+            <p className="text-xs leading-5 text-amber-700">
+              {insightErrorMessage || "วิเคราะห์ไม่สำเร็จ ลองใหม่อีกครั้ง"}
+            </p>
             <LoadingButton type="button" loading={loading} loadingText="กำลังวิเคราะห์..." onClick={() => void generateInsight(true)} className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600">
               ลองใหม่
             </LoadingButton>

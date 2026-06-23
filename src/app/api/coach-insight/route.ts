@@ -17,9 +17,10 @@ const FALLBACK: DailyCoachInsight = {
 
 export async function POST(request: Request) {
   try {
-    const ctx: CoachContext = await request.json();
+    const rawContext = await request.json();
+    const ctx = normalizeCoachContext(rawContext);
     if (process.env.NODE_ENV === "development") {
-      console.info("[context-debug]", {
+      console.info("[today-insight-debug]", {
         hasProfile: Boolean(ctx.profile),
         recentHistoryCount: (ctx.sleep7d?.length ?? 0) + (ctx.workouts7d?.length ?? 0),
         hasActiveRace: Boolean(ctx.raceGoal),
@@ -45,17 +46,200 @@ export async function POST(request: Request) {
       user: buildUserPrompt(ctx),
       fallback: FALLBACK,
     });
+    const guarded = applyPostWorkoutRecoveryGuard(applyTodayPainGuard(normalizeInsight(result.data, ctx), ctx), ctx);
 
     return NextResponse.json({
       ...result,
-      data: applyPostWorkoutRecoveryGuard(applyTodayPainGuard(result.data, ctx), ctx),
+      ok: result.source !== "fallback",
+      errorCode: result.source === "fallback" ? "ai_fallback" : undefined,
+      message: result.source === "fallback" ? "ใช้คำแนะนำสำรอง เพราะ AI วิเคราะห์ไม่สำเร็จ" : undefined,
+      data: guarded,
     });
   } catch (error) {
     if (process.env.NODE_ENV === "development") {
       console.warn("[today-analysis-error]", error);
     }
-    return NextResponse.json({ data: FALLBACK, error: "today analysis failed" });
+    return NextResponse.json({
+      ok: false,
+      errorCode: "today_analysis_failed",
+      message: "วิเคราะห์ไม่สำเร็จ ลองใหม่อีกครั้ง",
+      debugMessage: process.env.NODE_ENV === "development" ? errorMessage(error) : undefined,
+      data: FALLBACK,
+    });
   }
+}
+
+function normalizeCoachContext(value: unknown): CoachContext {
+  const raw = isRecord(value) ? value : {};
+  const sleep7d = arrayValue(raw.sleep7d);
+  const workouts7d = arrayValue(raw.workouts7d);
+  const todayWorkouts = arrayValue(raw.todayWorkouts);
+  const nutrition7d = arrayValue(raw.nutrition7d);
+  const recentRaceResults = arrayValue(raw.recentRaceResults);
+  const recentPainLogs = arrayValue(raw.recentPainLogs);
+  const contextNotes = arrayValue(raw.contextNotes).filter((note): note is string => typeof note === "string");
+  const todayPrimaryWorkout = isRecord(raw.todayPrimaryWorkout) ? raw.todayPrimaryWorkout as TodayCompletedWorkoutSummary : null;
+  const latestPain = isRecord(raw.latestPain) ? raw.latestPain as CoachContext["latestPain"] : null;
+  const recentMaxPain = isRecord(raw.recentMaxPain) ? raw.recentMaxPain as CoachContext["recentMaxPain"] : null;
+  const nutritionToday = isRecord(raw.nutritionToday) ? {
+    ...raw.nutritionToday,
+    notes: arrayValue((raw.nutritionToday as Record<string, unknown>).notes).filter((note): note is string => typeof note === "string"),
+  } as CoachContext["nutritionToday"] : null;
+
+  return {
+    profile: isRecord(raw.profile) ? raw.profile : null,
+    raceGoal: isRecord(raw.raceGoal) ? raw.raceGoal : null,
+    racePlan: isRecord(raw.racePlan) ? raw.racePlan : null,
+    activeRaceStatus: raw.activeRaceStatus === "scheduled" || raw.activeRaceStatus === "today" || raw.activeRaceStatus === "past" ? raw.activeRaceStatus : "none",
+    activeRaceGoal: isRecord(raw.activeRaceGoal) ? raw.activeRaceGoal : null,
+    raceDate: stringOrNull(raw.raceDate),
+    raceDistance: stringOrNull(raw.raceDistance),
+    raceName: stringOrNull(raw.raceName),
+    daysUntilRace: numberOrNull(raw.daysUntilRace),
+    isRaceToday: Boolean(raw.isRaceToday),
+    isRaceTomorrow: Boolean(raw.isRaceTomorrow),
+    isRaceWeek: Boolean(raw.isRaceWeek),
+    raceGoalType: stringOrNull(raw.raceGoalType),
+    targetTime: stringOrNull(raw.targetTime),
+    sleep7d: sleep7d as CoachContext["sleep7d"],
+    avgReadiness: numberOrNull(raw.avgReadiness),
+    sleepAvg7dHours: numberOrNull(raw.sleepAvg7dHours),
+    sleepAvg7dText: stringOrNull(raw.sleepAvg7dText),
+    sleepNightCount7d: numberOrNull(raw.sleepNightCount7d) ?? sleep7d.length,
+    latestSleepDurationText: stringOrNull(raw.latestSleepDurationText),
+    latestSleepScore: numberOrNull(raw.latestSleepScore),
+    latestEnergyScore: numberOrNull(raw.latestEnergyScore),
+    latestSleepDateKey: stringOrNull(raw.latestSleepDateKey),
+    workouts7d: workouts7d as CoachContext["workouts7d"],
+    hasWorkoutToday: Boolean(raw.hasWorkoutToday) || todayWorkouts.length > 0 || Boolean(todayPrimaryWorkout),
+    todayWorkouts: todayWorkouts as CoachContext["todayWorkouts"],
+    todayPrimaryWorkout,
+    nutritionToday,
+    nutrition7d: nutrition7d as CoachContext["nutrition7d"],
+    latestCompletedRace: isRecord(raw.latestCompletedRace) ? raw.latestCompletedRace as CoachContext["latestCompletedRace"] : null,
+    recentRaceResults: recentRaceResults as CoachContext["recentRaceResults"],
+    totalRunKm: numberOrNull(raw.totalRunKm) ?? 0,
+    totalSessions: numberOrNull(raw.totalSessions) ?? 0,
+    runDays7d: numberOrNull(raw.runDays7d) ?? 0,
+    longestRun7dKm: numberOrNull(raw.longestRun7dKm),
+    lastWorkoutDate: stringOrNull(raw.lastWorkoutDate),
+    lastRun: isRecord(raw.lastRun) ? raw.lastRun as CoachContext["lastRun"] : null,
+    latestBody: isRecord(raw.latestBody) ? raw.latestBody as CoachContext["latestBody"] : null,
+    todayDate: stringOrNull(raw.todayDate) ?? new Date().toISOString().slice(0, 10),
+    contextNotes,
+    recentPainLogs: recentPainLogs as CoachContext["recentPainLogs"],
+    latestPain,
+    recentMaxPain,
+  };
+}
+
+function normalizeInsight(value: unknown, ctx: CoachContext): DailyCoachInsight {
+  const raw = isRecord(value) ? value : {};
+  const fallback = deterministicFallback(ctx);
+  return {
+    todayReadiness: numberOrNull(raw.todayReadiness) ?? fallback.todayReadiness,
+    readinessLabel: normalizeReadinessLabel(raw.readinessLabel) ?? fallback.readinessLabel,
+    readinessNote: stringOrNull(raw.readinessNote) ?? fallback.readinessNote,
+    workoutRec: stringOrNull(raw.workoutRec) ?? fallback.workoutRec,
+    workoutTarget: stringOrNull(raw.workoutTarget) ?? fallback.workoutTarget,
+    weekSummary: stringOrNull(raw.weekSummary) ?? fallback.weekSummary,
+    keyObservation: stringOrNull(raw.keyObservation) ?? fallback.keyObservation,
+    coachMessage: stringOrNull(raw.coachMessage) ?? fallback.coachMessage,
+  };
+}
+
+function deterministicFallback(ctx: CoachContext): DailyCoachInsight {
+  const latestPain = ctx.latestPain;
+  const latestSleep = ctx.sleep7d.find((sleep) => sleep.date === ctx.todayDate) ?? ctx.sleep7d[0];
+  const readiness = latestSleep?.readiness ?? ctx.avgReadiness ?? 65;
+  const readinessLabel = readiness < 50 ? "Low" : readiness < 65 ? "Fair" : readiness < 80 ? "Good" : "Excellent";
+  const sleepNote = latestSleep?.durationH
+    ? `ข้อมูลนอนล่าสุด ${latestSleep.durationH}${latestSleep.readiness != null ? `, readiness ${latestSleep.readiness}` : ""}`
+    : "ยังไม่มีข้อมูลนอนล่าสุดที่ชัดเจน";
+
+  if (ctx.hasWorkoutToday && ctx.todayPrimaryWorkout) {
+    return {
+      todayReadiness: readiness,
+      readinessLabel,
+      readinessNote: sleepNote,
+      workoutRec: postWorkoutTitle(ctx.todayPrimaryWorkout),
+      workoutTarget: "ไม่ต้องซ้อมเพิ่ม · เน้นฟื้นตัว",
+      weekSummary: buildWeekSummary(ctx),
+      keyObservation: formatWorkoutShortThai(ctx.todayPrimaryWorkout),
+      coachMessage: "วันนี้มีข้อมูลซ้อมแล้ว ให้เปลี่ยนเป็นโหมด recovery: เติมน้ำ กินโปรตีนกับคาร์บพอประมาณ ยืดเบา ๆ และนอนให้พอครับ",
+    };
+  }
+
+  if (latestPain && !latestPain.hasResolvedPain && latestPain.painLevel >= 3) {
+    return {
+      todayReadiness: readiness,
+      readinessLabel,
+      readinessNote: sleepNote,
+      workoutRec: latestPain.painLevel >= 5 ? "งดวิ่ง / พักและประเมินอาการ" : "Rest / Recovery",
+      workoutTarget: "Recovery Day · ไม่ต้องจับ pace",
+      weekSummary: buildWeekSummary(ctx),
+      keyObservation: `ล่าสุดเจ็บ${latestPain.painLocation} ${latestPain.painLevel}/10`,
+      coachMessage: "วันนี้ใช้คำแนะนำสำรองแบบ conservative ก่อน เพราะมีประวัติอาการเจ็บล่าสุด ให้พักจากแรงกระแทก เดินเบา ๆ ได้เฉพาะถ้าไม่เจ็บเพิ่มครับ",
+    };
+  }
+
+  if (readiness < 55) {
+    return {
+      todayReadiness: readiness,
+      readinessLabel,
+      readinessNote: sleepNote,
+      workoutRec: "Recovery / Walk + Mobility",
+      workoutTarget: "เน้นฟื้นตัว · เดินเบา ๆ ถ้าไม่เจ็บ",
+      weekSummary: buildWeekSummary(ctx),
+      keyObservation: "readiness ยังต่ำ จึงลดโหลดก่อน",
+      coachMessage: "วันนี้ให้ลดความหนักก่อนครับ อัปเดตข้อมูลเพิ่มได้แล้วกดวิเคราะห์ใหม่ ถ้าจะขยับตัวให้เลือกเดินเบา ๆ หรือ mobility 10-20 นาที",
+    };
+  }
+
+  return {
+    todayReadiness: readiness,
+    readinessLabel,
+    readinessNote: sleepNote,
+    workoutRec: "Easy / Recovery",
+    workoutTarget: "ไม่ต้องจับ pace · คุมให้ง่าย",
+    weekSummary: buildWeekSummary(ctx),
+    keyObservation: "ใช้คำแนะนำสำรองจาก Report ล่าสุด",
+    coachMessage: "ยังวิเคราะห์ด้วย AI ไม่สำเร็จเต็มรูปแบบ แต่จากข้อมูลล่าสุดให้เลือกซ้อมเบาไว้ก่อน และลองกดวิเคราะห์ใหม่อีกครั้งครับ",
+  };
+}
+
+function buildWeekSummary(ctx: CoachContext): string {
+  const parts = [
+    ctx.totalRunKm > 0 ? `วิ่ง ${Math.round(ctx.totalRunKm * 10) / 10} km` : null,
+    ctx.totalSessions > 0 ? `${ctx.totalSessions} sessions` : null,
+    ctx.sleepAvg7dText ? `นอนเฉลี่ย ${ctx.sleepAvg7dText}` : null,
+  ].filter(Boolean);
+  return parts.length ? parts.join(" / ") : "ยังมีข้อมูลสัปดาห์นี้ไม่มาก";
+}
+
+function normalizeReadinessLabel(value: unknown): DailyCoachInsight["readinessLabel"] | null {
+  return value === "Low" || value === "Fair" || value === "Good" || value === "Excellent" ? value : null;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function arrayValue(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function stringOrNull(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value : null;
+}
+
+function numberOrNull(value: unknown): number | null {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 function buildUserPrompt(ctx: CoachContext): string {
