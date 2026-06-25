@@ -1,5 +1,5 @@
 import type { WorkoutAnalysis } from "@/types/logs";
-import { AIReadQualityNote } from "@/components/AIReadQualityNote";
+import { DataQualityNote } from "@/components/DataQualityNote";
 import { DetailBlock, MetricGrid } from "@/components/ResultDetail";
 import {
   formatDistanceKm,
@@ -20,7 +20,7 @@ export function WorkoutResultCard({ result }: { result: WorkoutAnalysis }) {
         <p className="mt-1 text-xs text-slate-500">รวมข้อมูลจากหลายภาพแล้ว</p>
       )}
       <div className="mt-3">
-        <AIReadQualityNote confidence={result.confidence} unclearFields={result.unclearFields} />
+        <DataQualityNote confidence={result.confidence} unclearFields={result.unclearFields} source="workout" />
       </div>
       <MetricGrid
         items={[

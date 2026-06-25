@@ -1,5 +1,5 @@
 import type { SleepAnalysis } from "@/types/logs";
-import { AIReadQualityNote } from "@/components/AIReadQualityNote";
+import { DataQualityNote } from "@/components/DataQualityNote";
 import { DetailBlock, MetricGrid } from "@/components/ResultDetail";
 import { formatDuration, formatScore, formatHeartRate } from "@/lib/format";
 import { formatSleepMinutesThai } from "@/lib/sleepDuration";
@@ -33,7 +33,7 @@ export function SleepResultCard({ result }: { result: SleepAnalysis }) {
       </div>
       <p className="mt-3 text-sm leading-6 text-slate-600">{summary}</p>
       <div className="mt-3">
-        <AIReadQualityNote confidence={result.confidence} unclearFields={result.unclearFields} />
+        <DataQualityNote confidence={result.confidence} unclearFields={result.unclearFields} source="sleep" />
       </div>
       {mergeNote || missingDurationNote ? (
         <p className={`mt-3 rounded-2xl px-3 py-2 text-xs leading-5 ${missingDurationNote ? "bg-amber-50 text-amber-800" : "bg-[#eef7f0] text-[#2a5a39]"}`}>

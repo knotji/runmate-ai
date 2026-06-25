@@ -7,7 +7,7 @@ import { ImageUploader } from "@/components/ImageUploader";
 import { SleepResultCard } from "@/components/SleepResultCard";
 import { WorkoutResultCard } from "@/components/WorkoutResultCard";
 import { BodyResultCard } from "@/components/BodyResultCard";
-import { AIReadQualityNote } from "@/components/AIReadQualityNote";
+import { DataQualityNote } from "@/components/DataQualityNote";
 import { PostRunAnalysisCard } from "@/components/PostRunAnalysisCard";
 import { StrengthWorkoutCard } from "@/components/StrengthWorkoutCard";
 import { LoadingButton } from "@/components/LoadingButton";
@@ -981,8 +981,6 @@ function HealthCheckReviewCard({
     return lab.status === "normal";
   });
 
-  const hasUnclearFields = healthCheck.unclearFields && healthCheck.unclearFields.length > 0;
-  const isLowConfidence = healthCheck.confidence === "low" || hasUnclearFields;
   const isMissingLabs = !healthCheck.labs?.hba1c || !healthCheck.labs?.egfr;
 
   return (
@@ -1068,11 +1066,9 @@ function HealthCheckReviewCard({
           </div>
         </div>
 
-        {isLowConfidence && (
-          <div className="mt-3 rounded-2xl bg-amber-50/80 px-3 py-2 text-xs leading-5 text-amber-800">
-            ⚠️ ข้อมูลบางส่วนอาจอ่านไม่ชัด กรุณาตรวจทานก่อนใช้ประกอบคำแนะนำ
-          </div>
-        )}
+        <div className="mt-3">
+          <DataQualityNote confidence={healthCheck.confidence} unclearFields={healthCheck.unclearFields} source="health_check" />
+        </div>
 
         {isMissingLabs && (
           <div className="mt-3 rounded-2xl bg-blue-100/50 px-3 py-2 text-xs leading-5 text-slate-600">
@@ -1163,6 +1159,9 @@ function RaceResultConfirmCard({
         </p>
       </div>
       <p className="text-sm text-slate-600">ต้องการบันทึกผลวิ่งนี้เป็น Race Result หรือเก็บเป็น Workout ปกติ?</p>
+      <div className="my-2">
+        <DataQualityNote source="race_result" />
+      </div>
       {!match.distanceMatches ? (
         <p className="rounded-2xl bg-amber-50 p-3 text-xs leading-5 text-amber-700">
           ระยะทางอาจไม่ตรงกับระยะ race แบบเป๊ะ ๆ ระบบยังให้บันทึกได้ แต่แนะนำตรวจผลก่อนกดบันทึก
@@ -1441,7 +1440,7 @@ function MealReviewSummary({ meal, profile, context }: { meal: MealAnalysis; pro
           <p className="mt-1 text-xs leading-5 text-slate-500">จากข้อความ: {meal.originalMealText}</p>
         ) : null}
       </div>
-      <AIReadQualityNote confidence={meal.confidence} unclearFields={meal.unclearFields} compact />
+      <DataQualityNote confidence={meal.confidence} unclearFields={meal.unclearFields} source="meal" compact />
       {meal.errorLikeMessage ? (
         <p className="rounded-2xl bg-amber-50 p-3 text-xs font-semibold leading-5 text-amber-700">{meal.errorLikeMessage}</p>
       ) : null}
