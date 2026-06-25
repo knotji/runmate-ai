@@ -4,12 +4,13 @@ import { useEffect, useMemo, useState } from "react";
 import { buildCoachContextFromSupabase, type CoachContext } from "@/lib/buildCoachContext";
 import type { UserProfile } from "@/types/profile";
 import type { RacePlan, WeekWorkout } from "@/types/race";
+import { todayBangkokDateKey } from "@/lib/date";
 
 export function AIContextCard() {
   const [context, setContext] = useState<CoachContext>(emptyContext);
   const [checkInTime, setCheckInTime] = useState<string>("");
   // Computed once on mount so useMemo can depend on them without impure Date.now() calls.
-  const [todayDateKey] = useState(() => new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10));
+  const [todayDateKey] = useState(() => todayBangkokDateKey());
   const [todayDayOfWeek] = useState(() => new Date(Date.now() + 7 * 60 * 60 * 1000).getUTCDay());
 
   useEffect(() => {

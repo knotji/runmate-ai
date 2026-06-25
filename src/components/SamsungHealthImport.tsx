@@ -7,6 +7,7 @@ import { invalidateCoachCache } from "@/lib/invalidateCoachCache";
 import { saveHistoryItems } from "@/lib/cloudHistory";
 import { LoadingButton } from "@/components/LoadingButton";
 import type { LocalHistoryItem } from "@/lib/localHistory";
+import { getHistoryItemDateKey } from "@/lib/date";
 
 type Step = "idle" | "loading" | "preview" | "done" | "error";
 
@@ -42,7 +43,7 @@ export function SamsungHealthImport() {
       });
       const items = parseSamsungHealthFiles(files);
 
-      const dates = items.map((i) => i.createdAt.slice(0, 10)).sort();
+      const dates = items.map(getHistoryItemDateKey).sort();
       setPreview({
         sleep: items.filter((i) => i.type === "sleep").length,
         workout: items.filter((i) => i.type === "workout").length,

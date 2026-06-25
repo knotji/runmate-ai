@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { LoadingButton } from "@/components/LoadingButton";
 import { NutritionBalanceCard } from "@/components/NutritionBalanceCard";
-import { formatThaiDate, getHistoryItemDateKey } from "@/lib/date";
+import { formatThaiDate, getHistoryItemDateKey, todayBangkokDateKey } from "@/lib/date";
 import { buildCoachContextFromSupabase, type CoachContext, type NutritionDaySummary, type PainSummary, type TodayCompletedWorkoutSummary } from "@/lib/buildCoachContext";
 import { createHistoryItem, loadHistoryItems, saveHistoryItems } from "@/lib/cloudHistory";
 import { loadActiveRaceGoalAndPlan } from "@/lib/raceStorage";
@@ -25,7 +25,7 @@ function getRecommendedSubtype(insight: DailyCoachInsight | null, ctx: CoachCont
   if (ctx && ctx.recentRaceResults && ctx.recentRaceResults.length > 0) {
     const lastRace = ctx.recentRaceResults[0];
     if (lastRace.raceDate) {
-      const todayStr = ctx.todayDate || new Date().toISOString().slice(0, 10);
+      const todayStr = ctx.todayDate || todayBangkokDateKey();
       const diffMs = Date.parse(todayStr) - Date.parse(lastRace.raceDate);
       if (diffMs / 86400000 >= 0 && diffMs / 86400000 <= 3) return "walk";
     }
@@ -211,15 +211,15 @@ export default function TodayPage() {
         {loading && (
           <div className="flex items-center gap-3 py-2">
             <div className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-[#e4d8c8] border-t-[var(--primary)]" />
-            <p className="text-sm text-slate-400">กำลังวิเคราะห์ข้อมูล…</p>
+            <p className="text-sm text-slate-400">กำลังประเมินข้อมูลล่าสุด…</p>
           </div>
         )}
 
         {insightError && !loading && (
           <div className="space-y-2 rounded-2xl bg-amber-50 px-3 py-2">
-            <p className="text-sm font-bold text-[#17201d]">{insight ? "ใช้คำแนะนำสำรองอยู่" : "ยังวิเคราะห์ไม่สำเร็จ"}</p>
+            <p className="text-sm font-bold text-[#17201d]">{insight ? "ใช้คำแนะนำเบื้องต้นอยู่" : "ยังประเมินไม่สำเร็จ"}</p>
             <p className="text-xs leading-5 text-amber-700">
-              {insightErrorMessage || "วิเคราะห์ไม่สำเร็จ ลองใหม่อีกครั้ง"}
+              {insightErrorMessage || "ประเมินไม่สำเร็จ ลองใหม่อีกครั้ง"}
             </p>
             <LoadingButton type="button" loading={loading} loadingText="กำลังวิเคราะห์..." onClick={() => void generateInsight(true)} className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600">
               ลองใหม่
@@ -235,8 +235,8 @@ export default function TodayPage() {
 
         {!insight && !loading && !insightError && !hasHistory && (
           <div className="py-1">
-            <p className="text-base font-semibold text-[#17201d]">ยังไม่มีข้อมูลการซ้อม</p>
-            <p className="mt-1 text-sm text-slate-500">Import ข้อมูลจาก Samsung Health หรืออัปโหลดสกรีนช็อตเพื่อเริ่มต้น</p>
+            <p className="text-base font-semibold text-[#17201d]">วันนี้ยังไม่มีข้อมูลใหม่</p>
+            <p className="mt-1 text-sm text-slate-500">เพิ่มข้อมูลจากหน้า Upload เพื่อให้คำแนะนำแม่นขึ้น</p>
           </div>
         )}
 

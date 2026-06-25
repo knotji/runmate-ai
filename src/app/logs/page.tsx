@@ -162,11 +162,11 @@ export default function ReportPage() {
       ) : days.length === 0 ? (
         <section className="card space-y-3 p-5 text-sm text-slate-600">
           <div>
-            <p className="font-bold text-[#17201d]">ยังไม่มี Report</p>
-            <p className="mt-1 leading-6">เริ่มจาก Upload รูปอาหาร ผลวิ่ง หรือ Sleep score เพื่อให้โค้ชอ่านข้อมูลได้</p>
+            <p className="font-bold text-[#17201d]">ยังไม่มีบันทึก</p>
+            <p className="mt-1 leading-6">ลองเพิ่มมื้ออาหาร การนอน หรือผลวิ่งก่อนนะ</p>
           </div>
           <Link href="/upload" className="btn-primary block py-3 text-center text-sm">
-            ไป Upload
+            เพิ่มข้อมูล
           </Link>
         </section>
       ) : (

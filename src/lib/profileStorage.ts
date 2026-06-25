@@ -90,16 +90,20 @@ type ProfileRow = {
 export async function ensureSupabaseProfileSession() {
   const supabase = createClient();
   if (!supabase) {
-    console.warn("[supabase-auth-user]", { hasUser: false, reason: "missing-env" });
+    if (process.env.NODE_ENV === "development") {
+      console.warn("[supabase-auth-user]", { hasUser: false, reason: "missing-env" });
+    }
     return { ok: false as const, reason: "missing-env" as const };
   }
 
   const { data, error } = await supabase.auth.getUser();
-  console.info("[supabase-auth-user]", {
-    hasUser: Boolean(data.user),
-    userId: data.user?.id ?? null,
-    error: error?.message ?? null,
-  });
+  if (process.env.NODE_ENV === "development") {
+    console.info("[supabase-auth-user]", {
+      hasUser: Boolean(data.user),
+      userId: data.user?.id ?? null,
+      error: error?.message ?? null,
+    });
+  }
 
   if (error || !data.user) {
     return {

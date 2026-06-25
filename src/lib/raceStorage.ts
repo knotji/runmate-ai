@@ -8,6 +8,7 @@ import {
   logSupabaseSyncSuccess,
 } from "@/lib/supabase/debug";
 import type { RaceGoal, RacePlan } from "@/types/race";
+import { todayBangkokDateKey } from "@/lib/date";
 
 type RaceGoalRow = {
   id: string;
@@ -122,7 +123,7 @@ export async function saveRaceGoalAndPlan(goal: RaceGoal, plan: RacePlan): Promi
   logSupabaseSyncSuccess({ table: "race_goals", operation: "upsert", userId: session.userId, count: 1 });
 
   const savedGoalObj = rowToGoal(savedGoal as RaceGoalRow);
-  const startDate = new Date().toISOString().slice(0, 10);
+  const startDate = todayBangkokDateKey();
   const endDate = goal.raceDate || startDate;
   const planPayload = {
     user_id: session.userId,

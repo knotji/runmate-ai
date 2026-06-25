@@ -10,6 +10,28 @@ import {
 import type { HistoryType, LocalHistoryItem } from "@/lib/localHistory";
 
 const MAX_HISTORY_ROWS = 2000;
+const NON_PERSISTED_DATA_KEYS = new Set([
+  "imageurl",
+  "imageurls",
+  "imagepath",
+  "imagepaths",
+  "storagepath",
+  "storagepaths",
+  "thumbnailurl",
+  "thumbnailurls",
+  "base64",
+  "imagedataurl",
+  "imagedataurls",
+  "rawtext",
+  "rawpdftext",
+  "pdftext",
+  "ocrtext",
+  "rawocrtext",
+  "rawresponse",
+  "rawhealthtext",
+  "filedata",
+  "filebuffer",
+]);
 
 type HistoryRow = {
   id: string;
@@ -39,7 +61,10 @@ export async function saveHistoryItems(items: LocalHistoryItem[]): Promise<{ ok:
 
   const uniqueItems = dedupeHistoryItems(items);
   const rows = uniqueItems.map((item) => {
-    const dataObj = typeof item.data === "object" && item.data !== null ? { ...item.data } as Record<string, unknown> : {};
+    const sanitizedData = sanitizePersistedHistoryData(item.data);
+    const dataObj = typeof sanitizedData === "object" && sanitizedData !== null
+      ? { ...sanitizedData } as Record<string, unknown>
+      : {};
     if (item.recordedAt) dataObj.recordedAt = item.recordedAt;
     if (item.dateKey) dataObj.dateKey = item.dateKey;
 
@@ -158,6 +183,17 @@ function dedupeHistoryItems(items: LocalHistoryItem[]) {
     byId.set(item.id, item);
   }
   return Array.from(byId.values());
+}
+
+function sanitizePersistedHistoryData(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(sanitizePersistedHistoryData);
+  if (!value || typeof value !== "object") return value;
+  const cleaned: Record<string, unknown> = {};
+  for (const [key, nestedValue] of Object.entries(value as Record<string, unknown>)) {
+    if (NON_PERSISTED_DATA_KEYS.has(key.toLowerCase())) continue;
+    cleaned[key] = sanitizePersistedHistoryData(nestedValue);
+  }
+  return cleaned;
 }
 
 /**

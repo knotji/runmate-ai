@@ -124,7 +124,7 @@ export async function textFromAI({
       });
       return { message: response.text || fallback, source: "gemini" };
     } catch (error) {
-      console.error(aiFailureMessage, error);
+      logAIError(error);
       return { message: fallback, source: "fallback" };
     }
   }
@@ -154,7 +154,7 @@ export async function textFromAI({
       });
       return { message: response.choices[0]?.message.content || fallback, source: "openai" };
     } catch (error) {
-      console.error(aiFailureMessage, error);
+      logAIError(error);
     }
   }
 
@@ -204,7 +204,7 @@ function parseJson<T>(raw: string): T {
     if (process.env.NODE_ENV === "development") {
       console.warn("[ai-json-parse-error]", {
         errorMessage: error instanceof Error ? error.message : String(error),
-        rawResponsePrefix: trimmed.slice(0, 600),
+        responseLength: trimmed.length,
       });
     }
     throw new AIJsonParseError(error instanceof Error ? error.message : "Invalid JSON response", trimmed.slice(0, 600));

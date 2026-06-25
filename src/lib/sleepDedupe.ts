@@ -1,13 +1,6 @@
 import type { LocalHistoryItem } from "@/lib/localHistory";
 import type { SleepAnalysis } from "@/types/logs";
-
-const TZ_OFFSET_MS = 7 * 60 * 60 * 1000;
-
-function bangkokDateKey(isoString: string): string {
-  const d = new Date(isoString);
-  if (Number.isNaN(d.getTime())) return isoString.slice(0, 10);
-  return new Date(d.getTime() + TZ_OFFSET_MS).toISOString().slice(0, 10);
-}
+import { getHistoryItemDateKey } from "@/lib/date";
 
 export type MergedSleepItem = LocalHistoryItem & {
   mergedFromDuplicates?: boolean;
@@ -75,7 +68,7 @@ function pickBestConfidence(items: LocalHistoryItem[]): SleepAnalysis["confidenc
 export function dedupeSleepItems(items: LocalHistoryItem[]): MergedSleepItem[] {
   const groups = new Map<string, LocalHistoryItem[]>();
   for (const item of items) {
-    const key = bangkokDateKey(item.createdAt);
+    const key = getHistoryItemDateKey(item);
     const list = groups.get(key) ?? [];
     list.push(item);
     groups.set(key, list);
@@ -103,5 +96,8 @@ export function dedupeSleepItems(items: LocalHistoryItem[]): MergedSleepItem[] {
     });
   }
 
-  return result.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+  return result.sort((a, b) => {
+    const dateOrder = getHistoryItemDateKey(b).localeCompare(getHistoryItemDateKey(a));
+    return dateOrder || Date.parse(b.createdAt) - Date.parse(a.createdAt);
+  });
 }

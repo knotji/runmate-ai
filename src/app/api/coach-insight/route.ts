@@ -4,6 +4,7 @@ import { buildRunnerProfileContext } from "@/lib/buildRunnerProfileContext";
 import type { CoachContext, TodayCompletedWorkoutSummary } from "@/lib/buildCoachContext";
 import type { DailyCoachInsight } from "@/types/ai";
 import type { RacePlan, WeekWorkout } from "@/types/race";
+import { todayBangkokDateKey } from "@/lib/date";
 
 const FALLBACK: DailyCoachInsight = {
   todayReadiness: 70,
@@ -163,7 +164,7 @@ function normalizeCoachContext(value: unknown): CoachContext {
     lastWorkoutDate: stringOrNull(raw.lastWorkoutDate),
     lastRun: isRecord(raw.lastRun) ? raw.lastRun as CoachContext["lastRun"] : null,
     latestBody: isRecord(raw.latestBody) ? raw.latestBody as CoachContext["latestBody"] : null,
-    todayDate: stringOrNull(raw.todayDate) ?? new Date().toISOString().slice(0, 10),
+    todayDate: stringOrNull(raw.todayDate) ?? todayBangkokDateKey(),
     contextNotes,
     recentPainLogs: recentPainLogs as CoachContext["recentPainLogs"],
     latestPain,

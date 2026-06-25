@@ -163,6 +163,15 @@ const IMAGE_REPORT_KEYS = new Set([
   "base64",
   "imageDataUrl",
   "imageDataUrls",
+  "rawText",
+  "rawPdfText",
+  "pdfText",
+  "ocrText",
+  "rawOcrText",
+  "rawResponse",
+  "rawHealthText",
+  "fileData",
+  "fileBuffer",
 ]);
 
 const UPLOAD_LABELS: Record<UploadType, string> = {
@@ -260,7 +269,7 @@ export default function UploadPage() {
         });
       }
     } else {
-      setRaceMatch(null);
+      queueMicrotask(() => setRaceMatch(null));
     }
   }, [selectedDateKey, result, type, saveFeedback]);
 
@@ -1714,7 +1723,7 @@ function BodySaveBar({
           )}
         </>
       )}
-      <p className="text-center text-xs text-slate-400">ข้อมูล structured data เท่านั้น รูปต้นฉบับไม่ถูกเก็บ</p>
+      <p className="text-center text-xs text-slate-400">บันทึกเฉพาะข้อมูลที่สรุปแล้ว รูปต้นฉบับไม่ถูกเก็บ</p>
     </section>
   );
 }

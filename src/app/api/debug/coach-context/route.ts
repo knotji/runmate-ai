@@ -8,7 +8,7 @@ import type { UserProfile } from "@/types/profile";
 // so developers can verify what data is being sent to the AI.
 export async function GET() {
   if (process.env.NODE_ENV !== "development") {
-    return NextResponse.json({ error: "Only available in development" }, { status: 403 });
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
   try {
@@ -123,13 +123,13 @@ export async function GET() {
 
       latestBody: ctx.latestBody,
 
-      contextNotes: ctx.contextNotes,
+      contextNotes: ctx.contextNotes.slice(0, 20).map((note) => note.slice(0, 500)),
     };
 
     return NextResponse.json({ ok: true, summary });
-  } catch (err) {
+  } catch {
     return NextResponse.json(
-      { ok: false, error: err instanceof Error ? err.message : String(err) },
+      { ok: false, error: "Unable to build context summary" },
       { status: 500 },
     );
   }

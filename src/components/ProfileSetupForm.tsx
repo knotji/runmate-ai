@@ -14,6 +14,7 @@ import { calculateNutritionTargetsFromWeight, suggestedProteinTargetG } from "@/
 import { formatBpm } from "@/lib/format";
 import { validateHrValues, hasBlockingHrErrors } from "@/lib/hrValidation";
 import { getCoachStylePreview } from "@/lib/coachStylePreview";
+import { todayBangkokDateKey } from "@/lib/date";
 
 type Status = { tone: "idle" | "good" | "warn" | "bad"; text: string };
 
@@ -34,7 +35,7 @@ const SECTION_KEYS: Record<string, (keyof UserProfile)[]> = {
   ],
 };
 
-const TODAY = new Date().toISOString().slice(0, 10);
+const TODAY = todayBangkokDateKey();
 const IS_DEV = process.env.NODE_ENV === "development";
 
 function getEasyHrNumber(val: string | undefined | null): number | null {

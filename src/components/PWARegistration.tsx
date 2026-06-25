@@ -13,10 +13,14 @@ export function PWARegistration() {
         navigator.serviceWorker
           .register("/sw.js")
           .then((reg) => {
-            console.log("Service Worker registered with scope:", reg.scope);
+            if (process.env.NODE_ENV === "development") {
+              console.info("[pwa-registration]", { scope: reg.scope });
+            }
           })
           .catch((err) => {
-            console.error("Service Worker registration failed:", err);
+            if (process.env.NODE_ENV === "development") {
+              console.warn("[pwa-registration-error]", err instanceof Error ? err.message : String(err));
+            }
           });
       });
     }

@@ -109,17 +109,26 @@ export default function RaceGoalPage() {
     setPlan(null);
   }
 
-  if (!mounted) return null;
+  if (!mounted) {
+    return (
+      <AppShell title="แผนแข่ง" subtitle="วางแผนจากวันนี้ไปถึงวันแข่ง">
+        <section className="card p-5 text-sm text-slate-500">กำลังโหลดเป้าหมายและแผนซ้อม...</section>
+      </AppShell>
+    );
+  }
 
   // Display-layer selection: pick today's workout from weeklyPlan by Bangkok date.
   // Do not mutate stored plan data — this is read-only.
   const selectedTodayWorkout = plan ? (selectTodayFromWeeklyPlan(plan) ?? plan.todayWorkout ?? null) : null;
 
   return (
-    <AppShell title="แผนแข่ง" subtitle="Race Goal · วางแผนจากวันนี้ไปถึงวันแข่ง">
+    <AppShell title="แผนแข่ง" subtitle="วางแผนจากวันนี้ไปถึงวันแข่ง">
       {!goal || !plan ? (
         <>
           {raceResults.length > 0 ? <LatestRacePrompt result={raceResults[0]} /> : null}
+          <section className="rounded-3xl border border-slate-100 bg-white/70 px-4 py-3 text-sm leading-6 text-slate-500">
+            ตั้งเป้าการแข่งก่อน แล้วระบบจะช่วยวางแผนซ้อมให้เหมาะกับข้อมูลล่าสุดของคุณ
+          </section>
           <RaceGoalForm onCreated={(nextGoal, nextPlan) => { setGoal(nextGoal); setPlan(nextPlan); }} />
         </>
       ) : (
@@ -142,7 +151,7 @@ export default function RaceGoalPage() {
                 รีเฟรชแผน
               </LoadingButton>
             </div>
-            {refreshError ? <p className="text-xs text-red-500">Generate ไม่สำเร็จ ลองใหม่อีกครั้ง</p> : null}
+            {refreshError ? <p className="text-xs text-red-500">อัปเดตแผนไม่สำเร็จ ลองใหม่อีกครั้ง</p> : null}
             <p className="text-sm leading-6 text-slate-600">{sanitizePaceInText(plan.planSummary)}</p>
             {plan.phases?.map((phase) => <TrainingPhaseCard key={phase.name} phase={phase} />)}
           </section>

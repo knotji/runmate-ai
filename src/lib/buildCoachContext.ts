@@ -408,7 +408,7 @@ export function buildCoachContextFromData(input: {
     .map(compactMealForCoach);
   const latestHealthCheck = items
     .filter((i) => i.type === "health_check")
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .sort(compareHistoryByEventDateDesc)
     .map(compactHealthCheck)
     .find((item): item is HealthCheckContext => Boolean(item)) ?? null;
   const recentRaceResults = (input.raceResults ?? []).map(compactRaceResult);
@@ -434,7 +434,7 @@ export function buildCoachContextFromData(input: {
   const painItems = items
     .filter((i) => i.type === "pain")
     .filter((i) => getHistoryItemDateKey(i) >= cutoff)
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    .sort(compareHistoryByEventDateDesc);
   const recentPainLogs: PainSummary[] = painItems.map((item) => {
     const d = item.data as PainLog;
     const redFlags = Array.isArray(d?.redFlags) ? d.redFlags : [];
@@ -493,7 +493,9 @@ export function buildCoachContextFromData(input: {
       })
     : null;
 
-  const latestBodyItem = items.filter((i) => i.type === "body")[0];
+  const latestBodyItem = items
+    .filter((i) => i.type === "body")
+    .sort(compareHistoryByEventDateDesc)[0];
   let latestBody: CoachContext["latestBody"] = null;
   if (latestBodyItem) {
     const bd = latestBodyItem.data as BodyCompositionAnalysis;
@@ -581,6 +583,11 @@ export function buildCoachContextFromData(input: {
       strengthCount: items.filter((i) => i.type === "strength" && getHistoryItemDateKey(i) >= cutoff).length,
     }),
   };
+}
+
+function compareHistoryByEventDateDesc(a: LocalHistoryItem, b: LocalHistoryItem): number {
+  const dateOrder = getHistoryItemDateKey(b).localeCompare(getHistoryItemDateKey(a));
+  return dateOrder || b.createdAt.localeCompare(a.createdAt);
 }
 
 function buildNutritionSummaries(items: LocalHistoryItem[], cutoff: string): NutritionDaySummary[] {

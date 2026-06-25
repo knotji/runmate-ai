@@ -18,15 +18,26 @@ export function isRlsError(error: SupabaseErrorLike | null | undefined) {
 }
 
 export function logSupabaseSyncStart(meta: SyncMeta) {
+  if (process.env.NODE_ENV !== "development") return;
   console.info("[supabase-sync-start]", meta);
 }
 
 export function logSupabaseSyncSuccess(meta: SyncMeta) {
+  if (process.env.NODE_ENV !== "development") return;
   console.info("[supabase-sync-success]", meta);
 }
 
 export function logSupabaseSyncError(meta: SyncMeta & { error: SupabaseErrorLike }) {
   // Use warn instead of error so Next.js dev overlay does not hide the app.
+  if (process.env.NODE_ENV !== "development") {
+    console.warn("[supabase-sync-error]", {
+      table: meta.table,
+      operation: meta.operation,
+      code: meta.error.code ?? "unknown",
+      rlsLikely: isRlsError(meta.error),
+    });
+    return;
+  }
   console.warn("[supabase-sync-error]", {
     ...meta,
     error: {

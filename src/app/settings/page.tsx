@@ -32,6 +32,7 @@ export default function SettingsPage() {
   const buildMeta = getBuildMetadata();
 
   useEffect(() => {
+    if (process.env.NODE_ENV !== "development") return;
     fetch("/api/debug/env")
       .then((res) => (res.ok ? res.json() : null))
       .then((data: EnvDebug | null) => setEnvDebug(data))
@@ -98,7 +99,7 @@ export default function SettingsPage() {
               <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">วิเคราะห์โปรไฟล์</p>
               <h2 className="mt-1 text-xl font-bold text-[#17201d]">วิเคราะห์โปรไฟล์จากประวัติ</h2>
               <p className="mt-1 text-sm leading-6 text-slate-500">
-                ให้โค้ชอ่านประวัติการซ้อมและการนอนจาก Supabase แล้วแนะนำค่าโปรไฟล์ที่เหมาะกับคุณ
+                ให้โค้ชอ่านประวัติการซ้อมและการนอนที่บันทึกไว้ แล้วแนะนำค่าโปรไฟล์ที่เหมาะกับคุณ
               </p>
             </div>
             <ProfileHistoryAnalyzer onProfileUpdated={handleProfileUpdated} />
@@ -112,10 +113,10 @@ export default function SettingsPage() {
         <div className="space-y-4">
           <section className="card space-y-3 p-5">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">Data Import</p>
+              <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">นำเข้าข้อมูล</p>
               <h2 className="mt-1 text-xl font-bold text-[#17201d]">นำเข้า Samsung Health</h2>
               <p className="mt-1 text-sm leading-6 text-slate-500">
-                อัปโหลดไฟล์ ZIP เพื่อบันทึก sleep, workout และ body composition เข้า Supabase
+                อัปโหลดไฟล์ ZIP เพื่อบันทึกข้อมูลการนอน การซ้อม และองค์ประกอบร่างกาย
               </p>
             </div>
             <SamsungHealthImport />
@@ -592,4 +593,3 @@ function DevMealsSection({ data }: { data: Record<string, unknown> }) {
     </div>
   );
 }
-

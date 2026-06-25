@@ -1,8 +1,8 @@
 import type { LocalHistoryItem } from "./localHistory";
 import type { BodyCompositionAnalysis, SleepAnalysis, WorkoutAnalysis } from "@/types/logs";
+import { getBangkokDateKey, getHistoryItemDateKey } from "@/lib/date";
 
 const DAY_NAMES_TH = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัส", "ศุกร์", "เสาร์"];
-const TZ_MS = 7 * 60 * 60 * 1000;
 
 export type RunnerHistoryStats = {
   totalRuns: number;
@@ -73,10 +73,10 @@ export type ProfileAnalysisResult = {
 };
 
 export function buildRunnerHistoryStats(items: LocalHistoryItem[] = []): RunnerHistoryStats {
-  const cutoff = new Date(Date.now() + TZ_MS - 90 * 86400000).toISOString().slice(0, 10);
+  const cutoff = getBangkokDateKey(Date.now() - 90 * 86400000);
 
   // ── Workout (run) data ────────────────────────────────────────────────────
-  const workoutItems = items.filter((i) => i.type === "workout").filter((i) => i.createdAt.slice(0, 10) >= cutoff);
+  const workoutItems = items.filter((i) => i.type === "workout").filter((i) => getHistoryItemDateKey(i) >= cutoff);
 
   type RunEntry = { date: string; km: number; avgHR: number | null; maxHR: number | null; pace: string | null; cadence: number | null; vo2max: number | null };
   const runs: RunEntry[] = [];
@@ -96,7 +96,7 @@ export function buildRunnerHistoryStats(items: LocalHistoryItem[] = []): RunnerH
     }
 
     runs.push({
-      date: item.createdAt.slice(0, 10),
+      date: getHistoryItemDateKey(item),
       km,
       avgHR: ext.avgHR ?? null,
       maxHR: ext.maxHR ?? null,
@@ -198,7 +198,10 @@ export function buildRunnerHistoryStats(items: LocalHistoryItem[] = []): RunnerH
   // ── Body composition data ─────────────────────────────────────────────────
   const bodyItemsSorted = items
     .filter((i) => i.type === "body")
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    .sort((a, b) => {
+      const dateOrder = getHistoryItemDateKey(b).localeCompare(getHistoryItemDateKey(a));
+      return dateOrder || b.createdAt.localeCompare(a.createdAt);
+    });
   let latestWeightKg: number | null = null;
   let latestBodyFatPercent: number | null = null;
   for (const item of bodyItemsSorted) {
@@ -213,7 +216,7 @@ export function buildRunnerHistoryStats(items: LocalHistoryItem[] = []): RunnerH
   }
 
   // ── Sleep data ────────────────────────────────────────────────────────────
-  const sleepItems = items.filter((i) => i.type === "sleep").filter((i) => i.createdAt.slice(0, 10) >= cutoff);
+  const sleepItems = items.filter((i) => i.type === "sleep").filter((i) => getHistoryItemDateKey(i) >= cutoff);
 
   const sleepHours: number[] = [];
   const sleepScores: number[] = [];

@@ -8,21 +8,27 @@ export function MealResultCard({ result }: { result: MealAnalysis }) {
 
   return (
     <section className="card p-5">
-      <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#6f8fa6]">Meal Result</p>
+      <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#6f8fa6]">ผลประเมินมื้ออาหาร</p>
       <h2 className="mt-2 text-xl font-bold">{foods || "มื้ออาหาร"}</h2>
       <MetricGrid
         items={[
-          { label: "Calories", value: formatCalories(result.nutrition?.caloriesKcal) },
-          { label: "Protein", value: formatMacro(result.nutrition?.proteinG) },
-          { label: "Carbs", value: formatMacro(result.nutrition?.carbsG) },
-          { label: "Fat", value: formatMacro(result.nutrition?.fatG) },
+          { label: "พลังงาน", value: formatCalories(result.nutrition?.caloriesKcal) },
+          { label: "โปรตีน", value: formatMacro(result.nutrition?.proteinG) },
+          { label: "คาร์บ", value: formatMacro(result.nutrition?.carbsG) },
+          { label: "ไขมัน", value: formatMacro(result.nutrition?.fatG) },
         ]}
       />
-      <DetailBlock title="Confidence">{result.confidence ?? "low"}</DetailBlock>
-      <DetailBlock title="Coach Note" tone="green">{coachNote}</DetailBlock>
-      <DetailBlock title="Estimate Note" tone="amber">ตัวเลขโภชนาการเป็นการประเมินคร่าว ๆ จากรูปอาหาร อาจคลาดเคลื่อนได้</DetailBlock>
+      <DetailBlock title="ความมั่นใจของข้อมูล">{confidenceLabel(result.confidence)}</DetailBlock>
+      <DetailBlock title="คำแนะนำจากโค้ช" tone="green">{coachNote}</DetailBlock>
+      <DetailBlock title="หมายเหตุ" tone="amber">ตัวเลขโภชนาการเป็นการประเมินคร่าว ๆ จากรูปอาหาร อาจคลาดเคลื่อนได้</DetailBlock>
     </section>
   );
+}
+
+function confidenceLabel(value: MealAnalysis["confidence"]): string {
+  if (value === "high") return "สูง";
+  if (value === "medium") return "ปานกลาง";
+  return "ข้อมูลอาจคลาดเคลื่อน";
 }
 
 function getFoodNames(result: MealAnalysis) {

@@ -6,6 +6,9 @@ function exists(value: string | undefined) {
 
 export function GET() {
   const isDevelopment = process.env.NODE_ENV === "development";
+  if (!isDevelopment) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
 
   // Never return secret values from this endpoint. It is intentionally limited
   // to existence flags so Vercel runtime config can be checked safely.
@@ -18,7 +21,7 @@ export function GET() {
     env: {
       NEXT_PUBLIC_SUPABASE_URL: {
         exists: exists(process.env.NEXT_PUBLIC_SUPABASE_URL),
-        value: isDevelopment ? process.env.NEXT_PUBLIC_SUPABASE_URL ?? null : undefined,
+        value: process.env.NEXT_PUBLIC_SUPABASE_URL ?? null,
       },
       NEXT_PUBLIC_SUPABASE_ANON_KEY: {
         exists: exists(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),

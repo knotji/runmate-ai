@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { buildCoachContextFromSupabase, type CoachContext } from "@/lib/buildCoachContext";
 import { calculateReadiness } from "@/lib/readiness";
 import type { UserProfile } from "@/types/profile";
+import { getBangkokDateKey } from "@/lib/date";
 
 const colorMap = {
   green: {
@@ -64,7 +65,7 @@ export function ReadinessCard() {
           let loadVal: "none" | "light" | "heavy" = "none";
           const lastWorkout = next.workouts7d[0];
           if (lastWorkout) {
-            const yesterdayStr = new Date(Date.now() - 86400000 + 7 * 3600000).toISOString().slice(0, 10);
+            const yesterdayStr = getBangkokDateKey(Date.now() - 86400000);
             if (lastWorkout.date === yesterdayStr) {
               const hasHeavy = lastWorkout.runs.some((r) => r.km >= 12) || lastWorkout.other.some((o) => o.durationMin >= 60);
               loadVal = hasHeavy ? "heavy" : "light";
