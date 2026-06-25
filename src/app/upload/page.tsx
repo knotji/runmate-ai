@@ -1575,13 +1575,22 @@ function normalizeMealAnalysis(meal: MealAnalysis): MealAnalysis {
     hydrationNote: meal.extracted?.hydrationSuggestion ?? "",
     coachNote: meal.coach?.suggestion ?? meal.coach?.aiSummary ?? "",
   };
+  const inputMode = meal.inputMode || "image";
+  const sourceType = inputMode === "text" ? "manual" : "image";
+  const detectedFoods = normalizeDetectedFoods(meal.detectedFoods, legacyFood, meal.inputMode);
+  const imageCount = inputMode === "text" ? 0 : (meal.imageCount ?? meal.entries?.length ?? 1);
+  const itemCount = detectedFoods.length;
+
   return {
     mealType: meal.mealType || "meal",
     mealSlot: normalizeMealSlot(meal.mealSlot || meal.mealType, meal.createdAt),
-    inputMode: meal.inputMode,
+    inputMode,
+    sourceType,
+    imageCount,
+    itemCount,
     originalMealText: meal.originalMealText,
     note: meal.note,
-    detectedFoods: normalizeDetectedFoods(meal.detectedFoods, legacyFood, meal.inputMode),
+    detectedFoods,
     nutrition,
     nutritionRange: ranges,
     trainingFit,

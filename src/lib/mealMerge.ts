@@ -122,14 +122,22 @@ export function buildMergedMeal(existing: MealAnalysis, incoming: MealAnalysis):
   };
   const entries = stripImageReferences([...existingEntries, newEntry]);
 
+  const inputMode = incoming.inputMode || existing.inputMode || "image";
+  const sourceType = inputMode === "text" ? "manual" : "image";
+  const imageCount = sourceType === "manual" ? 0 : entries.length;
+  const itemCount = mergedFoods.length;
+
   return stripImageReferences({
     ...incoming,
     mealType: existing.mealType || incoming.mealType,
     detectedFoods: mergedFoods,
     nutrition: mergeMealNutrition(existing, incoming),
     entries,
-    imageCount: entries.length,
+    imageCount,
     entriesMerged: entries.length,
+    itemCount,
+    sourceType,
+    inputMode,
     updatedAt: new Date().toISOString(),
     needsReview: false,
     localDate: existing.localDate ?? incoming.localDate,

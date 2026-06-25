@@ -29,6 +29,7 @@ import { polishSleepInsightText } from "@/lib/sleepInsight";
 import { dedupeSleepItems } from "@/lib/sleepDedupe";
 import { getHistoryItemDateKey } from "@/lib/date";
 import { normalizeMealSlot, getMealSlotLabel, getMealSlotIcon, getMealSlotOrder } from "@/lib/mealSlots";
+import { getMealSourceInfo } from "@/lib/mealSource";
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -83,6 +84,7 @@ export default function ReportPage() {
   const days = groupByDay(items);
   const dashboard = buildDashboard(items);
   const pTarget = proteinTargetGrams(profile);
+  const dashboardCutoff = dateKeyBefore(7);
 
   const filteredDays = days.filter((day) => {
     if (activeFilter === "all") return true;
@@ -171,7 +173,7 @@ export default function ReportPage() {
           <section className="rounded-3xl border border-slate-100 bg-white/70 px-4 py-3 text-xs leading-5 text-slate-500 shadow-sm">
             Report คือข้อมูลจริงจาก Upload และการบันทึก ส่วนแชทกับโค้ชจะไม่ถูกเพิ่มเข้าหน้านี้อัตโนมัติ
           </section>
-          <WeeklyDashboard dashboard={dashboard} proteinTarget={pTarget} />
+          <WeeklyDashboard dashboard={dashboard} proteinTarget={pTarget} items={items} cutoff={dashboardCutoff} />
           {deleteStatus ? (
             <section className={`rounded-2xl px-4 py-3 text-xs font-semibold ${deleteStatus.startsWith("ลบไม่สำเร็จ") ? "bg-red-50 text-red-600" : "bg-[#e7efea] text-[#2a5a39]"}`}>
               {deleteStatus}
@@ -242,7 +244,12 @@ export default function ReportPage() {
   );
 }
 
-function WeeklyDashboard({ dashboard, proteinTarget }: { dashboard: Dashboard; proteinTarget: number }) {
+function WeeklyDashboard({ dashboard, proteinTarget, items, cutoff }: { dashboard: Dashboard; proteinTarget: number; items: LocalHistoryItem[]; cutoff: string }) {
+  const meals7d = items
+    .filter((i) => i.type === "meal")
+    .filter((i) => getHistoryItemDateKey(i) >= cutoff);
+  const assessmentText = getDayMealsAssessmentText(meals7d);
+
   return (
     <section className="card space-y-4 p-5">
       <div>
@@ -255,7 +262,7 @@ function WeeklyDashboard({ dashboard, proteinTarget }: { dashboard: Dashboard; p
         <DashboardMetric label="Longest run" value={dashboard.longestRunKm != null ? formatDistanceKm(dashboard.longestRunKm) : "-"} sub="last 7 days" />
         <DashboardMetric label="Readiness avg" value={dashboard.avgReadiness != null ? formatScore(dashboard.avgReadiness) : "-"} sub={dashboard.readinessTrend} />
         <DashboardMetric label="Sleep avg 7 วัน" value={formatSleepAverageHours(dashboard.avgSleepHours)} sub={sleepAverageSubtext(dashboard.sleepCount)} />
-        <DashboardMetric label="Meal kcal avg" value={dashboard.avgMealCalories != null ? formatCalories(dashboard.avgMealCalories) : "-"} sub="ประเมินจากรูปอาหาร" />
+        <DashboardMetric label="Meal kcal avg" value={dashboard.avgMealCalories != null ? formatCalories(dashboard.avgMealCalories) : "-"} sub={assessmentText} />
         <DashboardMetric label="Protein avg / day" value={dashboard.avgMealProtein != null ? formatMacro(dashboard.avgMealProtein) : "-"} sub={`target ${proteinTarget} g`} />
       </div>
       <div className="grid grid-cols-3 gap-2">
@@ -366,6 +373,23 @@ function getGroupSubtotalLabel(meals: LocalHistoryItem[]): string | null {
   return parts.join(" · ");
 }
 
+function getDayMealsAssessmentText(meals: LocalHistoryItem[]): string {
+  if (!meals.length) return "ประเมินจากข้อมูลอาหาร";
+  
+  const sources = new Set<string>();
+  for (const item of meals) {
+    const d = extractMealData(item);
+    const info = getMealSourceInfo(d);
+    sources.add(info.sourceType);
+  }
+
+  if (sources.size === 1) {
+    if (sources.has("image")) return "ประเมินจากรูปอาหาร";
+    if (sources.has("manual")) return "ประเมินจากข้อมูลที่บันทึก";
+  }
+  return "ประเมินจากข้อมูลอาหาร";
+}
+
 // ─── Day card ─────────────────────────────────────────────────────────────────
 
 function DayCard({
@@ -424,7 +448,11 @@ function DayCard({
   const mealNutrition = getMealNutrition(meals);
   const totalMealImages = meals.reduce((sum, item) => {
     const d = extractMealData(item);
-    return sum + (d.imageCount ?? d.entries?.length ?? 1);
+    const sourceInfo = getMealSourceInfo(d);
+    if (sourceInfo.sourceType === "image") {
+      return sum + (d.imageCount ?? d.entries?.length ?? 1);
+    }
+    return sum;
   }, 0);
   const proteinStatus = mealNutrition.proteinG != null ? calcProteinStatus(mealNutrition.proteinG, proteinTarget) : null;
 
@@ -501,7 +529,7 @@ function DayCard({
           {strengths.map((item) => <StrengthDetail key={item.id} item={item} onDelete={onDeleteItem} deleting={deletingKey === item.id} />)}
           {raceResults.map((result) => <RaceResultDetail key={result.id ?? `${result.raceDate}-${result.raceName}`} result={result} onDelete={onDeleteRaceResult} deleting={Boolean(result.id && deletingKey === `race:${result.id}`)} />)}
           {workouts.map((item) => <WorkoutDetail key={item.id} item={item} onDelete={onDeleteItem} deleting={deletingKey === item.id} />)}
-          {mealCount > 0 && <MealNutritionDaySummary summary={mealNutrition} mealCount={mealCount} proteinTarget={proteinTarget} />}
+          {mealCount > 0 && <MealNutritionDaySummary summary={mealNutrition} mealCount={mealCount} proteinTarget={proteinTarget} meals={meals} />}
           {groupedMeals.map((group, idx) => {
             const subtotal = getGroupSubtotalLabel(group.meals);
             return (
@@ -644,7 +672,7 @@ function MealDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; onDe
   const n = normalizeMealNutrition(d as unknown as Record<string, unknown>);
   const foodNames = d.detectedFoods?.map((food) => food.name).filter(Boolean).join(", ") || d?.extracted?.detectedFood || "";
   const note = d.trainingFit?.coachNote ?? d.coachNote ?? d?.coach?.aiSummary ?? d?.coach?.suggestion ?? "";
-  const imageCount = d.imageCount ?? d.entries?.length ?? 1;
+  const sourceInfo = getMealSourceInfo(d);
 
   const normalizedSlot = normalizeMealSlot(item, item.recordedAt || item.createdAt);
   const icon = getMealSlotIcon(normalizedSlot);
@@ -654,8 +682,8 @@ function MealDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; onDe
     <div className="rounded-2xl bg-orange-50 p-4">
       <div className="flex items-center gap-1.5 mb-1">
         <p className="text-xs font-bold uppercase tracking-wide text-orange-600">{icon} {label}</p>
-        {imageCount > 1 && (
-          <span className="rounded-full bg-orange-200 px-2 py-0.5 text-[10px] font-bold text-orange-700">{imageCount} รูป</span>
+        {sourceInfo.badgeText && (
+          <span className="rounded-full bg-orange-200 px-2 py-0.5 text-[10px] font-bold text-orange-700">{sourceInfo.badgeText}</span>
         )}
       </div>
       {foodNames && (
@@ -667,7 +695,7 @@ function MealDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; onDe
         <Metric label="Carbs" value={formatMacro(n.carbsG)} />
         <Metric label="Fat" value={formatMacro(n.fatG)} />
       </div>
-      <p className="mb-2 text-xs text-orange-700">ประเมินจากรูปอาหาร</p>
+      <p className="mb-2 text-xs text-orange-700">{sourceInfo.assessmentText}</p>
       {note && (
         <p className="text-sm leading-6 text-slate-700">{truncate(note, 140)}</p>
       )}
@@ -828,7 +856,7 @@ function HealthCheckDetail({ item, onDelete, deleting }: { item: LocalHistoryIte
   );
 }
 
-function MealNutritionDaySummary({ summary, mealCount, proteinTarget }: { summary: MealNutritionSummary; mealCount: number; proteinTarget: number }) {
+function MealNutritionDaySummary({ summary, mealCount, proteinTarget, meals }: { summary: MealNutritionSummary; mealCount: number; proteinTarget: number; meals: LocalHistoryItem[] }) {
   const status = summary.proteinG != null ? calcProteinStatus(summary.proteinG, proteinTarget) : null;
   const coachNote = summary.proteinG != null ? proteinCoachNote(summary.proteinG, proteinTarget) : null;
   const remaining = summary.proteinG != null && summary.proteinG < proteinTarget ? proteinTarget - summary.proteinG : null;
@@ -860,7 +888,7 @@ function MealNutritionDaySummary({ summary, mealCount, proteinTarget }: { summar
         <Metric label="Fat" value={formatMacro(summary.fatG)} />
       </div>
 
-      <p className="text-xs text-orange-700">{mealCount} มื้อ · ประเมินจากรูปอาหาร</p>
+      <p className="text-xs text-orange-700">{mealCount} มื้อ · {getDayMealsAssessmentText(meals)}</p>
       {coachNote && <p className="text-sm font-semibold text-[#17201d]">{coachNote}</p>}
     </div>
   );
