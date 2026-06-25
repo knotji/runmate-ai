@@ -276,6 +276,143 @@ function DashboardMetric({ label, value, sub, compact = false }: { label: string
   );
 }
 
+function parseNutritionValue(val: unknown): number | null {
+  if (val === null || val === undefined) return null;
+  if (typeof val === "number") {
+    return Number.isFinite(val) ? val : null;
+  }
+  if (typeof val === "string") {
+    const cleaned = val.trim();
+    if (cleaned === "") return null;
+    const match = cleaned.match(/^[+-]?\d+(?:\.\d+)?/);
+    if (match) {
+      const num = Number(match[0]);
+      return Number.isFinite(num) ? num : null;
+    }
+  }
+  return null;
+}
+
+function getMealGroup(item: LocalHistoryItem): 'breakfast' | 'lunch' | 'dinner' | 'snack' | 'other' {
+  const d = extractMealData(item);
+  const slot = (d.mealType || "").toLowerCase().trim();
+  
+  if (!slot) {
+    const foodNames = d.detectedFoods?.map((food) => food.name).filter(Boolean).join(" ").toLowerCase() || "";
+    const mealText = (d.originalMealText || "").toLowerCase();
+    const note = (d.note || "").toLowerCase();
+    const combinedText = `${foodNames} ${mealText} ${note}`;
+    
+    if (combinedText.includes("มื้อเช้า") || combinedText.includes("เช้า") || combinedText.includes("breakfast") || combinedText.includes("morning")) {
+      return "breakfast";
+    }
+    if (combinedText.includes("มื้อกลางวัน") || combinedText.includes("กลางวัน") || combinedText.includes("เที่ยง") || combinedText.includes("lunch") || combinedText.includes("noon")) {
+      return "lunch";
+    }
+    if (combinedText.includes("มื้อเย็น") || combinedText.includes("เย็น") || combinedText.includes("ค่ำ") || combinedText.includes("dinner") || combinedText.includes("evening")) {
+      return "dinner";
+    }
+    if (combinedText.includes("ของว่าง") || combinedText.includes("ขนม") || combinedText.includes("เครื่องดื่ม") || combinedText.includes("snack")) {
+      return "snack";
+    }
+    return "other";
+  }
+
+  if (slot.includes("breakfast") || slot.includes("morning") || slot.includes("เช้า") || slot.includes("มื้อเช้า")) {
+    return "breakfast";
+  }
+  if (slot.includes("lunch") || slot.includes("noon") || slot.includes("afternoon") || slot.includes("กลางวัน") || slot.includes("เที่ยง") || slot.includes("มื้อกลางวัน")) {
+    return "lunch";
+  }
+  if (slot.includes("dinner") || slot.includes("evening") || slot.includes("เย็น") || slot.includes("ค่ำ") || slot.includes("มื้อเย็น")) {
+    return "dinner";
+  }
+  if (slot.includes("snack") || slot.includes("ของว่าง") || slot.includes("ขนม") || slot.includes("เครื่องดื่ม") || slot.includes("pre-run") || slot.includes("post-run")) {
+    return "snack";
+  }
+  return "other";
+}
+
+function getMealSlotLabel(group: 'breakfast' | 'lunch' | 'dinner' | 'snack' | 'other'): string {
+  switch (group) {
+    case 'breakfast': return 'มื้อเช้า';
+    case 'lunch': return 'มื้อกลางวัน';
+    case 'dinner': return 'มื้อเย็น';
+    case 'snack': return 'ของว่าง';
+    default: return 'อื่น ๆ';
+  }
+}
+
+function extractRawNutrition(item: LocalHistoryItem) {
+  const d = extractMealData(item);
+  const dAny = d as unknown as Record<string, unknown>;
+  const n = (d.nutrition && typeof d.nutrition === "object" ? d.nutrition : {}) as Record<string, unknown>;
+  
+  const rawCalories = n.caloriesKcal ?? n.calories ?? dAny.caloriesKcal ?? dAny.calories ?? dAny.kcal;
+  const rawProtein = n.proteinG ?? n.protein ?? dAny.proteinG ?? dAny.protein;
+  const rawCarbs = n.carbsG ?? n.carbs ?? dAny.carbsG ?? dAny.carbs;
+  const rawFat = n.fatG ?? n.fat ?? dAny.fatG ?? dAny.fat;
+  
+  return {
+    calories: parseNutritionValue(rawCalories),
+    protein: parseNutritionValue(rawProtein),
+    carbs: parseNutritionValue(rawCarbs),
+    fat: parseNutritionValue(rawFat),
+  };
+}
+
+function getGroupSubtotalLabel(meals: LocalHistoryItem[]): string | null {
+  let totalCalories = 0;
+  let totalProtein = 0;
+  let totalCarbs = 0;
+  let totalFat = 0;
+  
+  let hasCalories = false;
+  let hasProtein = false;
+  let hasCarbs = false;
+  let hasFat = false;
+  
+  for (const meal of meals) {
+    const raw = extractRawNutrition(meal);
+    if (raw.calories !== null) {
+      totalCalories += raw.calories;
+      hasCalories = true;
+    }
+    if (raw.protein !== null) {
+      totalProtein += raw.protein;
+      hasProtein = true;
+    }
+    if (raw.carbs !== null) {
+      totalCarbs += raw.carbs;
+      hasCarbs = true;
+    }
+    if (raw.fat !== null) {
+      totalFat += raw.fat;
+      hasFat = true;
+    }
+  }
+  
+  if (!hasCalories && !hasProtein && !hasCarbs && !hasFat) {
+    return null;
+  }
+  
+  const parts: string[] = [];
+  if (hasCalories) {
+    parts.push(`${Math.round(totalCalories)} kcal`);
+  }
+  if (hasProtein) {
+    parts.push(`โปรตีน ${Math.round(totalProtein)}g`);
+  }
+  if (hasCarbs) {
+    parts.push(`คาร์บ ${Math.round(totalCarbs)}g`);
+  }
+  if (hasFat) {
+    parts.push(`ไขมัน ${Math.round(totalFat)}g`);
+  }
+  
+  return parts.join(" · ");
+}
+
 // ─── Day card ─────────────────────────────────────────────────────────────────
 
 function DayCard({
@@ -299,6 +436,20 @@ function DayCard({
   const dedupedSleeps = dedupeSleepItems(sleeps);
   const workouts = day.items.filter((i) => i.type === "workout");
   const meals = day.items.filter((i) => i.type === "meal");
+  const MEAL_GROUPS = [
+    { key: "breakfast", label: "มื้อเช้า", icon: "🍳" },
+    { key: "lunch", label: "มื้อกลางวัน", icon: "🍱" },
+    { key: "dinner", label: "มื้อเย็น", icon: "🌙" },
+    { key: "snack", label: "ของว่าง", icon: "🍌" },
+    { key: "other", label: "อื่น ๆ", icon: "🍽️" },
+  ] as const;
+  const groupedMeals = MEAL_GROUPS.map((group) => {
+    const groupMeals = meals.filter((meal) => getMealGroup(meal) === group.key);
+    return {
+      ...group,
+      meals: groupMeals,
+    };
+  }).filter((group) => group.meals.length > 0);
   const summaries = day.items.filter((i) => i.type === "summary");
   const bodies = day.items.filter((i) => i.type === "body");
   const healthChecks = day.items.filter((i) => i.type === "health_check");
@@ -396,7 +547,28 @@ function DayCard({
           {raceResults.map((result) => <RaceResultDetail key={result.id ?? `${result.raceDate}-${result.raceName}`} result={result} onDelete={onDeleteRaceResult} deleting={Boolean(result.id && deletingKey === `race:${result.id}`)} />)}
           {workouts.map((item) => <WorkoutDetail key={item.id} item={item} onDelete={onDeleteItem} deleting={deletingKey === item.id} />)}
           {mealCount > 0 && <MealNutritionDaySummary summary={mealNutrition} mealCount={mealCount} proteinTarget={proteinTarget} />}
-          {meals.map((item) => <MealDetail key={item.id} item={item} onDelete={onDeleteItem} deleting={deletingKey === item.id} />)}
+          {groupedMeals.map((group, idx) => {
+            const subtotal = getGroupSubtotalLabel(group.meals);
+            return (
+              <div key={group.key} className={`space-y-2 ${idx > 0 ? "border-t border-slate-100/70 pt-3 mt-3" : ""}`}>
+                <div className="flex flex-wrap items-baseline justify-between gap-x-2 px-1">
+                  <h4 className="text-sm font-bold text-slate-700">
+                    {group.icon} {group.label}
+                  </h4>
+                  {subtotal && (
+                    <span className="text-[11px] font-medium text-slate-400">
+                      {subtotal}
+                    </span>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  {group.meals.map((item) => (
+                    <MealDetail key={item.id} item={item} onDelete={onDeleteItem} deleting={deletingKey === item.id} />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
           {healthChecks.map((item) => <HealthCheckDetail key={item.id} item={item} onDelete={onDeleteItem} deleting={deletingKey === item.id} />)}
           {latestBodies.map((item) => <BodyDetail key={item.id} item={item} onDelete={onDeleteItem} deleting={deletingKey === item.id} />)}
           {hasMultipleBodies && (
@@ -522,7 +694,7 @@ function MealDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; onDe
   return (
     <div className="rounded-2xl bg-orange-50 p-4">
       <div className="flex items-center gap-1.5 mb-1">
-        <p className="text-xs font-bold uppercase tracking-wide text-orange-600">🍱 มื้ออาหาร</p>
+        <p className="text-xs font-bold uppercase tracking-wide text-orange-600">🍱 {getMealSlotLabel(getMealGroup(item))}</p>
         {imageCount > 1 && (
           <span className="rounded-full bg-orange-200 px-2 py-0.5 text-[10px] font-bold text-orange-700">{imageCount} รูป</span>
         )}
