@@ -544,46 +544,154 @@ function MealDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; onDe
   );
 }
 
+function formatLabWarning(key: string, lab: LabValue): string {
+  const label = lab.label || key;
+  const status = lab.status;
+  const valStr = lab.value != null ? `${lab.value} ${lab.unit || ""}`.trim() : "";
+
+  if (key === "ldl" || key === "totalCholesterol" || key === "triglyceride") {
+    if (status === "high" || status === "borderline") {
+      return `${label} (${valStr}) - สูงกว่าช่วงอ้างอิงเล็กน้อย/ควรระวัง`;
+    }
+  }
+  if (key === "sgptAlt" || key === "sgotAst" || key === "alp") {
+    if (status === "high" || status === "borderline") {
+      return `${label} (${valStr}) - สูงกว่าช่วงอ้างอิง ควรเลือกมื้อเบากว่าและติดตามกับแพทย์หากค่านี้ผิดปกติต่อเนื่อง`;
+    }
+  }
+
+  if (status === "high") {
+    return `${label} (${valStr}) - สูงกว่าช่วงอ้างอิง/ควรระวัง`;
+  }
+  if (status === "low") {
+    return `${label} (${valStr}) - ต่ำกว่าช่วงอ้างอิง/ควรระวัง`;
+  }
+  if (status === "borderline") {
+    return `${label} (${valStr}) - สูงกว่าช่วงอ้างอิงเล็กน้อย/ควรระวัง`;
+  }
+  return `${label} (${valStr}) - ควรระวัง`;
+}
+
 function HealthCheckDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; onDelete: (item: LocalHistoryItem) => void; deleting: boolean }) {
   const d = item.data as HealthCheckAnalysis;
-  const labs = getHealthLabs(d).slice(0, 8);
-  const flags = getHealthFlagLabels(d);
+  const allLabs = getHealthLabs(d);
+
+  const warningLabs = allLabs.filter(([key, lab]) => {
+    if (key === "hdl") return lab.status === "low";
+    return lab.status === "high" || lab.status === "low" || lab.status === "borderline";
+  });
+
+  const normalLabs = allLabs.filter(([key, lab]) => {
+    if (key === "hdl") return lab.status === "normal" || lab.status === "high";
+    return lab.status === "normal";
+  });
+
+  const hasUnclearFields = d.unclearFields && d.unclearFields.length > 0;
+  const isLowConfidence = d.confidence === "low" || hasUnclearFields;
+  const isMissingLabs = !d.labs?.hba1c || !d.labs?.egfr;
 
   return (
     <div className="rounded-2xl bg-blue-50 p-4">
-      <p className="mb-1 text-xs font-bold uppercase tracking-wide text-[#42677f]">ผลตรวจสุขภาพ</p>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="font-bold text-[#17201d]">{d.sourceLabel || "Health Check"}</p>
-          <p className="mt-0.5 text-xs text-slate-500">{d.checkupDate ?? formatDayLabel(bangkokDateKey(item.createdAt))}</p>
+          <h3 className="font-bold text-[#17201d] text-base">ผลตรวจสุขภาพล่าสุด</h3>
+          <p className="mt-0.5 text-xs text-[#42677f] font-semibold">ใช้เพื่อช่วยปรับคำแนะนำอาหารและไลฟ์สไตล์</p>
+          <p className="mt-0.5 text-[11px] text-slate-500">{d.checkupDate ?? formatDayLabel(bangkokDateKey(item.createdAt))}</p>
         </div>
         <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-[#42677f]">{d.confidence ?? "low"}</span>
       </div>
-      {flags.length > 0 ? (
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {flags.map((flag) => (
-            <span key={flag} className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-amber-700">
-              {flag}
-            </span>
-          ))}
+
+      <div className="mt-4 space-y-3">
+        {/* ควรระวัง */}
+        <div className="rounded-xl bg-white/70 p-3 ring-1 ring-slate-100">
+          <p className="text-xs font-bold text-amber-800">⚠️ ควรระวัง</p>
+          {warningLabs.length > 0 ? (
+            <ul className="mt-1.5 list-disc pl-4 space-y-1 text-sm text-[#17201d]">
+              {warningLabs.map(([key, lab]) => (
+                <li key={key}>{formatLabWarning(key, lab)}</li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-1.5 text-sm text-slate-600 font-medium">ยังไม่พบค่าที่ต้องระวังเด่น ๆ จากข้อมูลที่อ่านได้</p>
+          )}
         </div>
-      ) : null}
-      {labs.length > 0 ? (
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          {labs.map(([key, lab]) => (
-            <Metric key={key} label={lab.label} value={formatHealthLabValue(lab)} />
-          ))}
+
+        {/* อยู่ในเกณฑ์ */}
+        <div className="rounded-xl bg-white/70 p-3 ring-1 ring-slate-100">
+          <p className="text-xs font-bold text-emerald-800">✅ อยู่ในเกณฑ์</p>
+          {normalLabs.length > 0 ? (
+            <p className="mt-1.5 text-sm text-slate-700 leading-relaxed font-medium">
+              {normalLabs.map(([key, lab]) => {
+                const categoryNames: Record<string, string> = {
+                  fbs: "น้ำตาล (FBS)",
+                  hba1c: "น้ำตาลสะสม (HbA1c)",
+                  totalCholesterol: "ไขมันรวม",
+                  triglyceride: "ไตรกลีเซอไรด์",
+                  ldl: "ไขมันตัวร้าย (LDL)",
+                  hdl: "ไขมันตัวดี (HDL)",
+                  uricAcid: "กรดยูริค",
+                  bun: "ของเสียในไต (BUN)",
+                  creatinine: "การทำงานของไต (Creatinine)",
+                  egfr: "อัตราการกรองของไต (eGFR)",
+                  sgotAst: "เอนไซม์ตับ (SGOT)",
+                  sgptAlt: "เอนไซม์ตับ (SGPT)",
+                  alp: "เอนไซม์ตับ (ALP)",
+                };
+                return categoryNames[key] || lab.label;
+              }).join(" · ")}
+            </p>
+          ) : (
+            <p className="mt-1.5 text-sm text-slate-500 italic">ไม่มีข้อมูลค่าอ้างอิงที่เป็นปกติ</p>
+          )}
         </div>
-      ) : null}
-      {d.coachSummary ? <p className="mt-3 text-sm leading-6 text-slate-700">{truncate(d.coachSummary, 180)}</p> : null}
-      {(d.foodGuidance?.prefer?.length || d.foodGuidance?.limit?.length) ? (
-        <div className="mt-3 grid gap-2 text-xs leading-5 text-slate-600">
-          {d.foodGuidance.prefer?.length ? <p><span className="font-bold text-[#17201d]">เน้น:</span> {d.foodGuidance.prefer.slice(0, 3).join(", ")}</p> : null}
-          {d.foodGuidance.limit?.length ? <p><span className="font-bold text-[#17201d]">ระวัง:</span> {d.foodGuidance.limit.slice(0, 3).join(", ")}</p> : null}
+
+        {/* โภชนาการที่เหมาะ */}
+        <div className="rounded-xl bg-white/70 p-3 ring-1 ring-slate-100">
+          <p className="text-xs font-bold text-[#42677f]">🥗 โภชนาการที่เหมาะ</p>
+          {(d.foodGuidance?.prefer?.length || d.foodGuidance?.limit?.length) ? (
+            <ul className="mt-1.5 list-disc pl-4 space-y-1 text-sm text-slate-700 font-medium">
+              {d.foodGuidance.prefer?.map((item, idx) => (
+                <li key={`pref-${idx}`}>เพิ่ม/เน้น {item}</li>
+              ))}
+              {d.foodGuidance.limit?.map((item, idx) => (
+                <li key={`lim-${idx}`}>ลด/เลี่ยง {item}</li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-1.5 text-sm text-slate-500 italic">ไม่มีข้อมูลคำแนะนำโภชนาการ</p>
+          )}
         </div>
+      </div>
+
+      {isLowConfidence && (
+        <div className="mt-3 rounded-2xl bg-amber-50/80 px-3 py-2 text-xs leading-5 text-amber-800">
+          ⚠️ ข้อมูลบางส่วนอาจอ่านไม่ชัด กรุณาตรวจทานก่อนใช้ประกอบคำแนะนำ
+        </div>
+      )}
+
+      {isMissingLabs && (
+        <div className="mt-3 rounded-2xl bg-blue-100/50 px-3 py-2 text-xs leading-5 text-slate-600">
+          ℹ️ ยังไม่มีค่าบางรายการ เช่น HbA1c หรือ eGFR หากต้องการให้คำแนะนำแม่นขึ้น สามารถเพิ่มผลตรวจรอบถัดไปได้
+        </div>
+      )}
+
+      {allLabs.length > 0 ? (
+        <details className="mt-4 border-t border-slate-200/60 pt-3">
+          <summary className="cursor-pointer text-xs font-bold text-[#42677f] hover:underline focus:outline-none select-none">
+            ดูค่าตรวจทั้งหมด ({allLabs.length} รายการ)
+          </summary>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            {allLabs.map(([key, lab]) => (
+              <Metric key={key} label={lab.label} value={formatHealthLabValue(lab)} />
+            ))}
+          </div>
+        </details>
       ) : null}
-      <p className="mt-3 text-xs leading-5 text-slate-500">ข้อมูลนี้ใช้ช่วยปรับคำแนะนำอาหาร ไม่ใช่การวินิจฉัยหรือการรักษา</p>
-      <DeleteRecordButton onDelete={() => onDelete(item)} loading={deleting} />
+
+      <div className="mt-4 flex items-center justify-between border-t border-slate-200/60 pt-3 text-xs leading-5 text-slate-500">
+        <p>🛡️ ระบบบันทึกเฉพาะค่าที่สรุปแล้ว ไม่บันทึกไฟล์ PDF ต้นฉบับหรือข้อความดิบ</p>
+        <DeleteRecordButton onDelete={() => onDelete(item)} loading={deleting} />
+      </div>
     </div>
   );
 }
@@ -1101,18 +1209,6 @@ function getHealthLabs(healthCheck: HealthCheckAnalysis): [string, LabValue][] {
   return [...ordered, ...extra];
 }
 
-function getHealthFlagLabels(healthCheck: HealthCheckAnalysis): string[] {
-  const flags = healthCheck.nutritionFlags;
-  const labels: string[] = [];
-  if (flags.watchLDL) labels.push("ระวัง LDL");
-  if (flags.watchTotalCholesterol) labels.push("ระวัง Cholesterol");
-  if (flags.watchTriglyceride) labels.push("ระวัง Triglyceride");
-  if (flags.watchBloodSugar) labels.push("ระวังน้ำตาล");
-  if (flags.watchUricAcid) labels.push("ระวัง Uric acid");
-  if (flags.watchLiverEnzymes) labels.push("ระวังค่าตับ");
-  if (flags.watchKidney) labels.push("ระวังไต");
-  return labels;
-}
 
 function formatHealthLabValue(lab: LabValue): string {
   const value = lab.value == null || lab.value === "" ? "-" : String(lab.value);

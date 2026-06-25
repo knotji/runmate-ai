@@ -692,10 +692,10 @@ function UploadEmptyGuide({ type }: { type: UploadType }) {
       <div className="rounded-2xl bg-slate-50/80 px-4 py-3 text-sm text-slate-600">
         <p className="font-bold text-[#17201d]">อัปโหลด PDF ผลตรวจสุขภาพ</p>
         <p className="mt-1 text-xs leading-5 text-slate-500">
-          ระบบจะอ่านค่าเลือดที่เกี่ยวกับโภชนาการและ recovery แล้วบันทึกเฉพาะค่าที่สรุปแล้วเข้า Report
+          ระบบจะอ่านค่าเลือดที่เกี่ยวกับโภชนาการและ recovery และบันทึกเฉพาะค่าที่สรุปแล้ว
         </p>
-        <p className="mt-2 text-xs leading-5 text-slate-400">
-          ไฟล์ต้นฉบับและข้อความดิบจาก PDF จะไม่ถูกบันทึกถาวร
+        <p className="mt-1.5 text-xs leading-5 text-slate-400">
+          🛡️ ระบบบันทึกเฉพาะค่าที่สรุปแล้ว ไม่บันทึกไฟล์ PDF ต้นฉบับหรือข้อความดิบ
         </p>
       </div>
     );
@@ -835,6 +835,34 @@ function HealthCheckUploader({
   );
 }
 
+function formatLabWarning(key: string, lab: LabValue): string {
+  const label = lab.label || key;
+  const status = lab.status;
+  const valStr = lab.value != null ? `${lab.value} ${lab.unit || ""}`.trim() : "";
+
+  if (key === "ldl" || key === "totalCholesterol" || key === "triglyceride") {
+    if (status === "high" || status === "borderline") {
+      return `${label} (${valStr}) - สูงกว่าช่วงอ้างอิงเล็กน้อย/ควรระวัง`;
+    }
+  }
+  if (key === "sgptAlt" || key === "sgotAst" || key === "alp") {
+    if (status === "high" || status === "borderline") {
+      return `${label} (${valStr}) - สูงกว่าช่วงอ้างอิง ควรเลือกมื้อเบากว่าและติดตามกับแพทย์หากค่านี้ผิดปกติต่อเนื่อง`;
+    }
+  }
+
+  if (status === "high") {
+    return `${label} (${valStr}) - สูงกว่าช่วงอ้างอิง/ควรระวัง`;
+  }
+  if (status === "low") {
+    return `${label} (${valStr}) - ต่ำกว่าช่วงอ้างอิง/ควรระวัง`;
+  }
+  if (status === "borderline") {
+    return `${label} (${valStr}) - สูงกว่าช่วงอ้างอิงเล็กน้อย/ควรระวัง`;
+  }
+  return `${label} (${valStr}) - ควรระวัง`;
+}
+
 function HealthCheckReviewCard({
   healthCheck,
   saveStatus,
@@ -848,8 +876,21 @@ function HealthCheckReviewCard({
   onSave: () => void;
   onCancel: () => void;
 }) {
-  const labs = getVisibleHealthLabs(healthCheck);
-  const flags = getHealthFlagLabels(healthCheck);
+  const allLabs = getVisibleHealthLabs(healthCheck);
+
+  const warningLabs = allLabs.filter(([key, lab]) => {
+    if (key === "hdl") return lab.status === "low";
+    return lab.status === "high" || lab.status === "low" || lab.status === "borderline";
+  });
+
+  const normalLabs = allLabs.filter(([key, lab]) => {
+    if (key === "hdl") return lab.status === "normal" || lab.status === "high";
+    return lab.status === "normal";
+  });
+
+  const hasUnclearFields = healthCheck.unclearFields && healthCheck.unclearFields.length > 0;
+  const isLowConfidence = healthCheck.confidence === "low" || hasUnclearFields;
+  const isMissingLabs = !healthCheck.labs?.hba1c || !healthCheck.labs?.egfr;
 
   return (
     <section className="card space-y-4 p-5">
@@ -857,42 +898,107 @@ function HealthCheckReviewCard({
         <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#6f8fa6]">Health Check Review</p>
         <h2 className="mt-2 text-xl font-bold text-[#17201d]">ตรวจทานก่อนบันทึก</h2>
         <p className="mt-1 text-xs leading-5 text-slate-500">
-          ระบบจะบันทึกเฉพาะค่าที่สรุปแล้วเข้า Report ไม่เก็บไฟล์ PDF ต้นฉบับ
+          ระบบบันทึกเฉพาะค่าที่สรุปแล้ว ไม่บันทึกไฟล์ PDF ต้นฉบับหรือข้อความดิบ
         </p>
       </div>
 
-      <div className="rounded-2xl bg-slate-50 p-4">
-        <p className="text-xs font-semibold text-slate-400">{healthCheck.checkupDate ?? "ไม่พบวันที่ตรวจ"}</p>
-        <p className="mt-1 text-sm leading-6 text-slate-700">{healthCheck.coachSummary}</p>
+      <div className="rounded-2xl bg-blue-50 p-4 space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 className="font-bold text-[#17201d] text-base">ผลตรวจสุขภาพล่าสุด</h3>
+            <p className="mt-0.5 text-xs text-[#42677f] font-semibold">ใช้เพื่อช่วยปรับคำแนะนำอาหารและไลฟ์สไตล์</p>
+            <p className="mt-0.5 text-[11px] text-slate-500">{healthCheck.checkupDate ?? "ไม่พบวันที่ตรวจ"}</p>
+          </div>
+          <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-[#42677f]">{healthCheck.confidence ?? "low"}</span>
+        </div>
+
+        <div className="mt-4 space-y-3">
+          {/* ควรระวัง */}
+          <div className="rounded-xl bg-white/70 p-3 ring-1 ring-slate-100">
+            <p className="text-xs font-bold text-amber-800">⚠️ ควรระวัง</p>
+            {warningLabs.length > 0 ? (
+              <ul className="mt-1.5 list-disc pl-4 space-y-1 text-sm text-[#17201d]">
+                {warningLabs.map(([key, lab]) => (
+                  <li key={key}>{formatLabWarning(key, lab)}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-1.5 text-sm text-slate-600 font-medium">ยังไม่พบค่าที่ต้องระวังเด่น ๆ จากข้อมูลที่อ่านได้</p>
+            )}
+          </div>
+
+          {/* อยู่ในเกณฑ์ */}
+          <div className="rounded-xl bg-white/70 p-3 ring-1 ring-slate-100">
+            <p className="text-xs font-bold text-emerald-800">✅ อยู่ในเกณฑ์</p>
+            {normalLabs.length > 0 ? (
+              <p className="mt-1.5 text-sm text-slate-700 leading-relaxed font-medium">
+                {normalLabs.map(([key, lab]) => {
+                  const categoryNames: Record<string, string> = {
+                    fbs: "น้ำตาล (FBS)",
+                    hba1c: "น้ำตาลสะสม (HbA1c)",
+                    totalCholesterol: "ไขมันรวม",
+                    triglyceride: "ไตรกลีเซอไรด์",
+                    ldl: "ไขมันตัวร้าย (LDL)",
+                    hdl: "ไขมันตัวดี (HDL)",
+                    uricAcid: "กรดยูริค",
+                    bun: "ของเสียในไต (BUN)",
+                    creatinine: "การทำงานของไต (Creatinine)",
+                    egfr: "อัตราการกรองของไต (eGFR)",
+                    sgotAst: "เอนไซม์ตับ (SGOT)",
+                    sgptAlt: "เอนไซม์ตับ (SGPT)",
+                    alp: "เอนไซม์ตับ (ALP)",
+                  };
+                  return categoryNames[key] || lab.label;
+                }).join(" · ")}
+              </p>
+            ) : (
+              <p className="mt-1.5 text-sm text-slate-500 italic">ไม่มีข้อมูลค่าอ้างอิงที่เป็นปกติ</p>
+            )}
+          </div>
+
+          {/* โภชนาการที่เหมาะ */}
+          <div className="rounded-xl bg-white/70 p-3 ring-1 ring-slate-100">
+            <p className="text-xs font-bold text-[#42677f]">🥗 โภชนาการที่เหมาะ</p>
+            {(healthCheck.foodGuidance?.prefer?.length || healthCheck.foodGuidance?.limit?.length) ? (
+              <ul className="mt-1.5 list-disc pl-4 space-y-1 text-sm text-slate-700 font-medium">
+                {healthCheck.foodGuidance.prefer?.map((item, idx) => (
+                  <li key={`pref-${idx}`}>เพิ่ม/เน้น {item}</li>
+                ))}
+                {healthCheck.foodGuidance.limit?.map((item, idx) => (
+                  <li key={`lim-${idx}`}>ลด/เลี่ยง {item}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-1.5 text-sm text-slate-500 italic">ไม่มีข้อมูลคำแนะนำโภชนาการ</p>
+            )}
+          </div>
+        </div>
+
+        {isLowConfidence && (
+          <div className="mt-3 rounded-2xl bg-amber-50/80 px-3 py-2 text-xs leading-5 text-amber-800">
+            ⚠️ ข้อมูลบางส่วนอาจอ่านไม่ชัด กรุณาตรวจทานก่อนใช้ประกอบคำแนะนำ
+          </div>
+        )}
+
+        {isMissingLabs && (
+          <div className="mt-3 rounded-2xl bg-blue-100/50 px-3 py-2 text-xs leading-5 text-slate-600">
+            ℹ️ ยังไม่มีค่าบางรายการ เช่น HbA1c หรือ eGFR หากต้องการให้คำแนะนำแม่นขึ้น สามารถเพิ่มผลตรวจรอบถัดไปได้
+          </div>
+        )}
+
+        {allLabs.length > 0 ? (
+          <details className="mt-4 border-t border-slate-200/60 pt-3">
+            <summary className="cursor-pointer text-xs font-bold text-[#42677f] hover:underline focus:outline-none select-none">
+              ดูค่าตรวจทั้งหมด ({allLabs.length} รายการ)
+            </summary>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              {allLabs.map(([key, lab]) => (
+                <HealthLabMetric key={key} lab={lab} />
+              ))}
+            </div>
+          </details>
+        ) : null}
       </div>
-
-      {flags.length > 0 ? (
-        <div className="flex flex-wrap gap-1.5">
-          {flags.map((flag) => (
-            <span key={flag} className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">
-              {flag}
-            </span>
-          ))}
-        </div>
-      ) : null}
-
-      {labs.length > 0 ? (
-        <div className="grid grid-cols-2 gap-2">
-          {labs.map(([key, lab]) => (
-            <HealthLabMetric key={key} lab={lab} />
-          ))}
-        </div>
-      ) : (
-        <p className="rounded-2xl bg-amber-50 p-3 text-xs font-semibold leading-5 text-amber-700">
-          อ่านค่าแล็บได้ไม่ชัดเจน กรุณาตรวจทานไฟล์หรืออัปโหลด PDF ที่เลือกข้อความได้
-        </p>
-      )}
-
-      <HealthGuidanceList title="ควรเน้น" items={healthCheck.foodGuidance.prefer} />
-      <HealthGuidanceList title="ควรระวัง" items={healthCheck.foodGuidance.limit} tone="limit" />
-      {healthCheck.foodGuidance.notes.length > 0 ? (
-        <HealthGuidanceList title="หมายเหตุ" items={healthCheck.foodGuidance.notes} />
-      ) : null}
 
       <p className="rounded-2xl bg-slate-50 p-3 text-xs leading-5 text-slate-500">
         {healthCheck.disclaimer || "ข้อมูลนี้ใช้เพื่อช่วยปรับคำแนะนำอาหารและไลฟ์สไตล์ ไม่ใช่การวินิจฉัยโรค หากมีค่าผิดปกติควรปรึกษาแพทย์"}
@@ -935,19 +1041,6 @@ function HealthLabMetric({ lab }: { lab: LabValue }) {
   );
 }
 
-function HealthGuidanceList({ title, items, tone = "prefer" }: { title: string; items: string[]; tone?: "prefer" | "limit" }) {
-  if (!items.length) return null;
-  return (
-    <div className={`rounded-2xl p-4 ${tone === "limit" ? "bg-amber-50" : "bg-[#e7efea]"}`}>
-      <p className={`text-xs font-bold uppercase tracking-wide ${tone === "limit" ? "text-amber-700" : "text-[#2a5a39]"}`}>{title}</p>
-      <ul className="mt-2 space-y-1 text-sm leading-6 text-slate-700">
-        {items.slice(0, 5).map((item) => (
-          <li key={item}>• {item}</li>
-        ))}
-      </ul>
-    </div>
-  );
-}
 
 function RaceResultConfirmCard({
   match,
@@ -1439,18 +1532,6 @@ function getVisibleHealthLabs(healthCheck: HealthCheckAnalysis): [string, LabVal
   return [...ordered, ...extra].slice(0, 12);
 }
 
-function getHealthFlagLabels(healthCheck: HealthCheckAnalysis): string[] {
-  const flags = healthCheck.nutritionFlags;
-  const labels: string[] = [];
-  if (flags.watchLDL) labels.push("ระวัง LDL");
-  if (flags.watchTotalCholesterol) labels.push("ระวัง Cholesterol");
-  if (flags.watchTriglyceride) labels.push("ระวัง Triglyceride");
-  if (flags.watchBloodSugar) labels.push("ระวังน้ำตาล");
-  if (flags.watchUricAcid) labels.push("ระวัง Uric acid");
-  if (flags.watchLiverEnzymes) labels.push("ระวังค่าตับ");
-  if (flags.watchKidney) labels.push("ระวังไต");
-  return labels;
-}
 
 function formatHealthLabValue(lab: LabValue): string {
   const value = lab.value == null || lab.value === "" ? "-" : String(lab.value);

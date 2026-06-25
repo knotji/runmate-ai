@@ -689,17 +689,6 @@ function formatHealthLabValue(lab: LabValue): string {
   return lab.unit ? `${value} ${lab.unit}` : value;
 }
 
-function healthFlagLabels(flags: HealthCheckAnalysis["nutritionFlags"]): string[] {
-  const labels: string[] = [];
-  if (flags.watchLDL) labels.push("LDL/cholesterol caution");
-  if (flags.watchTotalCholesterol) labels.push("total cholesterol caution");
-  if (flags.watchTriglyceride) labels.push("triglyceride caution");
-  if (flags.watchBloodSugar) labels.push("blood sugar caution");
-  if (flags.watchUricAcid) labels.push("uric acid caution");
-  if (flags.watchLiverEnzymes) labels.push("liver enzyme caution");
-  if (flags.watchKidney) labels.push("kidney caution");
-  return labels;
-}
 
 function compactRaceResult(result: RaceResult): RaceResult {
   return {
@@ -799,15 +788,24 @@ function buildContextNotes(input: {
   }
   if (input.latestHealthCheck) {
     const health = input.latestHealthCheck;
-    const flagLabels = healthFlagLabels(health.nutritionFlags);
-    notes.push(`LATEST HEALTH CHECK CONTEXT: checkupDate=${health.checkupDate ?? "unknown"}, confidence=${health.confidence}. Use for food/nutrition questions only as cautious context, not diagnosis.`);
-    if (flagLabels.length) notes.push(`Health check nutrition flags: ${flagLabels.join(", ")}.`);
-    if (health.keyLabs.length) {
-      notes.push(`Key lab values: ${health.keyLabs.map((lab) => `${lab.label} ${lab.value}${lab.status !== "unknown" ? ` (${lab.status})` : ""}`).join("; ")}.`);
-    }
-    if (health.foodGuidance.prefer.length) notes.push(`Health check food guidance prefer: ${health.foodGuidance.prefer.slice(0, 5).join(", ")}.`);
-    if (health.foodGuidance.limit.length) notes.push(`Health check food guidance limit: ${health.foodGuidance.limit.slice(0, 5).join(", ")}.`);
-    if (health.coachSummary) notes.push(`Health check summary: ${health.coachSummary}`);
+    const flagLabels: string[] = [];
+    const flags = health.nutritionFlags;
+    if (flags.watchLDL || flags.watchTotalCholesterol) flagLabels.push("LDL/Cholesterol");
+    if (flags.watchLiverEnzymes) flagLabels.push("liver enzymes");
+    if (flags.watchBloodSugar) flagLabels.push("blood sugar");
+    if (flags.watchUricAcid) flagLabels.push("uric acid");
+    if (flags.watchKidney) flagLabels.push("kidney values");
+
+    const prefer = health.foodGuidance.prefer.slice(0, 3).join(", ");
+    const limit = health.foodGuidance.limit.slice(0, 3).join(", ");
+
+    const parts = [
+      flagLabels.length ? flagLabels.map(f => `watch ${f}`).join(", ") : null,
+      prefer ? `prefer ${prefer}` : null,
+      limit ? `limit ${limit}` : null,
+    ].filter(Boolean);
+
+    notes.push(`Health check: ${parts.join("; ")}.`);
   }
   if (input.mealsToday?.length) {
     notes.push(`MEALS TODAY: ${input.mealsToday.map((meal) => `${meal.mealType}: ${meal.foods.join(", ") || "foods not specified"}`).join(" | ")}. Use this to avoid repeating the same main protein or menu style in the next meal.`);

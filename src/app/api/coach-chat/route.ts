@@ -307,18 +307,41 @@ function buildContextGuidance(question: string, context: unknown) {
     const guidance = readRecord(latestHealthCheck.foodGuidance);
     const keyLabs = Array.isArray(latestHealthCheck.keyLabs) ? latestHealthCheck.keyLabs : [];
     const activeFlags = Object.entries(flags ?? {}).filter(([, value]) => value === true).map(([key]) => key);
-    lines.push("HEALTH CHECK NUTRITION HINT: Latest health check is available. Use it only as cautious nutrition context, never as diagnosis or treatment.");
-    if (activeFlags.length) lines.push(`Health caution flags: ${activeFlags.join(", ")}.`);
-    if (keyLabs.length) {
-      lines.push(`Key labs: ${keyLabs.slice(0, 8).map((lab) => {
-        const record = readRecord(lab);
-        return `${stringValue(record?.label) ?? "lab"} ${stringValue(record?.value) ?? "-"}${stringValue(record?.status) ? ` (${stringValue(record?.status)})` : ""}`;
-      }).join("; ")}.`);
+    const prefer = Array.isArray(guidance?.prefer) ? guidance.prefer.filter((item): item is string => typeof item === "string") : [];
+    const limit = Array.isArray(guidance?.limit) ? guidance.limit.filter((item): item is string => typeof item === "string") : [];
+
+    const asksAboutResults = /ผลตรวจ|สุขภาพ|ตรวจเลือด|ผลเลือด|แล็บ|lab|ค่าเลือด|ค่า ldl|คอเลส|triglyceride/i.test(question);
+    if (asksAboutResults) {
+      lines.push("HEALTH CHECK NUTRITION HINT: Latest health check is available. Use it only as cautious nutrition context, never as diagnosis or treatment.");
+      if (activeFlags.length) lines.push(`Health caution flags: ${activeFlags.join(", ")}.`);
+      if (keyLabs.length) {
+        lines.push(`Key labs: ${keyLabs.slice(0, 8).map((lab) => {
+          const record = readRecord(lab);
+          return `${stringValue(record?.label) ?? "lab"} ${stringValue(record?.value) ?? "-"}${stringValue(record?.status) ? ` (${stringValue(record?.status)})` : ""}`;
+        }).join("; ")}.`);
+      }
+      if (prefer.length) lines.push(`Prefer foods: ${prefer.slice(0, 5).join(", ")}.`);
+      if (limit.length) lines.push(`Limit/caution foods: ${limit.slice(0, 5).join(", ")}.`);
+    } else {
+      const flagLabels: string[] = [];
+      if (flags?.watchLDL || flags?.watchTotalCholesterol) flagLabels.push("watch LDL/Cholesterol");
+      if (flags?.watchLiverEnzymes) flagLabels.push("watch liver enzymes");
+      if (flags?.watchBloodSugar) flagLabels.push("watch blood sugar");
+      if (flags?.watchUricAcid) flagLabels.push("watch uric acid");
+      if (flags?.watchKidney) flagLabels.push("watch kidney values");
+
+      const preferLabels = prefer.slice(0, 3).join(", ");
+      const limitLabels = limit.slice(0, 3).join(", ");
+
+      const parts = [
+        flagLabels.length ? flagLabels.join(", ") : null,
+        preferLabels ? `prefer ${preferLabels}` : null,
+        limitLabels ? `limit ${limitLabels}` : null,
+      ].filter(Boolean);
+
+      lines.push(`Health check: ${parts.join("; ")}.`);
     }
-    const prefer = Array.isArray(guidance?.prefer) ? guidance.prefer.filter((item): item is string => typeof item === "string").slice(0, 5) : [];
-    const limit = Array.isArray(guidance?.limit) ? guidance.limit.filter((item): item is string => typeof item === "string").slice(0, 5) : [];
-    if (prefer.length) lines.push(`Prefer foods: ${prefer.join(", ")}.`);
-    if (limit.length) lines.push(`Limit/caution foods: ${limit.join(", ")}.`);
+
     lines.push([
       "Translate flags into practical choices:",
       "- LDL/total cholesterol/triglyceride: non-fried fish/chicken/tofu/beans, vegetables, oats/whole grains; reduce fried food, crispy pork, processed meat, butter/cream, coconut-milk-heavy meals.",

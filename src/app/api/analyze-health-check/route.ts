@@ -116,10 +116,13 @@ Rules:
 - If checkup date is visible, return it as YYYY-MM-DD. If uncertain, use null.
 - Keep uncertain fields nullable and list them in unclearFields.
 - Use Thai for coachSummary, foodGuidance, and disclaimer.
-- Do not diagnose disease.
-- Use cautious wording: "จากค่าที่บันทึกไว้ ควรระวัง..."
+- Do not diagnose disease. Never use scary words like "ผิดปกติ", "อันตราย", "เสี่ยงโรค".
+- Use gentle labels for lab statuses: "ควรระวัง", "สูงกว่าช่วงอ้างอิง", "ต่ำกว่าช่วงอ้างอิง", "ติดตามต่อ", "ข้อมูลไม่ชัดเจน".
+- Cautious wording rules:
+  - Never use: "คุณเป็นโรค...", "คุณมีโรค...", "ตับมีปัญหาแน่นอน", "ไขมันสูงมาก", "ห้ามกิน...", "ต้องรักษา...", "อันตราย".
+  - Always use: "จากค่าที่บันทึกไว้...", "ควรระวัง...", "เลือกแบบเบากว่า...", "ลด/เลี่ยงเป็นบางมื้อ...", "ถ้าค่านี้ผิดปกติต่อเนื่องหรือกังวล ควรปรึกษาแพทย์".
 - If LDL/total cholesterol/triglyceride are high or borderline, suggest less fried food, saturated fat, processed meat, and more fiber/fish/beans/vegetables.
-- If liver enzymes are high, gently suggest limiting alcohol and heavy fried/fatty meals and follow-up if persistent.
+- If liver enzymes are high, gently suggest limiting alcohol and heavy fried/fatty meals, choosing lighter food, and following up with a physician if persistent.
 - If blood sugar/HbA1c high, limit sugary drinks/desserts/refined carbs.
 - If uric acid high, limit organ meats/alcohol/high-purine-heavy choices.
 - If kidney values abnormal, avoid aggressive high-protein advice and suggest medical guidance.
