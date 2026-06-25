@@ -24,12 +24,13 @@ const SECTION_KEYS: Record<string, (keyof UserProfile)[]> = {
   training: ["preferredLongRunDay", "strengthTrainingDaysPerWeek", "preferredRunTime", "preferredTrainingDays", "availableTrainingDays"],
   injury: ["injuryHistory", "injuryNotes", "currentPainNotes", "riskNotes"],
   sleep: ["averageSleepHours", "normalSleepScore", "normalEnergyScore", "normalRestingHr", "normalHrv", "recoveryRules", "sleepNotes"],
+  food: ["foodPreferences", "allergiesOrRestrictions"],
   coaching: ["coachingTone", "responseDetail", "language"],
   advanced: [
     "heightCm", "weightKg", "workSchedule", "timezone",
     "lactateThresholdHr", "vo2max", "averageCadence",
-    "availableEquipment", "nutritionGoal", "proteinTargetG", "carbTargetRestDayG", "carbTargetEasyDayG", "carbTargetHardDayG", "foodPreferences",
-    "allergiesOrRestrictions", "caffeineHabit", "supplementNotes"
+    "availableEquipment", "nutritionGoal", "proteinTargetG", "carbTargetRestDayG", "carbTargetEasyDayG", "carbTargetHardDayG",
+    "caffeineHabit", "supplementNotes"
   ],
 };
 
@@ -42,6 +43,28 @@ function getEasyHrNumber(val: string | undefined | null): number | null {
   if (!matches || matches.length === 0) return null;
   const num = Number(matches[matches.length - 1]);
   return Number.isFinite(num) ? num : null;
+}
+
+export type FoodPreferencesJSON = {
+  avoids?: string;
+  likes?: string;
+  spicy?: string;
+  convenience?: string[];
+  budget?: string;
+  goals?: string[];
+};
+
+export function parseFoodPreferences(raw: string | undefined | null): FoodPreferencesJSON {
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      return parsed as FoodPreferencesJSON;
+    }
+  } catch {
+    return { likes: raw };
+  }
+  return {};
 }
 
 export function ProfileSetupForm({
@@ -786,7 +809,189 @@ export function ProfileSetupForm({
         )}
       />
 
-      {/* ── 7. Coaching Style ── */}
+      {/* ── 7. อาหารและความชอบ ── */}
+      <EditableSection
+        title="อาหารและความชอบ"
+        open={openSection === "food"}
+        onToggle={() => toggleSection("food")}
+        isEditing={editingSection === "food"}
+        onStartEdit={() => startSectionEdit("food")}
+        onSaveEdit={() => saveSectionEdit("food")}
+        onCancelEdit={cancelSectionEdit}
+        isSaved={savedSections.food}
+        renderReadonly={() => {
+          const foodPrefs = parseFoodPreferences(profile.foodPreferences);
+          const hasAny = foodPrefs.avoids || profile.allergiesOrRestrictions || foodPrefs.likes || foodPrefs.spicy || (foodPrefs.convenience && foodPrefs.convenience.length > 0) || foodPrefs.budget || (foodPrefs.goals && foodPrefs.goals.length > 0);
+          if (!hasAny) {
+            return <p className="text-sm text-slate-500 italic">ไม่มีข้อมูลความชอบอาหาร</p>;
+          }
+          return (
+            <div className="space-y-2">
+              {foodPrefs.avoids && (
+                <div className="rounded-xl bg-slate-50 px-3 py-2.5">
+                  <p className="text-[11px] text-slate-400">ไม่กิน / เลี่ยงอาหาร</p>
+                  <p className="text-sm font-semibold text-[#17201d]">{foodPrefs.avoids}</p>
+                </div>
+              )}
+              {profile.allergiesOrRestrictions && (
+                <div className="rounded-xl bg-slate-50 px-3 py-2.5">
+                  <p className="text-[11px] text-slate-400 font-semibold text-red-600">แพ้อาหาร</p>
+                  <p className="text-sm font-bold text-red-600">{profile.allergiesOrRestrictions}</p>
+                </div>
+              )}
+              {foodPrefs.likes && (
+                <div className="rounded-xl bg-slate-50 px-3 py-2.5">
+                  <p className="text-[11px] text-slate-400">ชอบอาหารแบบไหน</p>
+                  <p className="text-sm font-semibold text-[#17201d]">{foodPrefs.likes}</p>
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-2">
+                <StatCard label="กินเผ็ด" value={foodPrefs.spicy || "—"} />
+                <StatCard label="งบประมาณต่อมื้อ" value={foodPrefs.budget || "—"} />
+              </div>
+              {foodPrefs.convenience && foodPrefs.convenience.length > 0 && (
+                <div className="rounded-xl bg-slate-50 px-3 py-2.5">
+                  <p className="text-[11px] text-slate-400">ความสะดวกของมื้ออาหาร</p>
+                  <p className="text-sm font-semibold text-[#17201d]">{foodPrefs.convenience.join(", ")}</p>
+                </div>
+              )}
+              {foodPrefs.goals && foodPrefs.goals.length > 0 && (
+                <div className="rounded-xl bg-slate-50 px-3 py-2.5">
+                  <p className="text-[11px] text-slate-400">เป้าหมายอาหาร</p>
+                  <p className="text-sm font-semibold text-[#17201d]">{foodPrefs.goals.join(", ")}</p>
+                </div>
+              )}
+            </div>
+          );
+        }}
+        renderEditable={() => {
+          const foodPrefs = parseFoodPreferences(profile.foodPreferences);
+          
+          const updateField = (key: keyof FoodPreferencesJSON, val: string | string[] | undefined) => {
+            const updated = { ...foodPrefs, [key]: val };
+            update("foodPreferences", JSON.stringify(updated));
+          };
+
+          const handleCheckbox = (key: "convenience" | "goals", item: string, checked: boolean) => {
+            const list = [...(foodPrefs[key] || [])];
+            if (checked) {
+              if (!list.includes(item)) list.push(item);
+            } else {
+              const index = list.indexOf(item);
+              if (index > -1) list.splice(index, 1);
+            }
+            updateField(key, list);
+          };
+
+          return (
+            <div className="space-y-4">
+              <p className="text-xs text-slate-400">ช่วยให้โค้ชแนะนำมื้ออาหารที่เข้ากับชีวิตจริงมากขึ้น</p>
+              
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-500">ไม่กิน / เลี่ยงอาหาร</label>
+                <input
+                  className="control"
+                  placeholder="เช่น เครื่องใน, นมวัว, อาหารทะเล"
+                  value={foodPrefs.avoids ?? ""}
+                  onChange={(e) => updateField("avoids", e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-500">แพ้อาหาร</label>
+                <input
+                  className="control"
+                  placeholder="เช่น ถั่ว, กุ้ง, นม"
+                  value={profile.allergiesOrRestrictions ?? ""}
+                  onChange={(e) => update("allergiesOrRestrictions", e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-500">ชอบอาหารแบบไหน</label>
+                <input
+                  className="control"
+                  placeholder="เช่น อาหารไทย, ตามสั่ง, สุกี้, ปลา"
+                  value={foodPrefs.likes ?? ""}
+                  onChange={(e) => updateField("likes", e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-500 block">กินเผ็ดได้ไหม</label>
+                <div className="flex gap-2">
+                  {(["ไม่เผ็ด", "เผ็ดน้อย", "เผ็ดได้"] as const).map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => updateField("spicy", s)}
+                      className={`flex-1 rounded-2xl border py-2 text-sm font-semibold transition ${foodPrefs.spicy === s ? "border-[#17201d] bg-[#17201d] text-white" : "border-slate-200 text-slate-600 bg-white hover:bg-slate-50"}`}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-500 block">ความสะดวกของมื้ออาหาร</label>
+                <div className="flex flex-wrap gap-2">
+                  {["ร้านตามสั่ง", "7-11", "food court", "ทำเอง", "delivery"].map((item) => {
+                    const isChecked = (foodPrefs.convenience ?? []).includes(item);
+                    return (
+                      <button
+                        key={item}
+                        type="button"
+                        onClick={() => handleCheckbox("convenience", item, !isChecked)}
+                        className={`rounded-full border px-4 py-1.5 text-xs font-semibold transition ${isChecked ? "border-[#17201d] bg-[#17201d] text-white" : "border-slate-200 text-slate-600 bg-white hover:bg-slate-50"}`}
+                      >
+                        {item}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-500 block">งบต่อมื้อ</label>
+                <div className="flex gap-2">
+                  {(["ประหยัด", "ปานกลาง", "ไม่จำกัดมาก"] as const).map((b) => (
+                    <button
+                      key={b}
+                      type="button"
+                      onClick={() => updateField("budget", b)}
+                      className={`flex-1 rounded-2xl border py-2 text-sm font-semibold transition ${foodPrefs.budget === b ? "border-[#17201d] bg-[#17201d] text-white" : "border-slate-200 text-slate-600 bg-white hover:bg-slate-50"}`}
+                    >
+                      {b}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-500 block">เป้าหมายอาหาร</label>
+                <div className="flex flex-wrap gap-2">
+                  {["ลดพุง", "เพิ่มกล้าม", "วิ่งดีขึ้น", "คุมไขมัน", "กินง่ายไม่เครียด"].map((item) => {
+                    const isChecked = (foodPrefs.goals ?? []).includes(item);
+                    return (
+                      <button
+                        key={item}
+                        type="button"
+                        onClick={() => handleCheckbox("goals", item, !isChecked)}
+                        className={`rounded-full border px-4 py-1.5 text-xs font-semibold transition ${isChecked ? "border-[#17201d] bg-[#17201d] text-white" : "border-slate-200 text-slate-600 bg-white hover:bg-slate-50"}`}
+                      >
+                        {item}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          );
+        }}
+      />
+
+      {/* ── 8. Coaching Style ── */}
       <EditableSection
         title="สไตล์โค้ช"
         open={openSection === "coaching"}
@@ -926,10 +1131,6 @@ export function ProfileSetupForm({
               <StatCard label="Carb hard day" value={profile.carbTargetHardDayG != null ? `${profile.carbTargetHardDayG} g` : "—"} />
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <StatCard label="อาหารที่ชอบ" value={profile.foodPreferences || "—"} />
-              <StatCard label="แพ้อาหาร / ข้อจำกัด" value={profile.allergiesOrRestrictions || "—"} />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
               <StatCard label="คาเฟอีน" value={profile.caffeineHabit || "—"} />
               <StatCard label="อาหารเสริม" value={profile.supplementNotes || "—"} />
             </div>
@@ -1039,24 +1240,7 @@ export function ProfileSetupForm({
               </div>
             </div>
             <p className="text-[11px] text-slate-400 leading-4">คำนวณตามประเภทวันซ้อม: วันพัก / easy / hard หรือ race day</p>
-            <div className="space-y-1">
-              <span className="text-xs font-semibold text-slate-500">อาหารที่ชอบ</span>
-              <input
-                className="control"
-                placeholder="อาหารที่ชอบ เช่น ข้าว ผัดผัก ไก่"
-                value={profile.foodPreferences ?? ""}
-                onChange={(e) => update("foodPreferences", e.target.value)}
-              />
-            </div>
-            <div className="space-y-1">
-              <span className="text-xs font-semibold text-slate-500">แพ้อาหาร / ข้อจำกัด</span>
-              <input
-                className="control"
-                placeholder="แพ้อาหาร / ข้อจำกัด เช่น แพ้นม ไม่กินเนื้อ"
-                value={profile.allergiesOrRestrictions ?? ""}
-                onChange={(e) => update("allergiesOrRestrictions", e.target.value)}
-              />
-            </div>
+
             <div className="space-y-1">
               <span className="text-xs font-semibold text-slate-500">กาแฟ/คาเฟอีน</span>
               <input

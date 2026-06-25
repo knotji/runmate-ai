@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
 import { ProfileSetupForm } from "@/components/ProfileSetupForm";
@@ -137,39 +137,42 @@ export default function SettingsPage() {
           </section>
 
           {process.env.NODE_ENV === "development" && (
-            <section className="card p-5 space-y-3">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">Deployment Debug</p>
-                <h2 className="mt-1 text-xl font-bold text-[#17201d]">ตรวจ Supabase Runtime</h2>
-                <p className="mt-1 text-sm leading-6 text-slate-500">
-                  ใช้เช็คว่า Vercel อ่าน env ถูกชุดไหม โดยไม่แสดงค่า secret
-                </p>
-              </div>
-              <div className="space-y-2 rounded-2xl bg-slate-50 p-4 text-xs">
-                <p className="font-semibold text-slate-600">
-                  Runtime: {envDebug?.runtime.vercel ? `Vercel (${envDebug.runtime.vercelEnv ?? "unknown"})` : "Local browser"}
-                </p>
-                {envDebug ? (
-                  <div className="space-y-1 text-slate-500">
-                    {Object.entries(envDebug.env).map(([name, info]) => (
-                      <div key={name} className="flex items-center justify-between gap-3">
-                        <span className="font-mono text-[10px]">{name}</span>
-                        <span className={info.exists ? "font-bold text-green-600" : "font-bold text-red-500"}>
-                          {info.exists ? "มีค่า" : "ไม่มีค่า"}
-                        </span>
-                      </div>
-                    ))}
-                    {envDebug.env.NEXT_PUBLIC_SUPABASE_URL?.value && (
-                      <p className="break-all pt-2 font-mono text-[10px] text-slate-400">
-                        Supabase URL (dev): {envDebug.env.NEXT_PUBLIC_SUPABASE_URL.value}
-                      </p>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-slate-400">กำลังตรวจ env...</p>
-                )}
-              </div>
-            </section>
+            <>
+              <section className="card p-5 space-y-3">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">Deployment Debug</p>
+                  <h2 className="mt-1 text-xl font-bold text-[#17201d]">ตรวจ Supabase Runtime</h2>
+                  <p className="mt-1 text-sm leading-6 text-slate-500">
+                    ใช้เช็คว่า Vercel อ่าน env ถูกชุดไหม โดยไม่แสดงค่า secret
+                  </p>
+                </div>
+                <div className="space-y-2 rounded-2xl bg-slate-50 p-4 text-xs">
+                  <p className="font-semibold text-slate-600">
+                    Runtime: {envDebug?.runtime.vercel ? `Vercel (${envDebug.runtime.vercelEnv ?? "unknown"})` : "Local browser"}
+                  </p>
+                  {envDebug ? (
+                    <div className="space-y-1 text-slate-500">
+                      {Object.entries(envDebug.env).map(([name, info]) => (
+                        <div key={name} className="flex items-center justify-between gap-3">
+                          <span className="font-mono text-[10px]">{name}</span>
+                          <span className={info.exists ? "font-bold text-green-600" : "font-bold text-red-500"}>
+                            {info.exists ? "มีค่า" : "ไม่มีค่า"}
+                          </span>
+                        </div>
+                      ))}
+                      {envDebug.env.NEXT_PUBLIC_SUPABASE_URL?.value && (
+                        <p className="break-all pt-2 font-mono text-[10px] text-slate-400">
+                          Supabase URL (dev): {envDebug.env.NEXT_PUBLIC_SUPABASE_URL.value}
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-slate-400">กำลังตรวจ env...</p>
+                  )}
+                </div>
+              </section>
+              <DevCoachContextPanel />
+            </>
           )}
         </div>
       )}
@@ -294,3 +297,299 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
     </button>
   );
 }
+
+// ─── Dev QA: Coach Context Panel (dev-only) ───────────────────────────────────
+
+type CtxSectionKey = "profile" | "race" | "sleep" | "workouts" | "meals" | "pain" | "healthCheck" | "latestBody" | "contextNotes";
+
+function DevCoachContextPanel() {
+  const [data, setData] = useState<Record<string, unknown> | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [open, setOpen] = useState<Set<CtxSectionKey>>(new Set(["profile", "sleep"]));
+  const fetchedRef = useRef(false);
+
+  const fetchContext = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/debug/coach-context");
+      if (!res.ok) {
+        setError(`HTTP ${res.status}`);
+        return;
+      }
+      const json = await res.json() as { ok: boolean; summary?: Record<string, unknown>; error?: string };
+      if (json.ok && json.summary) {
+        setData(json.summary);
+      } else {
+        setError(json.error ?? "ไม่สามารถโหลดข้อมูลได้");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!fetchedRef.current) {
+      fetchedRef.current = true;
+      void fetchContext();
+    }
+  }, [fetchContext]);
+
+  function toggleSection(key: CtxSectionKey) {
+    setOpen((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
+  const sections: { key: CtxSectionKey; label: string; emoji: string }[] = [
+    { key: "profile", label: "โปรไฟล์", emoji: "👤" },
+    { key: "race", label: "Race", emoji: "🏁" },
+    { key: "sleep", label: "Sleep 7d", emoji: "😴" },
+    { key: "workouts", label: "Workouts", emoji: "🏃" },
+    { key: "meals", label: "Meals", emoji: "🍱" },
+    { key: "pain", label: "Pain", emoji: "🩹" },
+    { key: "healthCheck", label: "Health Check", emoji: "🩺" },
+    { key: "latestBody", label: "Body", emoji: "⚖️" },
+    { key: "contextNotes", label: "Context Notes", emoji: "📝" },
+  ];
+
+  return (
+    <section className="card p-5 space-y-3">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">Dev QA</p>
+          <h2 className="mt-1 text-xl font-bold text-[#17201d]">Coach Context Inspector</h2>
+          <p className="mt-1 text-sm leading-6 text-slate-500">
+            ข้อมูลที่ส่งไปให้ AI Coach — ใช้ QA ว่า context ถูกต้องไหม
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => void fetchContext()}
+          className="shrink-0 rounded-full bg-[var(--primary-soft)] px-3 py-1.5 text-xs font-bold text-[var(--primary)] hover:bg-[var(--primary)] hover:text-white transition-colors"
+        >
+          {loading ? "..." : "Refresh"}
+        </button>
+      </div>
+
+      {error && (
+        <p className="rounded-2xl bg-red-50 px-4 py-3 text-xs font-semibold text-red-600">{error}</p>
+      )}
+
+      {data && (
+        <div className="space-y-2">
+          {/* Today date badge */}
+          <div className="flex items-center gap-2">
+            <span className="rounded-full bg-[var(--surface-muted)] px-3 py-1 text-[11px] font-semibold text-slate-500">
+              📅 Today (Bangkok): {String(data.todayDate ?? "—")}
+            </span>
+          </div>
+
+          {sections.map(({ key, label, emoji }) => {
+            const sectionData = data[key];
+            const isOpen = open.has(key);
+            const hasData = sectionData !== null && sectionData !== undefined && (
+              typeof sectionData !== "object" || Object.keys(sectionData as object).length > 0
+            );
+            return (
+              <div key={key} className="rounded-2xl border border-slate-100 bg-slate-50 overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => toggleSection(key)}
+                  className="w-full flex items-center justify-between gap-2 px-4 py-3 text-left hover:bg-slate-100 transition-colors"
+                >
+                  <span className="flex items-center gap-2 text-xs font-bold text-[#17201d]">
+                    <span>{emoji}</span>
+                    <span>{label}</span>
+                    {!hasData && (
+                      <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] text-slate-400">ไม่มีข้อมูล</span>
+                    )}
+                  </span>
+                  <span className="text-xs text-slate-400">{isOpen ? "▲" : "▼"}</span>
+                </button>
+                {isOpen && (
+                  <div className="px-4 pb-4">
+                    {key === "profile" && typeof sectionData === "object" && sectionData !== null ? (
+                      <DevProfileSection data={sectionData as Record<string, unknown>} />
+                    ) : key === "contextNotes" && Array.isArray(sectionData) ? (
+                      <ul className="space-y-1">
+                        {(sectionData as string[]).map((note, i) => (
+                          <li key={i} className="text-[11px] text-slate-600 font-mono bg-white rounded-lg px-3 py-1.5 border border-slate-100">
+                            {note}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : key === "sleep" && typeof sectionData === "object" && sectionData !== null ? (
+                      <DevSleepSection data={sectionData as Record<string, unknown>} />
+                    ) : key === "workouts" && typeof sectionData === "object" && sectionData !== null ? (
+                      <DevWorkoutsSection data={sectionData as Record<string, unknown>} />
+                    ) : key === "meals" && typeof sectionData === "object" && sectionData !== null ? (
+                      <DevMealsSection data={sectionData as Record<string, unknown>} />
+                    ) : (
+                      <pre className="text-[10px] leading-4 text-slate-600 font-mono whitespace-pre-wrap break-all bg-white rounded-xl p-3 border border-slate-100 overflow-auto max-h-60">
+                        {JSON.stringify(sectionData, null, 2)}
+                      </pre>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function DevProfileSection({ data }: { data: Record<string, unknown> }) {
+  const rows: [string, unknown][] = [
+    ["ชื่อ", data.displayName],
+    ["เป้าหมาย", data.mainGoal],
+    ["ระดับ", data.currentLevel],
+    ["โภชนาการ", data.nutritionGoal],
+    ["อาหารแพ้/จำกัด", data.allergiesOrRestrictions],
+    ["ความชอบอาหาร", data.foodPreferences],
+    ["สไตล์โค้ช", data.coachingTone],
+    ["ภาษา", data.language],
+  ];
+
+  return (
+    <div className="space-y-2">
+      <div className="space-y-1">
+        {rows.map(([label, val]) => (
+          <div key={label} className="flex gap-2 text-[11px]">
+            <span className="shrink-0 w-36 text-slate-400 font-semibold">{label}</span>
+            <span className="text-slate-700 font-mono break-all">{val != null && String(val) !== "" ? String(val) : <span className="text-slate-300">—</span>}</span>
+          </div>
+        ))}
+      </div>
+      {Boolean(data.profileText) && (
+        <details className="mt-2">
+          <summary className="cursor-pointer text-[11px] font-bold text-[var(--primary)]">Profile Context Text ▾</summary>
+          <pre className="mt-1 text-[10px] leading-4 text-slate-600 font-mono whitespace-pre-wrap bg-white rounded-xl p-3 border border-slate-100 overflow-auto max-h-40">
+            {String(data.profileText)}
+          </pre>
+        </details>
+      )}
+    </div>
+  );
+}
+
+function DevSleepSection({ data }: { data: Record<string, unknown> }) {
+  const rows: [string, unknown][] = [
+    ["คืนที่มีข้อมูล 7d", data.sleepNightCount7d],
+    ["เฉลี่ย", data.sleepAvg7dText],
+    ["ชม.เฉลี่ย", data.sleepAvg7dHours],
+    ["Readiness เฉลี่ย", data.avgReadiness],
+    ["คืนล่าสุด", data.latestSleepDateKey],
+    ["Score ล่าสุด", data.latestSleepScore],
+    ["Energy ล่าสุด", data.latestEnergyScore],
+  ];
+  return (
+    <div className="space-y-2 text-[11px]">
+      <div className="flex flex-wrap gap-2">
+        {rows.map(([label, val]) => (
+          <span key={String(label)} className="rounded-full bg-blue-50 px-3 py-1 text-blue-700 font-semibold">
+            {String(label)}: {val != null ? String(val) : "—"}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function DevWorkoutsSection({ data }: { data: Record<string, unknown> }) {
+  const rows: [string, string | null][] = [
+    ["km ทั้งหมด 7d", typeof data.totalRunKm === "number" ? data.totalRunKm.toFixed(1) + " km" : null],
+    ["Sessions", data.totalSessions != null ? String(data.totalSessions) : null],
+    ["วันวิ่ง 7d", data.runDays7d != null ? String(data.runDays7d) : null],
+    ["ยาวสุด 7d", data.longestRun7dKm != null ? String(data.longestRun7dKm) + " km" : null],
+    ["ซ้อมวันสุดท้าย", data.lastWorkoutDate != null ? String(data.lastWorkoutDate) : null],
+    ["วิ่งวันนี้ไหม", data.hasWorkoutToday ? "✅ ใช่" : "❌ ยัง"],
+  ];
+  return (
+    <div className="space-y-2 text-[11px]">
+      <div className="flex flex-wrap gap-2">
+        {rows.map(([label, val]) => (
+          <span key={label} className="rounded-full bg-green-50 px-3 py-1 text-green-700 font-semibold">
+            {label}: {val != null ? val : "—"}
+          </span>
+        ))}
+      </div>
+      {Array.isArray(data.todayWorkouts) && (data.todayWorkouts as unknown[]).length > 0 && (
+        <div>
+          <p className="font-bold text-slate-500 mb-1">วันนี้:</p>
+          {(data.todayWorkouts as Record<string, unknown>[]).map((w, i) => (
+            <div key={i} className="rounded-xl bg-white border border-slate-100 px-3 py-2 text-[10px] font-mono text-slate-600 mb-1">
+              {String(w.label)} · {w.distanceKm != null ? String(w.distanceKm) + " km" : ""} {w.durationMin != null ? String(w.durationMin) + " min" : ""}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DevMealsSection({ data }: { data: Record<string, unknown> }) {
+  const today = data.nutritionToday as Record<string, unknown> | null;
+  const mealsToday = data.mealsToday as Record<string, unknown>[] | null;
+  const balance = data.nutritionBalanceSummary as Record<string, unknown> | null;
+
+  const todayRows: [string, string | null][] = today ? [
+    ["มื้อวันนี้", today.mealCount != null ? String(today.mealCount) : null],
+    ["Calories", today.caloriesKcal != null ? String(today.caloriesKcal) + " kcal" : null],
+    ["Protein", today.proteinG != null ? String(today.proteinG) + "g" : null],
+    ["Carbs", today.carbsG != null ? String(today.carbsG) + "g" : null],
+    ["Fat", today.fatG != null ? String(today.fatG) + "g" : null],
+  ] : [];
+
+  const balanceRows: [string, string | null][] = balance ? [
+    ["Veggies", balance.veggieFiberStatus != null ? String(balance.veggieFiberStatus) : null],
+    ["Fried/Fat", balance.friedFatStatus != null ? String(balance.friedFatStatus) : null],
+    ["Protein", balance.proteinStatus != null ? String(balance.proteinStatus) : null],
+    ["Carbs", balance.carbStatus != null ? String(balance.carbStatus) : null],
+    ["Sugar", balance.sugarStatus != null ? String(balance.sugarStatus) : null],
+  ] : [];
+
+  return (
+    <div className="space-y-2 text-[11px]">
+      {todayRows.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {todayRows.map(([label, val]) => (
+            <span key={label} className="rounded-full bg-orange-50 px-3 py-1 text-orange-700 font-semibold">
+              {label}: {val != null ? val : "—"}
+            </span>
+          ))}
+        </div>
+      )}
+      {balanceRows.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {balanceRows.map(([label, val]) => (
+            <span key={label} className={`rounded-full px-3 py-1 font-semibold ${val === "low" || val === "high" ? "bg-red-50 text-red-700" : "bg-slate-100 text-slate-600"}`}>
+              {label}: {val != null ? val : "—"}
+            </span>
+          ))}
+        </div>
+      )}
+      {mealsToday && mealsToday.length > 0 && (
+        <div>
+          <p className="font-bold text-slate-500 mb-1">มื้อวันนี้ ({mealsToday.length}):</p>
+          {mealsToday.map((m, i) => (
+            <div key={i} className="rounded-xl bg-white border border-slate-100 px-3 py-2 text-[10px] font-mono text-slate-600 mb-1">
+              [{String(m.mealType ?? "?")}] {(m.foods as string[] | undefined)?.slice(0, 3).join(", ") ?? "—"}
+              {(m.foods as string[] | undefined)?.length ?? 0 > 3 ? ` +${(m.foods as string[]).length - 3} อีก` : ""}
+              {m.caloriesKcal != null ? ` · ${String(m.caloriesKcal)} kcal` : ""}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+

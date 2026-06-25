@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
 import { LoadingButton } from "@/components/LoadingButton";
-import { deleteHistoryItem, loadHistoryItems } from "@/lib/cloudHistory";
+import { deleteHistoryItem, loadHistoryItems, saveHistoryItems } from "@/lib/cloudHistory";
 import { deleteRaceResult, loadRaceResults } from "@/lib/raceResults";
 import { loadProfileFromSupabase } from "@/lib/profileStorage";
 import type { LocalHistoryItem } from "@/lib/localHistory";
@@ -27,7 +27,7 @@ import {
 import { extractMealData, normalizeMealNutrition } from "@/lib/mealMerge";
 import { polishSleepInsightText } from "@/lib/sleepInsight";
 import { dedupeSleepItems } from "@/lib/sleepDedupe";
-import { getHistoryItemDateKey } from "@/lib/date";
+import { getHistoryItemDateKey, dateKeyToRecordedAt } from "@/lib/date";
 import { normalizeMealSlot, getMealSlotLabel, getMealSlotIcon, getMealSlotOrder } from "@/lib/mealSlots";
 import { getMealSourceInfo } from "@/lib/mealSource";
 
@@ -43,6 +43,7 @@ export default function ReportPage() {
   const [showOlderDays, setShowOlderDays] = useState(false);
   const [deleteStatus, setDeleteStatus] = useState("");
   const [deletingKey, setDeletingKey] = useState<string | null>(null);
+  const [editingMeal, setEditingMeal] = useState<LocalHistoryItem | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -223,6 +224,7 @@ export default function ReportPage() {
                   raceResults={raceResultsByDate.get(day.date) ?? []}
                   proteinTarget={pTarget}
                   onDeleteItem={handleDeleteItem}
+                  onEditItem={setEditingMeal}
                   onDeleteRaceResult={handleDeleteRaceResult}
                   deletingKey={deletingKey}
                 />
@@ -239,6 +241,16 @@ export default function ReportPage() {
             </>
           )}
         </>
+      )}
+      {editingMeal && (
+        <EditMealModal
+          item={editingMeal}
+          onClose={() => setEditingMeal(null)}
+          onSave={(updatedItem) => {
+            setItems((current) => current.map((i) => (i.id === updatedItem.id ? updatedItem : i)));
+            setEditingMeal(null);
+          }}
+        />
       )}
     </AppShell>
   );
@@ -397,6 +409,7 @@ function DayCard({
   raceResults,
   proteinTarget,
   onDeleteItem,
+  onEditItem,
   onDeleteRaceResult,
   deletingKey,
 }: {
@@ -404,6 +417,7 @@ function DayCard({
   raceResults: RaceResult[];
   proteinTarget: number;
   onDeleteItem: (item: LocalHistoryItem) => void;
+  onEditItem: (item: LocalHistoryItem) => void;
   onDeleteRaceResult: (result: RaceResult) => void;
   deletingKey: string | null;
 }) {
@@ -546,7 +560,7 @@ function DayCard({
                 </div>
                 <div className="space-y-2">
                   {group.meals.map((item) => (
-                    <MealDetail key={item.id} item={item} onDelete={onDeleteItem} deleting={deletingKey === item.id} />
+                    <MealDetail key={item.id} item={item} onDelete={onDeleteItem} onEdit={onEditItem} deleting={deletingKey === item.id} />
                   ))}
                 </div>
               </div>
@@ -667,7 +681,17 @@ function WorkoutDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; o
   );
 }
 
-function MealDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; onDelete: (item: LocalHistoryItem) => void; deleting: boolean }) {
+function MealDetail({
+  item,
+  onDelete,
+  onEdit,
+  deleting,
+}: {
+  item: LocalHistoryItem;
+  onDelete: (item: LocalHistoryItem) => void;
+  onEdit: (item: LocalHistoryItem) => void;
+  deleting: boolean;
+}) {
   const d = extractMealData(item);
   const n = normalizeMealNutrition(d as unknown as Record<string, unknown>);
   const foodNames = d.detectedFoods?.map((food) => food.name).filter(Boolean).join(", ") || d?.extracted?.detectedFood || "";
@@ -699,7 +723,24 @@ function MealDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; onDe
       {note && (
         <p className="text-sm leading-6 text-slate-700">{truncate(note, 140)}</p>
       )}
-      <DeleteRecordButton onDelete={() => onDelete(item)} loading={deleting} />
+      <div className="mt-3 flex items-center justify-between">
+        <button
+          type="button"
+          onClick={() => onEdit(item)}
+          className="rounded-full border border-orange-200 bg-white/80 px-4 py-1.5 text-xs font-bold text-orange-600 transition hover:bg-orange-100"
+        >
+          แก้ไข
+        </button>
+        <LoadingButton
+          type="button"
+          loading={deleting}
+          loadingText="กำลังลบ..."
+          onClick={() => onDelete(item)}
+          className="rounded-full border border-red-100 bg-white/80 px-3 py-1.5 text-xs font-bold text-red-500 transition hover:bg-red-50"
+        >
+          ลบรายการ
+        </LoadingButton>
+      </div>
     </div>
   );
 }
@@ -1666,5 +1707,251 @@ function PainHistoryCompactList({
         </table>
       </div>
     </section>
+  );
+}
+
+function parseEditNumber(val: string): number | null {
+  if (val === undefined || val === null) return null;
+  const trimmed = val.trim();
+  if (trimmed === "") return null;
+  const num = Number(trimmed);
+  return Number.isFinite(num) ? num : null;
+}
+
+function EditMealModal({
+  item,
+  onClose,
+  onSave,
+}: {
+  item: LocalHistoryItem;
+  onClose: () => void;
+  onSave: (updatedItem: LocalHistoryItem) => void;
+}) {
+  const d = extractMealData(item);
+  const n = normalizeMealNutrition(d as unknown as Record<string, unknown>);
+
+  const [foodNames, setFoodNames] = useState(
+    d.detectedFoods?.map((food: { name: string }) => food.name).filter(Boolean).join(", ") || d?.extracted?.detectedFood || ""
+  );
+  const [kcal, setKcal] = useState(n.caloriesKcal != null ? String(n.caloriesKcal) : "");
+  const [protein, setProtein] = useState(n.proteinG != null ? String(n.proteinG) : "");
+  const [carbs, setCarbs] = useState(n.carbsG != null ? String(n.carbsG) : "");
+  const [fat, setFat] = useState(n.fatG != null ? String(n.fatG) : "");
+  
+  const initialSlot = normalizeMealSlot(item, item.recordedAt || item.createdAt);
+  const [mealSlot, setMealSlot] = useState<"breakfast" | "lunch" | "dinner" | "snack" | "other">(initialSlot);
+  
+  const initialDate = getHistoryItemDateKey(item);
+  const [recordedDate, setRecordedDate] = useState(initialDate);
+  
+  const [note, setNote] = useState(d.note || d.trainingFit?.coachNote || d.coachNote || "");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setError("");
+
+    try {
+      const kcalVal = parseEditNumber(kcal);
+      const proteinVal = parseEditNumber(protein);
+      const carbsVal = parseEditNumber(carbs);
+      const fatVal = parseEditNumber(fat);
+
+      const originalDateKey = getHistoryItemDateKey(item);
+      const dateChanged = originalDateKey !== recordedDate;
+      const newRecordedAt = dateKeyToRecordedAt(recordedDate);
+      const finalRecordedAt = dateChanged ? newRecordedAt : (item.recordedAt || dateKeyToRecordedAt(recordedDate));
+
+      const updatedData = { ...d };
+
+      // update names
+      const trimmedFoods = foodNames.trim();
+      updatedData.detectedFoods = trimmedFoods
+        ? trimmedFoods.split(",").map((name) => ({ name: name.trim() })).filter((f) => f.name)
+        : [];
+      if (!updatedData.extracted) updatedData.extracted = {};
+      updatedData.extracted.detectedFood = trimmedFoods;
+
+      // metadata preserve
+      const originalSourceType = d.sourceType || "manual";
+      const originalInputMode = d.inputMode || "text";
+      const originalImageCount = d.imageCount ?? (originalSourceType === "image" ? 1 : 0);
+      
+      updatedData.sourceType = originalSourceType;
+      updatedData.inputMode = originalInputMode;
+      updatedData.imageCount = originalImageCount;
+      updatedData.itemCount = updatedData.detectedFoods.length;
+
+      // update slot
+      updatedData.mealSlot = mealSlot;
+      updatedData.mealType = mealSlot;
+
+      // update nutrition
+      updatedData.nutrition = {
+        caloriesKcal: kcalVal,
+        proteinG: proteinVal,
+        carbsG: carbsVal,
+        fatG: fatVal,
+        fiberG: d.nutrition?.fiberG ?? null,
+      };
+
+      // note
+      updatedData.note = note.trim() || undefined;
+      if (updatedData.trainingFit) {
+        updatedData.trainingFit.coachNote = note.trim() || "";
+      }
+      updatedData.coachNote = note.trim() || "";
+
+
+      const updatedItem: LocalHistoryItem = {
+        ...item,
+        recordedAt: finalRecordedAt,
+        dateKey: recordedDate,
+        data: updatedData,
+      };
+
+      const result = await saveHistoryItems([updatedItem]);
+      if (result.ok) {
+        onSave(updatedItem);
+      } else {
+        setError(result.error || "เกิดข้อผิดพลาดในการบันทึก");
+      }
+    } catch {
+      setError("เกิดข้อผิดพลาดในการประมวลผลข้อมูล");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl border border-slate-100 flex flex-col max-h-[90vh] overflow-y-auto">
+        <h3 className="text-lg font-bold text-[#17201d] mb-4">แก้ไขมื้ออาหาร</h3>
+        
+        {error && (
+          <div className="mb-4 rounded-xl bg-red-50 p-3 text-xs font-semibold text-red-600">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSave} className="space-y-4">
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-500">ชื่อมื้อ / รายการอาหาร</label>
+            <input
+              type="text"
+              required
+              className="w-full rounded-2xl border border-slate-200 px-4 py-2.5 text-sm focus:border-[#b9d9c0] focus:ring-1 focus:ring-[#b9d9c0] outline-none"
+              placeholder="เช่น ข้าวมันไก่, แกงจืด"
+              value={foodNames}
+              onChange={(e) => setFoodNames(e.target.value)}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-500">kcal</label>
+              <input
+                type="text"
+                className="w-full rounded-2xl border border-slate-200 px-4 py-2.5 text-sm focus:border-[#b9d9c0] focus:ring-1 focus:ring-[#b9d9c0] outline-none"
+                placeholder="ไม่ระบุ"
+                value={kcal}
+                onChange={(e) => setKcal(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-500">โปรตีน (g)</label>
+              <input
+                type="text"
+                className="w-full rounded-2xl border border-slate-200 px-4 py-2.5 text-sm focus:border-[#b9d9c0] focus:ring-1 focus:ring-[#b9d9c0] outline-none"
+                placeholder="ไม่ระบุ"
+                value={protein}
+                onChange={(e) => setProtein(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-500">คาร์บ (g)</label>
+              <input
+                type="text"
+                className="w-full rounded-2xl border border-slate-200 px-4 py-2.5 text-sm focus:border-[#b9d9c0] focus:ring-1 focus:ring-[#b9d9c0] outline-none"
+                placeholder="ไม่ระบุ"
+                value={carbs}
+                onChange={(e) => setCarbs(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-500">ไขมัน (g)</label>
+              <input
+                type="text"
+                className="w-full rounded-2xl border border-slate-200 px-4 py-2.5 text-sm focus:border-[#b9d9c0] focus:ring-1 focus:ring-[#b9d9c0] outline-none"
+                placeholder="ไม่ระบุ"
+                value={fat}
+                onChange={(e) => setFat(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-500 block">ช่วงเวลาของมื้อนี้</label>
+            <div className="flex flex-wrap gap-1.5">
+              {(["breakfast", "lunch", "dinner", "snack", "other"] as const).map((slot) => {
+                const label = getMealSlotLabel(slot);
+                return (
+                  <button
+                    key={slot}
+                    type="button"
+                    onClick={() => setMealSlot(slot)}
+                    className={`rounded-full px-4 py-1.5 text-xs font-bold transition border ${mealSlot === slot ? "bg-[#17201d] text-white border-[#17201d]" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"}`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-500">วันที่ของข้อมูลนี้</label>
+            <input
+              type="date"
+              required
+              className="w-full rounded-2xl border border-slate-200 px-4 py-2.5 text-sm focus:border-[#b9d9c0] focus:ring-1 focus:ring-[#b9d9c0] outline-none"
+              value={recordedDate}
+              onChange={(e) => setRecordedDate(e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-500">หมายเหตุ ถ้ามี</label>
+            <textarea
+              className="w-full rounded-2xl border border-slate-200 px-4 py-2.5 text-sm focus:border-[#b9d9c0] focus:ring-1 focus:ring-[#b9d9c0] outline-none min-h-16"
+              placeholder="หมายเหตุเพิ่มเติม..."
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+            />
+          </div>
+
+          <div className="pt-2 flex items-center justify-end gap-2">
+            <button
+              type="button"
+              disabled={saving}
+              onClick={onClose}
+              className="rounded-full border border-slate-200 px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-50 transition"
+            >
+              ยกเลิก
+            </button>
+            <LoadingButton
+              type="submit"
+              loading={saving}
+              loadingText="กำลังบันทึก..."
+              className="rounded-full bg-[#17201d] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#2c3d38]"
+            >
+              บันทึกการแก้ไข
+            </LoadingButton>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }

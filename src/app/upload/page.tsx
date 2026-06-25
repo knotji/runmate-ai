@@ -51,6 +51,102 @@ function SelectedDateBadge({ dateKey }: { dateKey: string }) {
 }
 
 
+const THAI_MONTHS: Record<string, number> = {
+  "ม.ค.": 1, "มกราคม": 1,
+  "ก.พ.": 2, "กุมภาพันธ์": 2,
+  "มี.ค.": 3, "มีนาคม": 3,
+  "เม.ย.": 4, "เมษายน": 4,
+  "พ.ค.": 5, "พฤษภาคม": 5,
+  "มิ.ย.": 6, "มิถุนายน": 6,
+  "ก.ค.": 7, "กรกฎาคม": 7,
+  "ส.ค.": 8, "สิงหาคม": 8,
+  "ก.ย.": 9, "กันยายน": 9,
+  "ต.ค.": 10, "ตุลาคม": 10,
+  "พ.ย.": 11, "พฤศจิกายน": 11,
+  "ธ.ค.": 12, "ธันวาคม": 12,
+};
+
+function parseExtractedDate(extractedDate: string | null | undefined): string | null {
+  if (!extractedDate) return null;
+  const cleaned = extractedDate.trim();
+  
+  // Pattern 1: YYYY-MM-DD
+  const yyyymmdd = cleaned.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (yyyymmdd) {
+    const year = Number(yyyymmdd[1]);
+    const month = Number(yyyymmdd[2]) - 1;
+    const day = Number(yyyymmdd[3]);
+    const d = new Date(year, month, day);
+    if (!isNaN(d.getTime())) {
+      return yyyymmdd[0];
+    }
+  }
+
+  // Pattern 2: DD/MM/YYYY or DD/MM/BBBB
+  const slashPattern = cleaned.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (slashPattern) {
+    const day = Number(slashPattern[1]);
+    const month = Number(slashPattern[2]);
+    let year = Number(slashPattern[3]);
+    
+    // Check if it is Buddhist Era (BE)
+    if (year > 2400) {
+      year = year - 543;
+    }
+    
+    const d = new Date(year, month - 1, day);
+    if (!isNaN(d.getTime())) {
+      const pad = (n: number) => String(n).padStart(2, "0");
+      return `${year}-${pad(month)}-${pad(day)}`;
+    }
+  }
+
+  // Pattern 3: Thai month names (e.g. 17 มิ.ย. 2569 or 17 มิถุนายน 2569)
+  const parts = cleaned.split(/[\s,.-]+/);
+  if (parts.length === 3) {
+    const day = Number(parts[0]);
+    const monthName = parts[1];
+    let year = Number(parts[2]);
+    const month = THAI_MONTHS[monthName];
+    if (day && month && year) {
+      if (year > 2400) {
+        year = year - 543;
+      }
+      const pad = (n: number) => String(n).padStart(2, "0");
+      return `${year}-${pad(month)}-${pad(day)}`;
+    }
+  }
+
+  // Fallback: standard Date parsing
+  const parsed = new Date(cleaned);
+  if (!isNaN(parsed.getTime())) {
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${parsed.getFullYear()}-${pad(parsed.getMonth() + 1)}-${pad(parsed.getDate())}`;
+  }
+
+  return null;
+}
+
+function extractDateFromResult(next: Record<string, unknown> | null | undefined): string | null {
+  if (!next) return null;
+  const data = (next.data as Record<string, unknown> | undefined) ?? next;
+  const extracted = data.extracted as Record<string, unknown> | undefined;
+  if (extracted?.date) return String(extracted.date);
+  if (data.checkupDate) return String(data.checkupDate);
+  if (data.date) return String(data.date);
+  return null;
+}
+
+function formatDateKeyToThaiBE(dateKey: string): string {
+  const parts = dateKey.split("-");
+  if (parts.length !== 3) return dateKey;
+  const year = Number(parts[0]);
+  const month = parts[1];
+  const day = parts[2];
+  const thaiYear = year + 543;
+  return `${day}/${month}/${thaiYear}`;
+}
+
 type UploadType = "sleep" | "meal" | "workout" | "body" | "health_check";
 type WorkoutSubtype = "run" | "strength" | "walk" | "other";
 type MealInputMode = "image" | "text";
@@ -142,6 +238,8 @@ export default function UploadPage() {
   }, []);
   const [mealType, setMealType] = useState<MealType>(() => inferMealTypeFromBangkokTime());
   const [result, setResult] = useState<unknown>(null);
+  const suggestedDateKey = result ? parseExtractedDate(extractDateFromResult(result as Record<string, unknown>)) : null;
+  const isConfidenceLow = result ? ((((result as Record<string, unknown>)?.data as Record<string, unknown>)?.confidence === "low") || ((result as Record<string, unknown>)?.confidence === "low")) : false;
 
   useEffect(() => {
     Promise.all([loadProfileFromSupabase(), buildCoachContextFromSupabase(), loadRaceResults(20)]).then(([profileResult, context, raceResultsResult]) => {
@@ -150,6 +248,21 @@ export default function UploadPage() {
       if (raceResultsResult.ok) setExistingRaceResults(raceResultsResult.results);
     });
   }, []);
+
+  useEffect(() => {
+    if (type === "workout" && result && !saveFeedback) {
+      const data = (result as { data: WorkoutAnalysis }).data;
+      if (data) {
+        loadActiveRaceGoalAndPlan().then((raceResult) => {
+          const raceGoalForMatch = raceResult.ok ? raceResult.goal : null;
+          const match = detectRaceMatch(data, raceGoalForMatch, selectedDateKey);
+          setRaceMatch(match);
+        });
+      }
+    } else {
+      setRaceMatch(null);
+    }
+  }, [selectedDateKey, result, type, saveFeedback]);
 
   const endpoint =
     type === "sleep"
@@ -219,6 +332,24 @@ export default function UploadPage() {
     setWorkoutSavedItem(null);
     setSaveFeedback("");
     setRaceDuplicateConfirm(null);
+
+    // If API/extraction returns date, suggest it to the user, but never auto-apply it without confirmation.
+    const suggestedDate = parseExtractedDate(extractDateFromResult(next as Record<string, unknown>));
+    if (suggestedDate) {
+      if (type === "meal") {
+        const data = ((next as { data?: MealAnalysis }).data ?? next) as MealAnalysis;
+        const meal = normalizeMealAnalysis({ ...data, mealType });
+        setResult({ data: meal });
+      } else if (type === "workout") {
+        const data = ((next as { data?: WorkoutAnalysis }).data ?? next) as WorkoutAnalysis;
+        setResult({ data });
+      } else {
+        setResult(next);
+      }
+      setSaveStatus("idle");
+      return;
+    }
+
     if (type === "meal") {
       const data = ((next as { data?: MealAnalysis }).data ?? next) as MealAnalysis;
       if (process.env.NODE_ENV === "development") {
@@ -660,6 +791,38 @@ export default function UploadPage() {
         ) : null}
       </section>
 
+      {/* ── AI-Suggested Date Confirmation ── */}
+      {suggestedDateKey && (
+        <div className="card border border-amber-200 bg-amber-50/70 p-4 rounded-3xl space-y-2 mb-4">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm text-slate-700 leading-relaxed font-semibold">
+              📅 วันที่ที่อ่านได้จากไฟล์: {formatDateKeyToThaiBE(suggestedDateKey)}
+            </p>
+            {selectedDateKey !== suggestedDateKey ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedDateKey(suggestedDateKey);
+                  setDateSelectionMode("custom");
+                }}
+                className="rounded-full bg-white border border-amber-300 px-3.5 py-1.5 text-xs font-bold text-amber-700 hover:bg-amber-100 transition shadow-sm"
+              >
+                ใช้วันที่นี้
+              </button>
+            ) : (
+              <span className="rounded-full bg-amber-200/80 px-3 py-1.5 text-xs font-bold text-amber-800">
+                จะบันทึกเป็นวันที่: {formatDateKeyToThaiBE(selectedDateKey)}
+              </span>
+            )}
+          </div>
+          {isConfidenceLow && (
+            <p className="text-xs text-amber-800 leading-relaxed font-medium">
+              ⚠️ วันที่ที่อ่านได้อาจคลาดเคลื่อน กรุณาตรวจทานก่อนใช้
+            </p>
+          )}
+        </div>
+      )}
+
       {type === "workout" && workoutSubtype === "strength" && (
         <div className="space-y-4">
           <SelectedDateBadge dateKey={selectedDateKey} />
@@ -691,6 +854,18 @@ export default function UploadPage() {
           <SelectedDateBadge dateKey={selectedDateKey} />
           <ReportSavedNote saveStatus={saveStatus} />
           <SleepResultCard result={(result as { data: SleepAnalysis }).data} />
+          {saveStatus === "idle" && (
+            <div className="card p-4 bg-slate-50 flex items-center justify-between gap-3 mt-4">
+              <p className="text-sm font-semibold text-slate-600">กดยืนยันเพื่อบันทึก Sleep</p>
+              <button
+                type="button"
+                onClick={() => void store(result)}
+                className="rounded-full bg-[#17201d] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#2c3d38]"
+              >
+                บันทึกผลการนอน
+              </button>
+            </div>
+          )}
         </>
       ) : null}
       {result && type === "meal" && !mealSlotConflict ? (

@@ -1,6 +1,28 @@
 import type { UserProfile } from "@/types/profile";
 import { calculateAgeFromBirthDate } from "@/lib/profile/age";
 
+export type FoodPreferencesJSON = {
+  avoids?: string;
+  likes?: string;
+  spicy?: string;
+  convenience?: string[];
+  budget?: string;
+  goals?: string[];
+};
+
+export function parseFoodPreferences(raw: string | undefined | null): FoodPreferencesJSON {
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      return parsed as FoodPreferencesJSON;
+    }
+  } catch {
+    return { likes: raw };
+  }
+  return {};
+}
+
 export function buildRunnerProfileContext(profile: UserProfile | Record<string, unknown> | null): string {
   if (!profile) return "";
 
@@ -78,6 +100,25 @@ export function buildRunnerProfileContext(profile: UserProfile | Record<string, 
   const nutrition = p.nutritionGoal ?? p.nutritionNotes;
   if (nutrition) lines.push(`- โภชนาการ: ${nutrition}`);
   if (p.allergiesOrRestrictions) lines.push(`- แพ้/ข้อจำกัดอาหาร: ${p.allergiesOrRestrictions}`);
+
+  // Food preferences (structured)
+  const foodPrefs = parseFoodPreferences(p.foodPreferences);
+  const parts: string[] = [];
+  if (foodPrefs.avoids) parts.push(`avoids ${foodPrefs.avoids}`);
+  if (foodPrefs.likes) parts.push(`likes ${foodPrefs.likes}`);
+  if (foodPrefs.spicy) parts.push(`spicy ${foodPrefs.spicy}`);
+  if (Array.isArray(foodPrefs.convenience) && foodPrefs.convenience.length > 0) {
+    parts.push(`convenient: ${foodPrefs.convenience.join(", ")}`);
+  }
+  if (foodPrefs.budget) parts.push(`budget: ${foodPrefs.budget}`);
+  if (Array.isArray(foodPrefs.goals) && foodPrefs.goals.length > 0) {
+    parts.push(`goal: ${foodPrefs.goals.join(", ")}`);
+  }
+
+  if (parts.length > 0) {
+    lines.push(`- Food preferences: ${parts.join("; ")}.`);
+  }
+
   if (p.trainingConstraints) lines.push(`- ข้อจำกัดซ้อม: ${p.trainingConstraints}`);
 
   return lines.join("\n");
