@@ -4,5 +4,7 @@ export type LocalHistoryItem = {
   id: string;
   type: HistoryType;
   createdAt: string;
+  recordedAt?: string;
+  dateKey?: string;
   data: unknown;
 };

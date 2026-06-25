@@ -10,6 +10,7 @@ import { extractMealData, normalizeMealNutrition } from "@/lib/mealMerge";
 import { buildDailyNutritionBalance } from "@/lib/dailyNutritionBalance";
 import type { DailyNutritionBalance } from "@/lib/dailyNutritionBalance";
 import type { LocalHistoryItem } from "@/lib/localHistory";
+import { getHistoryItemDateKey } from "@/lib/date";
 import type { SleepAnalysis, WorkoutAnalysis, BodyCompositionAnalysis, MealAnalysis, HealthCheckAnalysis, LabValue } from "@/types/logs";
 import type { PainLog } from "@/types/pain";
 import type { RaceResult } from "@/types/race";
@@ -183,11 +184,6 @@ function dateBefore(days: number): string {
   return new Date(Date.now() + TZ_OFFSET_MS - days * 86400000).toISOString().slice(0, 10);
 }
 
-function bangkokDateKey(isoString: string): string {
-  const d = new Date(isoString);
-  if (Number.isNaN(d.getTime())) return isoString.slice(0, 10);
-  return new Date(d.getTime() + TZ_OFFSET_MS).toISOString().slice(0, 10);
-}
 
 function getSleepDurationMinutes(item: LocalHistoryItem): number | null {
   const data = item.data as Record<string, unknown> | null;
@@ -288,13 +284,13 @@ export function buildCoachContextFromData(input: {
   const sleepItems = dedupeSleepItems(
     items
       .filter((i) => i.type === "sleep")
-      .filter((i) => bangkokDateKey(i.createdAt) >= cutoff),
+      .filter((i) => getHistoryItemDateKey(i) >= cutoff),
   );
   const sleep7d: WeekSleepRow[] = sleepItems.map((item) => {
     const d = item.data as SleepAnalysis;
     const durationMinutes = getSleepDurationMinutes(item);
     return {
-      date: bangkokDateKey(item.createdAt),
+      date: getHistoryItemDateKey(item),
       durationH: durationMinutes
         ? formatSleepMinutesThai(durationMinutes)
         : d?.extracted?.sleepDuration ?? null,
@@ -316,11 +312,11 @@ export function buildCoachContextFromData(input: {
 
   const workoutItems = items
     .filter((i) => i.type === "workout")
-    .filter((i) => bangkokDateKey(i.createdAt) >= cutoff);
+    .filter((i) => getHistoryItemDateKey(i) >= cutoff);
 
   const strengthItems = items
     .filter((i) => i.type === "strength")
-    .filter((i) => bangkokDateKey(i.createdAt) >= cutoff);
+    .filter((i) => getHistoryItemDateKey(i) >= cutoff);
 
   const dayMap = new Map<string, DayWorkoutSummary>();
   const ensureDay = (date: string) => {
@@ -335,7 +331,7 @@ export function buildCoachContextFromData(input: {
   const todayWorkouts: TodayCompletedWorkoutSummary[] = [];
 
   for (const item of workoutItems) {
-    const date = bangkokDateKey(item.createdAt);
+    const date = getHistoryItemDateKey(item);
     const d = item.data as WorkoutAnalysis;
     const ext = d?.extracted;
     if (!ext) continue;
@@ -379,7 +375,7 @@ export function buildCoachContextFromData(input: {
   }
 
   for (const item of strengthItems) {
-    const date = bangkokDateKey(item.createdAt);
+    const date = getHistoryItemDateKey(item);
     const d = item.data as StrengthLog;
     if (!d) continue;
     const durationMin = toFiniteNumber(d.durationMin) ?? 15;
@@ -406,7 +402,7 @@ export function buildCoachContextFromData(input: {
   const nutrition7d = buildNutritionSummaries(items, cutoff);
   const nutritionToday = nutrition7d.find((day) => day.date === today) ?? null;
   const mealsToday = items
-    .filter((item) => item.type === "meal" && bangkokDateKey(item.createdAt) === today)
+    .filter((item) => item.type === "meal" && getHistoryItemDateKey(item) === today)
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
     .map(compactMealForCoach);
   const latestHealthCheck = items
@@ -436,7 +432,7 @@ export function buildCoachContextFromData(input: {
   // Pain logs — last 7 days, most recent first
   const painItems = items
     .filter((i) => i.type === "pain")
-    .filter((i) => bangkokDateKey(i.createdAt) >= cutoff)
+    .filter((i) => getHistoryItemDateKey(i) >= cutoff)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const recentPainLogs: PainSummary[] = painItems.map((item) => {
     const d = item.data as PainLog;
@@ -455,7 +451,7 @@ export function buildCoachContextFromData(input: {
     );
     return {
       id: item.id,
-      date: bangkokDateKey(item.createdAt),
+      date: getHistoryItemDateKey(item),
       painLocation: d?.painLocation ?? "ไม่ระบุ",
       painSide: d?.painSide ?? "unknown",
       painLevel,
@@ -581,7 +577,7 @@ export function buildCoachContextFromData(input: {
       latestHealthCheck,
       mealsToday,
       nutritionBalanceToday,
-      strengthCount: items.filter((i) => i.type === "strength" && bangkokDateKey(i.createdAt) >= cutoff).length,
+      strengthCount: items.filter((i) => i.type === "strength" && getHistoryItemDateKey(i) >= cutoff).length,
     }),
   };
 }
@@ -589,10 +585,10 @@ export function buildCoachContextFromData(input: {
 function buildNutritionSummaries(items: LocalHistoryItem[], cutoff: string): NutritionDaySummary[] {
   const mealItems = items
     .filter((item) => item.type === "meal")
-    .filter((item) => bangkokDateKey(item.createdAt) >= cutoff);
+    .filter((item) => getHistoryItemDateKey(item) >= cutoff);
   const byDate = new Map<string, MealAnalysis[]>();
   for (const item of mealItems) {
-    const date = bangkokDateKey(item.createdAt);
+    const date = getHistoryItemDateKey(item);
     const list = byDate.get(date) ?? [];
     list.push(extractMealData(item));
     byDate.set(date, list);

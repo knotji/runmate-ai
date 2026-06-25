@@ -24,6 +24,31 @@ import { buildNutritionTargetSummary } from "@/lib/nutritionTargets";
 import type { LocalHistoryItem } from "@/lib/localHistory";
 import type { BodyCompositionAnalysis, HealthCheckAnalysis, LabValue, MealAnalysis, MealType, SleepAnalysis, WorkoutAnalysis } from "@/types/logs";
 import type { UserProfile } from "@/types/profile";
+import { todayBangkokDateKey, yesterdayBangkokDateKey, dateKeyToRecordedAt } from "@/lib/date";
+
+function formatThaiShortDate(dateStr: string): string {
+  const parts = dateStr.split("-");
+  if (parts.length !== 3) return dateStr;
+  const year = Number(parts[0]) + 543;
+  const month = parts[1];
+  const day = parts[2];
+  return `${day}/${month}/${year}`;
+}
+
+function SelectedDateBadge({ dateKey }: { dateKey: string }) {
+  const isToday = dateKey === todayBangkokDateKey();
+  return (
+    <div className="flex items-center gap-2 text-xs font-semibold text-slate-600 bg-slate-50 border border-slate-100 rounded-2xl px-3.5 py-2 my-2 w-fit">
+      <span>จะบันทึกเป็นวันที่: {formatThaiShortDate(dateKey)}</span>
+      {!isToday && (
+        <span className="rounded-full bg-amber-50 text-amber-700 px-2 py-0.5 text-[10px] font-bold">
+          บันทึกย้อนหลัง
+        </span>
+      )}
+    </div>
+  );
+}
+
 
 type UploadType = "sleep" | "meal" | "workout" | "body" | "health_check";
 type WorkoutSubtype = "run" | "strength" | "walk" | "other";
@@ -68,6 +93,8 @@ const CONFIDENCE_LABELS = {
 
 export default function UploadPage() {
   const [type, setType] = useState<UploadType>("sleep");
+  const [selectedDateKey, setSelectedDateKey] = useState(() => todayBangkokDateKey());
+  const [dateSelectionMode, setDateSelectionMode] = useState<"today" | "yesterday" | "custom">("today");
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [coachContext, setCoachContext] = useState<CoachContext | null>(null);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
@@ -138,23 +165,21 @@ export default function UploadPage() {
     setSaveStatus("saving");
     if (overrideType === "body") setBodySaveError("");
     const data = sanitizeReportDataForSave((next as { data?: unknown }).data ?? next);
-    const extractedDate = (data as { extracted?: { date?: string | null } }).extracted?.date;
-    const healthDate = (data as { checkupDate?: string | null }).checkupDate;
-    // Body and meal items always use save time as createdAt.
-    // Body: measurement date from image would file it under that day, not today.
-    // Meal: Report day must be the day the user taps Save, not an AI-detected image date.
-    const saveDate = (overrideType === "body" || overrideType === "meal")
-      ? undefined
-      : overrideType === "health_check"
-        ? (healthDate ?? undefined)
-        : (extractedDate ?? undefined);
+    
+    // Always use actual save/upload time as createdAt
+    const saveDate = new Date().toISOString();
     const saved = createHistoryItem(overrideType, data, saveDate);
+    
+    // Assign manual backdate keys based on the user's selection
+    saved.recordedAt = dateKeyToRecordedAt(selectedDateKey);
+    saved.dateKey = selectedDateKey;
     if (process.env.NODE_ENV === "development") {
       console.info("[upload-debug]", {
         uploadType: overrideType,
         saveTable: "history_items",
         historyItemId: saved.id,
-        extractedDate,
+        dateKey: saved.dateKey,
+        recordedAt: saved.recordedAt,
         savedCreatedAt: saved.createdAt,
         dataKeys: typeof data === "object" && data !== null ? Object.keys(data) : [],
       });
@@ -212,7 +237,7 @@ export default function UploadPage() {
     }
     if (type === "workout") {
       const data = ((next as { data?: WorkoutAnalysis }).data ?? next) as WorkoutAnalysis;
-      const todayBangkok = toBangkokDate(new Date());
+      const todayBangkok = selectedDateKey;
       const workoutLocalDate = getWorkoutLocalDate(data, todayBangkok);
 
       let raceGoalForMatch = null;
@@ -262,7 +287,7 @@ export default function UploadPage() {
     if (isSavingMealRef.current) return;
     isSavingMealRef.current = true;
     try {
-      const localDate = toBangkokDate(new Date());
+      const localDate = selectedDateKey;
       const existing = await findMealSlotByDateAndType(localDate, nextMeal.mealType);
       if (process.env.NODE_ENV === "development") {
         console.info("[meal-slot-debug]", {
@@ -335,7 +360,7 @@ export default function UploadPage() {
     newMeal: MealAnalysis,
   ) {
     setMealSlotConflict(null);
-    const localDate = toBangkokDate(new Date());
+    const localDate = selectedDateKey;
 
     if (action === "separate") {
       const separateMeal = { ...newMeal, isSeparateMeal: true };
@@ -353,7 +378,12 @@ export default function UploadPage() {
     const updatedMeal = action === "merge" ? buildMergedMeal(existingMeal, newMeal) : newMeal;
 
     // Store as direct MealAnalysis — same shape as initial save, so report page reads it correctly.
-    const updatedItem = { ...existing, data: sanitizeReportDataForSave(updatedMeal) };
+    const updatedItem = {
+      ...existing,
+      recordedAt: existing.recordedAt || dateKeyToRecordedAt(selectedDateKey),
+      dateKey: existing.dateKey || selectedDateKey,
+      data: sanitizeReportDataForSave(updatedMeal)
+    };
 
     if (process.env.NODE_ENV === "development") {
       const existNutr = normalizeMealNutrition(existingMeal as unknown as Record<string, unknown>);
@@ -486,6 +516,54 @@ export default function UploadPage() {
             </button>
           ))}
         </div>
+
+        {/* Shared Date Selector */}
+        <div className="space-y-2 pt-2 border-t border-slate-100/60">
+          <label className="text-xs font-bold uppercase tracking-wide text-slate-400">วันที่ของข้อมูลนี้</label>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex rounded-xl bg-[var(--surface-muted)] p-1 text-xs font-semibold">
+              <button
+                type="button"
+                onClick={() => {
+                  setDateSelectionMode("today");
+                  setSelectedDateKey(todayBangkokDateKey());
+                }}
+                className={`rounded-lg px-3 py-1.5 transition-colors ${dateSelectionMode === "today" ? "bg-white text-[#17201d] shadow-sm" : "text-[var(--muted-text)]"}`}
+              >
+                วันนี้
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setDateSelectionMode("yesterday");
+                  setSelectedDateKey(yesterdayBangkokDateKey());
+                }}
+                className={`rounded-lg px-3 py-1.5 transition-colors ${dateSelectionMode === "yesterday" ? "bg-white text-[#17201d] shadow-sm" : "text-[var(--muted-text)]"}`}
+              >
+                เมื่อวาน
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setDateSelectionMode("custom");
+                }}
+                className={`rounded-lg px-3 py-1.5 transition-colors ${dateSelectionMode === "custom" ? "bg-white text-[#17201d] shadow-sm" : "text-[var(--muted-text)]"}`}
+              >
+                เลือกวันที่
+              </button>
+            </div>
+            {dateSelectionMode === "custom" && (
+              <input
+                type="date"
+                className="control text-xs py-1.5 px-2.5 max-w-[140px]"
+                value={selectedDateKey}
+                onChange={(e) => setSelectedDateKey(e.target.value)}
+                required
+              />
+            )}
+          </div>
+          <p className="text-[10px] text-slate-500">ถ้าอัปโหลดข้อมูลย้อนหลัง ให้เลือกวันที่จริงของข้อมูล</p>
+        </div>
         {type === "meal" && (
           <div className="space-y-3">
             <div className="grid grid-cols-2 rounded-2xl bg-[var(--surface-muted)] p-1">
@@ -581,25 +659,34 @@ export default function UploadPage() {
       </section>
 
       {type === "workout" && workoutSubtype === "strength" && (
-        <StrengthWorkoutCard
-          context={coachContext}
-          onLogCompleted={() => {
-            setSaveStatus("saved");
-            setTimeout(() => setSaveStatus("idle"), 3000);
-          }}
-        />
+        <div className="space-y-4">
+          <SelectedDateBadge dateKey={selectedDateKey} />
+          <StrengthWorkoutCard
+            context={coachContext}
+            selectedDateKey={selectedDateKey}
+            onLogCompleted={() => {
+              setSaveStatus("saved");
+              setTimeout(() => setSaveStatus("idle"), 3000);
+            }}
+          />
+        </div>
       )}
 
       {type === "workout" && (workoutSubtype === "walk" || workoutSubtype === "other") && (
-        <ManualWorkoutLogForm
-          subtype={workoutSubtype}
-          saving={saveStatus === "saving"}
-          onSave={handleManualWorkoutSave}
-        />
+        <div className="space-y-4">
+          <SelectedDateBadge dateKey={selectedDateKey} />
+          <ManualWorkoutLogForm
+            subtype={workoutSubtype}
+            saving={saveStatus === "saving"}
+            onSave={handleManualWorkoutSave}
+            defaultDate={selectedDateKey}
+          />
+        </div>
       )}
 
       {result && type === "sleep" ? (
         <>
+          <SelectedDateBadge dateKey={selectedDateKey} />
           <ReportSavedNote saveStatus={saveStatus} />
           <SleepResultCard result={(result as { data: SleepAnalysis }).data} />
         </>
@@ -610,6 +697,7 @@ export default function UploadPage() {
           profile={profile}
           context={coachContext}
           saving={saveStatus === "saving"}
+          selectedDateKey={selectedDateKey}
           onCancel={() => { setResult(null); setSaveStatus("idle"); }}
           onSave={(meal) => void saveMeal(meal)}
         />
@@ -627,6 +715,7 @@ export default function UploadPage() {
       ) : null}
       {result && type === "workout" ? (
         <>
+          <SelectedDateBadge dateKey={selectedDateKey} />
           <ReportSavedNote saveStatus={saveStatus} />
           <WorkoutResultCard result={(result as { data: WorkoutAnalysis }).data} />
           {saveFeedback === "race_result" && (
@@ -666,6 +755,7 @@ export default function UploadPage() {
       ) : null}
       {result && type === "body" ? (
         <>
+          <SelectedDateBadge dateKey={selectedDateKey} />
           <BodyResultCard result={(result as { data: BodyCompositionAnalysis }).data} />
           <BodySaveBar saveStatus={saveStatus} saveError={bodySaveError} onSave={() => void store(result)} />
         </>
@@ -675,6 +765,7 @@ export default function UploadPage() {
           healthCheck={(result as { data: HealthCheckAnalysis }).data}
           saveStatus={saveStatus}
           saving={saveStatus === "saving"}
+          selectedDateKey={selectedDateKey}
           onCancel={() => {
             setResult(null);
             setSaveStatus("idle");
@@ -867,12 +958,14 @@ function HealthCheckReviewCard({
   healthCheck,
   saveStatus,
   saving,
+  selectedDateKey,
   onSave,
   onCancel,
 }: {
   healthCheck: HealthCheckAnalysis;
   saveStatus: "idle" | "saving" | "saved" | "error";
   saving: boolean;
+  selectedDateKey: string;
   onSave: () => void;
   onCancel: () => void;
 }) {
@@ -900,6 +993,7 @@ function HealthCheckReviewCard({
         <p className="mt-1 text-xs leading-5 text-slate-500">
           ระบบบันทึกเฉพาะค่าที่สรุปแล้ว ไม่บันทึกไฟล์ PDF ต้นฉบับหรือข้อความดิบ
         </p>
+        <SelectedDateBadge dateKey={selectedDateKey} />
       </div>
 
       <div className="rounded-2xl bg-blue-50 p-4 space-y-3">
@@ -1200,6 +1294,7 @@ function MealReviewCard({
   profile,
   context,
   saving,
+  selectedDateKey,
   onSave,
   onCancel,
 }: {
@@ -1207,6 +1302,7 @@ function MealReviewCard({
   profile: UserProfile | null;
   context: CoachContext | null;
   saving: boolean;
+  selectedDateKey: string;
   onSave: (meal: MealAnalysis) => void;
   onCancel: () => void;
 }) {
@@ -1247,6 +1343,7 @@ function MealReviewCard({
             กรอกจากข้อความ
           </span>
         ) : null}
+        <SelectedDateBadge dateKey={selectedDateKey} />
         <p className="mt-1 text-xs leading-5 text-amber-700">
           {isTextEstimate
             ? "ตัวเลขโภชนาการเป็นการประเมินคร่าว ๆ จากข้อความที่กรอก อาจคลาดเคลื่อนได้"
@@ -1540,10 +1637,6 @@ function formatHealthLabValue(lab: LabValue): string {
 
 // ── Meal slot helpers ───────────────────────────────────────────────────────
 
-function toBangkokDate(date: Date): string {
-  const bangkokMs = date.getTime() + 7 * 60 * 60 * 1000;
-  return new Date(bangkokMs).toISOString().slice(0, 10);
-}
 
 function inferMealTypeFromBangkokTime(): MealType {
   const hour = new Date(Date.now() + 7 * 60 * 60 * 1000).getUTCHours();
@@ -1607,13 +1700,15 @@ function MealSlotConflictCard({
 function ManualWorkoutLogForm({
   subtype,
   onSave,
-  saving
+  saving,
+  defaultDate
 }: {
   subtype: "walk" | "other";
   onSave: (workout: WorkoutAnalysis) => void;
   saving: boolean;
+  defaultDate: string;
 }) {
-  const [date, setDate] = useState(() => new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10));
+
   const [distance, setDistance] = useState("");
   const [duration, setDuration] = useState("");
   const [avgHR, setAvgHR] = useState("");
@@ -1639,7 +1734,7 @@ function ManualWorkoutLogForm({
     const data: WorkoutAnalysis = {
       extracted: {
         workoutKind,
-        date,
+        date: defaultDate,
         distanceKm: distance ? Number(distance) : null,
         duration: durationStr,
         avgPace: null,
@@ -1678,7 +1773,7 @@ function ManualWorkoutLogForm({
 
       <div className="space-y-1.5">
         <label className="text-xs font-bold uppercase tracking-wide text-slate-400">วันที่</label>
-        <input type="date" className="control" value={date} onChange={(e) => setDate(e.target.value)} required />
+        <input type="date" className="control" value={defaultDate} required disabled />
       </div>
 
       {subtype === "other" && (

@@ -38,13 +38,19 @@ export async function saveHistoryItems(items: LocalHistoryItem[]): Promise<{ ok:
   }
 
   const uniqueItems = dedupeHistoryItems(items);
-  const rows = uniqueItems.map((item) => ({
-    id: item.id,
-    user_id: session.userId,
-    type: item.type,
-    created_at: item.createdAt,
-    data: item.data as Record<string, unknown>,
-  }));
+  const rows = uniqueItems.map((item) => {
+    const dataObj = typeof item.data === "object" && item.data !== null ? { ...item.data } as Record<string, unknown> : {};
+    if (item.recordedAt) dataObj.recordedAt = item.recordedAt;
+    if (item.dateKey) dataObj.dateKey = item.dateKey;
+
+    return {
+      id: item.id,
+      user_id: session.userId,
+      type: item.type,
+      created_at: item.createdAt,
+      data: dataObj,
+    };
+  });
 
   logSupabaseSyncStart({ table: "history_items", operation: "upsert", userId: session.userId, count: rows.length });
   const { error } = await session.supabase.from("history_items").upsert(rows, { onConflict: "user_id,id" });
@@ -79,12 +85,19 @@ export async function loadHistoryItems(types?: HistoryType[]): Promise<{ ok: tru
     return { ok: false, error: friendlySupabaseError(error) };
   }
 
-  const items = ((data ?? []) as HistoryRow[]).map((row) => ({
-    id: row.id,
-    type: row.type,
-    createdAt: row.created_at,
-    data: row.data,
-  }));
+  const items = ((data ?? []) as HistoryRow[]).map((row) => {
+    const dataObj = row.data as Record<string, unknown> | null;
+    const recordedAt = dataObj?.recordedAt as string | undefined;
+    const dateKey = dataObj?.dateKey as string | undefined;
+    return {
+      id: row.id,
+      type: row.type,
+      createdAt: row.created_at,
+      recordedAt,
+      dateKey,
+      data: row.data,
+    };
+  });
   logSupabaseSyncSuccess({ table: "history_items", operation: "select", userId: session.userId, count: items.length });
   return { ok: true, items };
 }
@@ -119,7 +132,20 @@ export async function loadHistoryItemById(id: string): Promise<{ ok: true; item:
 
   if (error || !data) return { ok: false, error: error?.message ?? "ไม่พบข้อมูล" };
   const row = data as HistoryRow;
-  return { ok: true, item: { id: row.id, type: row.type, createdAt: row.created_at, data: row.data } };
+  const dataObj = row.data as Record<string, unknown> | null;
+  const recordedAt = dataObj?.recordedAt as string | undefined;
+  const dateKey = dataObj?.dateKey as string | undefined;
+  return {
+    ok: true,
+    item: {
+      id: row.id,
+      type: row.type,
+      createdAt: row.created_at,
+      recordedAt,
+      dateKey,
+      data: row.data,
+    },
+  };
 }
 
 function sessionMessage(session: { reason: string; message?: string }) {
@@ -146,15 +172,14 @@ export async function findMealSlotByDateAndType(
   const session = await ensureSupabaseProfileSession();
   if (!session.ok) return null;
 
+  // Query the last 50 meals for this user, ordered by created_at desc
   const { data, error } = await session.supabase
     .from("history_items")
     .select("id, type, created_at, data")
     .eq("user_id", session.userId)
     .eq("type", "meal")
-    .gte("created_at", `${localDate}T00:00:00+07:00`)
-    .lte("created_at", `${localDate}T23:59:59+07:00`)
     .order("created_at", { ascending: false })
-    .limit(20);
+    .limit(50);
 
   if (error || !data?.length) return null;
 
@@ -162,9 +187,31 @@ export async function findMealSlotByDateAndType(
     const rowData = row.data as Record<string, unknown>;
     const inner = (rowData?.data ?? rowData) as Record<string, unknown>;
     if (typeof inner?.mealType === "string" && inner.mealType === mealType) {
-      // Skip rows already marked as separate meals
       if (inner?.isSeparateMeal === true) continue;
-      return { id: row.id, type: row.type, createdAt: row.created_at, data: row.data };
+      
+      // Determine this record's dateKey
+      const dateKey = (rowData?.dateKey ?? inner?.dateKey ?? rowData?.recordedAt?.toString().slice(0, 10) ?? inner?.recordedAt?.toString().slice(0, 10));
+      if (dateKey) {
+        if (dateKey === localDate) {
+          return {
+            id: row.id,
+            type: row.type,
+            createdAt: row.created_at,
+            recordedAt: rowData?.recordedAt as string | undefined,
+            dateKey: rowData?.dateKey as string | undefined,
+            data: row.data
+          };
+        }
+      } else {
+        // Fallback: localDate from created_at (adjusted to Bangkok +07:00)
+        const d = new Date(row.created_at);
+        if (!Number.isNaN(d.getTime())) {
+          const bangkokDate = new Date(d.getTime() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
+          if (bangkokDate === localDate) {
+            return { id: row.id, type: row.type, createdAt: row.created_at, data: row.data };
+          }
+        }
+      }
     }
   }
   return null;

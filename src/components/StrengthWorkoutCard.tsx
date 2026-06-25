@@ -18,10 +18,12 @@ function formatRepsDuration(ex: StrengthExercise) {
 
 export function StrengthWorkoutCard({
   context,
-  onLogCompleted
+  onLogCompleted,
+  selectedDateKey
 }: {
   context: CoachContext | null;
   onLogCompleted: () => void;
+  selectedDateKey?: string;
 }) {
   const [routines, setRoutines] = useState<StrengthRoutine[]>([]);
   const [selectedRoutine, setSelectedRoutine] = useState<StrengthRoutine | null>(null);
@@ -104,7 +106,9 @@ export function StrengthWorkoutCard({
       exercises,
       notes: selectedRoutine.notes,
       coachReason,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      recordedAt: selectedDateKey ? `${selectedDateKey}T12:00:00+07:00` : undefined,
+      dateKey: selectedDateKey
     });
 
     setLoggingWorkout(false);

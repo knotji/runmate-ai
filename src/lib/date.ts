@@ -1,6 +1,34 @@
+export function getBangkokDateKey(dateInput?: Date | string | number): string {
+  const d = dateInput ? new Date(dateInput) : new Date();
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Bangkok",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(d);
+  const year = parts.find(p => p.type === 'year')?.value;
+  const month = parts.find(p => p.type === 'month')?.value;
+  const day = parts.find(p => p.type === 'day')?.value;
+  return `${year}-${month}-${day}`;
+}
+
+export function todayBangkokDateKey(): string {
+  return getBangkokDateKey();
+}
+
+export function yesterdayBangkokDateKey(): string {
+  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  return getBangkokDateKey(yesterday);
+}
+
+export function dateKeyToRecordedAt(dateKey: string): string {
+  return `${dateKey}T12:00:00+07:00`;
+}
+
 export function todayISO() {
   return new Date().toISOString().slice(0, 10);
 }
+
 
 export function formatThaiDate(date = new Date()) {
   return new Intl.DateTimeFormat("th-TH", {
@@ -36,6 +64,24 @@ export function formatDatetime(isoStr: string): string {
   const date = formatDate(datePart ?? "");
   const time = (timePart ?? "").slice(0, 5);
   return time ? `${date} ${time}` : date;
+}
+
+import type { LocalHistoryItem } from "./localHistory";
+
+export function getHistoryItemDateKey(item: LocalHistoryItem): string {
+  if (item.dateKey) return item.dateKey;
+  
+  const data = item.data as Record<string, unknown> | null;
+  if (data && typeof data === "object" && typeof data.dateKey === "string") {
+    return data.dateKey;
+  }
+  
+  const recordedAt = item.recordedAt || (data && typeof data === "object" ? data.recordedAt as string | null : null);
+  if (recordedAt) {
+    return getBangkokDateKey(recordedAt);
+  }
+  
+  return getBangkokDateKey(item.createdAt);
 }
 
 /** number → "0.00" style with 2 decimal places */

@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { LoadingButton } from "@/components/LoadingButton";
 import { NutritionBalanceCard } from "@/components/NutritionBalanceCard";
-import { formatThaiDate } from "@/lib/date";
+import { formatThaiDate, getHistoryItemDateKey } from "@/lib/date";
 import { buildCoachContextFromSupabase, type CoachContext, type NutritionDaySummary, type PainSummary, type TodayCompletedWorkoutSummary } from "@/lib/buildCoachContext";
 import { createHistoryItem, loadHistoryItems, saveHistoryItems } from "@/lib/cloudHistory";
 import { loadActiveRaceGoalAndPlan } from "@/lib/raceStorage";
@@ -1119,9 +1119,7 @@ function bangkokDateKey(date = new Date()): string {
 }
 
 function historyItemBangkokDate(item: LocalHistoryItem): string {
-  const date = new Date(item.createdAt);
-  if (Number.isNaN(date.getTime())) return item.createdAt.slice(0, 10);
-  return bangkokDateKey(date);
+  return getHistoryItemDateKey(item);
 }
 
 function formatSummaryGeneratedAt(value: string): string {

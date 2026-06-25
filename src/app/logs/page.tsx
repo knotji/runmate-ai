@@ -27,6 +27,7 @@ import {
 import { extractMealData, normalizeMealNutrition } from "@/lib/mealMerge";
 import { polishSleepInsightText } from "@/lib/sleepInsight";
 import { dedupeSleepItems } from "@/lib/sleepDedupe";
+import { getHistoryItemDateKey } from "@/lib/date";
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -1013,7 +1014,7 @@ type MealNutritionSummary = {
 
 function buildDashboard(items: LocalHistoryItem[]): Dashboard {
   const cutoff = dateKeyBefore(7);
-  const recent = items.filter((item) => bangkokDateKey(item.createdAt) >= cutoff);
+  const recent = items.filter((item) => getHistoryItemDateKey(item) >= cutoff);
   const runs = recent.filter((item) => item.type === "workout" && isRun(item));
   const sleeps = dedupeSleepItems(recent.filter((item) => item.type === "sleep"));
   const meals = recent.filter((item) => item.type === "meal");
@@ -1062,7 +1063,7 @@ function buildDashboard(items: LocalHistoryItem[]): Dashboard {
 function groupByDay(items: LocalHistoryItem[]): DayGroup[] {
   const map = new Map<string, LocalHistoryItem[]>();
   for (const item of items) {
-    const date = bangkokDateKey(item.createdAt);
+    const date = getHistoryItemDateKey(item);
     const list = map.get(date) ?? [];
     list.push(item);
     map.set(date, list);
@@ -1473,7 +1474,7 @@ function PainHistoryCompactList({
           <tbody className="divide-y divide-slate-50">
             {painItems.map((item) => {
               const p = item.data as PainLog;
-              const dateStr = item.createdAt.slice(0, 10);
+              const dateStr = getHistoryItemDateKey(item);
               const formattedDate = new Date(dateStr).toLocaleDateString("th-TH", {
                 day: "numeric", month: "short"
               });

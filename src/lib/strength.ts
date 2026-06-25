@@ -106,10 +106,12 @@ export async function saveRoutineToSupabase(routine: StrengthRoutine): Promise<{
   }
 }
 
-export async function logCompletedStrength(log: StrengthLog): Promise<{ ok: boolean; error?: string }> {
+export async function logCompletedStrength(log: StrengthLog & { recordedAt?: string; dateKey?: string }): Promise<{ ok: boolean; error?: string }> {
   try {
     const now = new Date().toISOString();
     const item = createHistoryItem("strength", log, log.createdAt || now);
+    if (log.recordedAt) item.recordedAt = log.recordedAt;
+    if (log.dateKey) item.dateKey = log.dateKey;
 
     if (process.env.NODE_ENV === "development") {
       console.info("[strength-routine-debug] logging completed strength session", item.id);
