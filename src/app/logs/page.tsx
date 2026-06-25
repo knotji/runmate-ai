@@ -663,6 +663,15 @@ function WorkoutDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; o
     : "ออกกำลังกาย";
 
   const hasAnyMetric = ext.distanceKm != null || ext.duration || ext.avgHR != null || ext.calories != null;
+  const isStrength = ext.workoutKind === "strength";
+
+  const muscleGroupsText = isStrength && ext.muscleGroups && ext.muscleGroups.length > 0
+    ? ext.muscleGroups.join(" · ")
+    : null;
+
+  const exercisesText = isStrength && ext.exercises && ext.exercises.length > 0
+    ? ext.exercises.slice(0, 4).map((ex) => ex.name).join(", ") + (ext.exercises.length > 4 ? ` +${ext.exercises.length - 4}` : "")
+    : null;
 
   return (
     <div className="rounded-2xl bg-slate-50 p-4">
@@ -677,6 +686,17 @@ function WorkoutDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; o
           {ext.calories != null && <Metric label="Calories" value={formatScore(ext.calories)} sub="Cal" />}
           {ext.sweatLossMl != null && <Metric label="เหงื่อ" value={formatScore(ext.sweatLossMl)} sub="ml" />}
         </div>
+      )}
+      {/* Strength-specific info */}
+      {muscleGroupsText && (
+        <p className="text-xs text-slate-500 mb-1">
+          <span className="font-semibold">กล้ามเนื้อหลัก:</span> {muscleGroupsText}
+        </p>
+      )}
+      {exercisesText && (
+        <p className="text-xs text-slate-500 mb-2">
+          <span className="font-semibold">ท่า:</span> {exercisesText}
+        </p>
       )}
       {coach.workoutSummary && (
         <p className="text-sm leading-6 text-slate-700">{truncate(formatSummaryText(coach.workoutSummary), 160)}</p>

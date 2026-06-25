@@ -9,11 +9,20 @@ import { createHistoryItem, saveHistoryItems } from "@/lib/cloudHistory";
 import type { DailySummary, PostRunAnalysis, WorkoutAnalysis } from "@/types/logs";
 
 export function PostRunAnalysisCard({ workout }: { workout: WorkoutAnalysis }) {
+  const { workoutKind } = workout.extracted;
+
   const [analysis, setAnalysis] = useState<PostRunAnalysis | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
+
+  // Post-run analysis is only relevant for running workouts
+  if (workoutKind !== "outdoor_run" && workoutKind !== "treadmill") {
+    return null;
+  }
+
+
 
   async function analyze() {
     setLoading(true);

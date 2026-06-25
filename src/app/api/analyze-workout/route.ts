@@ -81,10 +81,12 @@ function normalizeReadQuality(data: WorkoutAnalysis): WorkoutAnalysis {
 
 function normalizeWorkoutExtraction(data: WorkoutAnalysis, imageCount: number): WorkoutAnalysis {
   const ext = data.extracted;
+  const isStrength = ext.workoutKind === "strength";
   let { avgPace } = ext;
 
   // Derive average pace from distance + duration when AI left it null
-  if (!avgPace && ext.distanceKm && ext.distanceKm > 0 && ext.duration) {
+  // Skip for strength workouts — distance/pace are intentionally absent
+  if (!isStrength && !avgPace && ext.distanceKm && ext.distanceKm > 0 && ext.duration) {
     const totalMin = parseDurationToMinutes(ext.duration);
     if (totalMin && totalMin > 0) {
       const paceMinPerKm = totalMin / ext.distanceKm;
@@ -94,7 +96,7 @@ function normalizeWorkoutExtraction(data: WorkoutAnalysis, imageCount: number): 
     }
   }
 
-  const unclearFields = recomputeUnclearFields(data.unclearFields ?? [], ext, avgPace);
+  const unclearFields = recomputeUnclearFields(data.unclearFields ?? [], ext, avgPace, isStrength);
 
   return {
     ...data,
@@ -107,13 +109,24 @@ function normalizeWorkoutExtraction(data: WorkoutAnalysis, imageCount: number): 
   };
 }
 
-function recomputeUnclearFields(existing: string[], ext: WorkoutAnalysis["extracted"], avgPace: string | null): string[] {
+function recomputeUnclearFields(
+  existing: string[],
+  ext: WorkoutAnalysis["extracted"],
+  avgPace: string | null,
+  isStrength = false,
+): string[] {
   const cleared = new Set<string>();
   if (ext.distanceKm != null) cleared.add("distanceKm");
   if (ext.duration) cleared.add("duration");
   if (ext.avgHR != null) cleared.add("avgHR");
   if (avgPace) cleared.add("avgPace");
   if (ext.date) cleared.add("date");
+  // For strength workouts, distance and pace are intentionally absent — remove them from unclear list
+  if (isStrength) {
+    cleared.add("distanceKm");
+    cleared.add("avgPace");
+    cleared.add("avgSpeedKmh");
+  }
   return existing.filter((field) => !cleared.has(field));
 }
 

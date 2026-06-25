@@ -161,6 +161,11 @@ export type WorkoutAnalysis = {
     sweatLossMl: number | null;
     visibleMetrics: string[];
     mergedFromMultipleImages?: boolean;
+    // Strength-specific fields (optional — null/undefined for running)
+    exercises?: { name: string; sets?: number | null; reps?: string | null; weightKg?: number | null }[] | null;
+    muscleGroups?: string[] | null;
+    intensity?: "easy" | "moderate" | "hard" | null;
+    rpe?: number | null;
   };
   coach: {
     workoutSummary: string;

@@ -214,6 +214,7 @@ export default function UploadPage() {
     newMeal: MealAnalysis;
   } | null>(null);
   const [workoutSubtype, setWorkoutSubtype] = useState<WorkoutSubtype>("run");
+  const [strengthInputMode, setStrengthInputMode] = useState<"image" | "manual">("image");
   const [mealInputMode, setMealInputMode] = useState<MealInputMode>("image");
   const [manualMealText, setManualMealText] = useState("");
   const [manualMealNote, setManualMealNote] = useState("");
@@ -567,6 +568,7 @@ export default function UploadPage() {
   function selectUploadType(nextType: UploadType) {
     setType(nextType);
     setWorkoutSubtype("run");
+    setStrengthInputMode("image");
     if (nextType !== "meal") setMealInputMode("image");
     setResult(null);
     setSaveStatus("idle");
@@ -744,22 +746,47 @@ export default function UploadPage() {
           </div>
         )}
         {type === "workout" && (
-          <div className="flex flex-wrap gap-1.5">
-            {(["run", "strength", "walk", "other"] as const).map((sub) => (
-              <button
-                key={sub}
-                type="button"
-                onClick={() => {
-                  setWorkoutSubtype(sub);
-                  setResult(null);
-                  setSaveStatus("idle");
-                  setSaveFeedback("");
-                }}
-                className={`rounded-full px-3 py-1.5 text-sm font-semibold transition-colors ${workoutSubtype === sub ? "bg-[var(--primary)] text-white" : "bg-[var(--surface-muted)] text-[var(--muted-text)] hover:bg-[var(--primary-soft)]"}`}
-              >
-                {sub === "run" ? "วิ่ง" : sub === "strength" ? "เวท" : sub === "walk" ? "เดิน" : "อื่น ๆ"}
-              </button>
-            ))}
+          <div className="space-y-2">
+            <div className="flex flex-wrap gap-1.5">
+              {(["run", "strength", "walk", "other"] as const).map((sub) => (
+                <button
+                  key={sub}
+                  type="button"
+                  onClick={() => {
+                    setWorkoutSubtype(sub);
+                    setStrengthInputMode("image");
+                    setResult(null);
+                    setSaveStatus("idle");
+                    setSaveFeedback("");
+                  }}
+                  className={`rounded-full px-3 py-1.5 text-sm font-semibold transition-colors ${workoutSubtype === sub ? "bg-[var(--primary)] text-white" : "bg-[var(--surface-muted)] text-[var(--muted-text)] hover:bg-[var(--primary-soft)]"}`}
+                >
+                  {sub === "run" ? "วิ่ง" : sub === "strength" ? "เวท" : sub === "walk" ? "เดิน" : "อื่น ๆ"}
+                </button>
+              ))}
+            </div>
+            {/* Strength: image upload vs manual routine tabs */}
+            {workoutSubtype === "strength" && (
+              <div className="grid grid-cols-2 rounded-2xl bg-[var(--surface-muted)] p-1">
+                {(["image", "manual"] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => {
+                      setStrengthInputMode(mode);
+                      setResult(null);
+                      setSaveStatus("idle");
+                      setSaveFeedback("");
+                    }}
+                    className={`rounded-xl px-3 py-2 text-sm font-bold transition-colors ${
+                      strengthInputMode === mode ? "bg-white text-[#17201d] shadow-sm" : "text-[var(--muted-text)]"
+                    }`}
+                  >
+                    {mode === "image" ? "🖼️ อัปโหลดรูป" : "📝 บันทึกด้วยตัวเอง"}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
         {type === "meal" && mealInputMode === "text" ? (
@@ -782,20 +809,29 @@ export default function UploadPage() {
             }}
           />
         ) : null}
-        {!(type === "workout" && (workoutSubtype === "strength" || workoutSubtype === "walk" || workoutSubtype === "other")) && !(type === "meal" && mealInputMode === "text") && type !== "health_check" ? (
+        {/* Image uploader: show for all types EXCEPT walk/other workout manual, manual meal, health_check, and strength-manual mode */}
+        {!(type === "workout" && (workoutSubtype === "walk" || workoutSubtype === "other")) &&
+         !(type === "workout" && workoutSubtype === "strength" && strengthInputMode === "manual") &&
+         !(type === "meal" && mealInputMode === "text") &&
+         type !== "health_check" ? (
           <>
             <ImageUploader
-              key={type + (type === "workout" ? `-${workoutSubtype}` : "")}
+              key={type + (type === "workout" ? `-${workoutSubtype}-${strengthInputMode}` : "")}
               kind={type}
               endpoint={endpoint}
               maxFiles={type === "meal" ? 1 : type === "sleep" ? 3 : 4}
-              extraFields={{ ...(type === "meal" ? { mealType } : {}), profile, context: coachContext }}
+              extraFields={{
+                ...(type === "meal" ? { mealType } : {}),
+                ...(type === "workout" ? { workoutSubtype } : {}),
+                profile,
+                context: coachContext,
+              }}
               onResult={handleAnalysisResult}
             />
             {saveStatus === "saving" && <p className="text-xs font-semibold text-slate-500">กำลังบันทึก...</p>}
             {saveStatus === "saved" && <p className="text-xs font-semibold text-[var(--status-ready)]">บันทึกเข้า Report แล้ว</p>}
             {saveStatus === "error" && <p className="text-xs font-semibold text-[var(--status-rest)]">บันทึกไม่สำเร็จ กรุณาลองใหม่</p>}
-            {!result && saveStatus !== "saving" && <UploadEmptyGuide type={type} />}
+            {!result && saveStatus !== "saving" && <UploadEmptyGuide type={type} workoutSubtype={workoutSubtype === "strength" ? "strength" : undefined} />}
           </>
         ) : null}
       </section>
@@ -832,7 +868,8 @@ export default function UploadPage() {
         </div>
       )}
 
-      {type === "workout" && workoutSubtype === "strength" && (
+      {/* Strength manual routine flow */}
+      {type === "workout" && workoutSubtype === "strength" && strengthInputMode === "manual" && (
         <div className="space-y-4">
           <SelectedDateBadge dateKey={selectedDateKey} />
           <StrengthWorkoutCard
@@ -963,7 +1000,7 @@ export default function UploadPage() {
   );
 }
 
-function UploadEmptyGuide({ type }: { type: UploadType }) {
+function UploadEmptyGuide({ type, workoutSubtype }: { type: UploadType; workoutSubtype?: "strength" }) {
   if (type === "health_check") {
     return (
       <div className="rounded-2xl bg-slate-50/80 px-4 py-3 text-sm text-slate-600">
@@ -997,6 +1034,24 @@ function UploadEmptyGuide({ type }: { type: UploadType }) {
       </div>
     );
   }
+  if (type === "workout" && workoutSubtype === "strength") {
+    return (
+      <div className="rounded-2xl bg-slate-50/80 px-4 py-3 text-sm text-slate-600">
+        <p className="font-bold text-[#17201d]">🏋️ อัปโหลดรูปผลเวทเทรนนิ่ง</p>
+        <p className="mt-1 text-xs leading-5 text-slate-500">
+          AI จะอ่านข้อมูลจากรูป เช่น ระยะเวลา แคลอรี่ HR และท่าออกกำลังกาย (ถ้ามี)
+        </p>
+        <div className="mt-2 space-y-1.5 text-xs leading-5">
+          <p><span className="font-semibold text-slate-700">รูปสรุป Strength session</span> — Garmin, Apple Watch, Polar</p>
+          <p><span className="font-semibold text-slate-700">รูป Gym app</span> — Strong, Hevy, Fitbod หรือแอปอื่น ๆ</p>
+          <p><span className="font-semibold text-slate-700">รูปสรุปทั่วไป</span> — ระยะเวลา / แคลอรี่ / HR ก็เพียงพอ</p>
+        </div>
+        <p className="mt-2 text-xs leading-5 text-slate-400">
+          🛡️ ไม่จำเป็นต้องมีระยะทางหรือ pace — บันทึกเฉพาะ structured data ไม่บันทึกรูปต้นฉบับ
+        </p>
+      </div>
+    );
+  }
   return (
     <div className="rounded-2xl bg-slate-50/80 px-4 py-3 text-sm text-slate-600">
       <p className="font-bold text-[#17201d]">ลองอัปโหลดเพื่อสร้าง Report</p>
@@ -1009,6 +1064,7 @@ function UploadEmptyGuide({ type }: { type: UploadType }) {
     </div>
   );
 }
+
 
 function ReportSavedNote({ saveStatus }: { saveStatus: "idle" | "saving" | "saved" | "error" }) {
   return (
