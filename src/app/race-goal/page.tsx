@@ -177,7 +177,7 @@ function LatestRacePrompt({ result }: { result: RaceResult }) {
 function PlanAtGlance({ plan, freshness }: { plan: RacePlan; freshness: PlanFreshness | null }) {
   return (
     <section className="card p-5">
-      <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#6f8fa6]">Plan at a glance</p>
+      <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#6f8fa6]">ภาพรวมแผน</p>
       <div className="mt-4 grid grid-cols-3 gap-2">
         <MiniMetric label="เหลือ" value={plan.weeksRemaining != null ? `${plan.weeksRemaining} wk` : `${plan.totalWeeks} wk`} />
         <MiniMetric label="เริ่มแผน" value={formatShortDate(plan.planStartDate)} />
@@ -230,13 +230,13 @@ function TodayWorkoutCard({ workout }: { workout: WeekWorkout }) {
       <p className="mt-4 text-sm leading-6 text-slate-700">{workout.description}</p>
       <div className="mt-4 grid grid-cols-2 gap-2">
         <MiniMetric label="Pace" value={safeValue(workout.targetPace)} />
-        <MiniMetric label="HR / Effort" value={safeValue(workout.targetHR)} />
+        <MiniMetric label="HR / ความหนัก" value={safeValue(workout.targetHR)} />
       </div>
       {isStrengthType(workout.workoutType) && (
-        <InfoLine label="Routine" value={suggestStrengthRoutine(workout.workoutType, workout.purpose, workout.adjustment)} />
+        <InfoLine label="รูทีน" value={suggestStrengthRoutine(workout.workoutType, workout.purpose, workout.adjustment)} />
       )}
-      {workout.purpose ? <InfoLine label="ทำไปเพื่อ" value={workout.purpose} /> : null}
-      {workout.adjustment ? <InfoLine label="ปรับยังไง" value={workout.adjustment} /> : null}
+      {workout.purpose ? <InfoLine label="เป้าหมาย" value={workout.purpose} /> : null}
+      {workout.adjustment ? <InfoLine label="ปรับตามสภาพ" value={workout.adjustment} /> : null}
     </section>
   );
 }
@@ -244,7 +244,7 @@ function TodayWorkoutCard({ workout }: { workout: WeekWorkout }) {
 function ActionableWeekCard({ workouts }: { workouts: WeekWorkout[] }) {
   return (
     <section className="card p-5">
-      <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#6f8fa6]">This week</p>
+      <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#6f8fa6]">แผนสัปดาห์นี้</p>
       <h2 className="mt-2 text-xl font-bold text-[#17201d]">แผน 7 วันแบบลงมือทำได้</h2>
       <div className="mt-4 space-y-3">
         {workouts.map((workout, index) => (
@@ -261,13 +261,13 @@ function ActionableWeekCard({ workouts }: { workouts: WeekWorkout[] }) {
             <p className="mt-3 text-sm leading-6 text-slate-600">{workout.description}</p>
             <div className="mt-3 grid grid-cols-2 gap-2">
               <MiniMetric label="Pace" value={safeValue(workout.targetPace)} />
-              <MiniMetric label="HR / Effort" value={safeValue(workout.targetHR)} />
+              <MiniMetric label="HR / ความหนัก" value={safeValue(workout.targetHR)} />
             </div>
             {isStrengthType(workout.workoutType) && (
-              <InfoLine label="Routine" value={suggestStrengthRoutine(workout.workoutType, workout.purpose, workout.adjustment)} />
+              <InfoLine label="รูทีน" value={suggestStrengthRoutine(workout.workoutType, workout.purpose, workout.adjustment)} />
             )}
-            {workout.purpose ? <InfoLine label="Purpose" value={workout.purpose} /> : null}
-            {workout.adjustment ? <InfoLine label="Adjustment" value={workout.adjustment} /> : null}
+            {workout.purpose ? <InfoLine label="เป้าหมาย" value={workout.purpose} /> : null}
+            {workout.adjustment ? <InfoLine label="ปรับตามสภาพ" value={workout.adjustment} /> : null}
           </div>
         ))}
       </div>
@@ -279,7 +279,7 @@ function CompletedRaceSection({ results }: { results: RaceResult[] }) {
   return (
     <section className="card space-y-3 p-5">
       <div>
-        <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#6f8fa6]">Race History</p>
+        <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#6f8fa6]">ประวัติการแข่ง</p>
         <h2 className="mt-2 text-xl font-bold text-[#17201d]">รายการแข่งที่บันทึกแล้ว</h2>
       </div>
       <div className="space-y-3">
@@ -295,7 +295,7 @@ function CompletedRaceSection({ results }: { results: RaceResult[] }) {
               </span>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-2">
-              <MiniMetric label="Time" value={result.actualTime ?? "-"} />
+              <MiniMetric label="เวลา" value={result.actualTime ?? "-"} />
               <MiniMetric label="Pace" value={result.actualPace ? `${result.actualPace}/km` : "-"} />
             </div>
             {result.coachSummary ? <p className="mt-3 text-sm leading-6 text-slate-700">{result.coachSummary}</p> : null}

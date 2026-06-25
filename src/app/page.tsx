@@ -341,7 +341,7 @@ function PreWorkoutFocusContent({ insight, hasPace, context }: { insight: DailyC
     <div>
       {context?.racePlan ? (
         <p className="mb-2 text-xs font-semibold leading-5 text-[#42677f]">
-          Race คือแผนหลัก · คำแนะนำวันนี้ปรับตามการนอน recovery และอาการล่าสุด
+          แผนหลักมาจาก Race แต่วันนี้ปรับตามสภาพร่างกายล่าสุด
         </p>
       ) : null}
       <h2 className="line-clamp-2 text-2xl font-bold text-[#17201d]">{insight.workoutRec}</h2>

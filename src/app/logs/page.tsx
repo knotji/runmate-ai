@@ -167,7 +167,7 @@ export default function ReportPage() {
       ) : (
         <>
           <section className="rounded-3xl border border-slate-100 bg-white/70 px-4 py-3 text-xs leading-5 text-slate-500 shadow-sm">
-            Report คือประวัติจริงจาก Upload และการบันทึกกิจกรรม ส่วนข้อความใน Coach Chat จะไม่ถูกเพิ่มเข้าหน้านี้อัตโนมัติ
+            Report คือข้อมูลจริงจาก Upload และการบันทึก ส่วนแชทกับโค้ชจะไม่ถูกเพิ่มเข้าหน้านี้อัตโนมัติ
           </section>
           <WeeklyDashboard dashboard={dashboard} proteinTarget={pTarget} />
           {deleteStatus ? (

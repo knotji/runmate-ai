@@ -320,20 +320,43 @@ function ContextBlock({ title, children }: { title: string; children: React.Reac
 }
 
 function buildSourceSummary(context: CoachContext) {
-  const parts = [
-    context.avgReadiness != null && `Readiness ${context.avgReadiness}`,
-    (context.latestPain || context.recentPainLogs.length > 0) && `เจ็บ ${(context.latestPain ?? context.recentPainLogs[0]).painLocation} ${(context.latestPain ?? context.recentPainLogs[0]).painLevel}/10`,
-    context.runDays7d > 0 && `วิ่ง ${context.runDays7d} วันใน 7 วันล่าสุด`,
-    context.sleepAvg7dText && `Sleep ${context.sleepAvg7dText} / ${context.sleepNightCount7d} คืน`,
-    context.nutritionToday && `อาหารวันนี้ ${context.nutritionToday.mealCount} มื้อ`,
-    context.raceGoal && (
-      [context.raceName, context.raceDistance, context.daysUntilRace != null ? `อีก ${context.daysUntilRace} วัน` : null]
-        .filter(Boolean).join(" · ") || "Race Goal active"
-    ),
-  ].filter(Boolean);
+  const items: string[] = [];
 
-  return parts.length
-    ? parts.join(", ")
+  if (context.avgReadiness != null) {
+    items.push(`Readiness ${context.avgReadiness}`);
+  }
+
+  if (context.sleepAvg7dText) {
+    items.push(`Sleep ${context.sleepAvg7dText}`);
+  }
+
+  if (context.activePain) {
+    const latestPain = context.latestPain ?? context.recentPainLogs[0];
+    if (latestPain) {
+      items.push(`เจ็บ${latestPain.painLocation} ${latestPain.painLevel}/10`);
+    }
+  } else if (context.painResolved) {
+    const latestPain = context.latestPain ?? context.recentPainLogs[0];
+    const loc = latestPain?.painLocation;
+    items.push(loc && loc !== "ไม่ระบุ" ? `เจ็บ${loc}หายแล้ว` : "หายเจ็บแล้ว");
+  }
+
+  if (context.raceGoal && context.daysUntilRace != null) {
+    items.push(`แข่งอีก ${context.daysUntilRace} วัน`);
+  }
+
+  if (context.runDays7d > 0) {
+    items.push(`วิ่ง ${context.runDays7d} วันใน 7 วันล่าสุด`);
+  }
+
+  if (context.nutritionToday) {
+    items.push(`อาหารวันนี้ ${context.nutritionToday.mealCount} มื้อ`);
+  }
+
+  const finalItems = items.slice(0, 4);
+
+  return finalItems.length
+    ? finalItems.join(" · ")
     : "โค้ชยังมีข้อมูลน้อย ลอง Upload ผลวิ่ง อาหาร หรือ Sleep score เพื่อให้คำแนะนำแม่นขึ้น";
 }
 

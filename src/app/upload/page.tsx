@@ -477,7 +477,7 @@ export default function UploadPage() {
     <AppShell title="เพิ่มข้อมูล" subtitle="อัปโหลดหรือลงบันทึก เพื่อให้โค้ชเข้าใจวันนี้มากขึ้น">
       <section className="card space-y-3 p-5">
         <p className="text-xs leading-5 text-slate-500">
-          เมื่อวิเคราะห์และกดบันทึก ข้อมูลจะเข้า Report และถูกใช้เป็นบริบทให้ Coach Chat
+          เมื่อวิเคราะห์และกดบันทึก ข้อมูลจะเข้า Report เพื่อให้โค้ชตอบได้แม่นขึ้น
         </p>
         <div className="grid grid-cols-5 gap-2">
           {(["sleep", "meal", "workout", "body", "health_check"] as UploadType[]).map((item) => (
@@ -723,7 +723,7 @@ function UploadEmptyGuide({ type }: { type: UploadType }) {
   return (
     <div className="rounded-2xl bg-slate-50/80 px-4 py-3 text-sm text-slate-600">
       <p className="font-bold text-[#17201d]">ลองอัปโหลดเพื่อสร้าง Report</p>
-      <p className="mt-1 text-xs leading-5 text-slate-500">รายการที่บันทึกไว้จะช่วยให้โค้ชตอบได้แม่นขึ้นใน Coach Chat</p>
+      <p className="mt-1 text-xs leading-5 text-slate-500">รายการที่บันทึกไว้จะช่วยให้โค้ชตอบได้แม่นขึ้นเมื่อคุยกับโค้ช</p>
       <div className="mt-2 space-y-1.5 text-xs leading-5">
         <p><span className="font-semibold text-slate-700">รูปอาหาร</span> — กินได้มั้ย / ก่อนวิ่งได้ไหม</p>
         <p><span className="font-semibold text-slate-700">รูปผลวิ่ง</span> — HR สูงไปไหม / รอบหน้าซ้อมอะไร</p>
