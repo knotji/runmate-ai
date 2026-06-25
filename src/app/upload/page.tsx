@@ -974,6 +974,25 @@ export default function UploadPage() {
             />
           ) : null}
           {!raceMatch && <PostRunAnalysisCard workout={(result as { data: WorkoutAnalysis }).data} />}
+          {!raceMatch && !saveFeedback && saveStatus !== "saved" && (
+            <div className="card p-5 space-y-2 mt-4">
+              <LoadingButton
+                type="button"
+                loading={saveStatus === "saving"}
+                loadingText="กำลังบันทึก..."
+                disabled={isWorkoutSaveDisabled((result as { data: WorkoutAnalysis }).data, saveStatus)}
+                onClick={() => void saveWorkoutOnly((result as { data: WorkoutAnalysis }).data)}
+                className="btn-primary w-full py-3 text-sm disabled:opacity-60"
+              >
+                {getWorkoutSaveBtnLabel((result as { data: WorkoutAnalysis }).data.extracted?.workoutKind)}
+              </LoadingButton>
+              {saveStatus === "error" && (
+                <p className="text-center text-xs font-semibold text-[var(--status-rest)]">
+                  บันทึกไม่สำเร็จ กรุณาลองใหม่
+                </p>
+              )}
+            </div>
+          )}
         </>
       ) : null}
       {result && type === "body" ? (
@@ -1077,6 +1096,28 @@ function ReportSavedNote({ saveStatus }: { saveStatus: "idle" | "saving" | "save
       <span> ข้อมูลนี้ถูกบันทึกเป็น structured data เท่านั้น รูปต้นฉบับไม่ถูกเก็บถาวร</span>
     </section>
   );
+}
+
+function getWorkoutSaveBtnLabel(kind?: string | null): string {
+  if (kind === "strength") return "บันทึกเวทลง Report";
+  if (kind === "outdoor_run" || kind === "treadmill") return "บันทึกผลวิ่งลง Report";
+  return "บันทึกลง Report";
+}
+
+function isWorkoutSaveDisabled(workout: WorkoutAnalysis, saveStatus: string): boolean {
+  if (saveStatus === "saving") return true;
+  const ext = workout.extracted;
+  if (!ext) return true;
+  if (ext.workoutKind === "strength") {
+    const hasDuration = !!ext.duration;
+    const hasTitle = !!workout.coach?.workoutSummary;
+    const hasCalories = ext.calories != null && ext.calories > 0;
+    const hasAvgHR = ext.avgHR != null && ext.avgHR > 0;
+    const hasExercises = Array.isArray(ext.exercises) && ext.exercises.length > 0;
+    const hasMuscleGroups = Array.isArray(ext.muscleGroups) && ext.muscleGroups.length > 0;
+    return !(hasDuration || hasTitle || hasCalories || hasAvgHR || hasExercises || hasMuscleGroups);
+  }
+  return false;
 }
 
 function HealthCheckUploader({
