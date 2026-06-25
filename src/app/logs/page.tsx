@@ -28,6 +28,7 @@ import { extractMealData, normalizeMealNutrition } from "@/lib/mealMerge";
 import { polishSleepInsightText } from "@/lib/sleepInsight";
 import { dedupeSleepItems } from "@/lib/sleepDedupe";
 import { getHistoryItemDateKey } from "@/lib/date";
+import { normalizeMealSlot, getMealSlotLabel, getMealSlotIcon, getMealSlotOrder } from "@/lib/mealSlots";
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -293,55 +294,7 @@ function parseNutritionValue(val: unknown): number | null {
   return null;
 }
 
-function getMealGroup(item: LocalHistoryItem): 'breakfast' | 'lunch' | 'dinner' | 'snack' | 'other' {
-  const d = extractMealData(item);
-  const slot = (d.mealType || "").toLowerCase().trim();
-  
-  if (!slot) {
-    const foodNames = d.detectedFoods?.map((food) => food.name).filter(Boolean).join(" ").toLowerCase() || "";
-    const mealText = (d.originalMealText || "").toLowerCase();
-    const note = (d.note || "").toLowerCase();
-    const combinedText = `${foodNames} ${mealText} ${note}`;
-    
-    if (combinedText.includes("มื้อเช้า") || combinedText.includes("เช้า") || combinedText.includes("breakfast") || combinedText.includes("morning")) {
-      return "breakfast";
-    }
-    if (combinedText.includes("มื้อกลางวัน") || combinedText.includes("กลางวัน") || combinedText.includes("เที่ยง") || combinedText.includes("lunch") || combinedText.includes("noon")) {
-      return "lunch";
-    }
-    if (combinedText.includes("มื้อเย็น") || combinedText.includes("เย็น") || combinedText.includes("ค่ำ") || combinedText.includes("dinner") || combinedText.includes("evening")) {
-      return "dinner";
-    }
-    if (combinedText.includes("ของว่าง") || combinedText.includes("ขนม") || combinedText.includes("เครื่องดื่ม") || combinedText.includes("snack")) {
-      return "snack";
-    }
-    return "other";
-  }
 
-  if (slot.includes("breakfast") || slot.includes("morning") || slot.includes("เช้า") || slot.includes("มื้อเช้า")) {
-    return "breakfast";
-  }
-  if (slot.includes("lunch") || slot.includes("noon") || slot.includes("afternoon") || slot.includes("กลางวัน") || slot.includes("เที่ยง") || slot.includes("มื้อกลางวัน")) {
-    return "lunch";
-  }
-  if (slot.includes("dinner") || slot.includes("evening") || slot.includes("เย็น") || slot.includes("ค่ำ") || slot.includes("มื้อเย็น")) {
-    return "dinner";
-  }
-  if (slot.includes("snack") || slot.includes("ของว่าง") || slot.includes("ขนม") || slot.includes("เครื่องดื่ม") || slot.includes("pre-run") || slot.includes("post-run")) {
-    return "snack";
-  }
-  return "other";
-}
-
-function getMealSlotLabel(group: 'breakfast' | 'lunch' | 'dinner' | 'snack' | 'other'): string {
-  switch (group) {
-    case 'breakfast': return 'มื้อเช้า';
-    case 'lunch': return 'มื้อกลางวัน';
-    case 'dinner': return 'มื้อเย็น';
-    case 'snack': return 'ของว่าง';
-    default: return 'อื่น ๆ';
-  }
-}
 
 function extractRawNutrition(item: LocalHistoryItem) {
   const d = extractMealData(item);
@@ -444,12 +397,14 @@ function DayCard({
     { key: "other", label: "อื่น ๆ", icon: "🍽️" },
   ] as const;
   const groupedMeals = MEAL_GROUPS.map((group) => {
-    const groupMeals = meals.filter((meal) => getMealGroup(meal) === group.key);
+    const groupMeals = meals.filter((meal) => normalizeMealSlot(meal, meal.recordedAt || meal.createdAt) === group.key);
     return {
       ...group,
       meals: groupMeals,
     };
-  }).filter((group) => group.meals.length > 0);
+  })
+  .filter((group) => group.meals.length > 0)
+  .sort((a, b) => getMealSlotOrder(a.key) - getMealSlotOrder(b.key));
   const summaries = day.items.filter((i) => i.type === "summary");
   const bodies = day.items.filter((i) => i.type === "body");
   const healthChecks = day.items.filter((i) => i.type === "health_check");
@@ -691,10 +646,14 @@ function MealDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; onDe
   const note = d.trainingFit?.coachNote ?? d.coachNote ?? d?.coach?.aiSummary ?? d?.coach?.suggestion ?? "";
   const imageCount = d.imageCount ?? d.entries?.length ?? 1;
 
+  const normalizedSlot = normalizeMealSlot(item, item.recordedAt || item.createdAt);
+  const icon = getMealSlotIcon(normalizedSlot);
+  const label = getMealSlotLabel(normalizedSlot);
+
   return (
     <div className="rounded-2xl bg-orange-50 p-4">
       <div className="flex items-center gap-1.5 mb-1">
-        <p className="text-xs font-bold uppercase tracking-wide text-orange-600">🍱 {getMealSlotLabel(getMealGroup(item))}</p>
+        <p className="text-xs font-bold uppercase tracking-wide text-orange-600">{icon} {label}</p>
         {imageCount > 1 && (
           <span className="rounded-full bg-orange-200 px-2 py-0.5 text-[10px] font-bold text-orange-700">{imageCount} รูป</span>
         )}

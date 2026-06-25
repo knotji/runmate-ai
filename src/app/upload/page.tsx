@@ -8,6 +8,7 @@ import { SleepResultCard } from "@/components/SleepResultCard";
 import { WorkoutResultCard } from "@/components/WorkoutResultCard";
 import { BodyResultCard } from "@/components/BodyResultCard";
 import { DataQualityNote } from "@/components/DataQualityNote";
+import { normalizeMealSlot, getMealSlotLabel, getMealSlotIcon, type MealSlot } from "@/lib/mealSlots";
 import { PostRunAnalysisCard } from "@/components/PostRunAnalysisCard";
 import { StrengthWorkoutCard } from "@/components/StrengthWorkoutCard";
 import { LoadingButton } from "@/components/LoadingButton";
@@ -376,6 +377,7 @@ export default function UploadPage() {
 
     const existingMeal = extractMealData(existing);
     const updatedMeal = action === "merge" ? buildMergedMeal(existingMeal, newMeal) : newMeal;
+    updatedMeal.mealSlot = normalizeMealSlot(updatedMeal.mealType);
 
     // Store as direct MealAnalysis — same shape as initial save, so report page reads it correctly.
     const updatedItem = {
@@ -1310,6 +1312,7 @@ function MealReviewCard({
   const foodText = meal.detectedFoods.map((food) => food.name).join(", ");
   const cannotEstimateNutrition = meal.detectedFoods.length > 0 && !hasAnyNutrition(meal);
   const isTextEstimate = meal.inputMode === "text";
+  const currentSlot = meal.mealSlot || normalizeMealSlot(meal.mealType || "meal", meal.createdAt || selectedDateKey);
 
   function updateNutrition(key: keyof MealAnalysis["nutrition"], value: string) {
     const numberValue = value === "" ? null : Number(value);
@@ -1343,6 +1346,38 @@ function MealReviewCard({
           </span>
         ) : null}
         <SelectedDateBadge dateKey={selectedDateKey} />
+
+        {/* ช่วงเวลาของมื้อนี้ */}
+        <div className="space-y-1.5 my-3">
+          <span className="text-[11px] font-bold uppercase tracking-wide text-slate-400">ช่วงเวลาของมื้อนี้</span>
+          <div className="flex flex-wrap gap-1.5">
+            {(["breakfast", "lunch", "dinner", "snack", "other"] as MealSlot[]).map((slot) => {
+              const label = getMealSlotLabel(slot);
+              const icon = getMealSlotIcon(slot);
+              const isSelected = currentSlot === slot;
+              return (
+                <button
+                  key={slot}
+                  type="button"
+                  onClick={() => {
+                    setMeal((current) => ({
+                      ...current,
+                      mealSlot: slot,
+                      mealType: label,
+                    }));
+                  }}
+                  className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors flex items-center gap-1 ${
+                    isSelected
+                      ? "bg-[var(--primary)] text-white shadow-sm font-bold"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  }`}
+                >
+                  <span>{icon}</span> <span>{label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
         <p className="mt-1 text-xs leading-5 text-amber-700">
           {isTextEstimate
             ? "ตัวเลขโภชนาการเป็นการประเมินคร่าว ๆ จากข้อความที่กรอก อาจคลาดเคลื่อนได้"
@@ -1352,18 +1387,6 @@ function MealReviewCard({
 
       {editing ? (
         <div className="space-y-3">
-          <div className="flex flex-wrap gap-1.5">
-            {(["breakfast", "lunch", "dinner", "snack", "pre-run", "post-run"] as const).map((m) => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => setMeal((current) => ({ ...current, mealType: m }))}
-                className={`rounded-full px-3 py-1.5 text-sm font-semibold transition-colors ${meal.mealType === m ? "bg-[var(--primary)] text-white" : "bg-[var(--surface-muted)] text-[var(--muted-text)] hover:bg-[var(--primary-soft)]"}`}
-              >
-                {MEAL_TYPE_LABELS[m]}
-              </button>
-            ))}
-          </div>
           <input className="control" value={foodText} onChange={(event) => updateFoods(event.target.value)} placeholder="อาหารที่พบ เช่น ข้าว, ไข่, ไก่" />
           <div className="grid grid-cols-2 gap-2">
             <NutritionInput label="Calories" placeholder="เช่น 550" value={meal.nutrition.caloriesKcal} range={meal.nutritionRange?.caloriesKcal} unit="kcal" onChange={(value) => updateNutrition("caloriesKcal", value)} />
@@ -1434,7 +1457,9 @@ function MealReviewSummary({ meal, profile, context }: { meal: MealAnalysis; pro
   return (
     <div className="space-y-3 rounded-2xl bg-slate-50 p-4">
       <div>
-        <p className="text-xs font-semibold text-slate-400">{meal.mealType}</p>
+        <p className="text-xs font-semibold text-slate-400">
+          {getMealSlotLabel(meal.mealSlot || normalizeMealSlot(meal.mealType, meal.createdAt))}
+        </p>
         <p className="text-lg font-bold text-[#17201d]">{foods}</p>
         {isTextEstimate && meal.originalMealText ? (
           <p className="mt-1 text-xs leading-5 text-slate-500">จากข้อความ: {meal.originalMealText}</p>
@@ -1552,6 +1577,7 @@ function normalizeMealAnalysis(meal: MealAnalysis): MealAnalysis {
   };
   return {
     mealType: meal.mealType || "meal",
+    mealSlot: normalizeMealSlot(meal.mealSlot || meal.mealType, meal.createdAt),
     inputMode: meal.inputMode,
     originalMealText: meal.originalMealText,
     note: meal.note,
@@ -1564,7 +1590,7 @@ function normalizeMealAnalysis(meal: MealAnalysis): MealAnalysis {
     needsReview: meal.needsReview ?? true,
     errorLikeMessage: meal.errorLikeMessage ?? null,
     createdAt: meal.createdAt,
-  };
+  } as MealAnalysis;
 }
 
 function cleanNumber(value: unknown): number | null {

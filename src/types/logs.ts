@@ -96,6 +96,7 @@ export type MealAnalysis = {
   errorLikeMessage?: string | null;
   imageUrl?: string | null;
   createdAt?: string;
+  mealSlot?: "breakfast" | "lunch" | "dinner" | "snack" | "other";
   extracted?: {
     detectedFood?: string;
     proteinLevel?: "low" | "moderate" | "good";

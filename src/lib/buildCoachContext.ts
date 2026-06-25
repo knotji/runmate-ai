@@ -15,6 +15,7 @@ import type { SleepAnalysis, WorkoutAnalysis, BodyCompositionAnalysis, MealAnaly
 import type { PainLog } from "@/types/pain";
 import type { RaceResult } from "@/types/race";
 import type { StrengthLog } from "@/types/strength";
+import { normalizeMealSlot, getMealSlotLabel } from "@/lib/mealSlots";
 
 export type DayWorkoutSummary = {
   date: string;
@@ -609,13 +610,15 @@ function buildNutritionSummaries(items: LocalHistoryItem[], cutoff: string): Nut
 
 function compactMealForCoach(item: LocalHistoryItem): MealContextSummary {
   const meal = extractMealData(item);
+  const slot = normalizeMealSlot(meal.mealSlot || meal.mealType, item.recordedAt || item.createdAt);
+  const slotLabel = getMealSlotLabel(slot);
   const nutrition = normalizeMealNutrition(meal as unknown as Record<string, unknown>);
   const foods = (meal.detectedFoods ?? [])
     .map((food) => food.name?.trim())
     .filter((food): food is string => Boolean(food))
     .slice(0, 8);
   return {
-    mealType: meal.mealType || "meal",
+    mealType: slotLabel,
     foods,
     caloriesKcal: nutrition.caloriesKcal,
     proteinG: nutrition.proteinG,
