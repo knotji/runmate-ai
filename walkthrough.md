@@ -19,5 +19,7 @@
 ## Verification
 
 - Follow [QA.md](./QA.md) for manual pre-deploy checks.
-- Commands: `npm run lint`, `npm run build`.
+- Playwright mobile regression coverage includes navigation, privacy copy, manual meal save, meal backdating, date suggestion confirmation, and mocked Coach chat.
+- AI wording and real provider behavior remain manual QA; E2E never calls a real AI provider.
+- Commands: `npm run lint`, `npm run build`, `npm run test:e2e`.
 - Production smoke check: `/` and `/settings` return 200; both debug API routes return 404.

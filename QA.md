@@ -64,3 +64,26 @@ Confirm:
 - [ ] Original images/PDFs remain temporary.
 - [ ] `history_items` contains structured data only, without base64 or raw text.
 - [ ] Run `npm run lint` and `npm run build`.
+
+## Automated E2E
+
+The Playwright suite uses a phone viewport and mocks Supabase/AI responses. It never uses a real account, database, or AI provider.
+
+```bash
+npm run test:e2e
+npm run test:e2e:headed
+npm run test:e2e:ui
+```
+
+- Deterministic coverage: smoke/navigation, Settings privacy, manual meal save, Report edit/backdate, date suggestion confirmation, and mocked Coach response.
+- Real Coach answer quality still needs the manual questions in section 4.
+- The default test server is `http://localhost:3000`. If that port is busy, set `E2E_PORT=3200` (or `$env:E2E_PORT="3200"` in PowerShell).
+- Production debug safety is automated when a production server is available:
+
+```bash
+npm run build
+npm run start -- -p 3100
+E2E_BASE_URL=http://127.0.0.1:3100 E2E_PRODUCTION_BASE_URL=http://127.0.0.1:3100 npm run test:e2e -- debug-production-safety.spec.ts
+```
+
+On PowerShell, set both `$env:E2E_BASE_URL` and `$env:E2E_PRODUCTION_BASE_URL` to `http://127.0.0.1:3100` before running the test.

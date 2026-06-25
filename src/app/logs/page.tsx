@@ -471,8 +471,13 @@ function DayCard({
   const proteinStatus = mealNutrition.proteinG != null ? calcProteinStatus(mealNutrition.proteinG, proteinTarget) : null;
 
   return (
-    <section className={`card overflow-hidden border transition-colors ${expanded ? "border-[#d9e8df] bg-[#fbfdfb] shadow-sm" : "border-transparent"}`}>
+    <section
+      data-testid="report-day"
+      data-date-key={day.date}
+      className={`card overflow-hidden border transition-colors ${expanded ? "border-[#d9e8df] bg-[#fbfdfb] shadow-sm" : "border-transparent"}`}
+    >
       <button
+        data-testid="report-day-toggle"
         type="button"
         className="w-full cursor-pointer p-4 text-left outline-none focus-visible:ring-2 focus-visible:ring-[#b9d9c0] focus-visible:ring-offset-2 focus-visible:ring-offset-white"
         onClick={() => setExpanded((v) => !v)}
@@ -703,7 +708,7 @@ function MealDetail({
   const label = getMealSlotLabel(normalizedSlot);
 
   return (
-    <div className="rounded-2xl bg-orange-50 p-4">
+    <div data-testid="report-meal-card" className="rounded-2xl bg-orange-50 p-4">
       <div className="flex items-center gap-1.5 mb-1">
         <p className="text-xs font-bold uppercase tracking-wide text-orange-600">{icon} {label}</p>
         {sourceInfo.badgeText && (
@@ -1827,7 +1832,10 @@ function EditMealModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl border border-slate-100 flex flex-col max-h-[90vh] overflow-y-auto">
+      <div
+        data-testid="meal-edit-modal"
+        className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl border border-slate-100 flex flex-col max-h-[90vh] overflow-y-auto"
+      >
         <h3 className="text-lg font-bold text-[#17201d] mb-4">แก้ไขมื้ออาหาร</h3>
         
         {error && (
@@ -1853,6 +1861,7 @@ function EditMealModal({
             <div className="space-y-1">
               <label className="text-xs font-bold text-slate-500">kcal</label>
               <input
+                data-testid="meal-edit-kcal"
                 type="text"
                 className="w-full rounded-2xl border border-slate-200 px-4 py-2.5 text-sm focus:border-[#b9d9c0] focus:ring-1 focus:ring-[#b9d9c0] outline-none"
                 placeholder="ไม่ระบุ"
@@ -1914,6 +1923,7 @@ function EditMealModal({
           <div className="space-y-1">
             <label className="text-xs font-bold text-slate-500">วันที่ของข้อมูลนี้</label>
             <input
+              data-testid="meal-edit-date"
               type="date"
               required
               className="w-full rounded-2xl border border-slate-200 px-4 py-2.5 text-sm focus:border-[#b9d9c0] focus:ring-1 focus:ring-[#b9d9c0] outline-none"
