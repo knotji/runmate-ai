@@ -963,7 +963,7 @@ function buildTodayChecklist(ctx: CoachContext | null, summaryItem: LocalHistory
   return [
     { label: "บันทึกการนอน", href: "/upload?type=sleep", done: Boolean(ctx?.sleep7d.some((i) => i.date === today)) },
     { label: "บันทึกอาหาร", href: "/upload?type=meal", done: Boolean(ctx?.nutritionToday && ctx.nutritionToday.mealCount > 0) },
-    { label: "บันทึกซ้อม/พัก", href: "/upload?type=workout", done: Boolean(ctx?.workouts7d.some((i) => i.date === today)) },
+    { label: "บันทึกกิจกรรมวันนี้", href: "/upload?type=workout", done: Boolean(ctx?.workouts7d.some((i) => i.date === today)) },
     { label: "เช็กอาการเจ็บ", href: "/pain", done: painDone },
     { label: "สรุปท้ายวัน", href: "#end-of-day-summary", done: Boolean(summaryItem) },
   ];
@@ -999,14 +999,14 @@ function buildReadinessCoverageSummary(ctx: CoachContext | null): { used: string
     else if (w.kind === "race") used.push("แข่งวันนี้");
     else used.push("ออกกำลังกายวันนี้");
   } else if (ctx.workouts7d.length > 0) {
-    used.push(`โหลดสัปดาห์ (${Math.round(ctx.totalRunKm * 10) / 10} km)`);
+    used.push(`โหลดสัปดาห์ ${Math.round(ctx.totalRunKm * 10) / 10} km`);
   } else {
-    missing.push("การซ้อม/พักวันนี้");
+    missing.push("กิจกรรมวันนี้");
   }
 
   // Pain
   if (ctx.latestPain) {
-    used.push(ctx.latestPain.hasResolvedPain ? "อาการเจ็บ (หายแล้ว)" : `อาการเจ็บ ${ctx.latestPain.painLevel}/10`);
+    used.push(ctx.latestPain.hasResolvedPain ? "เจ็บหายแล้ว" : `ยังเจ็บอยู่ ${ctx.latestPain.painLevel}/10`);
   }
 
   return { used, missing };
@@ -1066,20 +1066,21 @@ function TodaySnapshotCard({
       </div>
 
       {/* Readiness V2 source coverage */}
-      {!loading && readinessCoverage && (readinessCoverage.used.length > 0 || readinessCoverage.missing.length > 0) && (
-        <div className="space-y-0.5">
-          {readinessCoverage.used.length > 0 && (
-            <p className="text-xs text-slate-500">
-              คะแนนนี้ใช้: <span className="font-semibold text-slate-700">{readinessCoverage.used.join(" · ")}</span>
-            </p>
-          )}
-          {readinessCoverage.missing.length > 0 && (
-            <p className="text-xs text-slate-400">
-              ยังขาด: <span className="font-medium">{readinessCoverage.missing.join(" · ")}</span>
-              {" "}
-              <span className="text-slate-300">→ เพิ่มเพื่อให้คะแนนแม่นขึ้น</span>
-            </p>
-          )}
+      {!loading && readinessCoverage && readinessCoverage.used.length > 0 && (
+        <div className="space-y-1.5">
+          <div className="flex flex-wrap gap-1">
+            <span className="text-xs text-slate-400 self-center">คะแนนใช้:</span>
+            {readinessCoverage.used.map((label) => (
+              <span key={label} className="rounded-full bg-[var(--primary-soft)] px-2 py-0.5 text-xs font-medium text-[var(--primary-strong)]">
+                {label}
+              </span>
+            ))}
+            {readinessCoverage.missing.map((label) => (
+              <span key={label} className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-400">
+                +{label}
+              </span>
+            ))}
+          </div>
         </div>
       )}
 
