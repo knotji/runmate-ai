@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { jsonFromAI } from "@/lib/ai";
 import { buildRunnerProfileContext } from "@/lib/buildRunnerProfileContext";
-import { getTodayReadiness, getTodayPlannedWorkout, type CoachContext, type TodayCompletedWorkoutSummary } from "@/lib/buildCoachContext";
+import { type CoachContext, type TodayCompletedWorkoutSummary } from "@/lib/buildCoachContext";
+import { getTodayReadiness, getTodayPlannedWorkout } from "@/lib/todayPlanning";
 import type { DailyCoachInsight } from "@/types/ai";
 import type { WeekWorkout } from "@/types/race";
 import { todayBangkokDateKey } from "@/lib/date";

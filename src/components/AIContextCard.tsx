@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { buildCoachContextFromSupabase, getTodayReadiness, getTodayPlannedWorkout, type CoachContext } from "@/lib/buildCoachContext";
+import { buildCoachContextFromSupabase, type CoachContext } from "@/lib/buildCoachContext";
+import { getTodayReadiness, getTodayPlannedWorkout } from "@/lib/todayPlanning";
 import type { UserProfile } from "@/types/profile";
 import type { RacePlan, WeekWorkout } from "@/types/race";
 import { todayBangkokDateKey } from "@/lib/date";
