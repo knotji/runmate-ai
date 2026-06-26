@@ -26,6 +26,7 @@ import {
 } from "@/lib/format";
 import { extractMealData, normalizeMealNutrition } from "@/lib/mealMerge";
 import { polishSleepInsightText } from "@/lib/sleepInsight";
+import { sanitizeAIThaiText } from "@/lib/sanitizeAIText";
 import { dedupeSleepItems } from "@/lib/sleepDedupe";
 import { getHistoryItemDateKey, dateKeyToRecordedAt, todayBangkokDateKey, yesterdayBangkokDateKey } from "@/lib/date";
 import { normalizeMealSlot, getMealSlotLabel, getMealSlotIcon, getMealSlotOrder } from "@/lib/mealSlots";
@@ -748,7 +749,7 @@ function MealDetail({
     : d.detectedFoods?.map((food) => food.name).filter(Boolean).join(", ") || d?.extracted?.detectedFood || "";
   const note = isQuickProtein
     ? null
-    : d.trainingFit?.coachNote ?? d.coachNote ?? d?.coach?.aiSummary ?? d?.coach?.suggestion ?? "";
+    : sanitizeAIThaiText(d.trainingFit?.coachNote ?? d.coachNote ?? d?.coach?.aiSummary ?? d?.coach?.suggestion ?? "");
   const sourceInfo = getMealSourceInfo(item.data);
 
   const normalizedSlot = normalizeMealSlot(item, item.recordedAt || item.createdAt);

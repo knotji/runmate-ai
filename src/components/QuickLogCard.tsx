@@ -14,17 +14,25 @@ type QuickAction = {
   confirmMessage: string;
 };
 
-const ACTIONS: QuickAction[] = [
-  { id: "rest",    label: "วันนี้พัก",        icon: "😴", confirmMessage: "บันทึกว่าพักวันนี้?" },
-  { id: "walk",    label: "เดินเบา 20 นาที",  icon: "🚶", confirmMessage: "บันทึกเดินเบา 20 นาที?" },
-  { id: "protein", label: "กินโปรตีนแล้ว",   icon: "🥚", confirmMessage: "" },
-  { id: "pain",    label: "ปวด 1/10",          icon: "🩹", confirmMessage: "" },
-  { id: "summary", label: "สรุปท้ายวัน",      icon: "📋", confirmMessage: "" },
-];
+function buildActions(hasActivityToday: boolean): QuickAction[] {
+  return [
+    {
+      id: "rest",
+      label: hasActivityToday ? "พักต่อวันนี้" : "วันนี้พัก",
+      icon: "😴",
+      confirmMessage: hasActivityToday ? "บันทึก Recovery วันนี้?" : "บันทึกว่าพักวันนี้?",
+    },
+    { id: "walk",    label: "เดินเบา 20 นาที",  icon: "🚶", confirmMessage: "บันทึกเดินเบา 20 นาที?" },
+    { id: "protein", label: "กินโปรตีนแล้ว",   icon: "🥚", confirmMessage: "" },
+    { id: "pain",    label: "ปวด 1/10",          icon: "🩹", confirmMessage: "" },
+    { id: "summary", label: "สรุปท้ายวัน",      icon: "📋", confirmMessage: "" },
+  ];
+}
 
 type Props = {
   onActivitySaved?: () => void;
   onOpenEndOfDay?: () => void;
+  hasActivityToday?: boolean;
 };
 
 // ─── Protein modal ────────────────────────────────────────────────────────────
@@ -119,12 +127,13 @@ function ProteinModal({
 
 // ─── QuickLogCard ─────────────────────────────────────────────────────────────
 
-export function QuickLogCard({ onActivitySaved, onOpenEndOfDay }: Props) {
+export function QuickLogCard({ onActivitySaved, onOpenEndOfDay, hasActivityToday = false }: Props) {
   const router = useRouter();
   const [pending,          setPending]          = useState<string | null>(null);
   const [saved,            setSaved]            = useState<string | null>(null);
   const [error,            setError]            = useState<string | null>(null);
   const [showProteinModal, setShowProteinModal] = useState(false);
+  const ACTIONS = buildActions(hasActivityToday);
 
   async function saveProtein(proteinG: number) {
     setShowProteinModal(false);
@@ -198,6 +207,7 @@ export function QuickLogCard({ onActivitySaved, onOpenEndOfDay }: Props) {
       let item;
 
       if (action.id === "rest") {
+        const isRecovery = hasActivityToday;
         const data = {
           extracted: {
             workoutKind: "other" as const,
@@ -208,16 +218,16 @@ export function QuickLogCard({ onActivitySaved, onOpenEndOfDay }: Props) {
             intensity: "easy" as const, rpe: 1,
           },
           coach: {
-            workoutSummary: "พัก / Recovery วันนี้",
+            workoutSummary: isRecovery ? "พักต่อวันนี้ / Recovery" : "พัก / Recovery วันนี้",
             intensityAssessment: "rest",
-            trainingLoadNote: "วันพัก",
+            trainingLoadNote: isRecovery ? "Recovery หลังซ้อม" : "วันพัก",
             wasTooHard: false,
             recoveryAdvice: "พักให้เต็มที่",
             nutritionAfterWorkout: "กินอาหารตามปกติ ดื่มน้ำให้พอ",
             nextWorkoutSuggestion: "กลับมาซ้อมตามแผนพรุ่งนี้",
             coachNote: "บันทึกผ่าน Quick Log",
           },
-          quickLog: true, quickLogKind: "rest",
+          quickLog: true, quickLogKind: isRecovery ? "recovery" : "rest",
         };
         item = createHistoryItem("workout", data, recordedAt);
       } else if (action.id === "walk") {

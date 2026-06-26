@@ -1,10 +1,11 @@
 import type { MealAnalysis } from "@/types/logs";
 import { DetailBlock, MetricGrid } from "@/components/ResultDetail";
 import { formatCalories, formatMacro } from "@/lib/format";
+import { sanitizeAIThaiText } from "@/lib/sanitizeAIText";
 
 export function MealResultCard({ result }: { result: MealAnalysis }) {
   const foods = getFoodNames(result);
-  const coachNote = result.trainingFit?.coachNote ?? result.coach?.suggestion ?? result.coach?.aiSummary ?? "-";
+  const coachNote = sanitizeAIThaiText(result.trainingFit?.coachNote ?? result.coach?.suggestion ?? result.coach?.aiSummary ?? "-");
 
   return (
     <section className="card p-5">

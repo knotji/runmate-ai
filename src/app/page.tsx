@@ -375,6 +375,7 @@ export default function TodayPage() {
         <QuickLogCard
           onActivitySaved={() => void generateInsight(true)}
           onOpenEndOfDay={() => setShowEndOfDay(true)}
+          hasActivityToday={hasWorkoutToday}
         />
       )}
 

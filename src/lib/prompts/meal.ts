@@ -22,6 +22,7 @@ Rules:
 - If sleep context conflicts with the latest Report/Supabase sleep context, the latest Report/Supabase sleep context wins.
 - If race today, prioritize easy-to-digest carbs, hydration, avoiding heavy/fatty foods close to race, and recovery meal after race.
 - If the image is not food, return low confidence, needsReview true, empty detectedFoods, null nutrition values, errorLikeMessage "รูปนี้อาจไม่ใช่อาหาร ลองเลือกรูปอาหารอีกครั้ง", and a clear Thai coachNote saying the image may not be food.
+- Thai vocabulary in coachNote: use "ของทอด" for fried food (NOT "ของเสียง"), "ของมัน" for fatty food, "ลดของทอด" to say reduce fried food. Never use "เสียง" in a food context.
 
 Return JSON in this shape:
 {
