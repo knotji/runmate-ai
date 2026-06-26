@@ -275,7 +275,7 @@ export default function TodayPage() {
         )}
 
         <Link href="/upload" className="btn-primary block w-full py-3 text-center text-sm font-bold">
-          {hasWorkoutToday ? "อัปเดตข้อมูลวันนี้" : "อัปโหลดผลวันนี้"}
+          {hasWorkoutToday ? "อัปเดตข้อมูลวันนี้" : "บันทึกกิจกรรมวันนี้"}
         </Link>
       </section>
 
@@ -295,6 +295,7 @@ export default function TodayPage() {
         loading={loading}
         hasHistory={hasHistory}
         isFallback={insightError}
+        readinessCoverage={buildReadinessCoverageSummary(coachCtx)}
       />
 
       {/* D. Quick Actions */}
@@ -954,13 +955,61 @@ type TodayChecklistItem = { label: string; href: string; done: boolean };
 
 function buildTodayChecklist(ctx: CoachContext | null, summaryItem: LocalHistoryItem | null): TodayChecklistItem[] {
   const today = ctx?.todayDate || bangkokDateKey();
+  // Pain counts if there's a log today OR if latestPain (within 7d) is already used in Today context
+  const painDone = Boolean(
+    ctx?.recentPainLogs?.some((i) => i.date === today) ||
+    ctx?.latestPain != null,
+  );
   return [
-    { label: "อัปโหลดการนอน", href: "/upload?type=sleep", done: Boolean(ctx?.sleep7d.some((i) => i.date === today)) },
+    { label: "บันทึกการนอน", href: "/upload?type=sleep", done: Boolean(ctx?.sleep7d.some((i) => i.date === today)) },
     { label: "บันทึกอาหาร", href: "/upload?type=meal", done: Boolean(ctx?.nutritionToday && ctx.nutritionToday.mealCount > 0) },
     { label: "บันทึกซ้อม/พัก", href: "/upload?type=workout", done: Boolean(ctx?.workouts7d.some((i) => i.date === today)) },
-    { label: "เช็กอาการเจ็บ", href: "/pain", done: Boolean(ctx?.recentPainLogs?.some((i) => i.date === today)) },
+    { label: "เช็กอาการเจ็บ", href: "/pain", done: painDone },
     { label: "สรุปท้ายวัน", href: "#end-of-day-summary", done: Boolean(summaryItem) },
   ];
+}
+
+function buildReadinessCoverageSummary(ctx: CoachContext | null): { used: string[]; missing: string[] } {
+  const used: string[] = [];
+  const missing: string[] = [];
+  if (!ctx) return { used, missing };
+  const today = ctx.todayDate;
+
+  // Sleep
+  if (ctx.sleep7d.some((s) => s.date === today)) {
+    used.push("การนอนวันนี้");
+  } else if (ctx.sleep7d.length > 0) {
+    used.push("การนอนล่าสุด");
+  } else {
+    missing.push("ข้อมูลการนอน");
+  }
+
+  // Nutrition
+  if (ctx.mealsToday.length > 0) {
+    used.push(`อาหาร ${ctx.mealsToday.length} มื้อ`);
+  } else {
+    missing.push("อาหารวันนี้");
+  }
+
+  // Training load
+  if (ctx.hasWorkoutToday && ctx.todayPrimaryWorkout) {
+    const w = ctx.todayPrimaryWorkout;
+    if (w.kind === "run") used.push(`วิ่ง${w.distanceKm ? ` ${Math.round(w.distanceKm * 10) / 10} km` : "วันนี้"}`);
+    else if (w.kind === "strength") used.push("เวทวันนี้");
+    else if (w.kind === "race") used.push("แข่งวันนี้");
+    else used.push("ออกกำลังกายวันนี้");
+  } else if (ctx.workouts7d.length > 0) {
+    used.push(`โหลดสัปดาห์ (${Math.round(ctx.totalRunKm * 10) / 10} km)`);
+  } else {
+    missing.push("การซ้อม/พักวันนี้");
+  }
+
+  // Pain
+  if (ctx.latestPain) {
+    used.push(ctx.latestPain.hasResolvedPain ? "อาการเจ็บ (หายแล้ว)" : `อาการเจ็บ ${ctx.latestPain.painLevel}/10`);
+  }
+
+  return { used, missing };
 }
 
 function TodaySnapshotCard({
@@ -970,6 +1019,7 @@ function TodaySnapshotCard({
   loading,
   hasHistory,
   isFallback,
+  readinessCoverage,
 }: {
   insight: DailyCoachInsight | null;
   readinessScore: number | null;
@@ -977,6 +1027,7 @@ function TodaySnapshotCard({
   loading: boolean;
   hasHistory: boolean;
   isFallback?: boolean;
+  readinessCoverage?: { used: string[]; missing: string[] };
 }) {
   const [expanded, setExpanded] = useState(false);
   const completed = todayChecklist.filter((i) => i.done).length;
@@ -1014,7 +1065,25 @@ function TodaySnapshotCard({
         </button>
       </div>
 
-      {/* Collapsed state: show missing items */}
+      {/* Readiness V2 source coverage */}
+      {!loading && readinessCoverage && (readinessCoverage.used.length > 0 || readinessCoverage.missing.length > 0) && (
+        <div className="space-y-0.5">
+          {readinessCoverage.used.length > 0 && (
+            <p className="text-xs text-slate-500">
+              คะแนนนี้ใช้: <span className="font-semibold text-slate-700">{readinessCoverage.used.join(" · ")}</span>
+            </p>
+          )}
+          {readinessCoverage.missing.length > 0 && (
+            <p className="text-xs text-slate-400">
+              ยังขาด: <span className="font-medium">{readinessCoverage.missing.join(" · ")}</span>
+              {" "}
+              <span className="text-slate-300">→ เพิ่มเพื่อให้คะแนนแม่นขึ้น</span>
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Collapsed state: show daily check missing items */}
       {!expanded && !allDone && missing.length > 0 && (
         <p className="text-xs text-slate-500">
           ยังขาด: <span className="font-semibold">{missing.map((i) => i.label).join(" · ")}</span>
