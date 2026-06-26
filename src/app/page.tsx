@@ -8,6 +8,7 @@ import { NutritionBalanceCard } from "@/components/NutritionBalanceCard";
 import { NextMealCard } from "@/components/NextMealCard";
 import type { NextMealRecommendation } from "@/app/api/next-meal/route";
 import { buildTodayRecommendationReasons } from "@/lib/todayReasons";
+import { QuickLogCard } from "@/components/QuickLogCard";
 import { formatThaiDate, getHistoryItemDateKey, todayBangkokDateKey } from "@/lib/date";
 import { buildCoachContextFromSupabase, type CoachContext, type NutritionDaySummary, type PainSummary, type TodayCompletedWorkoutSummary } from "@/lib/buildCoachContext";
 import { getTodayReadiness, getTodayPlannedWorkout, getReadinessCategoryLabel } from "@/lib/todayPlanning";
@@ -116,6 +117,7 @@ export default function TodayPage() {
   const [nextMealRec, setNextMealRec] = useState<NextMealRecommendation | null>(null);
   const [nextMealLoading, setNextMealLoading] = useState(false);
   const [showReasons, setShowReasons] = useState(false);
+  const [showEndOfDay, setShowEndOfDay] = useState(false);
 
   const requestNextMeal = useCallback(async () => {
     if (!coachCtx) return;
@@ -366,7 +368,15 @@ export default function TodayPage() {
         </div>
       </section>
 
-      {/* E. Compact detail sections */}
+      {/* E. Quick Log */}
+      {coachCtx && (
+        <QuickLogCard
+          onActivitySaved={() => void generateInsight(true)}
+          onOpenEndOfDay={() => setShowEndOfDay(true)}
+        />
+      )}
+
+      {/* F. Compact detail sections */}
       {(coachCtx?.latestPain || (coachCtx?.recentPainLogs && coachCtx.recentPainLogs.length > 0)) && (
         <CompactPainCard pains={coachCtx.latestPain ? [coachCtx.latestPain, ...coachCtx.recentPainLogs.filter((pain) => pain.id !== coachCtx.latestPain?.id)] : coachCtx.recentPainLogs} />
       )}
