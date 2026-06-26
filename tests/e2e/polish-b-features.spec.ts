@@ -144,6 +144,50 @@ test("yesterday starts expanded by default", async ({ page }) => {
   await expect(yesterday.locator(".border-t").first()).toBeVisible();
 });
 
+// ─── Phase B2b: Expand / collapse an older day ───────────────────────────────
+
+test("older day can be expanded then collapsed with ดูรายละเอียด / ย่อ", async ({ page }) => {
+  const state = await installMockBackend(page);
+
+  // Inject a workout 3 days ago
+  const oldDate = bangkokDateKey(-3);
+  state.history.push({
+    id: "old-run-002",
+    user_id: "00000000-0000-4000-8000-000000000001",
+    type: "workout",
+    created_at: `${oldDate}T06:00:00.000Z`,
+    data: {
+      extracted: {
+        workoutKind: "outdoor_run",
+        distanceKm: 8,
+        duration: "00:45:00",
+        intensity: "easy",
+        rpe: 5,
+      },
+    },
+  });
+
+  await gotoApp(page, "/logs");
+
+  const oldDay = reportDayByDate(page, oldDate);
+  await expect(oldDay).toBeVisible();
+
+  // Collapsed: toggle shows "ดูรายละเอียด"
+  const toggle = oldDay.getByTestId("report-day-toggle");
+  await expect(toggle.getByText("ดูรายละเอียด")).toBeVisible();
+
+  // Expand
+  await toggle.click();
+  await expect(toggle.getByText("ย่อ")).toBeVisible();
+  // Expanded content area is present
+  await expect(oldDay.locator(".border-t").first()).toBeVisible();
+
+  // Collapse again
+  await toggle.click();
+  await expect(toggle.getByText("ดูรายละเอียด")).toBeVisible();
+  await expect(oldDay.locator(".border-t")).toHaveCount(0);
+});
+
 // ─── Phase B3: Weekly Review focus visibility ──────────────────────────────────
 
 test("Weekly Review shows โฟกัสถัดไป section when history is present", async ({ page }) => {

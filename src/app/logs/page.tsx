@@ -499,18 +499,30 @@ function DayCard({
                 {dedupedSleeps.length > 0 && <Badge icon="🌙" label={latestSleepDuration ? formatSleepBadgeDuration(latestSleepDuration) : "นอน"} />}
                 {workouts.some((w) => isRun(w)) && <Badge icon="🏃" label={runKm ? formatDistanceKm(runKm) : "วิ่ง"} color="green" />}
                 {raceResults.length > 0 && <Badge icon="🏁" label="Race Result" color="green" />}
-                {(strengths.length > 0 || workouts.some((w) => !isRun(w) && !isWalk(w) && (w.data as WorkoutAnalysis)?.extracted?.workoutKind === "strength")) && (
-                  <Badge icon="🏋️" label="เวท" color="blue" />
-                )}
+                {(strengths.length > 0 || workouts.some((w) => !isRun(w) && !isWalk(w) && (w.data as WorkoutAnalysis)?.extracted?.workoutKind === "strength")) && (() => {
+                  const firstStrength = strengths[0];
+                  const strengthWorkout = workouts.find((w) => !isRun(w) && !isWalk(w) && (w.data as WorkoutAnalysis)?.extracted?.workoutKind === "strength");
+                  const durationMins = firstStrength
+                    ? ((firstStrength.data as StrengthLog)?.durationMin ?? null)
+                    : parseDurationMins((strengthWorkout?.data as WorkoutAnalysis)?.extracted?.duration);
+                  return <Badge icon="🏋️" label={durationMins ? `เวท ${durationMins} นาที` : "เวท"} color="blue" />;
+                })()}
                 {pains.length > 0 && (
                   <Badge icon="🩹" label={isResolvedPainItem(pains[0]) ? "หายแล้ว" : `เจ็บ ${getPainLevel(pains[0])}/10`} color={isResolvedPainItem(pains[0]) ? "green" : "red"} />
                 )}
-                {workouts.some((w) => isWalk(w)) && <Badge icon="🚶" label={walkKm ? formatDistanceKm(walkKm) : "เดิน"} />}
-                {bodies.length > 0 && <Badge icon="⚖️" label="ชั่งน้ำหนัก" />}
-                {healthChecks.length > 0 && <Badge icon="" label="ผลตรวจสุขภาพ" color="blue" />}
-                {summaries.length > 0 && sleeps.length === 0 && workouts.length === 0 && pains.length === 0 && strengths.length === 0 && healthChecks.length === 0 && (
-                  <Badge icon="💬" label="บทสนทนา" />
+                {workouts.some((w) => isWalk(w)) && (() => {
+                  const walkMins = parseDurationMins((workouts.find(isWalk)?.data as WorkoutAnalysis)?.extracted?.duration);
+                  return <Badge icon="🚶" label={walkKm ? formatDistanceKm(walkKm) : walkMins ? `เดิน ${walkMins} นาที` : "เดิน"} />;
+                })()}
+                {workouts.some((w) => !isRun(w) && !isWalk(w) && (w.data as WorkoutAnalysis)?.extracted?.workoutKind === "other") && (
+                  <Badge icon="😴" label="Recovery" />
                 )}
+                {bodies.length > 0 && (() => {
+                  const wt = (bodies[0]?.data as BodyCompositionAnalysis)?.extracted?.weightKg;
+                  return <Badge icon="⚖️" label={wt != null ? `${formatDecimal(wt)} kg` : "ชั่งน้ำหนัก"} />;
+                })()}
+                {healthChecks.length > 0 && <Badge icon="" label="ผลตรวจสุขภาพ" color="blue" />}
+                {summaries.length > 0 && <Badge icon="📋" label="มีสรุปท้ายวัน" />}
               </div>
               {/* Nutrition row (Row 2) */}
               {mealCount > 0 && (
@@ -1526,6 +1538,16 @@ function getSummaryText(item: LocalHistoryItem): string {
   return d?.coachMessage ?? d?.overallSummary ?? "";
 }
 
+/** Parse "HH:MM:SS" or "MM:SS" duration string → total minutes (rounded), or null. */
+function parseDurationMins(duration: string | null | undefined): number | null {
+  if (!duration) return null;
+  const parts = duration.split(":").map(Number);
+  if (parts.some(isNaN)) return null;
+  if (parts.length === 3) return Math.round(parts[0] * 60 + parts[1] + parts[2] / 60) || null;
+  if (parts.length === 2) return Math.round(parts[0] * 60 + parts[1]) || null;
+  return null;
+}
+
 function readinessColor(score: number): string {
   if (score >= 80) return "text-green-600";
   if (score >= 65) return "text-[#42677f]";
@@ -1972,8 +1994,9 @@ function EditMealModal({
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-500">วันที่ของข้อมูลนี้</label>
+            <label htmlFor="meal-edit-date-input" className="text-xs font-bold text-slate-500">วันที่ของข้อมูลนี้</label>
             <input
+              id="meal-edit-date-input"
               data-testid="meal-edit-date"
               type="date"
               required
