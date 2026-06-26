@@ -7,6 +7,7 @@ import { LoadingButton } from "@/components/LoadingButton";
 import { NutritionBalanceCard } from "@/components/NutritionBalanceCard";
 import { NextMealCard } from "@/components/NextMealCard";
 import type { NextMealRecommendation } from "@/app/api/next-meal/route";
+import { buildTodayRecommendationReasons } from "@/lib/todayReasons";
 import { formatThaiDate, getHistoryItemDateKey, todayBangkokDateKey } from "@/lib/date";
 import { buildCoachContextFromSupabase, type CoachContext, type NutritionDaySummary, type PainSummary, type TodayCompletedWorkoutSummary } from "@/lib/buildCoachContext";
 import { getTodayReadiness, getTodayPlannedWorkout, getReadinessCategoryLabel } from "@/lib/todayPlanning";
@@ -114,6 +115,7 @@ export default function TodayPage() {
   const [dailySummaryMessage, setDailySummaryMessage] = useState("");
   const [nextMealRec, setNextMealRec] = useState<NextMealRecommendation | null>(null);
   const [nextMealLoading, setNextMealLoading] = useState(false);
+  const [showReasons, setShowReasons] = useState(false);
 
   const requestNextMeal = useCallback(async () => {
     if (!coachCtx) return;
@@ -299,6 +301,32 @@ export default function TodayPage() {
         <Link href="/upload" className="btn-primary block w-full py-3 text-center text-sm font-bold">
           {hasWorkoutToday ? "อัปเดตข้อมูลวันนี้" : "บันทึกกิจกรรมวันนี้"}
         </Link>
+
+        {insight && (
+          <div>
+            <button
+              type="button"
+              onClick={() => setShowReasons((v) => !v)}
+              className="mt-1 flex w-full items-center justify-center gap-1 text-xs text-slate-400 hover:text-slate-600"
+            >
+              <span>ทำไมวันนี้แนะนำแบบนี้?</span>
+              <span className={`transition-transform duration-200 ${showReasons ? "rotate-180" : ""}`}>▾</span>
+            </button>
+            {showReasons && (
+              <div className="mt-3 rounded-2xl bg-slate-50 px-4 py-3 space-y-1.5">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">เหตุผลของคำแนะนำวันนี้</p>
+                <ul className="space-y-1 mt-1">
+                  {buildTodayRecommendationReasons(coachCtx, insight, coachCtx?.readinessV2 ?? null).map((r, i) => (
+                    <li key={i} className="flex items-start gap-1.5 text-xs text-slate-600 leading-5">
+                      <span className="mt-0.5 shrink-0 text-[var(--primary)]">·</span>
+                      <span>{r}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
       </section>
 
       {insight && coachCtx && shouldShowTodayStrengthCard(insight, coachCtx) ? (
