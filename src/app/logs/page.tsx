@@ -30,6 +30,7 @@ import { dedupeSleepItems } from "@/lib/sleepDedupe";
 import { getHistoryItemDateKey, dateKeyToRecordedAt } from "@/lib/date";
 import { normalizeMealSlot, getMealSlotLabel, getMealSlotIcon, getMealSlotOrder } from "@/lib/mealSlots";
 import { getMealSourceInfo } from "@/lib/mealSource";
+import { buildWeeklyReview, type WeeklyReview } from "@/lib/weeklyReview";
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -86,6 +87,7 @@ export default function ReportPage() {
   const dashboard = buildDashboard(items);
   const pTarget = proteinTargetGrams(profile);
   const dashboardCutoff = dateKeyBefore(7);
+  const weeklyReview = items.length > 0 ? buildWeeklyReview(items, todayBangkokDateKey()) : null;
 
   const filteredDays = days.filter((day) => {
     if (activeFilter === "all") return true;
@@ -175,6 +177,7 @@ export default function ReportPage() {
             Report คือข้อมูลจริงจาก Upload และการบันทึก ส่วนแชทกับโค้ชจะไม่ถูกเพิ่มเข้าหน้านี้อัตโนมัติ
           </section>
           <WeeklyDashboard dashboard={dashboard} proteinTarget={pTarget} items={items} cutoff={dashboardCutoff} />
+          {weeklyReview && <WeeklyReviewCard review={weeklyReview} />}
           {deleteStatus ? (
             <section className={`rounded-2xl px-4 py-3 text-xs font-semibold ${deleteStatus.startsWith("ลบไม่สำเร็จ") ? "bg-red-50 text-red-600" : "bg-[#e7efea] text-[#2a5a39]"}`}>
               {deleteStatus}
@@ -1983,5 +1986,84 @@ function EditMealModal({
         </form>
       </div>
     </div>
+  );
+}
+
+// ─── Weekly Review Card ───────────────────────────────────────────────────────
+
+function WeeklyReviewCard({ review }: { review: WeeklyReview }) {
+  const readinessLabel = review.avgReadiness != null
+    ? review.avgReadiness >= 80 ? "Excellent"
+      : review.avgReadiness >= 66 ? "Good"
+      : review.avgReadiness >= 50 ? "Fair"
+      : "Low"
+    : null;
+
+  return (
+    <section className="card space-y-3 p-5">
+      <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">สรุปสัปดาห์นี้</p>
+
+      <div className="grid grid-cols-2 gap-2">
+        <div className="rounded-2xl bg-slate-50 p-3">
+          <p className="text-xs text-slate-400">วิ่งรวม</p>
+          <p className="mt-1 text-xl font-bold text-[#17201d]">
+            {review.runningKmTotal > 0 ? `${review.runningKmTotal} km` : "–"}
+          </p>
+          <p className="text-xs text-slate-400">{review.runCount} ครั้ง</p>
+        </div>
+        <div className="rounded-2xl bg-slate-50 p-3">
+          <p className="text-xs text-slate-400">เวท / Strength</p>
+          <p className="mt-1 text-xl font-bold text-[#17201d]">{review.strengthCount > 0 ? `${review.strengthCount} ครั้ง` : "–"}</p>
+          <p className="text-xs text-slate-400">{review.walkCount > 0 ? `เดิน ${review.walkCount} ครั้ง` : "ไม่มีเดิน"}</p>
+        </div>
+        <div className="rounded-2xl bg-slate-50 p-3">
+          <p className="text-xs text-slate-400">นอนเฉลี่ย</p>
+          <p className="mt-1 text-xl font-bold text-[#17201d]">
+            {review.avgSleepHours != null ? `${review.avgSleepHours} ชม.` : "–"}
+          </p>
+          <p className="text-xs text-slate-400">Readiness เฉลี่ย {readinessLabel ?? "–"}</p>
+        </div>
+        <div className="rounded-2xl bg-slate-50 p-3">
+          <p className="text-xs text-slate-400">อาหารบันทึก</p>
+          <p className="mt-1 text-xl font-bold text-[#17201d]">{review.mealCount > 0 ? `${review.mealCount} มื้อ` : "–"}</p>
+          <p className="text-xs text-slate-400">
+            {review.activePainDays > 0 ? `เจ็บ ${review.activePainDays} วัน` : review.resolvedPainCount > 0 ? "อาการหายแล้ว" : "ไม่มีอาการเจ็บ"}
+          </p>
+        </div>
+      </div>
+
+      {review.highlights.length > 0 && (
+        <div className="space-y-1">
+          <p className="text-xs font-semibold text-slate-500">จุดที่ดี</p>
+          {review.highlights.map((h, i) => (
+            <p key={i} className="flex items-start gap-1.5 text-xs text-slate-700 leading-5">
+              <span className="text-[var(--primary)] shrink-0">✓</span>{h}
+            </p>
+          ))}
+        </div>
+      )}
+
+      {review.cautions.length > 0 && (
+        <div className="space-y-1">
+          <p className="text-xs font-semibold text-amber-600">ควรระวัง</p>
+          {review.cautions.map((c, i) => (
+            <p key={i} className="flex items-start gap-1.5 text-xs text-amber-700 leading-5">
+              <span className="shrink-0">·</span>{c}
+            </p>
+          ))}
+        </div>
+      )}
+
+      {review.nextFocus.length > 0 && (
+        <div className="space-y-1">
+          <p className="text-xs font-semibold text-[#42677f]">โฟกัสถัดไป</p>
+          {review.nextFocus.map((f, i) => (
+            <p key={i} className="flex items-start gap-1.5 text-xs text-slate-600 leading-5">
+              <span className="text-[#42677f] shrink-0">→</span>{f}
+            </p>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
