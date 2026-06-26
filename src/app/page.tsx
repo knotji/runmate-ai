@@ -6,7 +6,7 @@ import { AppShell } from "@/components/AppShell";
 import { LoadingButton } from "@/components/LoadingButton";
 import { NutritionBalanceCard } from "@/components/NutritionBalanceCard";
 import { formatThaiDate, getHistoryItemDateKey, todayBangkokDateKey } from "@/lib/date";
-import { buildCoachContextFromSupabase, type CoachContext, type NutritionDaySummary, type PainSummary, type TodayCompletedWorkoutSummary } from "@/lib/buildCoachContext";
+import { buildCoachContextFromSupabase, getTodayReadiness, getTodayPlannedWorkout, type CoachContext, type NutritionDaySummary, type PainSummary, type TodayCompletedWorkoutSummary } from "@/lib/buildCoachContext";
 import { createHistoryItem, loadHistoryItems, saveHistoryItems } from "@/lib/cloudHistory";
 import { loadActiveRaceGoalAndPlan } from "@/lib/raceStorage";
 import { loadRoutinesFromSupabase, logCompletedStrength } from "@/lib/strength";
@@ -336,13 +336,121 @@ export default function TodayPage() {
 
 // ─── Today Snapshot ────────────────────────────────────────────────────────────
 
+function getDecisionCard(insight: DailyCoachInsight, context: CoachContext | null) {
+  if (!context) return null;
+
+  const todayReadiness = getTodayReadiness(context);
+  const readinessScore = todayReadiness.score;
+
+  const latestPain = context.latestPain;
+  const hasActivePain = latestPain && latestPain.hasActivePain && latestPain.painLevel > 0;
+
+  // Get planned workout
+  const plannedWorkout = getTodayPlannedWorkout(context);
+  const hasPlannedWorkout = plannedWorkout && plannedWorkout.workoutType && !/rest|พัก/i.test(plannedWorkout.workoutType);
+
+  // Check if strength card is shown
+  const showStrength = shouldShowTodayStrengthCard(insight, context);
+
+  // 1. Active Pain Case
+  if (hasActivePain && latestPain.painLevel >= 2) {
+    return {
+      title: "งดวิ่ง / พักหรือเวทกายภาพเบา ๆ",
+      type: "pain",
+      body: `มีประวัติเจ็บ${latestPain.painLocation}ล่าสุด ${latestPain.painLevel}/10 ระบบจึงแนะนำให้งดซ้อมวิ่งและเน้นฟื้นฟู/กายภาพหรือทำท่าความแข็งแรงทดแทนเพื่อความปลอดภัย`,
+    };
+  }
+
+  // 2. Reduced/Adjusted due to Fair/Caution readiness or pain history
+  const isFairOrCaution = readinessScore < 65;
+  const hasRecentPainHistory = context.recentPainHistory || (latestPain && latestPain.resolved);
+
+  if (hasPlannedWorkout && (isFairOrCaution || hasRecentPainHistory)) {
+    const originalPlanStr = `${plannedWorkout.workoutType}${plannedWorkout.distanceKm != null && plannedWorkout.distanceKm > 0 ? ` ${plannedWorkout.distanceKm} km` : ""}`;
+    const adjustedPlanStr = insight.workoutRec || "ซ้อมเบา / พักฟื้น";
+    const readinessLabel = readinessScore < 50 ? "Low" : readinessScore < 65 ? "Fair" : readinessScore < 80 ? "Good" : "Excellent";
+    
+    let bodyText = `แผน Race เดิมคือ ${originalPlanStr} แต่วันนี้ readiness ยัง ${readinessLabel}`;
+    if (latestPain && (latestPain.resolved || latestPain.painLevel > 0)) {
+      bodyText += ` และมีประวัติเจ็บ${latestPain.painLocation}${latestPain.painLevel > 0 ? `ล่าสุด` : `เพิ่งหาย`}`;
+    }
+    bodyText += ` ระบบเลยปรับเป็น ${adjustedPlanStr}`;
+    if (showStrength) {
+      bodyText += ` ถ้าขายังล้า ให้เลือก Recovery Strength แทน`;
+    }
+
+    return {
+      title: "วันนี้เลือกอย่างใดอย่างหนึ่งก่อน",
+      type: "caution",
+      body: bodyText,
+    };
+  }
+
+  // 3. Normal / Good / Excellent readiness
+  if (hasPlannedWorkout) {
+    const originalPlanStr = `${plannedWorkout.workoutType}${plannedWorkout.distanceKm != null && plannedWorkout.distanceKm > 0 ? ` ${plannedWorkout.distanceKm} km` : ""}`;
+    let bodyText = `วันนี้ร่างกายพร้อมและไม่มีอาการเจ็บ แนะนำทำตามแผนหลัก ${originalPlanStr} เป็นหลัก`;
+    if (showStrength) {
+      bodyText += ` โดยทำเวทเสริมเป็นตัวเลือกเสริมได้หากยังมีแรงเหลือและไม่รู้สึกล้า`;
+    }
+    return {
+      title: "แผนที่ปรับจากสภาพร่างกายวันนี้",
+      type: "good",
+      body: bodyText,
+    };
+  }
+
+  return null;
+}
+
 function PreWorkoutFocusContent({ insight, hasPace, context }: { insight: DailyCoachInsight; hasPace: boolean; context: CoachContext | null }) {
+  const decision = getDecisionCard(insight, context);
+
   return (
-    <div>
+    <div className="space-y-3">
+      {decision && (
+        <div className={`rounded-2xl border p-4 space-y-1.5 ${
+          decision.type === "pain" ? "bg-red-50/80 border-red-200 text-red-900" :
+          decision.type === "caution" ? "bg-amber-50/80 border-amber-200 text-amber-900" :
+          "bg-[#f5faf7] border-[#d9e8df] text-[#1c472a]"
+        }`}>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-bold uppercase tracking-wider">{decision.title}</span>
+            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
+              decision.type === "pain" ? "bg-red-100 text-red-700" :
+              decision.type === "caution" ? "bg-amber-100 text-amber-700" :
+              "bg-[#e7efea] text-[#2a5a39]"
+            }`}>
+              {decision.type === "pain" ? "งดวิ่ง" : decision.type === "caution" ? "ปรับลดโหลด" : "ตามแผน"}
+            </span>
+          </div>
+          <p className="text-xs leading-relaxed">{decision.body}</p>
+        </div>
+      )}
+
       {context?.racePlan ? (
-        <p className="mb-2 text-xs font-semibold leading-5 text-[#42677f]">
-          แผนหลักมาจาก Race แต่วันนี้ปรับตามสภาพร่างกายล่าสุด
-        </p>
+        <div className="space-y-1">
+          {(() => {
+            const plannedWorkout = getTodayPlannedWorkout(context);
+            if (plannedWorkout && plannedWorkout.workoutType && !/rest|พัก/i.test(plannedWorkout.workoutType)) {
+              const originalPlanStr = `${plannedWorkout.workoutType}${plannedWorkout.distanceKm != null && plannedWorkout.distanceKm > 0 ? ` ${plannedWorkout.distanceKm} km` : ""}`;
+              const isAdjusted = insight.workoutRec && !insight.workoutRec.toLowerCase().includes(plannedWorkout.workoutType.toLowerCase());
+              if (isAdjusted) {
+                return (
+                  <div className="flex flex-col gap-0.5 text-xs">
+                    <span className="font-semibold text-slate-400">แผน Race เดิม: {originalPlanStr}</span>
+                    <span className="font-bold text-[#42677f]">วันนี้ปรับเป็น: {insight.workoutRec}</span>
+                  </div>
+                );
+              }
+            }
+            return (
+              <p className="mb-2 text-xs font-semibold leading-5 text-[#42677f]">
+                แผนหลักมาจาก Race แต่วันนี้ปรับตามสภาพร่างกายล่าสุด
+              </p>
+            );
+          })()}
+        </div>
       ) : null}
       <h2 className="line-clamp-2 text-2xl font-bold text-[#17201d]">{insight.workoutRec}</h2>
       {hasPace && (
@@ -364,7 +472,7 @@ function PreWorkoutFocusContent({ insight, hasPace, context }: { insight: DailyC
 
 function PostWorkoutFocusContent({ insight, context }: { insight: DailyCoachInsight; context: CoachContext }) {
   const workout = context.todayPrimaryWorkout;
-  const title = buildPostWorkoutTitle(workout, insight);
+  const title = buildPostWorkoutTitle(workout, insight, context);
   const subtitle = buildPostWorkoutSubtitle(context, workout);
   const items = buildPostWorkoutChecklist(context, workout);
   const injuryNote = buildPostWorkoutInjuryNote(context);
@@ -395,7 +503,13 @@ function PostWorkoutFocusContent({ insight, context }: { insight: DailyCoachInsi
   );
 }
 
-function buildPostWorkoutTitle(workout: TodayCompletedWorkoutSummary | null, insight: DailyCoachInsight): string {
+function buildPostWorkoutTitle(workout: TodayCompletedWorkoutSummary | null, insight: DailyCoachInsight, context?: CoachContext | null): string {
+  if (context && context.todayWorkouts.length > 1) {
+    const kinds = context.todayWorkouts.map(w => w.kind);
+    if (kinds.includes("run") && kinds.includes("strength")) {
+      return "หลังออกกำลังกายวันนี้";
+    }
+  }
   if (!workout) return insight.workoutRec || "Recovery หลังซ้อมวันนี้";
   if (workout.kind === "race") return "Recovery หลัง Race วันนี้";
   if (workout.kind === "run") {

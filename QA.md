@@ -9,6 +9,7 @@
 - [ ] Data quality note appears when values are estimated or unclear.
 - [ ] Selected save date badge matches the chosen Bangkok date.
 - [ ] Suggested date is never applied until the user confirms it.
+- [ ] Upload helper copy matches selected tab.
 
 ## 2. Report
 
@@ -25,6 +26,8 @@
 - [ ] Post-workout recovery appears only after today's workout.
 - [ ] Resolved pain does not force a red/rest state.
 - [ ] Active pain and red flags still apply conservative safety guidance.
+- [ ] Today shows one clear primary recommendation.
+- [ ] Today after strength says หลังเวท/หลังออกกำลังกาย, not หลังวิ่ง.
 
 ## 4. Coach
 
@@ -43,12 +46,14 @@ Confirm:
 - [ ] Does not reuse stale sleep, meal, or pain values.
 - [ ] Does not diagnose or use alarming Health Check wording.
 - [ ] Respects food allergies/preferences and gives practical options.
+- [ ] Coach readiness matches Today readiness.
 
 ## 5. Race
 
 - [ ] Race plan remains the main plan; Today adapts without overwriting it.
 - [ ] Freshness note appears when Report data is newer than the plan.
 - [ ] Today's workout matches the correct Bangkok date/weekday.
+- [ ] Race strength cards hide pace/HR if not applicable.
 
 ## 6. Settings / Privacy
 

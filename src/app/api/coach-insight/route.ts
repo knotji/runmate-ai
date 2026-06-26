@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { jsonFromAI } from "@/lib/ai";
 import { buildRunnerProfileContext } from "@/lib/buildRunnerProfileContext";
-import type { CoachContext, TodayCompletedWorkoutSummary } from "@/lib/buildCoachContext";
+import { getTodayReadiness, getTodayPlannedWorkout, type CoachContext, type TodayCompletedWorkoutSummary } from "@/lib/buildCoachContext";
 import type { DailyCoachInsight } from "@/types/ai";
-import type { RacePlan, WeekWorkout } from "@/types/race";
+import type { WeekWorkout } from "@/types/race";
 import { todayBangkokDateKey } from "@/lib/date";
 
 const FALLBACK: DailyCoachInsight = {
@@ -180,7 +180,7 @@ function normalizeInsight(value: unknown, ctx: CoachContext): DailyCoachInsight 
   const raw = isRecord(value) ? value : {};
   const fallback = deterministicFallback(ctx);
   return {
-    todayReadiness: numberOrNull(raw.todayReadiness) ?? fallback.todayReadiness,
+    todayReadiness: getTodayReadiness(ctx).score,
     readinessLabel: normalizeReadinessLabel(raw.readinessLabel) ?? fallback.readinessLabel,
     readinessNote: stringOrNull(raw.readinessNote) ?? fallback.readinessNote,
     workoutRec: stringOrNull(raw.workoutRec) ?? fallback.workoutRec,
@@ -193,12 +193,10 @@ function normalizeInsight(value: unknown, ctx: CoachContext): DailyCoachInsight 
 
 function deterministicFallback(ctx: CoachContext): DailyCoachInsight {
   const latestPain = ctx.latestPain;
-  const latestSleep = ctx.sleep7d.find((sleep) => sleep.date === ctx.todayDate) ?? ctx.sleep7d[0];
-  const readiness = latestSleep?.readiness ?? ctx.avgReadiness ?? 65;
+  const todayReadiness = getTodayReadiness(ctx);
+  const readiness = todayReadiness.score;
   const readinessLabel = readiness < 50 ? "Low" : readiness < 65 ? "Fair" : readiness < 80 ? "Good" : "Excellent";
-  const sleepNote = latestSleep?.durationH
-    ? `ข้อมูลนอนล่าสุด ${latestSleep.durationH}${latestSleep.readiness != null ? `, readiness ${latestSleep.readiness}` : ""}`
-    : "ยังไม่มีข้อมูลนอนล่าสุดที่ชัดเจน";
+  const sleepNote = todayReadiness.label;
 
   if (ctx.hasWorkoutToday && ctx.todayPrimaryWorkout) {
     return {
@@ -418,7 +416,8 @@ function applyPostWorkoutRecoveryGuard(insight: DailyCoachInsight, ctx: CoachCon
   const workout = ctx.todayPrimaryWorkout;
   if (!ctx.hasWorkoutToday || !workout) return insight;
 
-  const workoutLine = formatWorkoutShortThai(workout);
+  const isMixed = ctx.todayWorkouts.some(w => w.kind === "run") && ctx.todayWorkouts.some(w => w.kind === "strength");
+  const workoutLine = isMixed ? "หลังออกกำลังกายวันนี้" : formatWorkoutShortThai(workout);
   const painLine = buildPostWorkoutPainLine(ctx);
   const hydrationLine = buildHydrationLine(workout);
   const nutritionLine = buildPostWorkoutNutritionLine(ctx);
@@ -432,7 +431,7 @@ function applyPostWorkoutRecoveryGuard(insight: DailyCoachInsight, ctx: CoachCon
     : workoutLine;
 
   const coachMessage = [
-    `${workoutLine} วันนี้ให้เปลี่ยนโหมดเป็นฟื้นตัวก่อน`,
+    isMixed ? "วันนี้ออกกำลังกายหลายอย่างแล้ว ให้เปลี่ยนโหมดเป็นฟื้นตัวก่อน" : `${workoutLine} วันนี้ให้เปลี่ยนโหมดเป็นฟื้นตัวก่อน`,
     hydrationLine,
     nutritionLine,
     mobilityLine,
@@ -442,7 +441,7 @@ function applyPostWorkoutRecoveryGuard(insight: DailyCoachInsight, ctx: CoachCon
 
   return {
     ...insight,
-    workoutRec: postWorkoutTitle(workout),
+    workoutRec: postWorkoutTitle(workout, ctx),
     workoutTarget: "ไม่ต้องซ้อมเพิ่ม · เน้นฟื้นตัว",
     keyObservation,
     coachMessage,
@@ -536,56 +535,14 @@ function formatWorkoutForPrompt(workout: TodayCompletedWorkoutSummary): string {
   return `${workout.label}${details.length ? ` (${details.join(", ")})` : ""}`;
 }
 
-function getTodayPlannedWorkout(ctx: CoachContext): WeekWorkout | null {
-  const plan = isRecord(ctx.racePlan) ? ctx.racePlan as RacePlan : null;
-  if (!plan) return null;
-  const weeklyPlan = Array.isArray(plan.weeklyPlan) ? plan.weeklyPlan : [];
-  if (!weeklyPlan.length) return plan.todayWorkout ?? null;
-
-  for (const workout of weeklyPlan) {
-    const raw = workout as WeekWorkout & { date?: string; dateKey?: string; dayDate?: string };
-    const workoutDate = raw.date ?? raw.dateKey ?? raw.dayDate;
-    if (workoutDate?.slice(0, 10) === ctx.todayDate) return workout;
-  }
-
-  const todayWeekday = bangkokWeekdayIndex(ctx.todayDate);
-  for (const workout of weeklyPlan) {
-    if (normalizeWeekdayLabel(workout.day) === todayWeekday) return workout;
-  }
-
-  if (plan.planStartDate) {
-    const startMs = Date.parse(`${plan.planStartDate}T12:00:00+07:00`);
-    const todayMs = Date.parse(`${ctx.todayDate}T12:00:00+07:00`);
-    if (!Number.isNaN(startMs) && !Number.isNaN(todayMs)) {
-      const offset = Math.round((todayMs - startMs) / 86_400_000);
-      if (offset >= 0 && offset < weeklyPlan.length) return weeklyPlan[offset] ?? null;
-    }
-  }
-
-  return plan.todayWorkout ?? null;
-}
+// getTodayPlannedWorkout is imported from buildCoachContext.ts
 
 function formatPlannedWorkout(workout: WeekWorkout): string {
   const distance = toFiniteNumber(workout.distanceKm);
   return `${workout.workoutType || "การซ้อม"}${distance != null && distance > 0 ? ` ${formatKm(distance)} km` : ""}`;
 }
 
-function bangkokWeekdayIndex(date: string): number {
-  const parsed = new Date(`${date}T12:00:00+07:00`);
-  return Number.isNaN(parsed.getTime()) ? -1 : parsed.getDay();
-}
-
-function normalizeWeekdayLabel(day: string): number {
-  const value = day.trim().toLowerCase();
-  if (/^(sun|sunday|อา\.|อาทิตย์|วันอาทิตย์)/i.test(value)) return 0;
-  if (/^(mon|monday|จ\.|จันทร์|วันจันทร์)/i.test(value)) return 1;
-  if (/^(tue|tuesday|อ\.|อังคาร|วันอังคาร)/i.test(value)) return 2;
-  if (/^(wed|wednesday|พ\.|พุธ|วันพุธ)/i.test(value)) return 3;
-  if (/^(thu|thursday|พฤ\.|พฤหัส|วันพฤหัส)/i.test(value)) return 4;
-  if (/^(fri|friday|ศ\.|ศุกร์|วันศุกร์)/i.test(value)) return 5;
-  if (/^(sat|saturday|ส\.|เสาร์|วันเสาร์)/i.test(value)) return 6;
-  return -1;
-}
+// bangkokWeekdayIndex and normalizeWeekdayLabel are now imported
 
 function formatWorkoutShortThai(workout: TodayCompletedWorkoutSummary): string {
   const parts: string[] = [];
@@ -603,7 +560,13 @@ function formatWorkoutShortThai(workout: TodayCompletedWorkoutSummary): string {
   return parts.join(" ");
 }
 
-function postWorkoutTitle(workout: TodayCompletedWorkoutSummary): string {
+function postWorkoutTitle(workout: TodayCompletedWorkoutSummary, ctx?: CoachContext): string {
+  if (ctx && ctx.todayWorkouts.length > 1) {
+    const kinds = ctx.todayWorkouts.map(w => w.kind);
+    if (kinds.includes("run") && kinds.includes("strength")) {
+      return "หลังออกกำลังกายวันนี้";
+    }
+  }
   if (workout.kind === "race") return "Recovery หลัง Race วันนี้";
   if (workout.kind === "run") {
     const distance = formatKm(workout.distanceKm);

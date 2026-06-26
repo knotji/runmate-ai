@@ -801,13 +801,16 @@ export default function UploadPage() {
           />
         ) : null}
         {type === "health_check" ? (
-          <HealthCheckUploader
-            saving={saveStatus === "saving"}
-            onResult={(healthCheck) => {
-              setResult({ data: healthCheck });
-              setSaveStatus("idle");
-            }}
-          />
+          <>
+            <HealthCheckUploader
+              saving={saveStatus === "saving"}
+              onResult={(healthCheck) => {
+                setResult({ data: healthCheck });
+                setSaveStatus("idle");
+              }}
+            />
+            {!result && saveStatus !== "saving" && <UploadEmptyGuide type={type} />}
+          </>
         ) : null}
         {/* Image uploader: show for all types EXCEPT walk/other workout manual, manual meal, health_check, and strength-manual mode */}
         {!(type === "workout" && (workoutSubtype === "walk" || workoutSubtype === "other")) &&
@@ -1019,29 +1022,76 @@ export default function UploadPage() {
   );
 }
 
-function UploadEmptyGuide({ type, workoutSubtype }: { type: UploadType; workoutSubtype?: "strength" }) {
-  if (type === "health_check") {
+function UploadEmptyGuide({
+  type,
+  workoutSubtype,
+}: {
+  type: UploadType;
+  workoutSubtype?: string;
+}) {
+  if (type === "meal") {
     return (
       <div className="rounded-2xl bg-slate-50/80 px-4 py-3 text-sm text-slate-600">
-        <p className="font-bold text-[#17201d]">อัปโหลด PDF ผลตรวจสุขภาพ</p>
-        <p className="mt-1 text-xs leading-5 text-slate-500">
-          ระบบจะอ่านค่าเลือดที่เกี่ยวกับโภชนาการและ recovery และบันทึกเฉพาะค่าที่สรุปแล้ว
-        </p>
-        <p className="mt-1.5 text-xs leading-5 text-slate-400">
-          🛡️ ระบบบันทึกเฉพาะค่าที่สรุปแล้ว ไม่บันทึกไฟล์ PDF ต้นฉบับหรือข้อความดิบ
-        </p>
+        <p className="font-bold text-[#17201d]">ลองอัปโหลดเพื่อสร้าง Report</p>
+        <p className="mt-1 text-xs leading-5 text-slate-500">บันทึกอาหารเพื่อวิเคราะห์โภชนาการและพลังงาน</p>
+        <div className="mt-2 space-y-1.5 text-xs leading-5">
+          <p><span className="font-semibold text-slate-700">รูปอาหาร</span> — กินไปกี่อย่าง / คร่าว ๆ ได้ไหม</p>
+          <p><span className="font-semibold text-slate-700">ฉลากโภชนาการ</span> — kcal / โปรตีน / คาร์บ</p>
+          <p><span className="font-semibold text-slate-700">เมนูหรือใบเสร็จ</span> — ช่วยประเมินมื้ออาหาร</p>
+        </div>
+      </div>
+    );
+  }
+  if (type === "workout") {
+    if (workoutSubtype === "strength") {
+      return (
+        <div className="rounded-2xl bg-slate-50/80 px-4 py-3 text-sm text-slate-600">
+          <p className="font-bold text-[#17201d]">🏋️ อัปโหลดรูปผลเวทเทรนนิ่ง</p>
+          <p className="mt-1 text-xs leading-5 text-slate-500">
+            AI จะอ่านข้อมูลจากรูป เช่น ระยะเวลา แคลอรี่ HR และท่าออกกำลังกาย (ถ้ามี)
+          </p>
+          <div className="mt-2 space-y-1.5 text-xs leading-5">
+            <p><span className="font-semibold text-slate-700">รูปสรุป Strength session</span> — Garmin, Apple Watch, Polar</p>
+            <p><span className="font-semibold text-slate-700">รูป Gym app</span> — Strong, Hevy, Fitbod หรือแอปอื่น ๆ</p>
+            <p><span className="font-semibold text-slate-700">รูปสรุปทั่วไป</span> — ระยะเวลา / แคลอรี่ / HR ก็เพียงพอ</p>
+          </div>
+          <p className="mt-2 text-xs leading-5 text-slate-400">
+            🛡️ ไม่จำเป็นต้องมีระยะทางหรือ pace — บันทึกเฉพาะ structured data ไม่บันทึกรูปต้นฉบับ
+          </p>
+        </div>
+      );
+    }
+    return (
+      <div className="rounded-2xl bg-slate-50/80 px-4 py-3 text-sm text-slate-600">
+        <p className="font-bold text-[#17201d]">🏃 อัปโหลดรูปผลการออกกำลังกาย</p>
+        <p className="mt-1 text-xs leading-5 text-slate-500"> AI จะอ่านข้อมูลจากรูปวิ่งหรือกิจกรรมอื่น ๆ และประเมินความหนักเพื่อช่วยโค้ชวางแผน</p>
+        <div className="mt-2 space-y-1.5 text-xs leading-5">
+          <p><span className="font-semibold text-slate-700">รูปผลวิ่ง</span> — ระยะ / เวลา / pace / HR</p>
+          <p><span className="font-semibold text-slate-700">รูปเวท</span> — ระยะเวลา / HR / calories / ท่าที่เล่น</p>
+          <p><span className="font-semibold text-slate-700">รูปกิจกรรมอื่น</span> — สรุปเป็นบันทึกการออกกำลังกาย</p>
+        </div>
+      </div>
+    );
+  }
+  if (type === "sleep") {
+    return (
+      <div className="rounded-2xl bg-slate-50/80 px-4 py-3 text-sm text-slate-600">
+        <p className="font-bold text-[#17201d]">😴 อัปโหลดข้อมูลการนอนเพื่อประเมินความพร้อม</p>
+        <p className="mt-1 text-xs leading-5 text-slate-500"> AI จะอ่านข้อมูลสรุปการนอนและคะแนนฟื้นตัวเพื่อประเมินความพร้อมซ้อมวันนี้</p>
+        <div className="mt-2 space-y-1.5 text-xs leading-5">
+          <p><span className="font-semibold text-slate-700">รูปการนอน</span> — duration / sleep score / HRV</p>
+          <p><span className="font-semibold text-slate-700">รูป Energy score</span> — readiness / recovery</p>
+        </div>
       </div>
     );
   }
   if (type === "body") {
     return (
       <div className="rounded-2xl bg-slate-50/80 px-4 py-3 text-sm text-slate-600">
-        <p className="font-bold text-[#17201d]">อัปโหลดค่าร่างกายเพื่อสร้าง Report</p>
+        <p className="font-bold text-[#17201d]">⚖️ อัปโหลดค่าร่างกายเพื่อสร้าง Report</p>
         <p className="mt-1 text-xs leading-5 text-slate-500">บันทึกแนวโน้มน้ำหนัก ไขมัน กล้ามเนื้อ เพื่อให้โค้ชวิเคราะห์ได้</p>
         <div className="mt-2 space-y-1.5 text-xs leading-5">
-          <p><span className="font-semibold text-slate-700">รูปค่าร่างกาย</span> — น้ำหนัก / ไขมัน / กล้ามเนื้อ</p>
-          <p><span className="font-semibold text-slate-700">รูป Smart scale</span> — ดูแนวโน้มรูปร่างและพลังงาน</p>
-          <p><span className="font-semibold text-slate-700">รูป Body composition</span> — ใช้ปรับเป้าหมายซ้อมและโภชนาการ</p>
+          <p><span className="font-semibold text-slate-700">รูปชั่งน้ำหนัก</span> — น้ำหนัก / ไขมัน / กล้ามเนื้อ</p>
         </div>
         <Link
           href="/pain"
@@ -1053,35 +1103,23 @@ function UploadEmptyGuide({ type, workoutSubtype }: { type: UploadType; workoutS
       </div>
     );
   }
-  if (type === "workout" && workoutSubtype === "strength") {
+  if (type === "health_check") {
     return (
       <div className="rounded-2xl bg-slate-50/80 px-4 py-3 text-sm text-slate-600">
-        <p className="font-bold text-[#17201d]">🏋️ อัปโหลดรูปผลเวทเทรนนิ่ง</p>
+        <p className="font-bold text-[#17201d]">🩺 อัปโหลด PDF ผลตรวจสุขภาพ</p>
         <p className="mt-1 text-xs leading-5 text-slate-500">
-          AI จะอ่านข้อมูลจากรูป เช่น ระยะเวลา แคลอรี่ HR และท่าออกกำลังกาย (ถ้ามี)
+          ระบบจะอ่านค่าเลือดที่เกี่ยวกับโภชนาการและ recovery และบันทึกเฉพาะค่าที่สรุปแล้ว
         </p>
         <div className="mt-2 space-y-1.5 text-xs leading-5">
-          <p><span className="font-semibold text-slate-700">รูปสรุป Strength session</span> — Garmin, Apple Watch, Polar</p>
-          <p><span className="font-semibold text-slate-700">รูป Gym app</span> — Strong, Hevy, Fitbod หรือแอปอื่น ๆ</p>
-          <p><span className="font-semibold text-slate-700">รูปสรุปทั่วไป</span> — ระยะเวลา / แคลอรี่ / HR ก็เพียงพอ</p>
+          <p><span className="font-semibold text-slate-700">PDF/รูปผลตรวจ</span> — ใช้เป็นบริบทอาหารและไลฟ์สไตล์แบบระวัง</p>
         </div>
-        <p className="mt-2 text-xs leading-5 text-slate-400">
-          🛡️ ไม่จำเป็นต้องมีระยะทางหรือ pace — บันทึกเฉพาะ structured data ไม่บันทึกรูปต้นฉบับ
+        <p className="mt-1.5 text-xs leading-5 text-slate-400">
+          🛡️ ระบบบันทึกเฉพาะค่าที่สรุปแล้ว ไม่บันทึกไฟล์ PDF ต้นฉบับหรือข้อความดิบ
         </p>
       </div>
     );
   }
-  return (
-    <div className="rounded-2xl bg-slate-50/80 px-4 py-3 text-sm text-slate-600">
-      <p className="font-bold text-[#17201d]">ลองอัปโหลดเพื่อสร้าง Report</p>
-      <p className="mt-1 text-xs leading-5 text-slate-500">รายการที่บันทึกไว้จะช่วยให้โค้ชตอบได้แม่นขึ้นเมื่อคุยกับโค้ช</p>
-      <div className="mt-2 space-y-1.5 text-xs leading-5">
-        <p><span className="font-semibold text-slate-700">รูปอาหาร</span> — กินได้มั้ย / ก่อนวิ่งได้ไหม</p>
-        <p><span className="font-semibold text-slate-700">รูปผลวิ่ง</span> — HR สูงไปไหม / รอบหน้าซ้อมอะไร</p>
-        <p><span className="font-semibold text-slate-700">รูปค่าร่างกาย</span> — น้ำหนัก ไขมัน กล้ามเนื้อ</p>
-      </div>
-    </div>
-  );
+  return null;
 }
 
 

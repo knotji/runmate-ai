@@ -225,6 +225,7 @@ function RacePlanFreshnessNote({ freshness }: { freshness: PlanFreshness | null 
 }
 
 function TodayWorkoutCard({ workout }: { workout: WeekWorkout }) {
+  const isStrength = isStrengthOrMobilityType(workout.workoutType);
   return (
     <section className="card border border-[#b7dcc4] bg-[#f4fbf6] p-5">
       <div className="flex items-start justify-between gap-3">
@@ -237,15 +238,19 @@ function TodayWorkoutCard({ workout }: { workout: WeekWorkout }) {
         </span>
       </div>
       <p className="mt-4 text-sm leading-6 text-slate-700">{workout.description}</p>
-      <div className="mt-4 grid grid-cols-2 gap-2">
-        <MiniMetric label="Pace" value={safeValue(workout.targetPace)} />
-        <MiniMetric label="HR / ความหนัก" value={safeValue(workout.targetHR)} />
-      </div>
-      {isStrengthType(workout.workoutType) && (
-        <InfoLine label="รูทีน" value={suggestStrengthRoutine(workout.workoutType, workout.purpose, workout.adjustment)} />
+      {renderWorkoutDetails(workout)}
+      {isStrength ? (
+        <>
+          <InfoLine label="Focus / กล้ามเนื้อ" value={workout.purpose || "แกนกลาง & เสริมความแข็งแรง"} />
+          {workout.adjustment ? <InfoLine label="Effort / แรงต้าน" value={workout.adjustment} /> : null}
+          <InfoLine label="รูทีนแนะนำ" value={suggestStrengthRoutine(workout.workoutType, workout.purpose, workout.adjustment)} />
+        </>
+      ) : (
+        <>
+          {workout.purpose ? <InfoLine label="เป้าหมาย" value={workout.purpose} /> : null}
+          {workout.adjustment ? <InfoLine label="ปรับตามสภาพ" value={workout.adjustment} /> : null}
+        </>
       )}
-      {workout.purpose ? <InfoLine label="เป้าหมาย" value={workout.purpose} /> : null}
-      {workout.adjustment ? <InfoLine label="ปรับตามสภาพ" value={workout.adjustment} /> : null}
     </section>
   );
 }
@@ -256,29 +261,36 @@ function ActionableWeekCard({ workouts }: { workouts: WeekWorkout[] }) {
       <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#6f8fa6]">แผนสัปดาห์นี้</p>
       <h2 className="mt-2 text-xl font-bold text-[#17201d]">แผน 7 วันแบบลงมือทำได้</h2>
       <div className="mt-4 space-y-3">
-        {workouts.map((workout, index) => (
-          <div key={`${workout.day}-${workout.workoutType}-${index}`} className="rounded-2xl bg-white/80 p-4 shadow-sm ring-1 ring-slate-100">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-xs font-bold text-[#6f8fa6]">{workout.day}</p>
-                <p className="mt-1 font-bold text-[#17201d]">{workout.workoutType}</p>
+        {workouts.map((workout, index) => {
+          const isStrength = isStrengthOrMobilityType(workout.workoutType);
+          return (
+            <div key={`${workout.day}-${workout.workoutType}-${index}`} className="rounded-2xl bg-white/80 p-4 shadow-sm ring-1 ring-slate-100">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-bold text-[#6f8fa6]">{workout.day}</p>
+                  <p className="mt-1 font-bold text-[#17201d]">{workout.workoutType}</p>
+                </div>
+                <span className="rounded-full bg-[#eef4ef] px-3 py-1 text-xs font-bold text-[#2a5a39]">
+                  {formatWorkoutAmount(workout)}
+                </span>
               </div>
-              <span className="rounded-full bg-[#eef4ef] px-3 py-1 text-xs font-bold text-[#2a5a39]">
-                {formatWorkoutAmount(workout)}
-              </span>
+              <p className="mt-3 text-sm leading-6 text-slate-600">{workout.description}</p>
+              {renderWorkoutDetails(workout)}
+              {isStrength ? (
+                <>
+                  <InfoLine label="Focus / กล้ามเนื้อ" value={workout.purpose || "แกนกลาง & เสริมความแข็งแรง"} />
+                  {workout.adjustment ? <InfoLine label="Effort / แรงต้าน" value={workout.adjustment} /> : null}
+                  <InfoLine label="รูทีนแนะนำ" value={suggestStrengthRoutine(workout.workoutType, workout.purpose, workout.adjustment)} />
+                </>
+              ) : (
+                <>
+                  {workout.purpose ? <InfoLine label="เป้าหมาย" value={workout.purpose} /> : null}
+                  {workout.adjustment ? <InfoLine label="ปรับตามสภาพ" value={workout.adjustment} /> : null}
+                </>
+              )}
             </div>
-            <p className="mt-3 text-sm leading-6 text-slate-600">{workout.description}</p>
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              <MiniMetric label="Pace" value={safeValue(workout.targetPace)} />
-              <MiniMetric label="HR / ความหนัก" value={safeValue(workout.targetHR)} />
-            </div>
-            {isStrengthType(workout.workoutType) && (
-              <InfoLine label="รูทีน" value={suggestStrengthRoutine(workout.workoutType, workout.purpose, workout.adjustment)} />
-            )}
-            {workout.purpose ? <InfoLine label="เป้าหมาย" value={workout.purpose} /> : null}
-            {workout.adjustment ? <InfoLine label="ปรับตามสภาพ" value={workout.adjustment} /> : null}
-          </div>
-        ))}
+          );
+        })}
       </div>
     </section>
   );
@@ -337,8 +349,44 @@ function isRunType(workoutType: string): boolean {
   return !/^(rest|strength|gym|cross.?training|core|mobility|shakeout|post.?race|recovery|walk|ฟื้น|พัก)/i.test(workoutType.trim());
 }
 
-function isStrengthType(workoutType: string): boolean {
-  return /^(strength|cross.?training|gym|core)/i.test(workoutType.trim());
+
+
+function isStrengthOrMobilityType(workoutType: string): boolean {
+  return /^(strength|recovery\s+strength|mobility|core|gym|cross.?training|เวท|ยืด|กายภาพ)/i.test(workoutType.trim());
+}
+
+function isRestType(workoutType: string): boolean {
+  return /^(rest(\s+day)?|พัก|งด)/i.test(workoutType.trim());
+}
+
+function renderWorkoutDetails(workout: WeekWorkout) {
+  const type = workout.workoutType ?? "";
+  const isStrength = isStrengthOrMobilityType(type);
+  const isRest = isRestType(type);
+
+  if (isRest) return null;
+
+  if (isStrength) {
+    const hasHR = workout.targetHR && !/n\/a|ไม่เน้น|ไม่มี|none|-/i.test(workout.targetHR);
+    return (
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        {workout.durationMin != null && (
+          <MiniMetric label="Duration / เวลา" value={`${workout.durationMin} นาที`} />
+        )}
+        {hasHR && (
+          <MiniMetric label="HR / ความหนัก" value={workout.targetHR!} />
+        )}
+      </div>
+    );
+  }
+
+  // Running / general card
+  return (
+    <div className="mt-4 grid grid-cols-2 gap-2">
+      <MiniMetric label="Pace" value={safeValue(workout.targetPace)} />
+      <MiniMetric label="HR / ความหนัก" value={safeValue(workout.targetHR)} />
+    </div>
+  );
 }
 
 function formatWorkoutAmount(workout: WeekWorkout) {
