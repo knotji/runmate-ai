@@ -27,9 +27,9 @@ import {
 import { extractMealData, normalizeMealNutrition } from "@/lib/mealMerge";
 import { polishSleepInsightText } from "@/lib/sleepInsight";
 import { dedupeSleepItems } from "@/lib/sleepDedupe";
-import { getHistoryItemDateKey, dateKeyToRecordedAt, todayBangkokDateKey } from "@/lib/date";
+import { getHistoryItemDateKey, dateKeyToRecordedAt, todayBangkokDateKey, yesterdayBangkokDateKey } from "@/lib/date";
 import { normalizeMealSlot, getMealSlotLabel, getMealSlotIcon, getMealSlotOrder } from "@/lib/mealSlots";
-import { getMealSourceInfo } from "@/lib/mealSource";
+import { getMealSourceInfo, isQuickProteinMeal } from "@/lib/mealSource";
 import { buildWeeklyReview, type WeeklyReview } from "@/lib/weeklyReview";
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -87,7 +87,9 @@ export default function ReportPage() {
   const dashboard = buildDashboard(items);
   const pTarget = proteinTargetGrams(profile);
   const dashboardCutoff = dateKeyBefore(7);
-  const weeklyReview = items.length > 0 ? buildWeeklyReview(items, todayBangkokDateKey()) : null;
+  const todayDateKey = todayBangkokDateKey();
+  const yesterdayDateKey = yesterdayBangkokDateKey();
+  const weeklyReview = items.length > 0 ? buildWeeklyReview(items, todayDateKey) : null;
 
   const filteredDays = days.filter((day) => {
     if (activeFilter === "all") return true;
@@ -230,6 +232,7 @@ export default function ReportPage() {
                   onEditItem={setEditingMeal}
                   onDeleteRaceResult={handleDeleteRaceResult}
                   deletingKey={deletingKey}
+                  initialExpanded={day.date >= yesterdayDateKey}
                 />
               ))}
               {olderDays.length > 0 && (
@@ -415,6 +418,7 @@ function DayCard({
   onEditItem,
   onDeleteRaceResult,
   deletingKey,
+  initialExpanded = false,
 }: {
   day: DayGroup;
   raceResults: RaceResult[];
@@ -423,8 +427,9 @@ function DayCard({
   onEditItem: (item: LocalHistoryItem) => void;
   onDeleteRaceResult: (result: RaceResult) => void;
   deletingKey: string | null;
+  initialExpanded?: boolean;
 }) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(initialExpanded);
 
   const sleeps = day.items.filter((i) => i.type === "sleep");
   const dedupedSleeps = dedupeSleepItems(sleeps);
@@ -540,6 +545,9 @@ function DayCard({
             {readiness === null && totalKm === null && mealCount > 0 && (
               <p className="text-sm text-slate-500">{mealCount} มื้อ</p>
             )}
+            <p className="mt-1 text-[11px] font-semibold text-[#6f8fa6]">
+              {expanded ? "ย่อ" : "ดูรายละเอียด"}
+            </p>
           </div>
         </div>
       </button>
@@ -677,7 +685,7 @@ function WorkoutDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; o
     : null;
 
   return (
-    <div className="rounded-2xl bg-slate-50 p-4">
+    <div data-testid="report-workout-card" className="rounded-2xl bg-slate-50 p-4">
       <p className="text-xs font-bold uppercase tracking-wide text-[#42677f] mb-2">{icon} {kindLabel}</p>
       {hasAnyMetric && (
         <div className="grid grid-cols-3 gap-2 mb-3">
@@ -722,13 +730,18 @@ function MealDetail({
 }) {
   const d = extractMealData(item);
   const n = normalizeMealNutrition(d as unknown as Record<string, unknown>);
-  const foodNames = d.detectedFoods?.map((food) => food.name).filter(Boolean).join(", ") || d?.extracted?.detectedFood || "";
-  const note = d.trainingFit?.coachNote ?? d.coachNote ?? d?.coach?.aiSummary ?? d?.coach?.suggestion ?? "";
-  const sourceInfo = getMealSourceInfo(d);
+  const isQuickProtein = isQuickProteinMeal(item.data);
+  const foodNames = isQuickProtein
+    ? null
+    : d.detectedFoods?.map((food) => food.name).filter(Boolean).join(", ") || d?.extracted?.detectedFood || "";
+  const note = isQuickProtein
+    ? null
+    : d.trainingFit?.coachNote ?? d.coachNote ?? d?.coach?.aiSummary ?? d?.coach?.suggestion ?? "";
+  const sourceInfo = getMealSourceInfo(item.data);
 
   const normalizedSlot = normalizeMealSlot(item, item.recordedAt || item.createdAt);
   const icon = getMealSlotIcon(normalizedSlot);
-  const label = getMealSlotLabel(normalizedSlot);
+  const label = isQuickProtein ? "Quick log" : getMealSlotLabel(normalizedSlot);
 
   return (
     <div data-testid="report-meal-card" className="rounded-2xl bg-orange-50 p-4">
@@ -738,16 +751,28 @@ function MealDetail({
           <span className="rounded-full bg-orange-200 px-2 py-0.5 text-[10px] font-bold text-orange-700">{sourceInfo.badgeText}</span>
         )}
       </div>
-      {foodNames && (
+      {isQuickProtein ? (
+        <p className="text-sm font-bold text-[#17201d] mb-2">{sourceInfo.assessmentText}</p>
+      ) : foodNames ? (
         <p className="text-sm font-bold text-[#17201d] mb-2">{truncate(foodNames, 100)}</p>
+      ) : null}
+      {isQuickProtein ? (
+        n.proteinG != null && (
+          <div className="mb-2">
+            <Metric label="Protein" value={formatMacro(n.proteinG)} />
+          </div>
+        )
+      ) : (
+        <div className="grid grid-cols-4 gap-2 mb-2">
+          <Metric label="kcal" value={formatCalories(n.caloriesKcal)} />
+          <Metric label="Protein" value={formatMacro(n.proteinG)} />
+          <Metric label="Carbs" value={formatMacro(n.carbsG)} />
+          <Metric label="Fat" value={formatMacro(n.fatG)} />
+        </div>
       )}
-      <div className="grid grid-cols-4 gap-2 mb-2">
-        <Metric label="kcal" value={formatCalories(n.caloriesKcal)} />
-        <Metric label="Protein" value={formatMacro(n.proteinG)} />
-        <Metric label="Carbs" value={formatMacro(n.carbsG)} />
-        <Metric label="Fat" value={formatMacro(n.fatG)} />
-      </div>
-      <p className="mb-2 text-xs text-orange-700">{sourceInfo.assessmentText}</p>
+      {!isQuickProtein && (
+        <p className="mb-2 text-xs text-orange-700">{sourceInfo.assessmentText}</p>
+      )}
       {note && (
         <p className="text-sm leading-6 text-slate-700">{truncate(note, 140)}</p>
       )}
@@ -929,6 +954,7 @@ function MealNutritionDaySummary({ summary, mealCount, proteinTarget, meals }: {
   const status = summary.proteinG != null ? calcProteinStatus(summary.proteinG, proteinTarget) : null;
   const coachNote = summary.proteinG != null ? proteinCoachNote(summary.proteinG, proteinTarget) : null;
   const remaining = summary.proteinG != null && summary.proteinG < proteinTarget ? proteinTarget - summary.proteinG : null;
+  const showSecondaryMacros = summary.caloriesKcal != null || summary.carbsG != null || summary.fatG != null;
 
   return (
     <div className="rounded-2xl bg-orange-50 p-4 space-y-3">
@@ -950,12 +976,14 @@ function MealNutritionDaySummary({ summary, mealCount, proteinTarget, meals }: {
         )}
       </div>
 
-      {/* Secondary macros */}
-      <div className="grid grid-cols-3 gap-2">
-        <Metric label="Calories" value={formatCalories(summary.caloriesKcal)} />
-        <Metric label="Carbs" value={formatMacro(summary.carbsG)} />
-        <Metric label="Fat" value={formatMacro(summary.fatG)} />
-      </div>
+      {/* Secondary macros — hide when only protein quick logs contributed partial data */}
+      {showSecondaryMacros && (
+        <div className="grid grid-cols-3 gap-2">
+          <Metric label="Calories" value={formatCalories(summary.caloriesKcal)} />
+          <Metric label="Carbs" value={formatMacro(summary.carbsG)} />
+          <Metric label="Fat" value={formatMacro(summary.fatG)} />
+        </div>
+      )}
 
       <p className="text-xs text-orange-700">{mealCount} มื้อ · {getDayMealsAssessmentText(meals)}</p>
       {coachNote && <p className="text-sm font-semibold text-[#17201d]">{coachNote}</p>}
@@ -2055,12 +2083,18 @@ function WeeklyReviewCard({ review }: { review: WeeklyReview }) {
       )}
 
       {review.nextFocus.length > 0 && (
-        <div className="space-y-1">
-          <p className="text-xs font-semibold text-[#42677f]">โฟกัสถัดไป</p>
+        <div className="rounded-2xl bg-[#eef4f8] border border-[#ccdce8] p-4 space-y-2">
+          <div className="flex items-center gap-2">
+            <span className="text-base">🎯</span>
+            <p className="text-xs font-bold uppercase tracking-wide text-[#42677f]">โฟกัสถัดไป</p>
+          </div>
           {review.nextFocus.map((f, i) => (
-            <p key={i} className="flex items-start gap-1.5 text-xs text-slate-600 leading-5">
-              <span className="text-[#42677f] shrink-0">→</span>{f}
-            </p>
+            <div key={i} className="flex items-start gap-2">
+              <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#42677f] text-[9px] font-bold text-white">
+                {i + 1}
+              </span>
+              <p className="text-xs font-semibold text-[#2e4a5e] leading-5">{f}</p>
+            </div>
           ))}
         </div>
       )}

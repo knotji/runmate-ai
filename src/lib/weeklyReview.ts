@@ -156,7 +156,7 @@ export function buildWeeklyReview(items: LocalHistoryItem[], todayDateKey: strin
   if (runCount > 0 && strengthCount === 0) nextFocus.push("เพิ่ม strength 1 ครั้ง/สัปดาห์เพื่อรักษากล้ามเนื้อ");
   if (mealCount < 7) nextFocus.push("บันทึกอาหารให้สม่ำเสมอเพื่อข้อมูลที่แม่นขึ้น");
   if (runCount === 0 && strengthCount === 0) nextFocus.push("เริ่มจากเดินเบา 20 นาที หรือ easy run สั้น ๆ");
-  if (nextFocus.length === 0) nextFocus.push("รักษาความสม่ำเสมอไว้");
+  if (nextFocus.length === 0) nextFocus.push("รักษาความสม่ำเสมอต่ออีกสัปดาห์");
 
   return {
     runningKmTotal: Math.round(runningKmTotal * 10) / 10,
@@ -171,6 +171,6 @@ export function buildWeeklyReview(items: LocalHistoryItem[], todayDateKey: strin
     resolvedPainCount,
     highlights,
     cautions,
-    nextFocus,
+    nextFocus: nextFocus.slice(0, 3),
   };
 }

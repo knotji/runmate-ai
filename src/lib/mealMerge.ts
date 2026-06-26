@@ -78,6 +78,13 @@ export function extractMealData(item: LocalHistoryItem): MealAnalysis {
       return inner as unknown as MealAnalysis;
     }
   }
+  // Quick log and upload saves may nest meal fields under `extracted`
+  if (d?.extracted && typeof d.extracted === "object" && !Array.isArray(d.extracted)) {
+    const ext = d.extracted as Record<string, unknown>;
+    if ("mealType" in ext || "mealSlot" in ext || "detectedFoods" in ext || "proteinG" in ext) {
+      return { ...ext, ...d } as unknown as MealAnalysis;
+    }
+  }
   return d as unknown as MealAnalysis;
 }
 

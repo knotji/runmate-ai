@@ -11,7 +11,7 @@ test("editing a meal moves it to yesterday and removes it from Today context", a
 
   await gotoApp(page, "/logs");
   const today = reportDayByDate(page, todayKey);
-  await today.getByTestId("report-day-toggle").click();
+  // Today starts expanded by default — no toggle click needed
   await today.getByTestId("report-meal-card").getByRole("button", { name: "แก้ไข" }).click();
 
   const modal = page.getByTestId("meal-edit-modal");
@@ -24,7 +24,7 @@ test("editing a meal moves it to yesterday and removes it from Today context", a
   await expect(page.getByRole("heading", { name: "แก้ไขมื้ออาหาร" })).toHaveCount(0);
   const yesterday = reportDayByDate(page, yesterdayKey);
   await expect(yesterday).toBeVisible();
-  await yesterday.getByTestId("report-day-toggle").click();
+  // Yesterday starts expanded by default — no toggle click needed
   await expect(yesterday.getByRole("heading", { name: /มื้อกลางวัน/ })).toBeVisible();
   await expect(yesterday.getByTestId("report-meal-card").getByText("500 kcal", { exact: true })).toBeVisible();
   await expect(reportDayByDate(page, todayKey)).toHaveCount(0);

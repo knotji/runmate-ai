@@ -141,6 +141,7 @@ export type MealContextSummary = {
   fiberG: number | null;
   fatLoad: string | null;
   coachNote: string | null;
+  isQuickProteinOnly?: boolean;
 };
 
 export type HealthCheckContext = {
@@ -657,14 +658,18 @@ function buildNutritionSummaries(items: LocalHistoryItem[], cutoff: string): Nut
 }
 
 function compactMealForCoach(item: LocalHistoryItem): MealContextSummary {
+  const raw = item.data as Record<string, unknown>;
   const meal = extractMealData(item);
+  const isQuickProteinOnly = raw?.quickLog === true && raw?.quickLogKind === "protein";
   const slot = normalizeMealSlot(meal.mealSlot || meal.mealType, item.recordedAt || item.createdAt);
   const slotLabel = getMealSlotLabel(slot);
   const nutrition = normalizeMealNutrition(meal as unknown as Record<string, unknown>);
-  const foods = (meal.detectedFoods ?? [])
-    .map((food) => food.name?.trim())
-    .filter((food): food is string => Boolean(food))
-    .slice(0, 8);
+  const foods = isQuickProteinOnly
+    ? (nutrition.proteinG != null ? [`โปรตีน ${nutrition.proteinG}g`] : ["โปรตีน (quick log)"])
+    : (meal.detectedFoods ?? [])
+        .map((food) => food.name?.trim())
+        .filter((food): food is string => Boolean(food))
+        .slice(0, 8);
   return {
     mealType: slotLabel,
     foods,
@@ -675,6 +680,7 @@ function compactMealForCoach(item: LocalHistoryItem): MealContextSummary {
     fiberG: nutrition.fiberG,
     fatLoad: meal.trainingFit?.fatLoad ?? null,
     coachNote: meal.trainingFit?.coachNote ?? meal.coachNote ?? null,
+    isQuickProteinOnly,
   };
 }
 

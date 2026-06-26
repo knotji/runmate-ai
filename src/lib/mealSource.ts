@@ -6,6 +6,12 @@ export type MealSourceInfo = {
   assessmentText: string;
 };
 
+export function isQuickProteinMeal(meal: unknown): boolean {
+  if (!meal || typeof meal !== "object") return false;
+  const m = meal as Record<string, unknown>;
+  return m.quickLog === true && m.quickLogKind === "protein";
+}
+
 export function getMealSourceInfo(meal: unknown): MealSourceInfo {
   if (!meal || typeof meal !== "object") {
     return {
@@ -16,6 +22,13 @@ export function getMealSourceInfo(meal: unknown): MealSourceInfo {
   }
 
   const m = meal as Record<string, unknown>;
+
+  // Quick-log records: protein-only, no full meal analysis
+  if (isQuickProteinMeal(m)) {
+    const proteinG = (m.quickLogProteinG ?? m.proteinG) as number | undefined;
+    const assessmentText = proteinG != null ? `กินโปรตีนแล้ว · ${proteinG}g` : "บันทึกไว ๆ";
+    return { sourceType: "manual", badgeText: "บันทึกไว ๆ", assessmentText };
+  }
 
   // Detect inputMode or sourceType
   const inputMode = m.inputMode as string | undefined;

@@ -10,8 +10,8 @@ test("manual breakfast saves to Report without an image badge", async ({ page })
   await gotoApp(page, "/logs");
   const today = reportDayByDate(page, bangkokDateKey());
   await expect(today).toBeVisible();
-  await today.getByTestId("report-day-toggle").click();
 
+  // Today starts expanded by default — no toggle click needed
   await expect(today.getByRole("heading", { name: /มื้อเช้า/ })).toBeVisible();
   const mealCard = today.getByTestId("report-meal-card");
   await expect(mealCard.getByText("ข้าวไข่ต้ม, นมโปรตีน")).toBeVisible();

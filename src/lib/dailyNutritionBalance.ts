@@ -74,21 +74,24 @@ export function buildDailyNutritionBalance(input: {
     };
   }
 
-  // Aggregate all food text across meals
-  const allFoodText = mealsToday
+  const fullMeals = mealsToday.filter((meal) => !meal.isQuickProteinOnly);
+  const hasFullMeals = fullMeals.length > 0;
+
+  // Aggregate food text from complete meals only — quick protein logs are supplements, not full meals
+  const allFoodText = fullMeals
     .flatMap((meal) => meal.foods)
     .join(" ")
     .toLowerCase();
 
-  const mealSlots = mealsToday.map((meal) => meal.mealType);
+  const mealSlots = fullMeals.map((meal) => meal.mealType);
 
-  // --- Protein ---
-  const proteinHit = PROTEIN_WORDS.test(allFoodText);
-  const lightMealsOnly = !CARB_WORDS.test(allFoodText) && !proteinHit;
+  // --- Protein (include quick protein logs) ---
+  const proteinHit = PROTEIN_WORDS.test(allFoodText) || mealsToday.some((m) => (m.proteinG ?? 0) > 0);
+  const lightMealsOnly = hasFullMeals && !CARB_WORDS.test(allFoodText) && !proteinHit;
   let proteinStatus: NutritionStatus;
   if (!proteinHit) {
     proteinStatus = "low";
-  } else if (mealsToday.length >= 2 && proteinHit) {
+  } else if (fullMeals.length >= 2 && proteinHit) {
     proteinStatus = "ok";
   } else {
     proteinStatus = "ok";
@@ -102,14 +105,16 @@ export function buildDailyNutritionBalance(input: {
     else proteinStatus = "ok";
   }
 
-  // --- Carbs ---
-  const carbHit = CARB_WORDS.test(allFoodText);
-  const heavyCarbCount = mealsToday.filter((meal) =>
+  // --- Carbs (complete meals only) ---
+  const carbHit = hasFullMeals && CARB_WORDS.test(allFoodText);
+  const heavyCarbCount = fullMeals.filter((meal) =>
     meal.foods.some((food) => HEAVY_CARB_WORDS.test(food.toLowerCase()))
   ).length;
 
   let carbStatus: NutritionStatus;
-  if (!carbHit) {
+  if (!hasFullMeals) {
+    carbStatus = "unknown";
+  } else if (!carbHit) {
     carbStatus = "low";
   } else if (heavyCarbCount >= 2) {
     carbStatus = "high";
@@ -117,23 +122,23 @@ export function buildDailyNutritionBalance(input: {
     carbStatus = "ok";
   }
 
-  const totalCarbsG = mealsToday.reduce((sum, meal) => sum + (meal.carbsG ?? 0), 0);
+  const totalCarbsG = fullMeals.reduce((sum, meal) => sum + (meal.carbsG ?? 0), 0);
   if (totalCarbsG > 0) {
     if (totalCarbsG < 60) carbStatus = "low";
     else if (totalCarbsG > 200) carbStatus = "high";
   }
 
-  // --- Veggie/fiber ---
-  const veggieHit = VEGGIE_FIBER_WORDS.test(allFoodText);
-  const veggieFiberStatus: "low" | "ok" | "unknown" = veggieHit ? "ok" : "low";
+  // --- Veggie/fiber (complete meals only) ---
+  const veggieHit = hasFullMeals && VEGGIE_FIBER_WORDS.test(allFoodText);
+  const veggieFiberStatus: "low" | "ok" | "unknown" = !hasFullMeals ? "unknown" : veggieHit ? "ok" : "low";
 
-  // --- Fried/fat ---
-  const friedHit = FRIED_FAT_WORDS.test(allFoodText);
-  const lightHit = LIGHT_COOKING_WORDS.test(allFoodText);
-  const friedMealsCount = mealsToday.filter((meal) =>
+  // --- Fried/fat (complete meals only) ---
+  const friedHit = hasFullMeals && FRIED_FAT_WORDS.test(allFoodText);
+  const lightHit = hasFullMeals && LIGHT_COOKING_WORDS.test(allFoodText);
+  const friedMealsCount = fullMeals.filter((meal) =>
     meal.foods.some((food) => FRIED_FAT_WORDS.test(food.toLowerCase()))
   ).length;
-  const hasFatLoadHeavy = mealsToday.some((meal) => meal.fatLoad === "heavy");
+  const hasFatLoadHeavy = fullMeals.some((meal) => meal.fatLoad === "heavy");
 
   let friedFatStatus: WatchStatus;
   if (friedHit || hasFatLoadHeavy) {
@@ -144,10 +149,10 @@ export function buildDailyNutritionBalance(input: {
     friedFatStatus = "unknown";
   }
 
-  // --- Sugar ---
-  const sugarHit = SUGAR_WORDS.test(allFoodText);
-  const noSugarHit = NO_SUGAR_WORDS.test(allFoodText);
-  const sugarMealsCount = mealsToday.filter((meal) =>
+  // --- Sugar (complete meals only) ---
+  const sugarHit = hasFullMeals && SUGAR_WORDS.test(allFoodText);
+  const noSugarHit = hasFullMeals && NO_SUGAR_WORDS.test(allFoodText);
+  const sugarMealsCount = fullMeals.filter((meal) =>
     meal.foods.some((food) => SUGAR_WORDS.test(food.toLowerCase()))
       && !meal.foods.some((food) => NO_SUGAR_WORDS.test(food.toLowerCase()))
   ).length;
@@ -161,8 +166,8 @@ export function buildDailyNutritionBalance(input: {
     sugarStatus = "unknown";
   }
 
-  // --- Variety / repeats ---
-  const proteinTokens = extractProteinTokens(mealsToday);
+  // --- Variety / repeats (complete meals only) ---
+  const proteinTokens = extractProteinTokens(fullMeals);
   const seen = new Map<string, number>();
   for (const token of proteinTokens) {
     seen.set(token, (seen.get(token) ?? 0) + 1);
@@ -171,7 +176,7 @@ export function buildDailyNutritionBalance(input: {
     .filter(([, count]) => count >= 2)
     .map(([token]) => token);
   const varietyStatus: VarietyStatus =
-    repeatedItems.length > 0 ? "repetitive" : mealsToday.length >= 2 ? "good" : "unknown";
+    repeatedItems.length > 0 ? "repetitive" : fullMeals.length >= 2 ? "good" : "unknown";
 
   // --- Health check biases ---
   const healthCheckBiases = buildHealthCheckBiases(latestHealthCheck);
@@ -207,8 +212,10 @@ export function buildDailyNutritionBalance(input: {
 
   const summaryText = parts.length
     ? parts.join(" · ")
-    : mealsToday.length >= 2
+    : fullMeals.length >= 2
     ? "สมดุลดี"
+    : mealsToday.some((m) => m.isQuickProteinOnly)
+    ? "มี quick log โปรตีน — ยังไม่มีมื้อเต็มวันนี้"
     : "มีข้อมูลบางส่วน";
 
   // --- Coach hint ---

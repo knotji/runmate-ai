@@ -100,9 +100,7 @@ test("Strength workout image upload, review, and save flow", async ({ page }) =>
   const reportDay = reportDayByDate(page, today);
   await expect(reportDay).toBeVisible();
   
-  // Expand day log to show details
-  await reportDay.getByTestId("report-day-toggle").click();
-
+  // Today starts expanded by default — no toggle click needed
   await expect(reportDay.getByText("เวท").first()).toBeVisible();
   await expect(reportDay.getByText("Squats, Push-ups, Plank")).toBeVisible();
 });

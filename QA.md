@@ -20,6 +20,10 @@
 - [ ] Manual meals do not show an image badge; image meals show the actual count.
 - [ ] Editing a meal updates its date, slot, nutrition, and daily totals.
 - [ ] Deleting a record updates totals and visible sections immediately.
+- [ ] Quick protein log requires amount confirmation (15g / 25g / 30g / custom) before saving.
+- [ ] Quick protein log does not invent calories/carbs/fat; Report shows "กินโปรตีนแล้ว · Xg" with badge "บันทึกไว ๆ".
+- [ ] Older Report days (before yesterday) are collapsed by default; Today and Yesterday stay expanded.
+- [ ] Weekly Review shows visible "โฟกัสถัดไป" with 1–3 actionable items.
 
 ## 3. Today
 
