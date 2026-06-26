@@ -1168,6 +1168,7 @@ function HealthCheckUploader({
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
 
   async function analyze() {
     if (!file) {
@@ -1175,7 +1176,7 @@ function HealthCheckUploader({
       return;
     }
     if (!file.type.includes("pdf") && !file.name.toLowerCase().endsWith(".pdf")) {
-      setError("รองรับเฉพาะไฟล์ PDF");
+      setError("ไฟล์นี้ยังไม่รองรับ ลองเลือก PDF ผลตรวจสุขภาพอีกครั้ง");
       return;
     }
     if (file.size > 8 * 1024 * 1024) {
@@ -1213,23 +1214,62 @@ function HealthCheckUploader({
           อัปโหลดผลตรวจสุขภาพประจำปีเพื่อให้โค้ชใช้ประกอบคำแนะนำอาหารและ recovery
         </p>
         <p className="mt-2 rounded-2xl bg-white px-3 py-2 text-xs leading-5 text-slate-500">
-          ใช้ไฟล์เพื่ออ่านค่าแล็บเท่านั้น บันทึกเฉพาะ structured summary ไม่บันทึก PDF ต้นฉบับหรือข้อความดิบ
+          ระบบจะอ่านเฉพาะค่าที่จำเป็น และบันทึกเฉพาะ structured summary
         </p>
       </div>
-      <input
-        className="control"
-        type="file"
-        accept="application/pdf,.pdf"
-        disabled={loading || saving}
-        onChange={(event) => {
-          setError("");
-          setFile(event.target.files?.[0] ?? null);
+
+      <label
+        className={`flex min-h-[120px] cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed transition-colors ${
+          file
+            ? "border-[var(--primary)] bg-[var(--primary-soft)]"
+            : "border-[var(--border-warm)] bg-[var(--surface-muted)] hover:border-[var(--primary)]/60 hover:bg-[var(--surface)]"
+        }`}
+        aria-label="อัปโหลดไฟล์ผลตรวจสุขภาพ"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            inputRef.current?.click();
+          }
         }}
-      />
-      {file ? (
-        <p className="text-xs text-slate-500">{file.name} · {Math.round(file.size / 1024)} KB</p>
-      ) : null}
+      >
+        <input
+          ref={inputRef}
+          type="file"
+          className="hidden"
+          accept="application/pdf,.pdf"
+          disabled={loading || saving}
+          onChange={(event) => {
+            setError("");
+            const selectedFile = event.target.files?.[0] ?? null;
+            if (selectedFile) {
+              if (!selectedFile.type.includes("pdf") && !selectedFile.name.toLowerCase().endsWith(".pdf")) {
+                setError("ไฟล์นี้ยังไม่รองรับ ลองเลือก PDF ผลตรวจสุขภาพอีกครั้ง");
+                setFile(null);
+                if (inputRef.current) inputRef.current.value = "";
+              } else {
+                setFile(selectedFile);
+              }
+            }
+          }}
+        />
+        {!file ? (
+          <>
+            <span className="text-3xl">📄</span>
+            <p className="text-sm font-semibold text-[var(--foreground)]">กดเพื่อเลือกไฟล์ผลตรวจ</p>
+            <p className="text-xs text-[var(--muted-text)]">รองรับ PDF ผลตรวจสุขภาพ</p>
+          </>
+        ) : (
+          <>
+            <span className="text-3xl">✅</span>
+            <p className="text-sm font-semibold text-[var(--foreground)]">เลือกแล้ว: {file.name}</p>
+            <p className="text-xs text-[var(--muted-text)]">{Math.round(file.size / 1024)} KB</p>
+          </>
+        )}
+      </label>
+
       {error ? <p className="rounded-xl bg-red-50 p-3 text-xs font-semibold text-red-600">{error}</p> : null}
+      
       <LoadingButton
         type="button"
         className="btn-primary w-full py-3 text-sm"

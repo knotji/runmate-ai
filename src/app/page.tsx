@@ -126,26 +126,49 @@ export default function TodayPage() {
       setCoachCtx(ctx);
       const hasSomeData = ctx.sleep7d.length > 0 || ctx.workouts7d.length > 0 || ctx.nutrition7d.length > 0 || ctx.latestBody != null || !!ctx.raceGoal;
       setHasHistory(hasSomeData);
-      if (!hasSomeData) return;
-      const res = await fetch("/api/coach-insight", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(ctx),
-      });
-      const json = await res.json() as TodayInsightResponse;
-      if (!res.ok && !json.data) throw new Error(json.message ?? "api error");
-      if (!json.data) throw new Error("no data");
-      setInsight(json.data);
-      if (json.ok === false || json.usedFallback) {
+      if (!hasSomeData) {
+        setLoading(false);
+        return;
+      }
+
+      // Immediately show a local fallback recommendation during loading
+      const localFallback = buildClientTodayFallback(ctx);
+      setInsight(localFallback);
+
+      // Create abort controller for 10s client timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      try {
+        const res = await fetch("/api/coach-insight", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(ctx),
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+
+        const json = await res.json() as TodayInsightResponse;
+        if (!res.ok && !json.data) throw new Error(json.message ?? "api error");
+        if (!json.data) throw new Error("no data");
+
+        setInsight(json.data);
+        if (json.ok === false || json.usedFallback) {
+          setInsightError(true);
+          setInsightErrorMessage(json.message ?? "ระบบยังประเมินด้วยโค้ชไม่สำเร็จ แต่ใช้ข้อมูลจาก Report เพื่อแนะนำเบื้องต้นให้ก่อน");
+        }
+      } catch (innerError) {
+        clearTimeout(timeoutId);
+        if (process.env.NODE_ENV === "development") console.warn("[today-analysis-fetch-error]", innerError);
         setInsightError(true);
-        setInsightErrorMessage(json.message ?? "ยังวิเคราะห์ไม่สำเร็จ แต่ระบบใช้ข้อมูลล่าสุดใน Report เพื่อแนะนำวันนี้แทน");
+        setInsightErrorMessage("ระบบยังประเมินด้วยโค้ชไม่สำเร็จ แต่ใช้ข้อมูลจาก Report เพื่อแนะนำเบื้องต้นให้ก่อน");
       }
     } catch (error) {
       if (process.env.NODE_ENV === "development") console.warn("[today-analysis-error]", error);
       const fallback = buildClientTodayFallback(fallbackContext);
       setInsight(fallback);
       setInsightError(true);
-      setInsightErrorMessage("ยังวิเคราะห์ไม่สำเร็จ แต่ระบบใช้ข้อมูลล่าสุดใน Report เพื่อแนะนำวันนี้แทน");
+      setInsightErrorMessage("ระบบยังประเมินด้วยโค้ชไม่สำเร็จ แต่ใช้ข้อมูลจาก Report เพื่อแนะนำเบื้องต้นให้ก่อน");
     } finally {
       setLoading(false);
     }
@@ -217,20 +240,20 @@ export default function TodayPage() {
 
         {insightError && !loading && (
           <div className="space-y-2 rounded-2xl bg-amber-50 px-3 py-2">
-            <p className="text-sm font-bold text-[#17201d]">{insight ? "ใช้คำแนะนำเบื้องต้นอยู่" : "ยังประเมินไม่สำเร็จ"}</p>
+            <p className="text-sm font-bold text-[#17201d]">{insight ? "ใช้คำแนะนำสำรองจากข้อมูลล่าสุด" : "ยังประเมินไม่สำเร็จ"}</p>
             <p className="text-xs leading-5 text-amber-700">
               {insightErrorMessage || "ประเมินไม่สำเร็จ ลองใหม่อีกครั้ง"}
             </p>
             <LoadingButton type="button" loading={loading} loadingText="กำลังวิเคราะห์..." onClick={() => void generateInsight(true)} className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600">
-              ลองใหม่
+              วิเคราะห์ใหม่
             </LoadingButton>
           </div>
         )}
 
-        {insight && !loading && (
+        {insight && (
           hasWorkoutToday && coachCtx?.todayPrimaryWorkout
             ? <PostWorkoutFocusContent insight={insight} context={coachCtx} />
-            : <PreWorkoutFocusContent insight={insight} hasPace={hasPace} context={coachCtx} />
+            : <PreWorkoutFocusContent insight={insight} hasPace={hasPace} context={coachCtx} isFallback={insightError} />
         )}
 
         {!insight && !loading && !insightError && !hasHistory && (
@@ -269,6 +292,7 @@ export default function TodayPage() {
         todayChecklist={todayChecklist}
         loading={loading}
         hasHistory={hasHistory}
+        isFallback={insightError}
       />
 
       {/* D. Quick Actions */}
@@ -403,13 +427,24 @@ function getDecisionCard(insight: DailyCoachInsight, context: CoachContext | nul
   return null;
 }
 
-function PreWorkoutFocusContent({ insight, hasPace, context }: { insight: DailyCoachInsight; hasPace: boolean; context: CoachContext | null }) {
+function PreWorkoutFocusContent({
+  insight,
+  hasPace,
+  context,
+  isFallback,
+}: {
+  insight: DailyCoachInsight;
+  hasPace: boolean;
+  context: CoachContext | null;
+  isFallback?: boolean;
+}) {
   const decision = getDecisionCard(insight, context);
 
   return (
     <div className="space-y-3">
       {decision && (
         <div className={`rounded-2xl border p-4 space-y-1.5 ${
+          isFallback ? "bg-amber-50/80 border-amber-200 text-amber-900" :
           decision.type === "pain" ? "bg-red-50/80 border-red-200 text-red-900" :
           decision.type === "caution" ? "bg-amber-50/80 border-amber-200 text-amber-900" :
           "bg-[#f5faf7] border-[#d9e8df] text-[#1c472a]"
@@ -417,11 +452,12 @@ function PreWorkoutFocusContent({ insight, hasPace, context }: { insight: DailyC
           <div className="flex items-center gap-2">
             <span className="text-sm font-bold uppercase tracking-wider">{decision.title}</span>
             <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
+              isFallback ? "bg-amber-100 text-amber-700" :
               decision.type === "pain" ? "bg-red-100 text-red-700" :
               decision.type === "caution" ? "bg-amber-100 text-amber-700" :
               "bg-[#e7efea] text-[#2a5a39]"
             }`}>
-              {decision.type === "pain" ? "งดวิ่ง" : decision.type === "caution" ? "ปรับลดโหลด" : "ตามแผน"}
+              {isFallback ? "คำแนะนำสำรอง" : (decision.type === "pain" ? "งดวิ่ง" : decision.type === "caution" ? "ปรับลดโหลด" : "ตามแผน")}
             </span>
           </div>
           <p className="text-xs leading-relaxed">{decision.body}</p>
@@ -931,12 +967,14 @@ function TodaySnapshotCard({
   todayChecklist,
   loading,
   hasHistory,
+  isFallback,
 }: {
   insight: DailyCoachInsight | null;
   readinessScore: number | null;
   todayChecklist: TodayChecklistItem[];
   loading: boolean;
   hasHistory: boolean;
+  isFallback?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const completed = todayChecklist.filter((i) => i.done).length;
@@ -951,12 +989,19 @@ function TodaySnapshotCard({
       {/* Status chips */}
       <div className="flex flex-wrap gap-2">
         {loading && (
-          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-400">กำลังวิเคราะห์...</span>
+          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-400">รอข้อมูลล่าสุด</span>
         )}
         {!loading && readinessScore != null && insight && (
-          <span className={`rounded-full px-3 py-1 text-xs font-bold ${readinessChipClass(readinessScore)}`}>
-            {readinessScore} Readiness {insight.readinessLabel}
-          </span>
+          <>
+            <span className={`rounded-full px-3 py-1 text-xs font-bold ${readinessChipClass(readinessScore)}`}>
+              {readinessScore} Readiness {insight.readinessLabel}
+            </span>
+            {isFallback && (
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-500 font-semibold">
+                ใช้ข้อมูลล่าสุด
+              </span>
+            )}
+          </>
         )}
         <button
           type="button"

@@ -5,6 +5,8 @@
 - [ ] Manual meal upload: review, edit, save, and date selection work.
 - [ ] Image meal upload: detected foods/macros can be reviewed before save.
 - [ ] Sleep, workout, body, and Health Check PDF uploads save structured results.
+- [ ] Health Check tab uses a custom styled drag/drop/click uploader card and hides browser-default file choosing text.
+- [ ] Selecting a non-PDF file in Health Check immediately shows "ไฟล์นี้ยังไม่รองรับ ลองเลือก PDF ผลตรวจสุขภาพอีกครั้ง" and resets the selected file.
 - [ ] Race-day workout offers Race Result confirmation when applicable.
 - [ ] Data quality note appears when values are estimated or unclear.
 - [ ] Selected save date badge matches the chosen Bangkok date.
@@ -30,6 +32,8 @@
 - [ ] Today after strength says หลังเวท/หลังออกกำลังกาย, not หลังวิ่ง.
 - [ ] Today decision copy label matches readiness chip.
 - [ ] Recovery Strength card clearly says it is an alternative/replacement (on Fair/Caution or pain days) or optional add-on (on Good/Excellent days), not a required workout.
+- [ ] Today page status chips show "รอข้อมูลล่าสุด" instead of "กำลังวิเคราะห์..." when loading is in progress.
+- [ ] Today page immediately shows client-side fallback recommendation while loading, and on fetch timeout (10 seconds) or error, gracefully transitions to fallback mode showing yellow "คำแนะนำสำรอง" badge, fallback error text, "ใช้ข้อมูลล่าสุด" tag, and "วิเคราะห์ใหม่" button.
 
 ## 4. Coach
 
