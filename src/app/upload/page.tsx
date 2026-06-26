@@ -26,6 +26,7 @@ import type { LocalHistoryItem } from "@/lib/localHistory";
 import type { BodyCompositionAnalysis, HealthCheckAnalysis, LabValue, MealAnalysis, MealType, SleepAnalysis, WorkoutAnalysis } from "@/types/logs";
 import type { UserProfile } from "@/types/profile";
 import { todayBangkokDateKey, yesterdayBangkokDateKey, dateKeyToRecordedAt } from "@/lib/date";
+import { DRAFT_MEAL_KEY, type DraftMeal } from "@/components/NextMealCard";
 
 function formatThaiShortDate(dateStr: string): string {
   const parts = dateStr.split("-");
@@ -246,6 +247,34 @@ export default function UploadPage() {
       }
     }
   }, []);
+  const [draftMealBadge, setDraftMealBadge] = useState(false);
+
+  // Read next-meal draft from sessionStorage (written by NextMealCard "ใช้เมนูนี้เป็นร่างบันทึก")
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(DRAFT_MEAL_KEY);
+      if (!raw) return;
+      sessionStorage.removeItem(DRAFT_MEAL_KEY);
+      const draft = JSON.parse(raw) as DraftMeal;
+      if (draft.source !== "next-meal" || !draft.text) return;
+      queueMicrotask(() => {
+        setType("meal");
+        setMealInputMode("text");
+        setManualMealText(draft.text);
+        setDraftMealBadge(true);
+        // Map slot to MealType
+        const slotMap: Record<string, MealType> = {
+          breakfast: "breakfast", lunch: "lunch", dinner: "dinner",
+          snack: "snack", recovery: "post-run",
+        };
+        const mapped = slotMap[draft.suggestedMealSlot];
+        if (mapped) setMealType(mapped);
+      });
+    } catch {
+      // sessionStorage unavailable or malformed — ignore
+    }
+  }, []);
+
   const [mealType, setMealType] = useState<MealType>(() => inferMealTypeFromBangkokTime());
   const [result, setResult] = useState<unknown>(null);
   const suggestedDateKey = result ? parseExtractedDate(extractDateFromResult(result as Record<string, unknown>)) : null;
@@ -789,6 +818,11 @@ export default function UploadPage() {
             )}
           </div>
         )}
+        {type === "meal" && mealInputMode === "text" && draftMealBadge ? (
+          <div className="rounded-xl bg-[var(--primary-soft)] px-3 py-2 text-xs font-medium text-[var(--primary-strong)]">
+            ร่างจากคำแนะนำมื้อต่อไป — แก้ไขได้ก่อนบันทึก
+          </div>
+        ) : null}
         {type === "meal" && mealInputMode === "text" ? (
           <ManualMealLogForm
             mealText={manualMealText}

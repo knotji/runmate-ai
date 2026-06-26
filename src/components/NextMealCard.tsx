@@ -1,15 +1,43 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { NextMealRecommendation, NextMealOption } from "@/app/api/next-meal/route";
 
-type Props = {
-  recommendation: NextMealRecommendation | null;
-  loading: boolean;
-  onRequest: () => void;
+export const DRAFT_MEAL_KEY = "runmate:draftMeal";
+
+export type DraftMeal = {
+  text: string;
+  source: "next-meal";
+  suggestedMealSlot: string;
+  createdAt: string;
 };
 
-function OptionCard({ option }: { option: NextMealOption }) {
+function useDraftAndNavigate() {
+  const router = useRouter();
+  return function navigateWithDraft(option: NextMealOption, mealSlot: string) {
+    const draft: DraftMeal = {
+      text: [option.title, option.description].filter(Boolean).join(" — "),
+      source: "next-meal",
+      suggestedMealSlot: mealSlot,
+      createdAt: new Date().toISOString(),
+    };
+    try {
+      sessionStorage.setItem(DRAFT_MEAL_KEY, JSON.stringify(draft));
+    } catch {
+      // sessionStorage unavailable — navigate without prefill
+    }
+    router.push("/upload?type=meal&mode=text");
+  };
+}
+
+type OptionCardProps = {
+  option: NextMealOption;
+  mealSlot: string;
+  onUseDraft: (option: NextMealOption, slot: string) => void;
+};
+
+function OptionCard({ option, mealSlot, onUseDraft }: OptionCardProps) {
   return (
     <div className="rounded-2xl border border-slate-100 bg-white p-3">
       <div className="flex items-start justify-between gap-2">
@@ -31,12 +59,26 @@ function OptionCard({ option }: { option: NextMealOption }) {
           ))}
         </div>
       )}
+      <button
+        type="button"
+        onClick={() => onUseDraft(option, mealSlot)}
+        className="mt-2 w-full rounded-xl bg-slate-50 py-1.5 text-xs font-medium text-slate-600 hover:bg-[var(--primary-soft)] hover:text-[var(--primary-strong)] transition-colors"
+      >
+        ใช้เมนูนี้เป็นร่างบันทึก →
+      </button>
     </div>
   );
 }
 
+type Props = {
+  recommendation: NextMealRecommendation | null;
+  loading: boolean;
+  onRequest: () => void;
+};
+
 export function NextMealCard({ recommendation, loading, onRequest }: Props) {
   const hasResult = recommendation !== null;
+  const navigateWithDraft = useDraftAndNavigate();
 
   return (
     <section className="rounded-3xl border border-slate-100 bg-slate-50 p-4">
@@ -77,7 +119,12 @@ export function NextMealCard({ recommendation, loading, onRequest }: Props) {
 
           <div className="mt-3 flex flex-col gap-2">
             {recommendation.options.map((opt, i) => (
-              <OptionCard key={i} option={opt} />
+              <OptionCard
+                key={i}
+                option={opt}
+                mealSlot={recommendation.mealSlot}
+                onUseDraft={navigateWithDraft}
+              />
             ))}
           </div>
 
