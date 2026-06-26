@@ -28,6 +28,8 @@
 - [ ] Active pain and red flags still apply conservative safety guidance.
 - [ ] Today shows one clear primary recommendation.
 - [ ] Today after strength says หลังเวท/หลังออกกำลังกาย, not หลังวิ่ง.
+- [ ] Today decision copy label matches readiness chip.
+- [ ] Recovery Strength card clearly says it is an alternative/replacement (on Fair/Caution or pain days) or optional add-on (on Good/Excellent days), not a required workout.
 
 ## 4. Coach
 
@@ -47,6 +49,7 @@ Confirm:
 - [ ] Does not diagnose or use alarming Health Check wording.
 - [ ] Respects food allergies/preferences and gives practical options.
 - [ ] Coach readiness matches Today readiness.
+- [ ] Coach context card and circular readiness card match on initial load, using the getTodayReadiness score.
 
 ## 5. Race
 

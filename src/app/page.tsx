@@ -7,7 +7,7 @@ import { LoadingButton } from "@/components/LoadingButton";
 import { NutritionBalanceCard } from "@/components/NutritionBalanceCard";
 import { formatThaiDate, getHistoryItemDateKey, todayBangkokDateKey } from "@/lib/date";
 import { buildCoachContextFromSupabase, type CoachContext, type NutritionDaySummary, type PainSummary, type TodayCompletedWorkoutSummary } from "@/lib/buildCoachContext";
-import { getTodayReadiness, getTodayPlannedWorkout } from "@/lib/todayPlanning";
+import { getTodayReadiness, getTodayPlannedWorkout, getReadinessCategoryLabel } from "@/lib/todayPlanning";
 import { createHistoryItem, loadHistoryItems, saveHistoryItems } from "@/lib/cloudHistory";
 import { loadActiveRaceGoalAndPlan } from "@/lib/raceStorage";
 import { loadRoutinesFromSupabase, logCompletedStrength } from "@/lib/strength";
@@ -49,8 +49,7 @@ type TodayInsightResponse = {
 
 function buildClientTodayFallback(ctx: CoachContext | null): DailyCoachInsight {
   const readiness = ctx?.avgReadiness ?? ctx?.sleep7d?.[0]?.readiness ?? 65;
-  const label: DailyCoachInsight["readinessLabel"] =
-    readiness < 50 ? "Low" : readiness < 65 ? "Fair" : readiness < 80 ? "Good" : "Excellent";
+  const label = getReadinessCategoryLabel(readiness);
   const latestPain = ctx?.latestPain ?? null;
   const latestWorkout = ctx?.todayPrimaryWorkout ?? null;
   const weekParts = [
@@ -363,13 +362,13 @@ function getDecisionCard(insight: DailyCoachInsight, context: CoachContext | nul
   }
 
   // 2. Reduced/Adjusted due to Fair/Caution readiness or pain history
-  const isFairOrCaution = readinessScore < 65;
+  const isFairOrCaution = readinessScore <= 65;
   const hasRecentPainHistory = context.recentPainHistory || (latestPain && latestPain.resolved);
 
   if (hasPlannedWorkout && (isFairOrCaution || hasRecentPainHistory)) {
     const originalPlanStr = `${plannedWorkout.workoutType}${plannedWorkout.distanceKm != null && plannedWorkout.distanceKm > 0 ? ` ${plannedWorkout.distanceKm} km` : ""}`;
     const adjustedPlanStr = insight.workoutRec || "ซ้อมเบา / พักฟื้น";
-    const readinessLabel = readinessScore < 50 ? "Low" : readinessScore < 65 ? "Fair" : readinessScore < 80 ? "Good" : "Excellent";
+    const readinessLabel = getReadinessCategoryLabel(readinessScore);
     
     let bodyText = `แผน Race เดิมคือ ${originalPlanStr} แต่วันนี้ readiness ยัง ${readinessLabel}`;
     if (latestPain && (latestPain.resolved || latestPain.painLevel > 0)) {
@@ -642,6 +641,31 @@ function TodayStrengthRoutineCard({
   const durationMin = prescription?.estimatedDurationMin ?? (selected ? estimateRoutineDuration(selected) : null);
   const exercises = prescription?.exercises ?? selected?.exercises ?? [];
 
+  const todayReadiness = getTodayReadiness(context);
+  const readinessScore = todayReadiness.score;
+  const isFairOrCaution = readinessScore <= 65;
+  const latestPain = context.latestPain;
+  const hasActivePain = latestPain && latestPain.hasActivePain && latestPain.painLevel > 0;
+  const hasRecentPainHistory = context.recentPainHistory || (latestPain && latestPain.resolved);
+
+  let strengthBadge = "";
+  let strengthHelperCopy = "";
+  let badgeColorClass = "";
+
+  if (hasActivePain) {
+    strengthBadge = "เน้นฟื้นตัว";
+    strengthHelperCopy = "เลือกเฉพาะท่าที่ไม่กระตุ้นอาการเจ็บ และหยุดถ้าอาการกลับมา";
+    badgeColorClass = "bg-red-50 text-[var(--status-rest)] border-red-200";
+  } else if (isFairOrCaution || hasRecentPainHistory) {
+    strengthBadge = "ทางเลือกแทนวิ่งวันนี้";
+    strengthHelperCopy = "ถ้าขายังล้าหรือไม่อยากวิ่ง ให้ทำชุดนี้แทนได้ ไม่จำเป็นต้องทำทั้งวิ่งและเวทในวันเดียวกัน";
+    badgeColorClass = "bg-amber-50 text-[#9b742c] border-amber-200";
+  } else {
+    strengthBadge = "เสริมได้ถ้ายังไม่ล้า";
+    strengthHelperCopy = "ทำเสริมหลังวิ่งได้ถ้ายังสด แต่ไม่จำเป็นถ้ารู้สึกล้า";
+    badgeColorClass = "bg-[#eef7f0] text-[var(--status-ready)] border-[#cfe4d5]";
+  }
+
   async function adjustForToday() {
     if (!selected || safety.blockWorkout) return;
     setAdjusting(true);
@@ -704,8 +728,15 @@ function TodayStrengthRoutineCard({
     <section className="card space-y-3 p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#6f8fa6]">เวทวันนี้</p>
-          <h2 className="mt-1 text-xl font-bold text-[#17201d]">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#6f8fa6]">เวทวันนี้</p>
+            {strengthBadge && (
+              <span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-bold ${badgeColorClass}`}>
+                {strengthBadge}
+              </span>
+            )}
+          </div>
+          <h2 className="mt-1.5 text-xl font-bold text-[#17201d]">
             {prescription?.recommendedTitle ?? selected.name}
           </h2>
           <p className="mt-1 text-sm leading-6 text-slate-500">{prescription?.reason ?? reason}</p>
@@ -716,6 +747,12 @@ function TodayStrengthRoutineCard({
           </span>
         ) : null}
       </div>
+
+      {strengthHelperCopy && (
+        <p className="rounded-2xl bg-slate-50 px-4 py-3 text-xs leading-relaxed text-slate-600 border border-slate-100">
+          💡 {strengthHelperCopy}
+        </p>
+      )}
 
       {safety.note ? (
         <p className={`rounded-2xl px-3 py-2 text-xs leading-5 ${safety.blockWorkout ? "bg-amber-50 text-amber-800" : "bg-slate-50 text-slate-600"}`}>

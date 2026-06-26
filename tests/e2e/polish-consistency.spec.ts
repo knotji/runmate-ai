@@ -107,7 +107,7 @@ test("Polish consistency: Today recommendation decision, Coach readiness, Race s
           todayReadiness: 60,
           readinessLabel: "Fair",
           readinessNote: "นอน 7h, readiness 60",
-          workoutRec: "Easy Run 5-6 km หรือปั่นเบา",
+          workoutRec: "Easy Run 5-6 km หรือ Recovery Strength",
           workoutTarget: "HR ต่ำกว่า 145, pace สบาย",
           weekSummary: "วิ่ง 0km / 0 sessions",
           keyObservation: "Readiness Fair",
@@ -121,15 +121,26 @@ test("Polish consistency: Today recommendation decision, Coach readiness, Race s
   await gotoApp(page, "/");
   await expect(page.getByText("วันนี้เลือกอย่างใดอย่างหนึ่งก่อน")).toBeVisible();
   await expect(page.getByText("แผน Race เดิมคือ")).toBeVisible();
+  // With readiness 60, decision card explanation should contain "Fair", and MUST NOT contain "Good"
+  await expect(page.getByText(/readiness ยัง Fair/)).toBeVisible();
+  await expect(page.getByText(/readiness ยัง Good/)).toHaveCount(0);
   
   // Test 2: Readiness Chip shows Readiness 60 matching Coach readiness
   await expect(page.getByText("60 Readiness Fair")).toBeVisible();
 
-  // Test 3: Go to Coach page, context card displays Readiness (average from 7d)
+  // Test 2.5: Recovery Strength card shows replacement badge and helper copy
+  await expect(page.getByText("ทางเลือกแทนวิ่งวันนี้").first()).toBeVisible();
+  await expect(page.getByText("ถ้าขายังล้าหรือไม่อยากวิ่ง ให้ทำชุดนี้แทนได้").first()).toBeVisible();
+
+  // Test 3: Go to Coach page, context card and readiness card display consistent today's readiness
   await gotoApp(page, "/coach");
   await page.getByText("ดูบริบท").click();
-  // avgReadiness is shown in the context card (may differ from today readiness)
-  await expect(page.getByText(/Readiness \d+/).first()).toBeVisible();
+  // Today's readiness (60) is shown in the context card
+  await expect(page.getByText("Readiness 60").first()).toBeVisible();
+  // The circular readiness card should also show 60 คะแนน
+  await expect(page.locator("div:has-text('60'):has-text('คะแนน')").first()).toBeVisible();
+  // Must not show the mismatched 73 คะแนน
+  await expect(page.locator("div:has-text('73'):has-text('คะแนน')")).toHaveCount(0);
 
   // Test 4: Race strength card hides pace/HR
   await gotoApp(page, "/race-goal");

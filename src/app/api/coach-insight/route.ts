@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { jsonFromAI } from "@/lib/ai";
 import { buildRunnerProfileContext } from "@/lib/buildRunnerProfileContext";
 import { type CoachContext, type TodayCompletedWorkoutSummary } from "@/lib/buildCoachContext";
-import { getTodayReadiness, getTodayPlannedWorkout } from "@/lib/todayPlanning";
+import { getTodayReadiness, getTodayPlannedWorkout, getReadinessCategoryLabel } from "@/lib/todayPlanning";
 import type { DailyCoachInsight } from "@/types/ai";
 import type { WeekWorkout } from "@/types/race";
 import { todayBangkokDateKey } from "@/lib/date";
@@ -196,7 +196,7 @@ function deterministicFallback(ctx: CoachContext): DailyCoachInsight {
   const latestPain = ctx.latestPain;
   const todayReadiness = getTodayReadiness(ctx);
   const readiness = todayReadiness.score;
-  const readinessLabel = readiness < 50 ? "Low" : readiness < 65 ? "Fair" : readiness < 80 ? "Good" : "Excellent";
+  const readinessLabel = getReadinessCategoryLabel(readiness);
   const sleepNote = todayReadiness.label;
 
   if (ctx.hasWorkoutToday && ctx.todayPrimaryWorkout) {

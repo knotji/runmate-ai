@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { buildCoachContextFromSupabase, type CoachContext } from "@/lib/buildCoachContext";
 import { calculateReadiness } from "@/lib/readiness";
+import { getTodayReadiness } from "@/lib/todayPlanning";
 import type { UserProfile } from "@/types/profile";
 import { getBangkokDateKey } from "@/lib/date";
 
@@ -37,6 +38,7 @@ export function ReadinessCard() {
   const [yesterdayLoad, setYesterdayLoad] = useState<"none" | "light" | "heavy">("none");
   const [muscleSoreness, setMuscleSoreness] = useState<"none" | "light" | "sore">("none");
   const [manualCurrentPain, setManualCurrentPain] = useState(false);
+  const [hasUserAdjusted, setHasUserAdjusted] = useState(false);
   
   const [showConfig, setShowConfig] = useState(false);
   const [collapsed, setCollapsed] = useState(true);
@@ -50,9 +52,9 @@ export function ReadinessCard() {
           setContext(next);
 
           // Extract defaults from latest sleep log
-          const latestSleep = next.sleep7d[0];
-          setSleepScore(latestSleep?.score ?? 75);
-          setEnergyScore(latestSleep?.energyScore ?? 70);
+          const todayReadiness = getTodayReadiness(next);
+          setSleepScore(todayReadiness.score);
+          setEnergyScore(next.sleep7d.find((s) => s.energyScore != null)?.energyScore ?? 70);
 
           // The toggle represents current pain only. Older/resolved pain stays safety context.
           setManualCurrentPain(next.activePain);
@@ -119,17 +121,32 @@ export function ReadinessCard() {
     ? latestSleep.hrv - normalHrv
     : null;
 
-  const result = calculateReadiness({
-    sleepScore,
-    restingHrDelta,
-    hrvDelta,
-    yesterdayLoad,
-    muscleSoreness,
-    injuryFlag: injuryOverrideActive,
-    injurySource: reportActivePain ? "report" : manualCurrentPain ? "manual" : null,
-    recentPainHistoryNote,
-    energyScore,
-  });
+  const todayReadiness = context
+    ? getTodayReadiness(context)
+    : { score: 65, label: "Readiness ล่าสุด 65", isFallback: true };
+
+  const result = hasUserAdjusted
+    ? calculateReadiness({
+        sleepScore,
+        restingHrDelta,
+        hrvDelta,
+        yesterdayLoad,
+        muscleSoreness,
+        injuryFlag: injuryOverrideActive,
+        injurySource: reportActivePain ? "report" : manualCurrentPain ? "manual" : null,
+        recentPainHistoryNote,
+        energyScore,
+      })
+    : calculateReadiness({
+        sleepScore: todayReadiness.score,
+        restingHrDelta: null,
+        hrvDelta: null,
+        yesterdayLoad: "none",
+        muscleSoreness: "none",
+        injuryFlag: false,
+        recentPainHistoryNote: null,
+        energyScore: null,
+      });
 
   const colors = colorMap[result.level];
 
@@ -140,7 +157,7 @@ export function ReadinessCard() {
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--recovery-blue)]">
-              ประเมินความพร้อมวันนี้
+              {todayReadiness.isFallback ? "ประเมินความพร้อมล่าสุด" : "ประเมินความพร้อมวันนี้"}
             </span>
             {!collapsed && restingHrDelta !== null && (
               <span className="rounded bg-[var(--surface-muted)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--muted-text)]">
@@ -158,7 +175,7 @@ export function ReadinessCard() {
           </h2>
           {collapsed ? (
             <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-[var(--muted-text)]">
-              <span>Readiness {result.score}</span>
+              <span>{todayReadiness.isFallback ? "Readiness ล่าสุด" : "Readiness"} {result.score}</span>
               {injuryOverrideActive && <span className="font-semibold text-[var(--status-rest)]">· มีอาการเจ็บตอนนี้</span>}
               {!injuryOverrideActive && recentPainHistoryNote && <span className="font-semibold text-[#9b742c]">· เริ่มเบาก่อน</span>}
               {restingHrDelta !== null && <span>· ชีพจร {(restingHrDelta >= 0 ? "+" : "") + restingHrDelta} bpm</span>}
@@ -253,7 +270,10 @@ export function ReadinessCard() {
                     min="30"
                     max="100"
                     value={sleepScore ?? 70}
-                    onChange={(e) => setSleepScore(Number(e.target.value))}
+                    onChange={(e) => {
+                      setSleepScore(Number(e.target.value));
+                      setHasUserAdjusted(true);
+                    }}
                     className="h-1 w-full cursor-pointer appearance-none rounded-lg bg-[#e4d8c8] accent-[var(--primary)]"
                   />
                 </div>
@@ -269,7 +289,10 @@ export function ReadinessCard() {
                     min="30"
                     max="100"
                     value={energyScore ?? 70}
-                    onChange={(e) => setEnergyScore(Number(e.target.value))}
+                    onChange={(e) => {
+                      setEnergyScore(Number(e.target.value));
+                      setHasUserAdjusted(true);
+                    }}
                     className="h-1 w-full cursor-pointer appearance-none rounded-lg bg-[#e4d8c8] accent-[var(--primary)]"
                   />
                 </div>
@@ -288,7 +311,10 @@ export function ReadinessCard() {
                       <button
                         key={item.key}
                         type="button"
-                        onClick={() => setYesterdayLoad(item.key)}
+                        onClick={() => {
+                          setYesterdayLoad(item.key);
+                          setHasUserAdjusted(true);
+                        }}
                         className={`rounded-full px-3 py-1.5 text-xs font-semibold border transition-all ${
                           yesterdayLoad === item.key
                             ? "border-[var(--primary)] bg-[var(--primary-soft)] text-[var(--primary-strong)]"
@@ -315,7 +341,10 @@ export function ReadinessCard() {
                       <button
                         key={item.key}
                         type="button"
-                        onClick={() => setMuscleSoreness(item.key)}
+                        onClick={() => {
+                          setMuscleSoreness(item.key);
+                          setHasUserAdjusted(true);
+                        }}
                         className={`rounded-full px-3 py-1.5 text-xs font-semibold border transition-all ${
                           muscleSoreness === item.key
                             ? "border-[var(--primary)] bg-[var(--primary-soft)] text-[var(--primary-strong)]"
@@ -341,6 +370,7 @@ export function ReadinessCard() {
                       onChange={(e) => {
                         const checked = e.target.checked;
                         setManualCurrentPain(checked);
+                        setHasUserAdjusted(true);
                         window.dispatchEvent(new CustomEvent("runmate:coach-current-pain-changed", {
                           detail: { active: checked },
                         }));

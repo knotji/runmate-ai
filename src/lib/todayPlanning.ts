@@ -1,6 +1,13 @@
 import type { CoachContext } from "./buildCoachContext";
 import type { WeekWorkout, RacePlan } from "@/types/race";
 
+export function getReadinessCategoryLabel(score: number): "Low" | "Fair" | "Good" | "Excellent" {
+  if (score < 50) return "Low";
+  if (score <= 65) return "Fair";
+  if (score < 80) return "Good";
+  return "Excellent";
+}
+
 export function getTodayReadiness(context: CoachContext): { score: number; label: string; isFallback: boolean } {
   const todayDate = context.todayDate;
   // 1. Try to find sleep record for today's Bangkok dateKey

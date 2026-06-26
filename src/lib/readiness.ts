@@ -38,44 +38,34 @@ export function calculateReadiness(input: ReadinessInput): ReadinessResult {
     };
   }
 
-  let score = 100;
+  let score = input.sleepScore !== null ? input.sleepScore : 65;
   const reasons: string[] = [];
 
-  // 1. Sleep Score
-  const sleep = input.sleepScore;
-  if (sleep !== null) {
-    if (sleep < 50) {
-      score -= 30;
-      reasons.push(`คะแนนการนอนต่ำวิกฤต (${sleep}/100) ร่างกายพักผ่อนไม่เพียงพออย่างมาก`);
-    } else if (sleep < 60) {
-      score -= 20;
-      reasons.push(`คะแนนการนอนต่ำ (${sleep}/100) พักผ่อนไม่ค่อยเต็มอิ่ม`);
-    } else if (sleep < 70) {
-      score -= 10;
-      reasons.push(`คะแนนการนอนค่อนข้างต่ำ (${sleep}/100)`);
-    } else if (sleep < 80) {
-      score -= 5;
-      reasons.push(`การนอนอยู่ในระดับปานกลาง (${sleep}/100)`);
+  // 1. Sleep Score reasons
+  if (input.sleepScore !== null) {
+    if (input.sleepScore < 50) {
+      reasons.push(`คะแนนการนอนต่ำวิกฤต (${input.sleepScore}/100) ร่างกายพักผ่อนไม่เพียงพออย่างมาก`);
+    } else if (input.sleepScore < 60) {
+      reasons.push(`คะแนนการนอนต่ำ (${input.sleepScore}/100) พักผ่อนไม่ค่อยเต็มอิ่ม`);
+    } else if (input.sleepScore < 70) {
+      reasons.push(`คะแนนการนอนค่อนข้างต่ำ (${input.sleepScore}/100)`);
+    } else if (input.sleepScore < 80) {
+      reasons.push(`การนอนอยู่ในระดับปานกลาง (${input.sleepScore}/100)`);
     }
   } else {
-    score -= 5; // Default minor penalty for missing sleep logs
     reasons.push("ไม่มีข้อมูลบันทึกการนอนเมื่อคืน");
   }
 
-  // 2. Energy Score
+  // 2. Energy Score adjustment
   const energy = input.energyScore;
   if (energy !== null) {
     if (energy < 50) {
-      score -= 20;
+      score = Math.max(score - 15, 15);
       reasons.push(`รู้สึกพลังงานต่ำมาก (${energy}/100) ร่างกายล้าสะสม`);
-    } else if (energy < 70) {
-      score -= 10;
+    } else if (energy < 65) {
+      score = Math.max(score - 8, 15);
       reasons.push(`รู้สึกมีพลังงานระดับปานกลางค่อนไปทางต่ำ (${energy}/100)`);
-    } else if (energy < 80) {
-      score -= 5;
     }
-  } else {
-    score -= 5; // Default minor penalty for missing energy rating
   }
 
   // 3. Resting HR Delta (positive delta = elevated resting HR = fatigue/stress)
