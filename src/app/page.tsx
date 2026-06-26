@@ -5,6 +5,8 @@ import { useCallback, useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { LoadingButton } from "@/components/LoadingButton";
 import { NutritionBalanceCard } from "@/components/NutritionBalanceCard";
+import { NextMealCard } from "@/components/NextMealCard";
+import type { NextMealRecommendation } from "@/app/api/next-meal/route";
 import { formatThaiDate, getHistoryItemDateKey, todayBangkokDateKey } from "@/lib/date";
 import { buildCoachContextFromSupabase, type CoachContext, type NutritionDaySummary, type PainSummary, type TodayCompletedWorkoutSummary } from "@/lib/buildCoachContext";
 import { getTodayReadiness, getTodayPlannedWorkout, getReadinessCategoryLabel } from "@/lib/todayPlanning";
@@ -110,6 +112,26 @@ export default function TodayPage() {
   const [dailySummaryLoading, setDailySummaryLoading] = useState(false);
   const [dailySummaryError, setDailySummaryError] = useState("");
   const [dailySummaryMessage, setDailySummaryMessage] = useState("");
+  const [nextMealRec, setNextMealRec] = useState<NextMealRecommendation | null>(null);
+  const [nextMealLoading, setNextMealLoading] = useState(false);
+
+  const requestNextMeal = useCallback(async () => {
+    if (!coachCtx) return;
+    setNextMealLoading(true);
+    try {
+      const res = await fetch("/api/next-meal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ context: coachCtx }),
+      });
+      const json = await res.json() as { ok: boolean; recommendation: NextMealRecommendation };
+      if (json.recommendation) setNextMealRec(json.recommendation);
+    } catch {
+      // silent — card stays in "request" state
+    } finally {
+      setNextMealLoading(false);
+    }
+  }, [coachCtx]);
 
   const loadTodaysSummary = useCallback(async () => {
     const result = await loadHistoryItems(["summary"]);
@@ -327,6 +349,14 @@ export default function TodayPage() {
 
       {coachCtx?.nutritionBalanceToday && (
         <NutritionBalanceCard balance={coachCtx.nutritionBalanceToday} />
+      )}
+
+      {coachCtx && (
+        <NextMealCard
+          recommendation={nextMealRec}
+          loading={nextMealLoading}
+          onRequest={() => void requestNextMeal()}
+        />
       )}
 
       <EndOfDaySummaryCard
