@@ -9,6 +9,7 @@ import { NextMealCard } from "@/components/NextMealCard";
 import type { NextMealRecommendation } from "@/app/api/next-meal/route";
 import { buildTodayRecommendationReasons } from "@/lib/todayReasons";
 import { QuickLogCard } from "@/components/QuickLogCard";
+import { EndOfDayCheckInModal } from "@/components/EndOfDayCheckInModal";
 import { formatThaiDate, getHistoryItemDateKey, todayBangkokDateKey } from "@/lib/date";
 import { buildCoachContextFromSupabase, type CoachContext, type NutritionDaySummary, type PainSummary, type TodayCompletedWorkoutSummary } from "@/lib/buildCoachContext";
 import { getTodayReadiness, getTodayPlannedWorkout, getReadinessCategoryLabel } from "@/lib/todayPlanning";
@@ -251,6 +252,7 @@ export default function TodayPage() {
   const hasWorkoutToday = Boolean(coachCtx?.hasWorkoutToday);
 
   return (
+    <>
     <AppShell title="โค้ชข้างทาง" subtitle={formatThaiDate()}>
 
       {/* B. Today Focus Card */}
@@ -426,6 +428,13 @@ export default function TodayPage() {
       </div>
 
     </AppShell>
+
+    <EndOfDayCheckInModal
+      open={showEndOfDay}
+      onClose={() => setShowEndOfDay(false)}
+      onSaved={(item) => setDailySummaryItem(item)}
+    />
+    </>
   );
 }
 
