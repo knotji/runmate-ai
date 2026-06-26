@@ -92,3 +92,16 @@ E2E_BASE_URL=http://127.0.0.1:3100 E2E_PRODUCTION_BASE_URL=http://127.0.0.1:3100
 ```
 
 On PowerShell, set both `$env:E2E_BASE_URL` and `$env:E2E_PRODUCTION_BASE_URL` to `http://127.0.0.1:3100` before running the test.
+
+## 8. PWA / Mobile Install
+
+- [ ] Manifest loads correctly at `/manifest.webmanifest`.
+- [ ] PWA icons (`/icons/icon-192.png`, `/icons/icon-512.png`, `/icons/maskable-icon-512.png`) load without errors.
+- [ ] Metadata links (apple-touch-icon, manifest link) are correctly injected in HTML head.
+- [ ] Service worker registers successfully in production environment.
+- [ ] Custom themed offline HTML fallback is displayed when navigating while offline.
+- [ ] No API responses (`/api/*`), upload payloads, images, PDFs, base64, or coach chat data are cached by the Service Worker.
+- [ ] Viewport fit cover is applied; bottom nav handles `env(safe-area-inset-bottom)` spacing correctly.
+- [ ] Settings -> Data tab displays correct platform-specific install instructions (iOS vs Android).
+- [ ] Install button is displayed and functional on Android Chrome when `beforeinstallprompt` is available.
+

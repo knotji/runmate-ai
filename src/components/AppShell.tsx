@@ -17,7 +17,7 @@ export function AppShell({
   medicalDisclaimer?: boolean;
 }) {
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-4 pb-[calc(8rem+env(safe-area-inset-bottom))] pt-5">
+    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-4 pb-[calc(8rem+env(safe-area-inset-bottom))] pt-[calc(1.25rem+env(safe-area-inset-top))]">
       <header className="mb-5 flex items-start justify-between gap-3">
         <Link href="/" className="min-w-0">
           <p className="text-xs font-bold uppercase tracking-[0.22em] text-[var(--recovery-blue)]">{appName}</p>

@@ -28,6 +28,59 @@ export default function SettingsPage() {
   const [runnerProfile, setRunnerProfile] = useState<UserProfile | null>(null);
   const [envDebug, setEnvDebug] = useState<EnvDebug | null>(null);
   const [versionCopied, setVersionCopied] = useState(false);
+  interface BeforeInstallPromptEvent extends Event {
+    readonly platforms: string[];
+    readonly userChoice: Promise<{
+      outcome: "accepted" | "dismissed";
+      platform: string;
+    }>;
+    prompt(): Promise<void>;
+  }
+
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [platform, setPlatform] = useState<"ios" | "android" | "other">("other");
+  const [isStandalone, setIsStandalone] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const nav = window.navigator as unknown as { standalone?: boolean };
+      const isStandaloneMode = window.matchMedia("(display-mode: standalone)").matches || !!nav.standalone;
+
+      const ua = navigator.userAgent;
+      const isIos = /iPad|iPhone|iPod/.test(ua) && !("MSStream" in window);
+      const isAndroid = /Android/.test(ua);
+
+      // Defer state updates to avoid synchronous setState in effect warnings
+      window.setTimeout(() => {
+        setIsStandalone(!!isStandaloneMode);
+        if (isIos) {
+          setPlatform("ios");
+        } else if (isAndroid) {
+          setPlatform("android");
+        } else {
+          setPlatform("other");
+        }
+      }, 0);
+    }
+
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
+    };
+
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    await deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === "accepted") {
+      setDeferredPrompt(null);
+    }
+  };
+
   const profileFormKey = runnerProfile?.updatedAt ?? runnerProfile?.id ?? "empty-profile";
   const buildMeta = getBuildMetadata();
 
@@ -121,6 +174,68 @@ export default function SettingsPage() {
             </div>
             <SamsungHealthImport />
           </section>
+
+          {!isStandalone && (
+            <section className="card space-y-4 p-5">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">เพิ่ม RunMate ไว้หน้า Home</p>
+                <h2 className="mt-1 text-xl font-bold text-[#17201d]">เปิดจากมือถือเพื่อใช้เหมือนแอป</h2>
+                <p className="mt-2 text-sm leading-6 text-slate-500">
+                  เพิ่ม RunMate ไว้ที่หน้าจอโฮมเพื่อเข้าใช้งานได้ง่าย รวดเร็ว และทำงานแบบออฟไลน์ได้
+                </p>
+              </div>
+              <div className="rounded-2xl bg-slate-50/80 p-4 text-xs leading-relaxed text-slate-600">
+                {platform === "ios" ? (
+                  <div className="flex items-start gap-3">
+                    <span className="text-base select-none">📲</span>
+                    <div>
+                      <p className="font-bold text-slate-700">คำแนะนำสำหรับ iOS / Safari</p>
+                      <p className="mt-1">กดปุ่ม Share (แชร์) แล้วเลือก &ldquo;Add to Home Screen&rdquo; (เพิ่มไปยังหน้าจอโฮม)</p>
+                    </div>
+                  </div>
+                ) : platform === "android" ? (
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-3">
+                      <span className="text-base select-none">📲</span>
+                      <div>
+                        <p className="font-bold text-slate-700">คำแนะนำสำหรับ Android / Chrome</p>
+                        <p className="mt-1">กดเมนู ⋮ แล้วเลือก &ldquo;Install app&rdquo; (ติดตั้งแอป) หรือ &ldquo;Add to Home screen&rdquo; (เพิ่มไปยังหน้าจอโฮม)</p>
+                      </div>
+                    </div>
+                    {deferredPrompt && (
+                      <button
+                        type="button"
+                        onClick={handleInstallClick}
+                        className="btn-primary w-full py-2.5 text-xs font-bold text-center cursor-pointer"
+                      >
+                        ติดตั้งแอป
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-start gap-3">
+                    <span className="text-base select-none">📲</span>
+                    <div>
+                      <p className="font-bold text-slate-700">วิธีติดตั้งไว้หน้า Home</p>
+                      <p className="mt-1">เปิดแอปบนบราวเซอร์มือถือของคุณ แล้วเลือกตัวเลือก &ldquo;เพิ่มลงในหน้าจอหลัก&rdquo; (Add to Home Screen)</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+
+          {isStandalone && (
+            <section className="card p-5">
+              <div className="flex items-center gap-3">
+                <span className="text-lg">✅</span>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-800">ติดตั้ง RunMate เรียบร้อยแล้ว</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">คุณกำลังใช้งานผ่านแอปหน้าจอหลักโดยตรง</p>
+                </div>
+              </div>
+            </section>
+          )}
 
           <section className="card space-y-4 p-5">
             <div>

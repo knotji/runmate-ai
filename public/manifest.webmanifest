@@ -1,0 +1,33 @@
+{
+  "name": "RunMate AI",
+  "short_name": "RunMate",
+  "description": "โค้ชข้างทางสำหรับวิ่ง กิน นอน และ recovery",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F8F3EA",
+  "theme_color": "#5B947E",
+  "categories": ["health", "fitness", "lifestyle"],
+  "lang": "th-TH",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/maskable-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
