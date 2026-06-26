@@ -174,6 +174,7 @@ function normalizeCoachContext(value: unknown): CoachContext {
     recentPainHistory: Boolean(raw.recentPainHistory),
     painResolved: Boolean(raw.painResolved),
     nutritionBalanceToday: isRecord(raw.nutritionBalanceToday) ? raw.nutritionBalanceToday as CoachContext["nutritionBalanceToday"] : null,
+    readinessV2: isRecord(raw.readinessV2) ? raw.readinessV2 as CoachContext["readinessV2"] : null,
   };
 }
 
@@ -408,6 +409,17 @@ function buildUserPrompt(ctx: CoachContext): string {
     if (b.weightKg) lines.push(`- น้ำหนัก ${b.weightKg} kg`);
     if (b.bodyFatPct) lines.push(`- ไขมัน ${b.bodyFatPct}%`);
     if (b.muscleKg) lines.push(`- กล้ามเนื้อ ${b.muscleKg} kg`);
+  }
+
+  if (ctx.readinessV2) {
+    const r = ctx.readinessV2;
+    lines.push(`\nReadiness V2 (multi-factor, 0-100):`);
+    lines.push(`- Score: ${r.score} (${r.label}) confidence=${r.confidence}`);
+    lines.push(`- Components: sleep=${r.components.sleep.rawScore} (×${r.components.sleep.weight}), load=${r.components.trainingLoad.rawScore} (×${r.components.trainingLoad.weight}), nutrition=${r.components.nutrition.rawScore} (×${r.components.nutrition.weight}), pain=${r.components.painSafety.rawScore} (×${r.components.painSafety.weight})`);
+    if (r.cap != null) lines.push(`- Pain cap applied: max ${r.cap}`);
+    if (r.missingDataLabels.length) lines.push(`- Missing data: ${r.missingDataLabels.join(", ")}`);
+    lines.push(`- Note: ${r.readinessNote}`);
+    lines.push("- Rule: Use this V2 score as the primary readiness signal. It combines sleep, training load, nutrition, and pain safety.");
   }
 
   return lines.join("\n");

@@ -16,6 +16,7 @@ import type { PainLog } from "@/types/pain";
 import type { RaceResult } from "@/types/race";
 import type { StrengthLog } from "@/types/strength";
 import { normalizeMealSlot, getMealSlotLabel } from "@/lib/mealSlots";
+import { calculateRunMateReadiness, type ReadinessV2Result } from "@/lib/readinessV2";
 
 export type DayWorkoutSummary = {
   date: string;
@@ -117,6 +118,7 @@ export type CoachContext = {
   recentPainHistory: boolean;
   painResolved: boolean;
   nutritionBalanceToday: DailyNutritionBalance | null;
+  readinessV2: ReadinessV2Result | null;
 };
 
 export type NutritionDaySummary = {
@@ -483,6 +485,15 @@ export function buildCoachContextFromData(input: {
     && (painResolved || recentMaxPain.painLevel > (latestPain?.painLevel ?? 0))
   );
 
+  const avgHRV7d = (() => {
+    const vals = sleep7d.map((s) => s.hrv).filter((v): v is number => v != null);
+    return vals.length >= 2 ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+  })();
+  const avgRestingHR7d = (() => {
+    const vals = sleep7d.map((s) => s.restingHR).filter((v): v is number => v != null);
+    return vals.length >= 2 ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+  })();
+
   const nutritionBalanceToday = mealsToday.length > 0
     ? buildDailyNutritionBalance({
         dateKey: today,
@@ -505,6 +516,35 @@ export function buildCoachContextFromData(input: {
       muscleKg: bd?.extracted?.skeletalMuscleKg ?? null,
     };
   }
+
+  const readinessV2 = calculateRunMateReadiness({
+    sleepScore:       latestSleep?.score ?? null,
+    sleepDurationMin: latestSleep?.durationMinutes ?? null,
+    hrv:              latestSleep?.hrv ?? null,
+    restingHR:        latestSleep?.restingHR ?? null,
+    avgHRV7d,
+    avgRestingHR7d,
+    hasSleepToday:    latestSleep?.date === today,
+    totalRunKm7d:     totalRunKm,
+    runDays7d,
+    longestRun7dKm,
+    hasWorkoutToday:  todayWorkouts.length > 0,
+    todayWorkoutKind: todayPrimaryWorkout?.kind ?? null,
+    todayWorkoutKm:   todayPrimaryWorkout?.distanceKm ?? null,
+    hasWorkoutData7d: workouts7d.length > 0,
+    mealsToday:       mealsToday.length,
+    proteinStatus:    nutritionBalanceToday?.proteinStatus ?? null,
+    carbStatus:       nutritionBalanceToday?.carbStatus ?? null,
+    hasMealData:      mealsToday.length > 0,
+    activePain,
+    latestPainLevel:  latestPain?.painLevel ?? null,
+    painHasRedFlag:   latestPain
+      ? latestPain.swellingOrRedness === "yes"
+        || latestPain.canBearWeight === "no"
+        || latestPain.redFlags.length > 0
+        || latestPain.painType.some((t: string) => /sharp|numb|แปลบ|ชา/i.test(t))
+      : false,
+  });
 
   return {
     profile: input.profile,
@@ -555,6 +595,7 @@ export function buildCoachContextFromData(input: {
     recentPainHistory,
     painResolved,
     nutritionBalanceToday,
+    readinessV2,
     contextNotes: buildContextNotes({
       raceGoal: input.raceGoal,
       racePlan: input.racePlan,

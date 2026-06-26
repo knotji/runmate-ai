@@ -48,10 +48,12 @@ type TodayInsightResponse = {
 };
 
 function buildClientTodayFallback(ctx: CoachContext | null): DailyCoachInsight {
-  const readiness = ctx?.avgReadiness ?? ctx?.sleep7d?.[0]?.readiness ?? 65;
-  const label = getReadinessCategoryLabel(readiness);
+  const v2 = ctx?.readinessV2;
+  const readiness = v2?.score ?? ctx?.avgReadiness ?? ctx?.sleep7d?.[0]?.readiness ?? 65;
+  const label = (v2?.label ?? getReadinessCategoryLabel(readiness)) as DailyCoachInsight["readinessLabel"];
   const latestPain = ctx?.latestPain ?? null;
   const latestWorkout = ctx?.todayPrimaryWorkout ?? null;
+  const readinessNote = v2?.readinessNote ?? (ctx?.latestSleepDurationText ? `นอนล่าสุด ${ctx.latestSleepDurationText}` : "ใช้ข้อมูลล่าสุดจาก Report");
   const weekParts = [
     ctx && ctx.totalRunKm > 0 ? `วิ่ง ${Math.round(ctx.totalRunKm * 10) / 10} km` : null,
     ctx && ctx.totalSessions > 0 ? `${ctx.totalSessions} sessions` : null,
@@ -62,7 +64,7 @@ function buildClientTodayFallback(ctx: CoachContext | null): DailyCoachInsight {
     return {
       todayReadiness: readiness,
       readinessLabel: label,
-      readinessNote: ctx?.latestSleepDurationText ? `นอนล่าสุด ${ctx.latestSleepDurationText}` : "ใช้ข้อมูลล่าสุดจาก Report",
+      readinessNote,
       workoutRec: latestWorkout.kind === "race" ? "Recovery หลัง Race วันนี้" : latestWorkout.kind === "run" ? `ฟื้นตัวหลังวิ่ง${formatKm(latestWorkout.distanceKm) ? ` ${formatKm(latestWorkout.distanceKm)} km` : ""}` : "Recovery หลังซ้อมวันนี้",
       workoutTarget: "ไม่ต้องซ้อมเพิ่ม · เน้นฟื้นตัว",
       weekSummary: weekParts.length ? weekParts.join(" / ") : "ยังมีข้อมูลสัปดาห์นี้ไม่มาก",
@@ -75,7 +77,7 @@ function buildClientTodayFallback(ctx: CoachContext | null): DailyCoachInsight {
     return {
       todayReadiness: readiness,
       readinessLabel: label,
-      readinessNote: ctx?.latestSleepDurationText ? `นอนล่าสุด ${ctx.latestSleepDurationText}` : "ใช้ข้อมูลล่าสุดจาก Report",
+      readinessNote,
       workoutRec: latestPain.painLevel >= 5 ? "งดวิ่ง / พักและประเมินอาการ" : "Rest / Recovery",
       workoutTarget: "Recovery Day · ไม่ต้องจับ pace",
       weekSummary: weekParts.length ? weekParts.join(" / ") : "ยังมีข้อมูลสัปดาห์นี้ไม่มาก",
@@ -87,7 +89,7 @@ function buildClientTodayFallback(ctx: CoachContext | null): DailyCoachInsight {
   return {
     todayReadiness: readiness,
     readinessLabel: label,
-    readinessNote: ctx?.latestSleepDurationText ? `นอนล่าสุด ${ctx.latestSleepDurationText}` : "ใช้ข้อมูลล่าสุดจาก Report",
+    readinessNote,
     workoutRec: "วันนี้เน้นฟื้นตัวเบา ๆ",
     workoutTarget: "เน้นฟื้นตัว · เดินเบา ๆ ถ้าไม่เจ็บ",
     weekSummary: weekParts.length ? weekParts.join(" / ") : "ยังมีข้อมูลสัปดาห์นี้ไม่มาก",

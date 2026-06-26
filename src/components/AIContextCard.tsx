@@ -394,6 +394,7 @@ const emptyContext: CoachContext = {
   recentPainHistory: false,
   painResolved: false,
   nutritionBalanceToday: null,
+  readinessV2: null,
 };
 
 
