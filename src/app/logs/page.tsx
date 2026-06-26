@@ -27,7 +27,7 @@ import {
 import { extractMealData, normalizeMealNutrition } from "@/lib/mealMerge";
 import { polishSleepInsightText } from "@/lib/sleepInsight";
 import { dedupeSleepItems } from "@/lib/sleepDedupe";
-import { getHistoryItemDateKey, dateKeyToRecordedAt } from "@/lib/date";
+import { getHistoryItemDateKey, dateKeyToRecordedAt, todayBangkokDateKey } from "@/lib/date";
 import { normalizeMealSlot, getMealSlotLabel, getMealSlotIcon, getMealSlotOrder } from "@/lib/mealSlots";
 import { getMealSourceInfo } from "@/lib/mealSource";
 import { buildWeeklyReview, type WeeklyReview } from "@/lib/weeklyReview";
