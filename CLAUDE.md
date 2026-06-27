@@ -47,7 +47,7 @@ Every item has a `data: jsonb` column holding the AI analysis result and extract
 
 **E2E Playwright route mocking.** Routes are matched LIFO (last registered wins). Register more-specific routes after general ones. `installMockBackend()` in `tests/e2e/helpers/app.ts` sets up auth + Supabase mocks; individual tests can add `page.route(...)` overrides afterward. The `bangkokDateKey()` helper in `tests/e2e/helpers/testData.ts` produces the correct date for mock data.
 
-**Today page fallback flow.** `buildClientTodayFallback()` produces a deterministic `DailyCoachInsight` from `CoachContext` synchronously, shown while the `POST /api/coach-insight` fetch is in flight. The 10-second `AbortController` timeout fires the error banner (`insightError && !loading`). Do not gate `{insight && ...}` on `!loading` — that blocks the fallback from rendering.
+**Today page fallback flow.** `buildClientTodayFallback()` produces a deterministic `DailyCoachInsight` from `CoachContext` synchronously, shown while the `POST /api/coach-insight` fetch is in flight. The 18-second client-side `AbortController` timeout (server AI timeout is 14 seconds) fires the error banner (`insightError && !loading`). Client timeout must be longer than server AI timeout. Expected client-timeout AbortError must be logged as `[today-analysis-timeout]`, not as a generic fetch error. Do not gate `{insight && ...}` on `!loading` — that blocks the fallback from rendering.
 
 **Readiness scoring.** Current implementation in `src/lib/readiness.ts` is sleep-only. `getTodayReadiness()` in `src/lib/todayPlanning.ts` reads `context.sleep7d[0].readiness`. Labels: 0–49 = Low, 50–65 = Fair, 66–79 = Good, 80+ = Excellent.
 

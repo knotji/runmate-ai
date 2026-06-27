@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { jsonFromAI } from "@/lib/ai";
+import { jsonFromAI, type JSONAIResult } from "@/lib/ai";
 import { buildRunnerProfileContext } from "@/lib/buildRunnerProfileContext";
 import { type CoachContext, type TodayCompletedWorkoutSummary } from "@/lib/buildCoachContext";
 import { getTodayReadiness, getTodayPlannedWorkout, getReadinessCategoryLabel } from "@/lib/todayPlanning";
@@ -59,11 +59,27 @@ export async function POST(request: Request) {
     const profileCtx = buildRunnerProfileContext(ctx.profile);
     const system = [SYSTEM_PROMPT, profileCtx, TODAY_OUTPUT_CONTRACT].filter(Boolean).join("\n\n");
 
-    const result = await jsonFromAI<DailyCoachInsight>({
+    const SERVER_AI_TIMEOUT_MS = 14000;
+
+    const aiPromise = jsonFromAI<DailyCoachInsight>({
       system,
       user: buildUserPrompt(ctx),
       fallback: FALLBACK,
     });
+
+    const timeoutPromise = new Promise<JSONAIResult<DailyCoachInsight>>((resolve) =>
+      setTimeout(() => {
+        resolve({
+          data: FALLBACK,
+          source: "fallback",
+          usedFallback: true,
+          errorCode: "AI_TIMEOUT",
+          errorMessage: "AI request timed out on server",
+        });
+      }, SERVER_AI_TIMEOUT_MS)
+    );
+
+    const result = await Promise.race([aiPromise, timeoutPromise]);
     const guarded = applyPostWorkoutRecoveryGuard(applyTodayPainGuard(normalizeInsight(result.data, ctx), ctx), ctx);
     if (process.env.NODE_ENV === "development") {
       console.info("[today-insight-ai-result]", {

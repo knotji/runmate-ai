@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { LoadingButton } from "@/components/LoadingButton";
 import { NutritionBalanceCard } from "@/components/NutritionBalanceCard";
@@ -21,6 +21,8 @@ import type { PainLog, PainSide } from "@/types/pain";
 import type { RaceGoal } from "@/types/race";
 import type { AIPrescription, StrengthExercise, StrengthRoutine } from "@/types/strength";
 import type { DailyCoachInsight } from "@/types/ai";
+
+const TODAY_INSIGHT_CLIENT_TIMEOUT_MS = 18000;
 
 function getRecommendedSubtype(insight: DailyCoachInsight | null, ctx: CoachContext | null): "run" | "strength" | "walk" | "other" {
   if (ctx && (ctx.latestPain || ctx.recentPainLogs?.length)) {
@@ -103,6 +105,14 @@ function buildClientTodayFallback(ctx: CoachContext | null): DailyCoachInsight {
 }
 
 export default function TodayPage() {
+  const isMounted = useRef(true);
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
   const [goal, setGoal] = useState<RaceGoal | null>(null);
   const [insight, setInsight] = useState<DailyCoachInsight | null>(null);
   const [coachCtx, setCoachCtx] = useState<CoachContext | null>(null);
@@ -145,27 +155,37 @@ export default function TodayPage() {
   const generateInsight = useCallback(async (force = false) => {
     void force;
     let fallbackContext: CoachContext | null = null;
-    setLoading(true);
-    setInsightError(false);
-    setInsightErrorMessage("");
+    let timeoutId: NodeJS.Timeout | null = null;
+    let didTimeout = false;
+    const controller = new AbortController();
+
+    if (isMounted.current) {
+      setLoading(true);
+      setInsightError(false);
+      setInsightErrorMessage("");
+    }
+
     try {
       const ctx = await buildCoachContextFromSupabase();
       fallbackContext = ctx;
-      setCoachCtx(ctx);
-      const hasSomeData = ctx.sleep7d.length > 0 || ctx.workouts7d.length > 0 || ctx.nutrition7d.length > 0 || ctx.latestBody != null || !!ctx.raceGoal;
-      setHasHistory(hasSomeData);
-      if (!hasSomeData) {
-        setLoading(false);
-        return;
+      if (isMounted.current) {
+        setCoachCtx(ctx);
+        const hasSomeData = ctx.sleep7d.length > 0 || ctx.workouts7d.length > 0 || ctx.nutrition7d.length > 0 || ctx.latestBody != null || !!ctx.raceGoal;
+        setHasHistory(hasSomeData);
+        if (!hasSomeData) {
+          setLoading(false);
+          return;
+        }
+
+        // Immediately show a local fallback recommendation during loading
+        const localFallback = buildClientTodayFallback(ctx);
+        setInsight(localFallback);
       }
 
-      // Immediately show a local fallback recommendation during loading
-      const localFallback = buildClientTodayFallback(ctx);
-      setInsight(localFallback);
-
-      // Create abort controller for 10s client timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      timeoutId = setTimeout(() => {
+        didTimeout = true;
+        controller.abort();
+      }, TODAY_INSIGHT_CLIENT_TIMEOUT_MS);
 
       try {
         const res = await fetch("/api/coach-insight", {
@@ -174,31 +194,58 @@ export default function TodayPage() {
           body: JSON.stringify(ctx),
           signal: controller.signal,
         });
-        clearTimeout(timeoutId);
 
         const json = await res.json() as TodayInsightResponse;
-        if (!res.ok && !json.data) throw new Error(json.message ?? "api error");
-        if (!json.data) throw new Error("no data");
+        if (isMounted.current) {
+          if (!res.ok && !json.data) throw new Error(json.message ?? "api error");
+          if (!json.data) throw new Error("no data");
 
-        setInsight(json.data);
-        if (json.ok === false || json.usedFallback) {
-          setInsightError(true);
-          setInsightErrorMessage(json.message ?? "ระบบยังประเมินด้วยโค้ชไม่สำเร็จ แต่ใช้ข้อมูลจาก Report เพื่อแนะนำเบื้องต้นให้ก่อน");
+          setInsight(json.data);
+          if (json.ok === false || json.usedFallback) {
+            setInsightError(true);
+            setInsightErrorMessage(json.message ?? "ระบบยังประเมินด้วยโค้ชไม่สำเร็จ แต่ใช้ข้อมูลจาก Report เพื่อแนะนำเบื้องต้นให้ก่อน");
+          }
         }
       } catch (innerError) {
-        clearTimeout(timeoutId);
-        if (process.env.NODE_ENV === "development") console.warn("[today-analysis-fetch-error]", innerError);
-        setInsightError(true);
-        setInsightErrorMessage("ระบบยังประเมินด้วยโค้ชไม่สำเร็จ แต่ใช้ข้อมูลจาก Report เพื่อแนะนำเบื้องต้นให้ก่อน");
+        const isAbort =
+          innerError instanceof DOMException
+            ? innerError.name === "AbortError"
+            : innerError instanceof Error && innerError.name === "AbortError";
+
+        if (isAbort) {
+          if (didTimeout) {
+            if (process.env.NODE_ENV === "development") {
+              console.warn(`[today-analysis-timeout]`, TODAY_INSIGHT_CLIENT_TIMEOUT_MS);
+            }
+          } else {
+            if (process.env.NODE_ENV === "development") {
+              console.warn("[today-analysis-aborted]");
+            }
+          }
+        } else {
+          if (process.env.NODE_ENV === "development") {
+            console.warn("[today-analysis-fetch-error]", innerError);
+          }
+        }
+
+        if (isMounted.current) {
+          setInsightError(true);
+          setInsightErrorMessage("ระบบยังประเมินด้วยโค้ชไม่สำเร็จ แต่ใช้ข้อมูลจาก Report เพื่อแนะนำเบื้องต้นให้ก่อน");
+        }
       }
     } catch (error) {
       if (process.env.NODE_ENV === "development") console.warn("[today-analysis-error]", error);
-      const fallback = buildClientTodayFallback(fallbackContext);
-      setInsight(fallback);
-      setInsightError(true);
-      setInsightErrorMessage("ระบบยังประเมินด้วยโค้ชไม่สำเร็จ แต่ใช้ข้อมูลจาก Report เพื่อแนะนำเบื้องต้นให้ก่อน");
+      if (isMounted.current) {
+        const fallback = buildClientTodayFallback(fallbackContext);
+        setInsight(fallback);
+        setInsightError(true);
+        setInsightErrorMessage("ระบบยังประเมินด้วยโค้ชไม่สำเร็จ แต่ใช้ข้อมูลจาก Report เพื่อแนะนำเบื้องต้นให้ก่อน");
+      }
     } finally {
-      setLoading(false);
+      if (timeoutId) clearTimeout(timeoutId);
+      if (isMounted.current) {
+        setLoading(false);
+      }
     }
   }, []);
 

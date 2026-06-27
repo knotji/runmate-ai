@@ -348,3 +348,88 @@ test("Report page shows updated readiness labels and disclaimers", async ({ page
   await expect(page.getByText("* Readiness เป็นคะแนนความพร้อมจากข้อมูล recovery ของวันนั้น ไม่ใช่คะแนนสรุปทั้งวัน")).toBeVisible();
 });
 
+// ─── Today Insight Timeout Handling Tests (Phases 1-5) ──────────────────────
+
+test("Today page does not abort successful responses around 10-11s", async ({ page }) => {
+  const state = await installMockBackend(page);
+  const today = bangkokDateKey();
+  state.history.push({
+    id: "sleep-1",
+    user_id: "00000000-0000-4000-8000-000000000001",
+    type: "sleep",
+    created_at: `${today}T07:00:00.000Z`,
+    data: {
+      extracted: { date: today, sleepScore: 75, energyScore: 75 },
+      coach: { readinessScore: 75, readinessLabel: "Good" },
+    },
+  });
+
+  // Intercept the API to simulate an 11s response delay
+  await page.route("**/api/coach-insight", async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 11000));
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ok: true,
+        data: {
+          todayReadiness: 75,
+          readinessLabel: "Good",
+          readinessNote: "ดีมาก",
+          workoutRec: "Tempo Run 8km",
+          workoutTarget: "Pace 5:30",
+          weekSummary: "-",
+          keyObservation: "-",
+          coachMessage: "วิ่งเลยวันนี้",
+        },
+      }),
+    });
+  });
+
+  await gotoApp(page, "/");
+
+  // Verify that the final response is successfully displayed
+  // (We use a larger timeout here for the expect since there is a deliberate 11s delay)
+  await expect(page.getByText("Tempo Run 8km")).toBeVisible({ timeout: 15000 });
+});
+
+test("Today page handles client timeout gracefully and uses fallback", async ({ page }) => {
+  const state = await installMockBackend(page);
+  const today = bangkokDateKey();
+  state.history.push({
+    id: "sleep-1",
+    user_id: "00000000-0000-4000-8000-000000000001",
+    type: "sleep",
+    created_at: `${today}T07:00:00.000Z`,
+    data: {
+      extracted: { date: today, sleepScore: 75, energyScore: 75 },
+      coach: { readinessScore: 75, readinessLabel: "Good" },
+    },
+  });
+
+  const consoleLogs: string[] = [];
+  page.on("console", (msg) => {
+    consoleLogs.push(msg.text());
+  });
+
+  // Intercept API with a 25s delay (longer than the 18s client timeout)
+  await page.route("**/api/coach-insight", async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 25000));
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ ok: true, data: {} }),
+    });
+  });
+
+  await gotoApp(page, "/");
+
+  // Fallback error banner should appear due to client timeout (18s)
+  await expect(page.getByText("ระบบยังประเมินด้วยโค้ชไม่สำเร็จ แต่ใช้ข้อมูลจาก Report เพื่อแนะนำเบื้องต้นให้ก่อน")).toBeVisible({ timeout: 21000 });
+
+  // Verify that AbortError was NOT logged as generic fetch-error but as [today-analysis-timeout]
+  expect(consoleLogs.some((log) => log.includes("[today-analysis-timeout]"))).toBe(true);
+  expect(consoleLogs.some((log) => log.includes("[today-analysis-fetch-error]"))).toBe(false);
+});
+
+

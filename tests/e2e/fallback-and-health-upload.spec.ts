@@ -72,9 +72,9 @@ test.describe("Health Check Upload and Today Fallback/Timeout", () => {
       }
     });
 
-    // Override coach-insight endpoint to delay 12 seconds to force a timeout client-side
+    // Override coach-insight endpoint to delay 20 seconds to force a timeout client-side
     await page.route("**/api/coach-insight", async (route) => {
-      await new Promise((resolve) => setTimeout(resolve, 12000));
+      await new Promise((resolve) => setTimeout(resolve, 20000));
       await route.fulfill({
         status: 200,
         contentType: "application/json",
@@ -99,11 +99,11 @@ test.describe("Health Check Upload and Today Fallback/Timeout", () => {
     // Today page should immediately render local fallback recommendations while loading
     await expect(page.getByText("วันนี้เน้นฟื้นตัวเบา ๆ")).toBeVisible();
 
-    // Verify error banner and retry appear after 10 seconds client-timeout
+    // Verify error banner and retry appear after 18 seconds client-timeout
     // "คำแนะนำสำรอง" appears immediately in the fallback keyObservation; the error banner
-    // with the insightErrorMessage body text only appears after the 10s abort fires.
-    await expect(page.getByText("ระบบยังประเมินด้วยโค้ชไม่สำเร็จ แต่ใช้ข้อมูลจาก Report เพื่อแนะนำเบื้องต้นให้ก่อน")).toBeVisible({ timeout: 15000 });
-    await expect(page.getByRole("button", { name: "วิเคราะห์ใหม่" }).first()).toBeVisible({ timeout: 15000 });
-    await expect(page.getByText("ใช้ข้อมูลล่าสุด")).toBeVisible({ timeout: 15000 });
+    // with the insightErrorMessage body text only appears after the 18s abort fires.
+    await expect(page.getByText("ระบบยังประเมินด้วยโค้ชไม่สำเร็จ แต่ใช้ข้อมูลจาก Report เพื่อแนะนำเบื้องต้นให้ก่อน")).toBeVisible({ timeout: 23000 });
+    await expect(page.getByRole("button", { name: "วิเคราะห์ใหม่" }).first()).toBeVisible({ timeout: 23000 });
+    await expect(page.getByText("ใช้ข้อมูลล่าสุด")).toBeVisible({ timeout: 23000 });
   });
 });

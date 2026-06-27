@@ -42,7 +42,11 @@
 - [ ] Today decision copy label matches readiness chip.
 - [ ] Recovery Strength card clearly says it is an alternative/replacement (on Fair/Caution or pain days) or optional add-on (on Good/Excellent days), not a required workout.
 - [ ] Today page status chips show "รอข้อมูลล่าสุด" instead of "กำลังวิเคราะห์..." when loading is in progress.
-- [ ] Today page immediately shows client-side fallback recommendation while loading, and on fetch timeout (10 seconds) or error, gracefully transitions to fallback mode showing yellow "คำแนะนำสำรอง" badge, fallback error text, "ใช้ข้อมูลล่าสุด" tag, and "วิเคราะห์ใหม่" button.
+- [ ] Today page immediately shows client-side fallback recommendation while loading, and on fetch timeout (18 seconds) or error, gracefully transitions to fallback mode showing yellow "คำแนะนำสำรอง" badge, fallback error text, "ใช้ข้อมูลล่าสุด" tag, and "วิเคราะห์ใหม่" button.
+- [ ] Slow API `/api/coach-insight` responses around 10-11s are successfully accepted by the client without being aborted.
+- [ ] If Gemini is slow beyond the 14s server timeout, the API returns a 200 fallback response code instead of throwing a 500 or waiting for the client to abort.
+- [ ] Expected AbortError due to client timeout is logged specifically as `[today-analysis-timeout] <timeoutMs>`, while unexpected aborts are logged as `[today-analysis-aborted]`. Generic `[today-analysis-fetch-error]` is not triggered for expected timeouts.
+- [ ] Today page remains fully usable and displays the fallback recommendation when timeouts occur, without showing raw error text or AbortError messages to the user.
 - [ ] Daily check still works.
 - [ ] End-of-day summary card displays copy warning that it is a summary note and not a separate Daily Score.
 
