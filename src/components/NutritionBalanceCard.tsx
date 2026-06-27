@@ -8,10 +8,10 @@ type StatusChipProps = {
 };
 
 function chipColor(status: string): string {
-  if (status === "ok" || status === "low" || status === "good") return "bg-green-50 text-green-700 border-green-200";
-  if (status === "watch") return "bg-amber-50 text-amber-700 border-amber-200";
-  if (status === "high") return "bg-red-50 text-red-700 border-red-200";
-  return "bg-slate-50 text-slate-500 border-slate-200";
+  if (status === "ok" || status === "low" || status === "good") return "bg-[var(--color-success-soft)] text-[var(--color-success)] border-[var(--color-success)]/30";
+  if (status === "watch") return "bg-[var(--color-warning-soft)] text-[var(--color-warning)] border-[var(--color-warning)]/30";
+  if (status === "high") return "bg-[var(--color-danger-soft)] text-[var(--color-danger)] border-[var(--color-danger)]/30";
+  return "bg-[var(--surface-muted)] text-[var(--color-text-muted)] border-[var(--color-border-soft)]";
 }
 
 function statusLabel(key: string, status: string): string {
@@ -76,7 +76,7 @@ export function NutritionBalanceCard({ balance }: { balance: DailyNutritionBalan
       <div className="flex items-center justify-between gap-2">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#6f8fa6]">สมดุลอาหารวันนี้</p>
-          <p className="mt-0.5 text-xs text-slate-500">{balance.mealCount} มื้อที่บันทึกแล้ว</p>
+          <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">{balance.mealCount} มื้อที่บันทึกแล้ว</p>
         </div>
       </div>
 
@@ -89,13 +89,13 @@ export function NutritionBalanceCard({ balance }: { balance: DailyNutritionBalan
       )}
 
       {hint && (
-        <p className="text-xs text-slate-600 leading-relaxed">
-          <span className="font-semibold text-[#17201d]">มื้อต่อไป:</span> {hint}
+        <p className="text-xs text-[var(--color-text-muted)] leading-relaxed">
+          <span className="font-semibold text-[var(--foreground)]">มื้อต่อไป:</span> {hint}
         </p>
       )}
 
       {balance.repeatedItems.length > 0 && (
-        <p className="text-[11px] text-amber-700 bg-amber-50 rounded-xl px-2.5 py-1.5">
+        <p className="text-[11px] text-[var(--color-warning)] bg-[var(--color-warning-soft)] rounded-xl px-2.5 py-1.5">
           เมนูซ้ำวันนี้: {balance.repeatedItems.join(", ")} — ลองเปลี่ยนมื้อต่อไป
         </p>
       )}

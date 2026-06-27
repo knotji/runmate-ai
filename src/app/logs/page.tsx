@@ -177,7 +177,7 @@ export default function ReportPage() {
         </section>
       ) : (
         <>
-          <section className="rounded-3xl border border-slate-100 bg-white/70 px-4 py-3 text-xs leading-5 text-slate-500 shadow-sm">
+          <section className="rounded-3xl border border-[var(--color-border-soft)] bg-[var(--surface)]/70 px-4 py-3 text-xs leading-5 text-[var(--color-text-muted)] shadow-sm">
             Report คือข้อมูลจริงจาก Upload และการบันทึก ส่วนแชทกับโค้ชจะไม่ถูกเพิ่มเข้าหน้านี้อัตโนมัติ
           </section>
           <WeeklyDashboard dashboard={dashboard} proteinTarget={pTarget} items={items} cutoff={dashboardCutoff} />
@@ -189,7 +189,7 @@ export default function ReportPage() {
           ) : null}
 
           {/* Filter Pills */}
-          <div className="flex flex-wrap gap-1.5 my-4">
+          <div className="flex gap-2 overflow-x-auto pb-1 my-4 scrollbar-none">
             {(
               [
                 { id: "all", label: "ทั้งหมด" },
@@ -207,7 +207,7 @@ export default function ReportPage() {
                   setActiveFilter(f.id);
                   setShowOlderDays(false);
                 }}
-                className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition-all border ${activeFilter === f.id ? "bg-[#17201d] text-white border-[#17201d]" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"}`}
+                className={`rounded-[var(--radius-pill)] px-4 py-2 text-xs font-semibold whitespace-nowrap min-h-[36px] transition-all border ${activeFilter === f.id ? "bg-[var(--primary)] text-white border-[var(--primary)]" : "bg-[var(--surface)] border-[var(--border-warm)] text-[var(--color-text-muted)] hover:bg-[var(--surface-muted)]"}`}
               >
                 {f.label}
               </button>

@@ -303,9 +303,9 @@ export function QuickLogCard({
         />
       )}
 
-      <section className="rounded-3xl border border-slate-100 bg-slate-50 p-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">บันทึกไว ๆ</p>
-        <p className="mt-0.5 text-xs text-slate-400">สำหรับเรื่องเล็ก ๆ วันนี้ ไม่ต้องอัปโหลดรูปก็ได้</p>
+      <section className="rounded-3xl border border-[var(--color-border-soft)] bg-[var(--surface-muted)] p-4">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-soft)]">บันทึกไว ๆ</p>
+        <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">สำหรับเรื่องเล็ก ๆ วันนี้ ไม่ต้องอัปโหลดรูปก็ได้</p>
 
         {error && (
           <p className="mt-2 rounded-xl bg-red-50 px-3 py-2 text-xs text-red-600">{error}</p>
@@ -329,10 +329,10 @@ export function QuickLogCard({
                 onClick={() => void handleAction(action)}
                 className={`flex items-center gap-1.5 rounded-2xl px-3 py-2 text-xs font-semibold transition-colors
                   ${isDone
-                    ? "border border-slate-100 bg-slate-100 text-slate-400 cursor-default"
+                    ? "bg-[var(--surface-muted)] border border-[var(--color-border-soft)] text-[var(--color-text-soft)] cursor-default"
                     : isFlashing
                       ? "bg-[var(--primary)] text-white"
-                      : "bg-white border border-slate-200 text-slate-700 hover:border-[var(--primary)] hover:text-[var(--primary)] active:scale-95"
+                      : "bg-[var(--surface)] border border-[var(--color-border)] text-[var(--color-text)] hover:border-[var(--primary)] hover:text-[var(--primary)] active:scale-95"
                   }
                   disabled:opacity-50`}
               >

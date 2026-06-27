@@ -39,15 +39,15 @@ type OptionCardProps = {
 
 function OptionCard({ option, mealSlot, onUseDraft }: OptionCardProps) {
   return (
-    <div className="rounded-2xl border border-slate-100 bg-white p-3">
+    <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--surface)] p-3">
       <div className="flex items-start justify-between gap-2">
-        <p className="font-semibold text-slate-800 text-sm">{option.title}</p>
+        <p className="font-semibold text-[var(--foreground)] text-sm">{option.title}</p>
         {option.convenience && option.convenience !== "ทั่วไป" && (
-          <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-500">{option.convenience}</span>
+          <span className="shrink-0 rounded-full bg-[var(--surface-muted)] px-2 py-0.5 text-[11px] text-[var(--color-text-muted)]">{option.convenience}</span>
         )}
       </div>
       {option.description && (
-        <p className="mt-0.5 text-xs text-slate-500">{option.description}</p>
+        <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">{option.description}</p>
       )}
       <p className="mt-1 text-xs text-[var(--primary)]">{option.why}</p>
       {option.tags.length > 0 && (
@@ -62,7 +62,7 @@ function OptionCard({ option, mealSlot, onUseDraft }: OptionCardProps) {
       <button
         type="button"
         onClick={() => onUseDraft(option, mealSlot)}
-        className="mt-2 w-full rounded-xl bg-slate-50 py-1.5 text-xs font-medium text-slate-600 hover:bg-[var(--primary-soft)] hover:text-[var(--primary-strong)] transition-colors"
+        className="mt-2 w-full rounded-xl bg-[var(--surface-muted)] py-1.5 text-xs font-medium text-[var(--color-text-muted)] hover:bg-[var(--primary-soft)] hover:text-[var(--primary-strong)] transition-colors"
       >
         ใช้เมนูนี้เป็นร่างบันทึก →
       </button>
@@ -81,11 +81,11 @@ export function NextMealCard({ recommendation, loading, onRequest }: Props) {
   const navigateWithDraft = useDraftAndNavigate();
 
   return (
-    <section className="rounded-3xl border border-slate-100 bg-slate-50 p-4">
+    <section className="rounded-3xl border border-[var(--color-border-soft)] bg-[var(--surface-muted)] p-4">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">มื้อถัดไป</p>
-          <h3 className="mt-0.5 text-base font-bold text-slate-800">มื้อต่อไปกินอะไรดี?</h3>
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-soft)]">มื้อถัดไป</p>
+          <h3 className="mt-0.5 text-base font-bold text-[var(--foreground)]">มื้อต่อไปกินอะไรดี?</h3>
         </div>
         {hasResult && recommendation.mealSlotLabel && (
           <span className="rounded-full bg-[var(--primary-soft)] px-3 py-1 text-xs font-semibold text-[var(--primary-strong)]">
@@ -112,7 +112,7 @@ export function NextMealCard({ recommendation, loading, onRequest }: Props) {
           )}
 
           {recommendation.caution && (
-            <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-700">
+            <p className="mt-2 rounded-xl bg-[var(--color-warning-soft)] px-3 py-2 text-xs text-[var(--color-warning)]">
               {recommendation.caution}
             </p>
           )}
@@ -130,9 +130,9 @@ export function NextMealCard({ recommendation, loading, onRequest }: Props) {
 
           {recommendation.nutritionFocus.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-1">
-              <span className="self-center text-xs text-slate-400">โฟกัส:</span>
+              <span className="self-center text-xs text-[var(--color-text-soft)]">โฟกัส:</span>
               {recommendation.nutritionFocus.map((f) => (
-                <span key={f} className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
+                <span key={f} className="rounded-full bg-[var(--surface-muted)] px-2 py-0.5 text-xs text-[var(--color-text-muted)]">
                   {f}
                 </span>
               ))}
@@ -158,7 +158,7 @@ export function NextMealCard({ recommendation, loading, onRequest }: Props) {
             type="button"
             onClick={onRequest}
             disabled={loading}
-            className="mt-2 w-full text-center text-xs text-slate-400 hover:text-slate-600 disabled:opacity-40"
+            className="mt-2 w-full text-center text-xs text-[var(--color-text-soft)] hover:text-[var(--color-text-muted)] disabled:opacity-40"
           >
             {loading ? "กำลังคิดเมนู..." : "คิดใหม่อีกครั้ง"}
           </button>

@@ -77,6 +77,31 @@ tests/
     helpers/        # app.ts (installMockBackend), testData.ts, selectors.ts
 ```
 
-## Design Tokens
+## Design System
 
-CSS variables defined in `src/app/globals.css`. Key tokens: `--primary` (sage green `#5f8f7a`), `--status-ready`, `--status-caution`, `--status-rest`. Tailwind classes reference these via `var(--...)`. Fonts: Noto Sans Thai via `var(--font-noto-thai)`.
+**RunMate Visual Identity**: Warm Minimal Fitness Journal — beige/sage tones, soft cards, mobile-first, Thai-first.
+
+**Token reference** (CSS vars in `globals.css`):
+
+- Colors: `--primary` (sage), `--background` (warm beige), `--surface` (cream), `--border-warm`
+- Semantic: `--color-warning`, `--color-danger`, `--color-success`, `--color-info` (and `-soft` variants)
+- Text: `--color-text`, `--color-text-muted`, `--color-text-soft`
+- Radius: `--radius-card` (20px), `--radius-pill` (999px), `--radius-chip`
+- Shadows: `--shadow-card`, `--shadow-soft`, `--shadow-floating`
+
+**CSS utilities** (prefer over Tailwind ad-hoc colors):
+
+- Cards: `.card`, `.card-soft`, `.card-warning`, `.card-success`, `.card-danger`, `.card-info`
+- Buttons: `.btn-primary`, `.btn-secondary`, `.btn-ghost`, `.btn-soft`
+- Chips: `.chip`, `.chip-success`, `.chip-warning`, `.chip-danger`, `.chip-info`, `.chip-muted`, `.chip-primary`
+- Labels: `.section-label`
+- Form: `.control`
+
+**Principles**:
+
+- Buttons must be >=44px tap height on mobile
+- Use `var(--color-text-muted)` for secondary text, not `text-slate-400`/`text-slate-500`
+- Use `var(--surface-muted)` for soft backgrounds, not `bg-slate-50`
+- Use `var(--border-warm)` for borders, not `border-slate-200`/`border-slate-100`
+- Thai section headings > English uppercase labels in user-facing areas
+- Keep emoji where it aids scanning; avoid emoji clusters in same card

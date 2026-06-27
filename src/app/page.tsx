@@ -261,7 +261,7 @@ export default function TodayPage() {
     <AppShell title="โค้ชข้างทาง" subtitle={formatThaiDate()}>
 
       {/* Section: แผนวันนี้ */}
-      <p className="mt-1 px-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-400">แผนวันนี้</p>
+      <p className="mt-1 px-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--color-text-soft)]">แผนวันนี้</p>
 
       {/* B. Today Focus Card */}
       <section className="card p-5 space-y-4">
@@ -350,7 +350,7 @@ export default function TodayPage() {
       ) : null}
 
       {/* Section: ภาพรวมและบันทึก */}
-      <p className="mt-1 px-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-400">ภาพรวมและบันทึก</p>
+      <p className="mt-1 px-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--color-text-soft)]">ภาพรวมและบันทึก</p>
 
       {/* C. Today Snapshot: readiness + daily check */}
       <TodaySnapshotCard
@@ -373,7 +373,7 @@ export default function TodayPage() {
             { href: "/pain", icon: "🩹", label: "เจ็บ" },
             { href: "#end-of-day-summary", icon: "📋", label: "สรุปวัน" },
           ].map(({ href, icon, label }) => (
-            <Link key={href} href={href} className="flex flex-col items-center gap-1.5 rounded-2xl py-3 transition-colors hover:bg-slate-50 active:scale-95">
+            <Link key={href} href={href} className="flex flex-col items-center gap-1.5 rounded-2xl py-3 transition-colors hover:bg-[var(--surface-muted)] active:scale-95">
               <span className="text-2xl">{icon}</span>
               <span className="text-xs font-medium text-slate-500">{label}</span>
             </Link>
@@ -396,13 +396,13 @@ export default function TodayPage() {
       {/* F. Compact detail sections */}
       {(coachCtx?.latestPain || (coachCtx?.recentPainLogs && coachCtx.recentPainLogs.length > 0)) && (
         <>
-          <p className="mt-1 px-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-400">Recovery / อาการ</p>
+          <p className="mt-1 px-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--color-text-soft)]">Recovery / อาการ</p>
           <CompactPainCard pains={coachCtx.latestPain ? [coachCtx.latestPain, ...coachCtx.recentPainLogs.filter((pain) => pain.id !== coachCtx.latestPain?.id)] : coachCtx.recentPainLogs} />
         </>
       )}
 
       {(coachCtx?.nutritionToday || coachCtx?.nutritionBalanceToday || coachCtx) && (
-        <p className="mt-1 px-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-400">อาหารวันนี้</p>
+        <p className="mt-1 px-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--color-text-soft)]">อาหารวันนี้</p>
       )}
 
       {coachCtx?.nutritionToday && (
@@ -421,7 +421,7 @@ export default function TodayPage() {
         />
       )}
 
-      <p className="mt-1 px-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-400">สรุป</p>
+      <p className="mt-1 px-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--color-text-soft)]">สรุป</p>
 
       <EndOfDaySummaryCard
         item={dailySummaryItem}

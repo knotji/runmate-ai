@@ -4,11 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const items = [
-  { href: "/", label: "Today" },
-  { href: "/upload", label: "Upload" },
-  { href: "/race-goal", label: "Race" },
-  { href: "/logs", label: "Report" },
-  { href: "/coach", label: "Coach" },
+  { href: "/", label: "Today", icon: "🏃" },
+  { href: "/upload", label: "Upload", icon: "📤" },
+  { href: "/race-goal", label: "Race", icon: "🎯" },
+  { href: "/logs", label: "Report", icon: "📋" },
+  { href: "/coach", label: "Coach", icon: "💬" },
 ];
 
 export function BottomNav() {
@@ -23,13 +23,14 @@ export function BottomNav() {
             <Link
               key={item.href}
               href={item.href}
-              className={`rounded-2xl px-2 py-2 text-center text-xs font-semibold ${
+              className={`flex flex-col items-center gap-0.5 rounded-2xl px-2 py-2 text-center text-xs font-semibold ${
                 active
                   ? "bg-[var(--primary-soft)] text-[var(--primary-strong)] shadow-sm ring-1 ring-[var(--primary)]/15"
                   : "text-[var(--muted-text)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)]"
               }`}
             >
-              {item.label}
+              <span className="text-base leading-none" aria-hidden="true">{item.icon}</span>
+              <span>{item.label}</span>
             </Link>
           );
         })}
