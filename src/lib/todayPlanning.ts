@@ -83,3 +83,46 @@ function normalizeWeekdayLabel(day: string): number {
   if (/^(sat|saturday|ส\.|เสาร์|วันเสาร์)/i.test(value)) return 6;
   return -1;
 }
+
+export type PlannedWorkoutMatchingResult = {
+  isCompleted: boolean;
+  isUncertain: boolean;
+  message?: string;
+};
+
+export function checkPlannedWorkoutMatching(context: CoachContext | null): PlannedWorkoutMatchingResult {
+  if (!context) return { isCompleted: false, isUncertain: false };
+  const planned = getTodayPlannedWorkout(context);
+  const plannedType = (planned?.workoutType ?? "").toLowerCase();
+  const hasLoggedWorkout = context.todayWorkouts.length > 0;
+
+  if (!hasLoggedWorkout) {
+    return { isCompleted: false, isUncertain: false };
+  }
+
+  const loggedStrength = context.todayWorkouts.some(w => w.kind === "strength");
+  const loggedRun = context.todayWorkouts.some(w => w.kind === "run" || w.kind === "race");
+  const loggedWalkOrOther = context.todayWorkouts.some(w => w.kind === "walk" || w.kind === "other" || w.kind === "cycling");
+
+  const isPlannedStrength = plannedType.includes("strength") || plannedType.includes("เวท");
+  const isPlannedRun = plannedType.includes("run") || plannedType.includes("วิ่ง") || plannedType.includes("ซ้อม") || plannedType.includes("แข่ง") || plannedType.includes("race") || plannedType.includes("interval") || plannedType.includes("tempo") || plannedType.includes("easy");
+  const isPlannedRecovery = plannedType.includes("recovery") || plannedType.includes("rest") || plannedType.includes("พัก") || plannedType.includes("ฟื้น") || plannedType.includes("walk") || plannedType.includes("เดิน");
+
+  if (isPlannedStrength) {
+    if (loggedStrength) return { isCompleted: true, isUncertain: false };
+    return { isCompleted: false, isUncertain: true, message: "วันนี้มีบันทึกกิจกรรมแล้ว" };
+  }
+
+  if (isPlannedRun) {
+    if (loggedRun) return { isCompleted: true, isUncertain: false };
+    return { isCompleted: false, isUncertain: true, message: "วันนี้มีบันทึกกิจกรรมแล้ว" };
+  }
+
+  if (isPlannedRecovery) {
+    if (loggedWalkOrOther || loggedRun) return { isCompleted: true, isUncertain: false };
+    return { isCompleted: false, isUncertain: true, message: "วันนี้มีบันทึกกิจกรรมแล้ว" };
+  }
+
+  return { isCompleted: false, isUncertain: true, message: "วันนี้มีบันทึกกิจกรรมแล้ว" };
+}
+

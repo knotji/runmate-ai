@@ -24,12 +24,17 @@
 - [ ] Quick protein log does not invent calories/carbs/fat; Report shows "กินโปรตีนแล้ว · Xg" with badge "บันทึกไว ๆ".
 - [ ] Older Report days (before yesterday) are collapsed by default; Today and Yesterday stay expanded.
 - [ ] Weekly Review shows visible "โฟกัสถัดไป" with 1–3 actionable items.
+- [ ] Report page shows capitalized "Readiness" label, average metrics are labeled "Readiness เฉลี่ย" with subtext "จากวันที่มีข้อมูล", and expanded sleep detail card displays disclaimer "* Readiness เป็นคะแนนความพร้อมจากข้อมูล recovery ของวันนั้น ไม่ใช่คะแนนสรุปทั้งวัน".
 
 ## 3. Today
 
 - [ ] Only records for today's Bangkok `dateKey` affect Today.
 - [ ] Backdated meals/workouts do not affect Today.
 - [ ] Post-workout recovery appears only after today's workout.
+- [ ] Today strength routine card collapses into completed state after workout is logged today, showing a summary (e.g. "25 นาที", "Recovery Strength", "เวท") and hiding exercise details behind a "ดูรายละเอียดที่ทำ" toggle.
+- [ ] Today focus card recommendation copy shifts to recovery guidance after workout is logged (showing "หลังเวทวันนี้ควรทำอะไรต่อ" or "หลังซ้อมวันนี้ควรทำอะไรต่อ" header), with clear microcopy instructing the user to avoid repeating hard workouts.
+- [ ] Today snapshot card has a "Readiness คืออะไร?" expandable note explaining the morning/current context.
+- [ ] Today snapshot coverage chips prefix label is updated to "ข้อมูลที่ใช้ประเมิน:".
 - [ ] Resolved pain does not force a red/rest state.
 - [ ] Active pain and red flags still apply conservative safety guidance.
 - [ ] Today shows one clear primary recommendation.
@@ -38,6 +43,8 @@
 - [ ] Recovery Strength card clearly says it is an alternative/replacement (on Fair/Caution or pain days) or optional add-on (on Good/Excellent days), not a required workout.
 - [ ] Today page status chips show "รอข้อมูลล่าสุด" instead of "กำลังวิเคราะห์..." when loading is in progress.
 - [ ] Today page immediately shows client-side fallback recommendation while loading, and on fetch timeout (10 seconds) or error, gracefully transitions to fallback mode showing yellow "คำแนะนำสำรอง" badge, fallback error text, "ใช้ข้อมูลล่าสุด" tag, and "วิเคราะห์ใหม่" button.
+- [ ] Daily check still works.
+- [ ] End-of-day summary card displays copy warning that it is a summary note and not a separate Daily Score.
 
 ## 4. Coach
 

@@ -281,7 +281,7 @@ function WeeklyDashboard({ dashboard, proteinTarget, items, cutoff }: { dashboar
       <div className="grid grid-cols-2 gap-2">
         <DashboardMetric label="Run volume" value={dashboard.runKm > 0 ? formatDistanceKm(dashboard.runKm) : "-"} sub={`${dashboard.runSessions} sessions`} />
         <DashboardMetric label="Longest run" value={dashboard.longestRunKm != null ? formatDistanceKm(dashboard.longestRunKm) : "-"} sub="last 7 days" />
-        <DashboardMetric label="Readiness avg" value={dashboard.avgReadiness != null ? formatScore(dashboard.avgReadiness) : "-"} sub={dashboard.readinessTrend} />
+        <DashboardMetric label="Readiness เฉลี่ย" value={dashboard.avgReadiness != null ? formatScore(dashboard.avgReadiness) : "-"} sub="จากวันที่มีข้อมูล" />
         <DashboardMetric label="Sleep avg 7 วัน" value={formatSleepAverageHours(dashboard.avgSleepHours)} sub={sleepAverageSubtext(dashboard.sleepCount)} />
         <DashboardMetric label="Meal kcal avg" value={dashboard.avgMealCalories != null ? formatCalories(dashboard.avgMealCalories) : "-"} sub={assessmentText} />
         <DashboardMetric label="Protein avg / day" value={dashboard.avgMealProtein != null ? formatMacro(dashboard.avgMealProtein) : "-"} sub={`target ${proteinTarget} g`} />
@@ -548,7 +548,7 @@ function DayCard({
             {readiness !== null && (
               <div>
                 <p className={`text-2xl font-bold ${readinessColor(readiness)}`}>{readiness}</p>
-                <p className="text-xs text-slate-400">readiness</p>
+                <p className="text-xs text-slate-400">Readiness</p>
               </div>
             )}
             {readiness === null && totalKm !== null && (
@@ -662,6 +662,11 @@ function SleepDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; onD
       {coach.aiSummary && <p className="text-sm leading-6 text-slate-700">{polishSleepInsightText(coach.aiSummary)}</p>}
       {coach.todayRecommendation && (
         <p className="mt-2 text-sm font-bold text-[#17201d]">→ {polishSleepInsightText(coach.todayRecommendation)}</p>
+      )}
+      {coach.readinessScore != null && (
+        <p className="mt-2 text-[11px] text-slate-400 leading-normal">
+          * Readiness เป็นคะแนนความพร้อมจากข้อมูล recovery ของวันนั้น ไม่ใช่คะแนนสรุปทั้งวัน
+        </p>
       )}
       {merged.mergedFromDuplicates && (
         <p className="mt-2 text-xs text-slate-400">รวมข้อมูลจากหลายบันทึก{merged.duplicateCount ? ` (${merged.duplicateCount})` : ""}</p>

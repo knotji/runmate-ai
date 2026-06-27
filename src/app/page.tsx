@@ -10,7 +10,7 @@ import type { NextMealRecommendation } from "@/app/api/next-meal/route";
 import { buildTodayRecommendationReasons } from "@/lib/todayReasons";
 import { formatThaiDate, getHistoryItemDateKey, todayBangkokDateKey } from "@/lib/date";
 import { buildCoachContextFromSupabase, type CoachContext, type NutritionDaySummary, type PainSummary, type TodayCompletedWorkoutSummary } from "@/lib/buildCoachContext";
-import { getTodayReadiness, getTodayPlannedWorkout, getReadinessCategoryLabel } from "@/lib/todayPlanning";
+import { getTodayReadiness, getTodayPlannedWorkout, getReadinessCategoryLabel, checkPlannedWorkoutMatching } from "@/lib/todayPlanning";
 import { getRunMateReadinessLabel } from "@/lib/readinessV2";
 import { createHistoryItem, loadHistoryItems, saveHistoryItems } from "@/lib/cloudHistory";
 import { loadActiveRaceGoalAndPlan } from "@/lib/raceStorage";
@@ -263,7 +263,7 @@ export default function TodayPage() {
       {/* B. Today Focus Card */}
       <section className="card p-5 space-y-4">
         <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
-          {hasWorkoutToday ? "หลังซ้อมวันนี้ควรทำอะไร" : "วันนี้ควรทำอะไร"}
+          {hasWorkoutToday ? (coachCtx?.todayWorkouts.some((w) => w.kind === "strength") ? "หลังเวทวันนี้ควรทำอะไรต่อ" : "หลังซ้อมวันนี้ควรทำอะไรต่อ") : "วันนี้ควรทำอะไร"}
         </p>
 
         {loading && (
@@ -358,6 +358,7 @@ export default function TodayPage() {
         hasHistory={hasHistory}
         isFallback={insightError}
         readinessCoverage={readinessCoverage}
+        hasWorkoutToday={hasWorkoutToday}
       />
 
       {/* D. Quick Actions */}
@@ -595,28 +596,39 @@ function PostWorkoutFocusContent({ insight, context }: { insight: DailyCoachInsi
   const subtitle = buildPostWorkoutSubtitle(context, workout);
   const items = buildPostWorkoutChecklist(context, workout);
   const injuryNote = buildPostWorkoutInjuryNote(context);
+  const matching = checkPlannedWorkoutMatching(context);
 
   return (
-    <div>
-      <h2 className="text-2xl font-bold text-[#17201d]">{title}</h2>
-      <span className="mt-2 inline-block rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-        ไม่ต้องซ้อมเพิ่ม · เน้นฟื้นตัว
-      </span>
-      <p className="mt-2 text-sm leading-relaxed text-slate-500">{subtitle}</p>
-      <div className="mt-3 rounded-2xl bg-[var(--primary-soft)] px-4 py-3 text-sm font-medium leading-relaxed text-[var(--foreground)]">
-        <ul className="space-y-1.5">
-          {items.map((item) => (
-            <li key={item} className="flex gap-2">
-              <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#2a5a39]" />
-              <span>{item}</span>
-            </li>
-          ))}
-        </ul>
-        {injuryNote && (
-          <p className="mt-3 border-t border-[#d9e8df] pt-2 text-xs font-semibold leading-5 text-[#2a5a39]">
-            {injuryNote}
-          </p>
-        )}
+    <div className="space-y-2.5">
+      {matching.isUncertain && (
+        <p className="rounded-2xl bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 border border-amber-200">
+          ⚠️ วันนี้มีบันทึกกิจกรรมแล้ว (อาจแตกต่างจากแผนที่ตั้งไว้) แนะนำเน้นฟื้นตัวและงดซ้อมหนักซ้ำ
+        </p>
+      )}
+      <div>
+        <h2 className="text-2xl font-bold text-[#17201d]">{title}</h2>
+        <span className="mt-2 inline-block rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+          ไม่ต้องซ้อมเพิ่ม · เน้นฟื้นตัว
+        </span>
+        <p className="mt-2 text-sm leading-relaxed text-slate-500">{subtitle}</p>
+        <p className="mt-2 text-xs leading-relaxed text-slate-500 bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3">
+          💡 บันทึกกิจกรรมวันนี้แล้ว ไม่จำเป็นต้องซ้อมหนักซ้ำอีก เน้นการจิบน้ำ เติมโปรตีน ขยับเบา ๆ และนอนหลับให้เพียงพอเพื่อฟื้นฟูกล้ามเนื้อ
+        </p>
+        <div className="mt-3 rounded-2xl bg-[var(--primary-soft)] px-4 py-3 text-sm font-medium leading-relaxed text-[var(--foreground)]">
+          <ul className="space-y-1.5">
+            {items.map((item) => (
+              <li key={item} className="flex gap-2">
+                <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#2a5a39]" />
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+          {injuryNote && (
+            <p className="mt-3 border-t border-[#d9e8df] pt-2 text-xs font-semibold leading-5 text-[#2a5a39]">
+              {injuryNote}
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -734,6 +746,7 @@ function TodayStrengthRoutineCard({
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
+  const [showDetails, setShowDetails] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -759,6 +772,73 @@ function TodayStrengthRoutineCard({
   const reason = selected ? buildTodayStrengthReason(selected, insight, context) : "";
   const durationMin = prescription?.estimatedDurationMin ?? (selected ? estimateRoutineDuration(selected) : null);
   const exercises = prescription?.exercises ?? selected?.exercises ?? [];
+
+  if (alreadyCompleted) {
+    const loggedWorkout = context.todayWorkouts.find((workout) => workout.kind === "strength");
+    const loggedDuration = loggedWorkout?.durationMin ? `${loggedWorkout.durationMin} นาที` : durationMin ? `${durationMin} นาที` : "";
+    const loggedLabel = loggedWorkout?.label ?? prescription?.routineName ?? selected?.name ?? "เวท";
+    const loggedHR = loggedWorkout?.avgHR ? `Avg HR ${Math.round(loggedWorkout.avgHR)} bpm` : "";
+    const loggedCalories = loggedWorkout?.calories ? `${loggedWorkout.calories} kcal` : "";
+
+    const summaryParts = [loggedDuration, loggedLabel, "เวท", loggedHR, loggedCalories].filter(Boolean);
+
+    return (
+      <section className="card space-y-3 p-5 border-l-4 border-green-500 bg-[#fbfdfb]">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="rounded-full bg-[#eef7f0] px-2.5 py-0.5 text-[10px] font-bold text-[var(--status-ready)]">✓ วันนี้บันทึกเวทแล้ว</span>
+          </div>
+          <h2 className="mt-1.5 text-xl font-bold text-[#17201d]">
+            {prescription?.routineName ?? selected?.name ?? "Recovery Strength"} เสร็จแล้ว
+          </h2>
+          <p className="mt-1 text-sm leading-relaxed text-slate-500">
+            ต่อจากนี้เน้นฟื้นตัว เดินเบา ๆ ยืดเบา ๆ และนอนให้พอ
+          </p>
+        </div>
+
+        {summaryParts.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mt-2">
+            {summaryParts.map((part) => (
+              <span key={part} className="rounded-full bg-[#eef4ef] px-2.5 py-0.5 text-xs font-bold text-[#2a5a39]">
+                {part}
+              </span>
+            ))}
+          </div>
+        )}
+
+        <div className="pt-1">
+          <button
+            type="button"
+            onClick={() => setShowDetails(!showDetails)}
+            className="text-xs font-semibold text-slate-400 hover:text-slate-600 flex items-center gap-1"
+          >
+            <span>{showDetails ? "ซ่อนรายละเอียด" : "ดูรายละเอียดที่ทำ"}</span>
+            <span className={`transition-transform duration-200 ${showDetails ? "rotate-180" : ""}`}>▾</span>
+          </button>
+
+          {showDetails && exercises.length > 0 && (
+            <div className="mt-2 rounded-2xl bg-slate-50 p-3 space-y-1.5 border border-slate-100">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">รายการท่าที่ทำ</p>
+              <div className="space-y-1.5">
+                {exercises.map((exercise) => (
+                  <div key={`${exercise.name}-${exercise.sets}-${exercise.reps}`} className="flex justify-between gap-3 text-xs">
+                    <span className="font-semibold text-slate-700">{exercise.name}</span>
+                    <span className="shrink-0 text-slate-500">{formatStrengthExerciseLine(exercise)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="pt-2">
+          <Link href="/logs" className="btn-secondary block w-full py-2.5 text-center text-xs font-bold">
+            ดูใน Report
+          </Link>
+        </div>
+      </section>
+    );
+  }
 
   const todayReadiness = getTodayReadiness(context);
   const readinessScore = todayReadiness.score;
@@ -1103,6 +1183,7 @@ function TodaySnapshotCard({
   hasHistory,
   isFallback,
   readinessCoverage,
+  hasWorkoutToday,
 }: {
   insight: DailyCoachInsight | null;
   readinessScore: number | null;
@@ -1111,6 +1192,7 @@ function TodaySnapshotCard({
   hasHistory: boolean;
   isFallback?: boolean;
   readinessCoverage?: { used: string[]; missing: string[]; hasSleepToday: boolean };
+  hasWorkoutToday?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const completed = todayChecklist.filter((i) => i.done).length;
@@ -1153,7 +1235,7 @@ function TodaySnapshotCard({
       {!loading && readinessCoverage && (readinessCoverage.used.length > 0 || readinessCoverage.missing.length > 0) && (
         <div className="space-y-1.5">
           <div className="flex flex-wrap gap-1">
-            <span className="text-xs text-slate-400 self-center">คะแนนใช้:</span>
+            <span className="text-xs text-slate-400 self-center">ข้อมูลที่ใช้ประเมิน:</span>
             {readinessCoverage.used.map((label) => (
               <span key={label} className="rounded-full bg-[var(--primary-soft)] px-2 py-0.5 text-xs font-medium text-[var(--primary-strong)]">
                 {label}
@@ -1171,6 +1253,24 @@ function TodaySnapshotCard({
             </p>
           )}
         </div>
+      )}
+
+      {/* Readiness explanation note (Phase 3) */}
+      {!loading && readinessScore != null && (
+        <details className="text-xs text-slate-500 mt-2 cursor-pointer group">
+          <summary className="text-[11px] font-semibold text-slate-400 hover:text-slate-600 list-none flex items-center gap-1">
+            <span>Readiness คืออะไร?</span>
+            <span className="transition-transform group-open:rotate-180">▾</span>
+          </summary>
+          <div className="mt-1.5 rounded-2xl bg-slate-50 p-3 leading-relaxed text-slate-500 border border-slate-100">
+            คะแนนนี้ประเมินความพร้อมจากข้อมูลล่าสุด เช่น การนอน HRV โหลดซ้อม อาการเจ็บ อาหาร และกิจกรรมที่บันทึกแล้ว ไม่ใช่คะแนนสรุปทั้งวัน
+            {hasWorkoutToday && (
+              <p className="mt-1 text-slate-400 font-semibold">
+                * กิจกรรมวันนี้ใช้เพื่อปรับคำแนะนำต่อจากนี้ ไม่ได้แปลว่าความพร้อมจะเพิ่มขึ้นทันที
+              </p>
+            )}
+          </div>
+        </details>
       )}
 
       {/* Collapsed state: show daily check missing items */}
@@ -1403,6 +1503,9 @@ function EndOfDaySummaryCard({
           <p className="line-clamp-2 text-sm leading-6 text-slate-700">{summary.overallSummary}</p>
         )}
         <p className="text-[11px] leading-5 text-slate-400">{existingSummaryNote}</p>
+        <p className="text-[11px] leading-5 text-slate-400 font-medium">
+          💡 สรุปท้ายวันจะช่วยให้โค้ชเข้าใจวันนั้นมากขึ้น แต่ยังไม่ใช่คะแนน Daily Score แยก
+        </p>
         <div className="flex gap-2">
           <button type="button" onClick={() => setExpanded(true)} className="flex-1 rounded-full bg-slate-100 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200">
             ดูสรุป
@@ -1433,6 +1536,9 @@ function EndOfDaySummaryCard({
             </p>
           )}
           <p className="text-[11px] leading-5 text-slate-400">{existingSummaryNote}</p>
+          <p className="text-[11px] leading-5 text-slate-400 font-medium mt-1">
+            💡 สรุปท้ายวันจะช่วยให้โค้ชเข้าใจวันนั้นมากขึ้น แต่ยังไม่ใช่คะแนน Daily Score แยก
+          </p>
         </div>
         {message && <p className="text-xs font-semibold text-green-600">{message}</p>}
         {error && <p className="rounded-2xl bg-red-50 px-3 py-2 text-xs font-bold text-red-500">{error}</p>}
@@ -1449,6 +1555,9 @@ function EndOfDaySummaryCard({
       <div>
         <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">สรุปท้ายวัน</p>
         <p className="mt-1 text-sm leading-6 text-slate-500">กดก่อนนอนเพื่อสรุปวันนี้และวางแผนพรุ่งนี้จากข้อมูลใน Report</p>
+        <p className="mt-1 text-[11px] leading-5 text-slate-400 font-medium text-slate-500">
+          💡 สรุปท้ายวันจะช่วยให้โค้ชเข้าใจวันนั้นมากขึ้น แต่ยังไม่ใช่คะแนน Daily Score แยก
+        </p>
         <p className="mt-1 text-[11px] leading-5 text-slate-400">{newSummaryNote}</p>
       </div>
       {message && <p className="text-xs font-semibold text-green-600">{message}</p>}

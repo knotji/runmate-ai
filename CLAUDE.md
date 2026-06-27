@@ -109,3 +109,5 @@ tests/
 - Consistent emoji meanings: 🌙 sleep · 🍱/🍽️ food · 🏃 run/workout · 🏋️ strength · 🩹 pain · 📋 summary · 🎯 focus
 - Segmented/tab controls active state: `bg-[var(--primary-soft)] text-[var(--primary-strong)]` (softer than primary CTA buttons)
 - Readiness score and coaching recommendation state are separate: score uses `getRunMateReadinessLabel()` (Good/Fair/etc.), coaching state label describes today's recommendation ("ควรซ้อมเบา", "ควรพักฟื้น")
+- Readiness means current/day-context recovery readiness, not a final whole-day score. Workouts today can shift recommendation toward recovery; they should not be treated as immediate readiness improvement.
+
