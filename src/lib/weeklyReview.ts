@@ -1,6 +1,7 @@
 // Pure helper — no "use client". Safe for server and client contexts.
 import type { LocalHistoryItem } from "@/lib/localHistory";
 import { getHistoryItemDateKey } from "@/lib/date";
+import { dedupeSleepItems } from "@/lib/sleepDedupe";
 
 export type WeeklyReview = {
   runningKmTotal: number;
@@ -8,6 +9,7 @@ export type WeeklyReview = {
   strengthCount: number;
   walkCount: number;
   avgSleepHours: number | null;
+  sleepNights: number;
   avgReadiness: number | null;
   mealCount: number;
   painDays: number;
@@ -21,6 +23,39 @@ export type WeeklyReview = {
 function toFinite(v: unknown): number | null {
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
+}
+
+/** Mirrors getSleepDurationRaw + parseSleepHours from logs/page.tsx.
+ *  Returns hours (decimal), or null if no valid duration found. */
+function readSleepHoursFromItem(item: LocalHistoryItem): number | null {
+  const data = item.data as Record<string, unknown> | null;
+  const ext = (data?.extracted ?? data ?? {}) as Record<string, unknown>;
+  const sleep = data?.sleep as Record<string, unknown> | undefined;
+  const candidates = [
+    ext.actualSleepDurationMinutes,
+    ext.sleepDuration,
+    ext.duration,
+    data?.sleepDurationHours,
+    data?.sleepDurationMinutes,
+    data?.totalSleepMinutes,
+    sleep?.duration,
+    sleep?.sleepDuration,
+    sleep?.totalSleepMinutes,
+    ext.durationMinutes,
+  ];
+  for (const c of candidates) {
+    if (typeof c === "number" && Number.isFinite(c) && c > 0) {
+      // If the value is > 24 it is in minutes; otherwise treat as hours
+      return c > 24 ? c / 60 : c;
+    }
+    if (typeof c === "string" && c.trim()) {
+      const colonMatch = c.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+      if (colonMatch) return Number(colonMatch[1]) + Number(colonMatch[2]) / 60;
+      const n = toFinite(c);
+      if (n != null && n > 0) return n > 24 ? n / 60 : n;
+    }
+  }
+  return null;
 }
 
 export function buildWeeklyReview(items: LocalHistoryItem[], todayDateKey: string): WeeklyReview {
@@ -73,17 +108,18 @@ export function buildWeeklyReview(items: LocalHistoryItem[], todayDateKey: strin
   const walkCount = walkItems.length;
 
   // ─── Sleep ────────────────────────────────────────────────────────────────
-  const sleepItems = window.filter((i) => i.type === "sleep");
+  // Dedupe first (one record per night), then use comprehensive field reading
+  // to match the same source logic as the 7 Day Overview dashboard.
+  const sleepItems = dedupeSleepItems(window.filter((i) => i.type === "sleep"));
   const sleepHours: number[] = [];
   for (const item of sleepItems) {
-    const d = item.data as Record<string, unknown> | null;
-    const ext = (d?.extracted ?? d ?? {}) as Record<string, unknown>;
-    const dur = toFinite(ext.durationMinutes) ?? toFinite(ext.sleepDuration);
-    if (dur != null && dur > 60) sleepHours.push(dur / 60);
+    const hours = readSleepHoursFromItem(item);
+    if (hours != null && hours > 1) sleepHours.push(hours);
   }
   const avgSleepHours = sleepHours.length > 0
     ? Math.round((sleepHours.reduce((a, b) => a + b, 0) / sleepHours.length) * 10) / 10
     : null;
+  const sleepNights = sleepHours.length;
 
   // ─── Readiness ────────────────────────────────────────────────────────────
   const readinessVals: number[] = [];
@@ -164,6 +200,7 @@ export function buildWeeklyReview(items: LocalHistoryItem[], todayDateKey: strin
     strengthCount,
     walkCount,
     avgSleepHours,
+    sleepNights,
     avgReadiness,
     mealCount,
     painDays,

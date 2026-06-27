@@ -213,8 +213,8 @@ test("Weekly Review shows โฟกัสถัดไป section when history is
 
   await gotoApp(page, "/logs");
 
-  // WeeklyReviewCard section label
-  await expect(page.getByText("สรุปสัปดาห์นี้")).toBeVisible();
+  // WeeklyReviewCard section label (renamed in Phase 2 polish)
+  await expect(page.getByText("โค้ชสรุปจาก 7 วันล่าสุด")).toBeVisible();
 
   // "โฟกัสถัดไป" heading inside the highlighted blue-grey box
   await expect(page.getByText("โฟกัสถัดไป").first()).toBeVisible();

@@ -272,8 +272,9 @@ function WeeklyDashboard({ dashboard, proteinTarget, items, cutoff }: { dashboar
   return (
     <section className="card space-y-4 p-5">
       <div>
-        <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">7 Day Overview</p>
-        <h2 className="mt-1 text-xl font-bold text-[#17201d]">ภาพรวมสัปดาห์ล่าสุด</h2>
+        <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">METRICS 7 วัน</p>
+        <h2 className="mt-1 text-xl font-bold text-[#17201d]">ตัวเลข 7 วันล่าสุด</h2>
+        <p className="mt-0.5 text-xs text-slate-400">สรุป metrics หลักจาก Report</p>
         <p className="mt-1 text-sm leading-6 text-slate-600">{dashboard.coachNote}</p>
       </div>
       <div className="grid grid-cols-2 gap-2">
@@ -2053,7 +2054,10 @@ function WeeklyReviewCard({ review }: { review: WeeklyReview }) {
 
   return (
     <section className="card space-y-3 p-5">
-      <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">สรุปสัปดาห์นี้</p>
+      <div>
+        <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">โค้ชสรุปจาก 7 วันล่าสุด</p>
+        <p className="mt-0.5 text-xs text-slate-400">แปลจากตัวเลขเพื่อหา pattern และโฟกัสถัดไป</p>
+      </div>
 
       <div className="grid grid-cols-2 gap-2">
         <div className="rounded-2xl bg-slate-50 p-3">
@@ -2073,7 +2077,9 @@ function WeeklyReviewCard({ review }: { review: WeeklyReview }) {
           <p className="mt-1 text-xl font-bold text-[#17201d]">
             {review.avgSleepHours != null ? `${review.avgSleepHours} ชม.` : "–"}
           </p>
-          <p className="text-xs text-slate-400">Readiness เฉลี่ย {readinessLabel ?? "–"}</p>
+          <p className="text-xs text-slate-400">
+            {review.sleepNights > 0 ? `${review.sleepNights} คืน · Readiness ${readinessLabel ?? "–"}` : `Readiness เฉลี่ย ${readinessLabel ?? "–"}`}
+          </p>
         </div>
         <div className="rounded-2xl bg-slate-50 p-3">
           <p className="text-xs text-slate-400">อาหารบันทึก</p>

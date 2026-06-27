@@ -12,7 +12,7 @@ test("Polish consistency: Today recommendation decision, Coach readiness, Race s
     id: "sleep-1",
     user_id: "00000000-0000-4000-8000-000000000001",
     type: "sleep",
-    created_at: `${today}T22:00:00.000Z`,
+    created_at: `${today}T10:00:00.000Z`,
     data: {
       extracted: {
         date: today,

@@ -1047,19 +1047,22 @@ function buildTodayChecklist(ctx: CoachContext | null, summaryItem: LocalHistory
   ];
 }
 
-function buildReadinessCoverageSummary(ctx: CoachContext | null): { used: string[]; missing: string[] } {
+function buildReadinessCoverageSummary(ctx: CoachContext | null): { used: string[]; missing: string[]; hasSleepToday: boolean } {
   const used: string[] = [];
   const missing: string[] = [];
-  if (!ctx) return { used, missing };
+  if (!ctx) return { used, missing, hasSleepToday: false };
   const today = ctx.todayDate;
 
-  // Sleep
+  // Sleep — distinguish today vs latest fallback
+  let hasSleepToday = false;
   if (ctx.sleep7d.some((s) => s.date === today)) {
     used.push("การนอนวันนี้");
+    hasSleepToday = true;
   } else if (ctx.sleep7d.length > 0) {
-    used.push("การนอนล่าสุด");
+    used.push("ใช้การนอนล่าสุด");
+    missing.push("บันทึกการนอน"); // both used (fallback) and missing (today not yet uploaded)
   } else {
-    missing.push("ข้อมูลการนอน");
+    missing.push("บันทึกการนอน");
   }
 
   // Nutrition
@@ -1087,7 +1090,7 @@ function buildReadinessCoverageSummary(ctx: CoachContext | null): { used: string
     used.push(ctx.latestPain.hasResolvedPain ? "เจ็บหายแล้ว" : `ยังเจ็บอยู่ ${ctx.latestPain.painLevel}/10`);
   }
 
-  return { used, missing };
+  return { used, missing, hasSleepToday };
 }
 
 function TodaySnapshotCard({
@@ -1105,13 +1108,14 @@ function TodaySnapshotCard({
   loading: boolean;
   hasHistory: boolean;
   isFallback?: boolean;
-  readinessCoverage?: { used: string[]; missing: string[] };
+  readinessCoverage?: { used: string[]; missing: string[]; hasSleepToday: boolean };
 }) {
   const [expanded, setExpanded] = useState(false);
   const completed = todayChecklist.filter((i) => i.done).length;
   const total = todayChecklist.length;
   const allDone = completed === total;
   const missing = todayChecklist.filter((i) => !i.done);
+  const hasSleepToday = readinessCoverage?.hasSleepToday ?? true;
 
   return (
     <section className="card px-4 py-3 space-y-2.5">
@@ -1125,7 +1129,7 @@ function TodaySnapshotCard({
         {!loading && readinessScore != null && insight && (
           <>
             <span className={`rounded-full px-3 py-1 text-xs font-bold ${readinessChipClass(readinessScore)}`}>
-              {readinessScore} Readiness {insight.readinessLabel}
+              {readinessScore} Readiness {hasSleepToday ? insight.readinessLabel : "ล่าสุด"}
             </span>
             {isFallback && (
               <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-500 font-semibold">
@@ -1144,7 +1148,7 @@ function TodaySnapshotCard({
       </div>
 
       {/* Readiness V2 source coverage */}
-      {!loading && readinessCoverage && readinessCoverage.used.length > 0 && (
+      {!loading && readinessCoverage && (readinessCoverage.used.length > 0 || readinessCoverage.missing.length > 0) && (
         <div className="space-y-1.5">
           <div className="flex flex-wrap gap-1">
             <span className="text-xs text-slate-400 self-center">คะแนนใช้:</span>
@@ -1159,6 +1163,11 @@ function TodaySnapshotCard({
               </span>
             ))}
           </div>
+          {!hasSleepToday && readinessCoverage.used.some((l) => l.startsWith("ใช้การนอนล่าสุด")) && (
+            <p className="text-[11px] text-slate-400 leading-4">
+              ยังไม่มีข้อมูลการนอนวันนี้ — คะแนนนี้อิงจากข้อมูลการนอนล่าสุด
+            </p>
+          )}
         </div>
       )}
 
