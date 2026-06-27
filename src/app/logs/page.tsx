@@ -32,6 +32,7 @@ import { getHistoryItemDateKey, dateKeyToRecordedAt, todayBangkokDateKey, yester
 import { normalizeMealSlot, getMealSlotLabel, getMealSlotIcon, getMealSlotOrder } from "@/lib/mealSlots";
 import { getMealSourceInfo, isQuickProteinMeal } from "@/lib/mealSource";
 import { buildWeeklyReview, type WeeklyReview } from "@/lib/weeklyReview";
+import { getRunMateReadinessLabel } from "@/lib/readinessV2";
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -2046,10 +2047,7 @@ function EditMealModal({
 
 function WeeklyReviewCard({ review }: { review: WeeklyReview }) {
   const readinessLabel = review.avgReadiness != null
-    ? review.avgReadiness >= 80 ? "Excellent"
-      : review.avgReadiness >= 66 ? "Good"
-      : review.avgReadiness >= 50 ? "Fair"
-      : "Low"
+    ? getRunMateReadinessLabel(review.avgReadiness)
     : null;
 
   return (
@@ -2078,7 +2076,12 @@ function WeeklyReviewCard({ review }: { review: WeeklyReview }) {
             {review.avgSleepHours != null ? `${review.avgSleepHours} ชม.` : "–"}
           </p>
           <p className="text-xs text-slate-400">
-            {review.sleepNights > 0 ? `${review.sleepNights} คืน · Readiness ${readinessLabel ?? "–"}` : `Readiness เฉลี่ย ${readinessLabel ?? "–"}`}
+            {review.sleepNights > 0 ? `${review.sleepNights} คืน` : "–"}
+            {review.readinessCount > 0
+              ? ` · Readiness เฉลี่ย ${review.avgReadiness} (${review.readinessCount} วัน)`
+              : review.avgReadiness != null
+                ? ` · Readiness ${readinessLabel}`
+                : ""}
           </p>
         </div>
         <div className="rounded-2xl bg-slate-50 p-3">

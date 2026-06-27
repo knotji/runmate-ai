@@ -230,11 +230,17 @@ function scorePainSafety(input: ReadinessV2Input, used: string[]): number {
   return 80; // pain level 1
 }
 
-function labelFromScore(score: number): ReadinessV2Result["label"] {
+/** Canonical RunMate readiness label mapping. Use this everywhere a RunMate readiness
+ *  score is displayed — never trust raw AI-returned label strings. */
+export function getRunMateReadinessLabel(score: number): "Low" | "Fair" | "Good" | "Excellent" {
   if (score >= 80) return "Excellent";
   if (score >= 66) return "Good";
   if (score >= 50) return "Fair";
   return "Low";
+}
+
+function labelFromScore(score: number): ReadinessV2Result["label"] {
+  return getRunMateReadinessLabel(score);
 }
 
 function levelFromLabel(label: ReadinessV2Result["label"]): ReadinessV2Result["level"] {

@@ -11,6 +11,7 @@ export type WeeklyReview = {
   avgSleepHours: number | null;
   sleepNights: number;
   avgReadiness: number | null;
+  readinessCount: number;
   mealCount: number;
   painDays: number;
   activePainDays: number;
@@ -122,15 +123,19 @@ export function buildWeeklyReview(items: LocalHistoryItem[], todayDateKey: strin
   const sleepNights = sleepHours.length;
 
   // ─── Readiness ────────────────────────────────────────────────────────────
+  // Read from coach.readinessScore (same source as 7 Day Overview buildDashboard),
+  // falling back to extracted fields for legacy records.
   const readinessVals: number[] = [];
   for (const item of sleepItems) {
     const d = item.data as Record<string, unknown> | null;
+    const coach = d?.coach as Record<string, unknown> | undefined;
     const extracted = (d?.extracted ?? d ?? {}) as Record<string, unknown>;
-    const r = toFinite(extracted.readiness) ?? toFinite(extracted.readinessScore);
-    if (r != null) readinessVals.push(r);
+    const r = toFinite(coach?.readinessScore) ?? toFinite(extracted.readiness) ?? toFinite(extracted.readinessScore);
+    if (r != null && r > 0) readinessVals.push(r);
   }
-  const avgReadiness = readinessVals.length > 0
-    ? Math.round(readinessVals.reduce((a, b) => a + b, 0) / readinessVals.length)
+  const readinessCount = readinessVals.length;
+  const avgReadiness = readinessCount > 0
+    ? Math.round(readinessVals.reduce((a, b) => a + b, 0) / readinessCount)
     : null;
 
   // ─── Meals ────────────────────────────────────────────────────────────────
@@ -202,6 +207,7 @@ export function buildWeeklyReview(items: LocalHistoryItem[], todayDateKey: strin
     avgSleepHours,
     sleepNights,
     avgReadiness,
+    readinessCount,
     mealCount,
     painDays,
     activePainDays,

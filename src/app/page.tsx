@@ -13,6 +13,7 @@ import { EndOfDayCheckInModal } from "@/components/EndOfDayCheckInModal";
 import { formatThaiDate, getHistoryItemDateKey, todayBangkokDateKey } from "@/lib/date";
 import { buildCoachContextFromSupabase, type CoachContext, type NutritionDaySummary, type PainSummary, type TodayCompletedWorkoutSummary } from "@/lib/buildCoachContext";
 import { getTodayReadiness, getTodayPlannedWorkout, getReadinessCategoryLabel } from "@/lib/todayPlanning";
+import { getRunMateReadinessLabel } from "@/lib/readinessV2";
 import { createHistoryItem, loadHistoryItems, saveHistoryItems } from "@/lib/cloudHistory";
 import { loadActiveRaceGoalAndPlan } from "@/lib/raceStorage";
 import { loadRoutinesFromSupabase, logCompletedStrength } from "@/lib/strength";
@@ -247,7 +248,11 @@ export default function TodayPage() {
   }
 
   const hasPace = isMeaningfulWorkoutTarget(insight?.workoutTarget);
+  // insight.todayReadiness is the single source of truth for both the chip and the
+  // explanation panel so they never disagree. Label is recomputed from the score via
+  // getRunMateReadinessLabel — never trust AI-returned label strings.
   const readinessScore = insight?.todayReadiness != null ? Math.round(insight.todayReadiness) : null;
+  const readinessCoverage = buildReadinessCoverageSummary(coachCtx);
   const todayChecklist = buildTodayChecklist(coachCtx, dailySummaryItem);
   const hasWorkoutToday = Boolean(coachCtx?.hasWorkoutToday);
 
@@ -320,7 +325,7 @@ export default function TodayPage() {
               <div className="mt-3 rounded-2xl bg-slate-50 px-4 py-3 space-y-1.5">
                 <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">เหตุผลของคำแนะนำวันนี้</p>
                 <ul className="space-y-1 mt-1">
-                  {buildTodayRecommendationReasons(coachCtx, insight, coachCtx?.readinessV2 ?? null).map((r, i) => (
+                  {buildTodayRecommendationReasons(coachCtx, insight, coachCtx?.readinessV2 ?? null, readinessCoverage.hasSleepToday).map((r, i) => (
                     <li key={i} className="flex items-start gap-1.5 text-xs text-slate-600 leading-5">
                       <span className="mt-0.5 shrink-0 text-[var(--primary)]">·</span>
                       <span>{r}</span>
@@ -349,7 +354,7 @@ export default function TodayPage() {
         loading={loading}
         hasHistory={hasHistory}
         isFallback={insightError}
-        readinessCoverage={buildReadinessCoverageSummary(coachCtx)}
+        readinessCoverage={readinessCoverage}
       />
 
       {/* D. Quick Actions */}
@@ -1129,7 +1134,7 @@ function TodaySnapshotCard({
         {!loading && readinessScore != null && insight && (
           <>
             <span className={`rounded-full px-3 py-1 text-xs font-bold ${readinessChipClass(readinessScore)}`}>
-              {readinessScore} Readiness {hasSleepToday ? insight.readinessLabel : "ล่าสุด"}
+              {readinessScore} Readiness {hasSleepToday ? getRunMateReadinessLabel(readinessScore) : "ล่าสุด"}
             </span>
             {isFallback && (
               <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-500 font-semibold">
@@ -1216,7 +1221,7 @@ function TodaySnapshotCard({
 
 function readinessChipClass(score: number): string {
   if (score >= 80) return "bg-[#eef7f0] text-[var(--status-ready)]";
-  if (score >= 65) return "bg-[#e7f0fa] text-[#42677f]";
+  if (score >= 66) return "bg-[#e7f0fa] text-[#42677f]";
   if (score >= 50) return "bg-[#fff6df] text-[#9b742c]";
   return "bg-red-50 text-[var(--status-rest)]";
 }

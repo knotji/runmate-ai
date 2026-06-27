@@ -2,12 +2,14 @@
 import type { CoachContext } from "@/lib/buildCoachContext";
 import type { DailyCoachInsight } from "@/types/ai";
 import type { ReadinessV2Result } from "@/lib/readinessV2";
+import { getRunMateReadinessLabel } from "@/lib/readinessV2";
 import { getTodayPlannedWorkout } from "@/lib/todayPlanning";
 
 export function buildTodayRecommendationReasons(
   ctx: CoachContext | null,
   insight: DailyCoachInsight | null,
   v2: ReadinessV2Result | null,
+  hasSleepToday?: boolean,
 ): string[] {
   if (!ctx && !insight) return [];
   const reasons: string[] = [];
@@ -23,12 +25,20 @@ export function buildTodayRecommendationReasons(
     reasons.push(`เป้าหมาย Race: ${ctx.raceName}${ctx.daysUntilRace != null ? ` (อีก ${ctx.daysUntilRace} วัน)` : ""}`);
   }
 
-  // 2. Readiness
-  if (v2) {
-    const readinessLine = `Readiness วันนี้ ${v2.score}/100 (${v2.label})`;
+  // 2. Readiness — use the same score as the chip (insight.todayReadiness so they always match),
+  //    recompute label from the RunMate mapping instead of trusting AI-returned strings,
+  //    and distinguish today vs latest-fallback with the "ล่าสุด" prefix.
+  const prefix = hasSleepToday === false ? "Readiness ล่าสุด" : "Readiness วันนี้";
+  if (insight?.todayReadiness != null) {
+    const score = Math.round(insight.todayReadiness);
+    const label = getRunMateReadinessLabel(score);
+    const readinessLine = `${prefix} ${score}/100 (${label})`;
+    const capNote = v2?.cap != null ? " — ถูกจำกัดคะแนนเพราะมีอาการเจ็บ" : "";
+    reasons.push(`${readinessLine}${capNote}`);
+  } else if (v2) {
+    const label = getRunMateReadinessLabel(v2.score);
+    const readinessLine = `${prefix} ${v2.score}/100 (${label})`;
     reasons.push(v2.cap != null ? `${readinessLine} — ถูกจำกัดคะแนนเพราะมีอาการเจ็บ` : readinessLine);
-  } else if (insight?.todayReadiness != null) {
-    reasons.push(`Readiness วันนี้ ${Math.round(insight.todayReadiness)} (${insight.readinessLabel ?? "–"})`);
   }
 
   // 3. Training load
