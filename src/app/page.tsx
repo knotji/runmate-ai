@@ -8,8 +8,6 @@ import { NutritionBalanceCard } from "@/components/NutritionBalanceCard";
 import { NextMealCard } from "@/components/NextMealCard";
 import type { NextMealRecommendation } from "@/app/api/next-meal/route";
 import { buildTodayRecommendationReasons } from "@/lib/todayReasons";
-import { QuickLogCard } from "@/components/QuickLogCard";
-import { EndOfDayCheckInModal } from "@/components/EndOfDayCheckInModal";
 import { formatThaiDate, getHistoryItemDateKey, todayBangkokDateKey } from "@/lib/date";
 import { buildCoachContextFromSupabase, type CoachContext, type NutritionDaySummary, type PainSummary, type TodayCompletedWorkoutSummary } from "@/lib/buildCoachContext";
 import { getTodayReadiness, getTodayPlannedWorkout, getReadinessCategoryLabel } from "@/lib/todayPlanning";
@@ -119,7 +117,7 @@ export default function TodayPage() {
   const [nextMealRec, setNextMealRec] = useState<NextMealRecommendation | null>(null);
   const [nextMealLoading, setNextMealLoading] = useState(false);
   const [showReasons, setShowReasons] = useState(false);
-  const [showEndOfDay, setShowEndOfDay] = useState(false);
+
 
   const requestNextMeal = useCallback(async () => {
     if (!coachCtx) return;
@@ -257,7 +255,6 @@ export default function TodayPage() {
   const hasWorkoutToday = Boolean(coachCtx?.hasWorkoutToday);
 
   return (
-    <>
     <AppShell title="โค้ชข้างทาง" subtitle={formatThaiDate()}>
 
       {/* Section: แผนวันนี้ */}
@@ -349,8 +346,8 @@ export default function TodayPage() {
         />
       ) : null}
 
-      {/* Section: ภาพรวมและบันทึก */}
-      <p className="mt-1 px-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--color-text-soft)]">ภาพรวมและบันทึก</p>
+      {/* Section: ภาพรวมวันนี้ */}
+      <p className="mt-1 px-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--color-text-soft)]">ภาพรวมวันนี้</p>
 
       {/* C. Today Snapshot: readiness + daily check */}
       <TodaySnapshotCard
@@ -380,18 +377,6 @@ export default function TodayPage() {
           ))}
         </div>
       </section>
-
-      {/* E. Quick Log */}
-      {coachCtx && (
-        <QuickLogCard
-          onActivitySaved={() => void generateInsight(true)}
-          onOpenEndOfDay={() => setShowEndOfDay(true)}
-          hasActivityToday={hasWorkoutToday}
-          hasSummaryToday={Boolean(dailySummaryItem)}
-          hasProteinToday={Boolean(coachCtx.nutritionToday?.proteinG && coachCtx.nutritionToday.proteinG > 0)}
-          hasActivePain={Boolean(coachCtx.latestPain?.hasActivePain && !coachCtx.latestPain.hasResolvedPain)}
-        />
-      )}
 
       {/* F. Compact detail sections */}
       {(coachCtx?.latestPain || (coachCtx?.recentPainLogs && coachCtx.recentPainLogs.length > 0)) && (
@@ -453,13 +438,6 @@ export default function TodayPage() {
       </div>
 
     </AppShell>
-
-    <EndOfDayCheckInModal
-      open={showEndOfDay}
-      onClose={() => setShowEndOfDay(false)}
-      onSaved={(item) => setDailySummaryItem(item)}
-    />
-    </>
   );
 }
 
@@ -1476,7 +1454,7 @@ function EndOfDaySummaryCard({
       {message && <p className="text-xs font-semibold text-green-600">{message}</p>}
       {error && <p className="rounded-2xl bg-red-50 px-3 py-2 text-xs font-bold text-red-500">{error}</p>}
       <LoadingButton type="button" loading={loading} loadingText="กำลังสร้างสรุป..." onClick={onGenerate} className="btn-primary w-full py-3 text-sm font-bold disabled:opacity-50">
-        สร้างสรุปท้ายวัน
+        สรุปท้ายวัน
       </LoadingButton>
     </section>
   );

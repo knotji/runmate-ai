@@ -3,70 +3,55 @@ import { gotoApp, installMockBackend, saveManualBreakfast } from "./helpers/app"
 import { bangkokDateKey } from "./helpers/testData";
 import { reportDayByDate } from "./helpers/selectors";
 
-// ─── Phase B1: Protein quick-log modal ────────────────────────────────────────
+// ─── Phase B1: Historical quick-log records in Report ────────────────────────
 
-test("protein quick-log shows amount modal instead of window.confirm", async ({ page }) => {
+test("protein quick log record appears in Report without guessed kcal/carbs/fat", async ({ page }) => {
   const state = await installMockBackend(page);
-  await gotoApp(page, "/");
+  const today = bangkokDateKey();
 
-  // Click the protein quick-log button
-  await page.getByRole("button", { name: /กินโปรตีนแล้ว/ }).click();
-
-  // Modal must appear with the correct title
-  await expect(page.getByRole("heading", { name: "กินโปรตีนประมาณเท่าไหร่?" })).toBeVisible();
-  // Hint text visible
-  await expect(page.getByText(/ถ้าไม่แน่ใจ เลือกคร่าว ๆ ได้/)).toBeVisible();
-  // Preset buttons visible
-  for (const g of ["15g", "25g", "30g"]) {
-    await expect(page.getByRole("button", { name: g, exact: true })).toBeVisible();
-  }
-  await expect(page.getByRole("button", { name: "กรอกเอง" })).toBeVisible();
-
-  // Select 25 g and confirm
-  await page.getByRole("button", { name: "25g", exact: true }).click();
-  await page.getByRole("button", { name: /บันทึกโปรตีน 25g/ }).click();
-
-  // Modal dismissed
-  await expect(page.getByRole("heading", { name: "กินโปรตีนประมาณเท่าไหร่?" })).toHaveCount(0);
-
-  // Exactly one meal record saved, with proteinG=25 and null kcal
-  await expect.poll(() => state.history.filter((r) => r.type === "meal").length).toBe(1);
-  const saved = state.history.find((r) => r.type === "meal")!;
-  const extracted = (saved.data as Record<string, unknown>).extracted as Record<string, unknown>;
-  expect(extracted.proteinG).toBe(25);
-  expect(extracted.caloriesKcal).toBeNull();
-  expect(extracted.carbsG).toBeNull();
-  expect(extracted.fatG).toBeNull();
-});
-
-test("protein quick log appears in Report without guessed kcal/carbs/fat", async ({ page }) => {
-  const state = await installMockBackend(page);
-  await gotoApp(page, "/");
-
-  await page.getByRole("button", { name: /กินโปรตีนแล้ว/ }).click();
-  await page.getByRole("button", { name: "25g", exact: true }).click();
-  await page.getByRole("button", { name: /บันทึกโปรตีน 25g/ }).click();
-  await expect.poll(() => state.history.filter((r) => r.type === "meal").length).toBe(1);
+  // Pre-inject a quick-log protein meal record (simulates historical Quick Log data)
+  state.history.push({
+    id: "meal-protein-quicklog-001",
+    user_id: "00000000-0000-4000-8000-000000000001",
+    type: "meal",
+    created_at: `${today}T10:00:00.000Z`,
+    data: {
+      extracted: {
+        mealType: "lunch",
+        mealSlot: "lunch",
+        date: today,
+        foods: ["โปรตีน 25g (quick log)"],
+        caloriesKcal: null,
+        proteinG: 25,
+        carbsG: null,
+        fatG: null,
+        fiberG: null,
+        sodiumMg: null,
+        confidence: "low",
+        visibleItems: ["โปรตีน 25g"],
+        portionNotes: "Quick log: โปรตีน 25g",
+        rawText: null,
+      },
+      coach: {
+        mealSummary: "กินโปรตีนแล้ว 25g",
+        nutritionHighlights: "โปรตีน 25g",
+        improvementTips: "",
+        portionFeedback: "",
+        coachNote: "บันทึกไว ๆ: โปรตีน 25g",
+      },
+      quickLog: true,
+      quickLogKind: "protein",
+      quickLogProteinG: 25,
+    },
+  });
 
   await gotoApp(page, "/logs");
-  const today = reportDayByDate(page, bangkokDateKey());
-  const mealCard = today.getByTestId("report-meal-card");
+  const day = reportDayByDate(page, today);
+  const mealCard = day.getByTestId("report-meal-card");
   await expect(mealCard.getByText("กินโปรตีนแล้ว · 25g")).toBeVisible();
   await expect(mealCard.getByText("บันทึกไว ๆ")).toBeVisible();
   await expect(mealCard.getByText("450 kcal")).toHaveCount(0);
-  await expect(today.getByText("25 /").first()).toBeVisible();
-});
-
-test("protein modal cancel discards without saving", async ({ page }) => {
-  const state = await installMockBackend(page);
-  await gotoApp(page, "/");
-
-  await page.getByRole("button", { name: /กินโปรตีนแล้ว/ }).click();
-  await expect(page.getByRole("heading", { name: "กินโปรตีนประมาณเท่าไหร่?" })).toBeVisible();
-  await page.getByRole("button", { name: "ยกเลิก" }).click();
-
-  await expect(page.getByRole("heading", { name: "กินโปรตีนประมาณเท่าไหร่?" })).toHaveCount(0);
-  expect(state.history.filter((r) => r.type === "meal").length).toBe(0);
+  await expect(day.getByText("25 /").first()).toBeVisible();
 });
 
 // ─── Phase B2: Report day collapse ────────────────────────────────────────────
