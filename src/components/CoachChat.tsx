@@ -279,7 +279,7 @@ export function CoachChat() {
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-sm font-semibold text-[var(--foreground)]">ถามอะไรก็ได้</p>
-            <p className="text-xs text-[var(--muted-text)]">โค้ชใช้ Report เป็นบริบท แต่ตอบแบบคุยกันธรรมชาติ</p>
+            <p className="text-xs text-[var(--muted-text)]">ใช้ข้อมูลจาก Report เป็นพื้นหลัง แต่คุยได้เหมือนโค้ชส่วนตัว</p>
           </div>
           <button type="button" onClick={clearChat} className="shrink-0 text-xs font-semibold text-[var(--muted-text)]/80 hover:text-[var(--foreground)]">
             ล้างแชท

@@ -260,6 +260,9 @@ export default function TodayPage() {
     <>
     <AppShell title="โค้ชข้างทาง" subtitle={formatThaiDate()}>
 
+      {/* Section: แผนวันนี้ */}
+      <p className="mt-1 px-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-400">แผนวันนี้</p>
+
       {/* B. Today Focus Card */}
       <section className="card p-5 space-y-4">
         <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
@@ -318,7 +321,7 @@ export default function TodayPage() {
               onClick={() => setShowReasons((v) => !v)}
               className="mt-1 flex w-full items-center justify-center gap-1 text-xs text-slate-400 hover:text-slate-600"
             >
-              <span>ทำไมวันนี้แนะนำแบบนี้?</span>
+              <span>{showReasons ? "ซ่อนเหตุผล" : "ทำไมวันนี้แนะนำแบบนี้?"}</span>
               <span className={`transition-transform duration-200 ${showReasons ? "rotate-180" : ""}`}>▾</span>
             </button>
             {showReasons && (
@@ -345,6 +348,9 @@ export default function TodayPage() {
           onSaved={() => void generateInsight(true)}
         />
       ) : null}
+
+      {/* Section: ภาพรวมและบันทึก */}
+      <p className="mt-1 px-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-400">ภาพรวมและบันทึก</p>
 
       {/* C. Today Snapshot: readiness + daily check */}
       <TodaySnapshotCard
@@ -381,12 +387,22 @@ export default function TodayPage() {
           onActivitySaved={() => void generateInsight(true)}
           onOpenEndOfDay={() => setShowEndOfDay(true)}
           hasActivityToday={hasWorkoutToday}
+          hasSummaryToday={Boolean(dailySummaryItem)}
+          hasProteinToday={Boolean(coachCtx.nutritionToday?.proteinG && coachCtx.nutritionToday.proteinG > 0)}
+          hasActivePain={Boolean(coachCtx.latestPain?.hasActivePain && !coachCtx.latestPain.hasResolvedPain)}
         />
       )}
 
       {/* F. Compact detail sections */}
       {(coachCtx?.latestPain || (coachCtx?.recentPainLogs && coachCtx.recentPainLogs.length > 0)) && (
-        <CompactPainCard pains={coachCtx.latestPain ? [coachCtx.latestPain, ...coachCtx.recentPainLogs.filter((pain) => pain.id !== coachCtx.latestPain?.id)] : coachCtx.recentPainLogs} />
+        <>
+          <p className="mt-1 px-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-400">Recovery / อาการ</p>
+          <CompactPainCard pains={coachCtx.latestPain ? [coachCtx.latestPain, ...coachCtx.recentPainLogs.filter((pain) => pain.id !== coachCtx.latestPain?.id)] : coachCtx.recentPainLogs} />
+        </>
+      )}
+
+      {(coachCtx?.nutritionToday || coachCtx?.nutritionBalanceToday || coachCtx) && (
+        <p className="mt-1 px-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-400">อาหารวันนี้</p>
       )}
 
       {coachCtx?.nutritionToday && (
@@ -404,6 +420,8 @@ export default function TodayPage() {
           onRequest={() => void requestNextMeal()}
         />
       )}
+
+      <p className="mt-1 px-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-400">สรุป</p>
 
       <EndOfDaySummaryCard
         item={dailySummaryItem}

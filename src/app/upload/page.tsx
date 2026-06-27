@@ -1165,7 +1165,7 @@ function ReportSavedNote({ saveStatus }: { saveStatus: "idle" | "saving" | "save
       ) : (
         <span className="font-bold text-slate-700">ผลวิเคราะห์</span>
       )}
-      <span> ข้อมูลนี้ถูกบันทึกเป็น structured data เท่านั้น รูปต้นฉบับไม่ถูกเก็บถาวร</span>
+      <span> ระบบจะอ่านรูปเพื่อสรุปข้อมูลเท่านั้น และบันทึกเฉพาะผลลัพธ์เข้า Report รูปต้นฉบับไม่ถูกเก็บถาวร</span>
     </section>
   );
 }

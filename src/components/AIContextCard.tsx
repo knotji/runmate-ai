@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { buildCoachContextFromSupabase, type CoachContext } from "@/lib/buildCoachContext";
-import { getTodayReadiness, getTodayPlannedWorkout } from "@/lib/todayPlanning";
+import { getTodayPlannedWorkout } from "@/lib/todayPlanning";
 import type { UserProfile } from "@/types/profile";
 import type { RacePlan, WeekWorkout } from "@/types/race";
 import { todayBangkokDateKey } from "@/lib/date";
@@ -296,11 +296,9 @@ function ContextBlock({ title, children }: { title: string; children: React.Reac
 function buildSourceSummary(context: CoachContext) {
   const items: string[] = [];
 
-  const todayReadiness = getTodayReadiness(context);
-  items.push(todayReadiness.label);
-
+  // Readiness is shown in the full ReadinessCard below — omit it from compact summary.
   if (context.sleepAvg7dText) {
-    items.push(`Sleep ${context.sleepAvg7dText}`);
+    items.push(`นอนล่าสุด ${context.sleepAvg7dText}`);
   }
 
   if (context.activePain) {

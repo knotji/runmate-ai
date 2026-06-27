@@ -12,20 +12,29 @@ type QuickAction = {
   label: string;
   icon: string;
   confirmMessage: string;
+  isDone?: boolean; // shows done/disabled visual to prevent duplicate taps
 };
 
-function buildActions(hasActivityToday: boolean): QuickAction[] {
+function buildActions(opts: {
+  hasActivityToday: boolean;
+  restSavedSession: boolean;
+  hasSummaryToday: boolean;
+  hasProteinToday: boolean;
+  hasActivePain: boolean;
+}): QuickAction[] {
+  const { hasActivityToday, restSavedSession, hasSummaryToday, hasProteinToday, hasActivePain } = opts;
   return [
     {
       id: "rest",
-      label: hasActivityToday ? "พักต่อวันนี้" : "วันนี้พัก",
+      label: restSavedSession ? "พักต่อแล้ว" : hasActivityToday ? "พักต่อวันนี้" : "วันนี้พัก",
       icon: "😴",
       confirmMessage: hasActivityToday ? "บันทึก Recovery วันนี้?" : "บันทึกว่าพักวันนี้?",
+      isDone: restSavedSession,
     },
-    { id: "walk",    label: "เดินเบา 20 นาที",  icon: "🚶", confirmMessage: "บันทึกเดินเบา 20 นาที?" },
-    { id: "protein", label: "กินโปรตีนแล้ว",   icon: "🥚", confirmMessage: "" },
-    { id: "pain",    label: "ปวด 1/10",          icon: "🩹", confirmMessage: "" },
-    { id: "summary", label: "สรุปท้ายวัน",      icon: "📋", confirmMessage: "" },
+    { id: "walk",    label: "เดินเบา 20 นาที",                                 icon: "🚶", confirmMessage: "บันทึกเดินเบา 20 นาที?" },
+    { id: "protein", label: hasProteinToday ? "เพิ่มโปรตีนอีก" : "กินโปรตีนแล้ว", icon: "🥚", confirmMessage: "" },
+    { id: "pain",    label: hasActivePain ? "อัปเดตอาการเจ็บ" : "ปวด 1/10",        icon: "🩹", confirmMessage: "" },
+    { id: "summary", label: hasSummaryToday ? "ดู/แก้สรุป" : "สรุปท้ายวัน",       icon: "📋", confirmMessage: "" },
   ];
 }
 
@@ -33,6 +42,9 @@ type Props = {
   onActivitySaved?: () => void;
   onOpenEndOfDay?: () => void;
   hasActivityToday?: boolean;
+  hasSummaryToday?: boolean;  // shows "ดู/แก้สรุป" when today summary exists
+  hasProteinToday?: boolean;  // shows "เพิ่มโปรตีนอีก" when protein already logged
+  hasActivePain?: boolean;    // shows "อัปเดตอาการเจ็บ" instead of "ปวด 1/10"
 };
 
 // ─── Protein modal ────────────────────────────────────────────────────────────
@@ -127,13 +139,23 @@ function ProteinModal({
 
 // ─── QuickLogCard ─────────────────────────────────────────────────────────────
 
-export function QuickLogCard({ onActivitySaved, onOpenEndOfDay, hasActivityToday = false }: Props) {
+export function QuickLogCard({
+  onActivitySaved,
+  onOpenEndOfDay,
+  hasActivityToday = false,
+  hasSummaryToday = false,
+  hasProteinToday = false,
+  hasActivePain = false,
+}: Props) {
   const router = useRouter();
-  const [pending,          setPending]          = useState<string | null>(null);
-  const [saved,            setSaved]            = useState<string | null>(null);
-  const [error,            setError]            = useState<string | null>(null);
-  const [showProteinModal, setShowProteinModal] = useState(false);
-  const ACTIONS = buildActions(hasActivityToday);
+  const [pending,            setPending]            = useState<string | null>(null);
+  const [saved,              setSaved]              = useState<string | null>(null);
+  const [error,              setError]              = useState<string | null>(null);
+  const [showProteinModal,   setShowProteinModal]   = useState(false);
+  // Persists within session to prevent duplicate rest taps without needing a DB query
+  const [restSavedSession,   setRestSavedSession]   = useState(false);
+
+  const ACTIONS = buildActions({ hasActivityToday, restSavedSession, hasSummaryToday, hasProteinToday, hasActivePain });
 
   async function saveProtein(proteinG: number) {
     setShowProteinModal(false);
@@ -191,6 +213,7 @@ export function QuickLogCard({ onActivitySaved, onOpenEndOfDay, hasActivityToday
 
   async function handleAction(action: QuickAction) {
     if (pending) return;
+    if (action.isDone) return; // block duplicate rest taps
     setError(null);
 
     if (action.id === "summary") { onOpenEndOfDay?.(); return; }
@@ -260,6 +283,7 @@ export function QuickLogCard({ onActivitySaved, onOpenEndOfDay, hasActivityToday
       const result = await saveHistoryItems([item]);
       if (!result.ok) throw new Error(result.error ?? "save failed");
       setSaved(action.id);
+      if (action.id === "rest") setRestSavedSession(true);
       onActivitySaved?.();
       window.dispatchEvent(new CustomEvent("runmate:cloud-data-updated"));
       setTimeout(() => setSaved(null), 3000);
@@ -294,18 +318,21 @@ export function QuickLogCard({ onActivitySaved, onOpenEndOfDay, hasActivityToday
 
         <div className="mt-3 flex flex-wrap gap-2">
           {ACTIONS.map((action) => {
-            const isDone    = saved === action.id;
-            const isLoading = pending === action.id;
+            const isFlashing = saved === action.id;
+            const isLoading  = pending === action.id;
+            const isDone     = action.isDone;
             return (
               <button
                 key={action.id}
                 type="button"
-                disabled={!!pending}
+                disabled={!!pending || isDone}
                 onClick={() => void handleAction(action)}
                 className={`flex items-center gap-1.5 rounded-2xl px-3 py-2 text-xs font-semibold transition-colors
                   ${isDone
-                    ? "bg-[var(--primary)] text-white"
-                    : "bg-white border border-slate-200 text-slate-700 hover:border-[var(--primary)] hover:text-[var(--primary)] active:scale-95"
+                    ? "border border-slate-100 bg-slate-100 text-slate-400 cursor-default"
+                    : isFlashing
+                      ? "bg-[var(--primary)] text-white"
+                      : "bg-white border border-slate-200 text-slate-700 hover:border-[var(--primary)] hover:text-[var(--primary)] active:scale-95"
                   }
                   disabled:opacity-50`}
               >
