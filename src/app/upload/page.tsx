@@ -728,6 +728,7 @@ export default function UploadPage() {
             {dateSelectionMode === "custom" && (
               <input
                 type="date"
+                aria-label="เลือกวันที่"
                 className="control text-xs py-1.5 px-2.5 max-w-[140px]"
                 value={selectedDateKey}
                 onChange={(e) => setSelectedDateKey(e.target.value)}
@@ -1270,6 +1271,7 @@ function HealthCheckUploader({
         <input
           ref={inputRef}
           type="file"
+          aria-label="เลือกไฟล์ผลตรวจสุขภาพ PDF"
           className="hidden"
           accept="application/pdf,.pdf"
           disabled={loading || saving}
@@ -2199,14 +2201,15 @@ function ManualWorkoutLogForm({
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-xs font-bold uppercase tracking-wide text-slate-400">วันที่</label>
-        <input type="date" className="control" value={defaultDate} required disabled />
+        <label htmlFor="mwlf-date" className="text-xs font-bold uppercase tracking-wide text-slate-400">วันที่</label>
+        <input id="mwlf-date" type="date" className="control" value={defaultDate} required disabled />
       </div>
 
       {subtype === "other" && (
         <div className="space-y-1.5">
-          <label className="text-xs font-bold uppercase tracking-wide text-slate-400">ประเภทการออกกำลังกาย</label>
+          <label htmlFor="mwlf-type" className="text-xs font-bold uppercase tracking-wide text-slate-400">ประเภทการออกกำลังกาย</label>
           <input
+            id="mwlf-type"
             type="text"
             className="control"
             placeholder="เช่น ปั่นจักรยาน, ว่ายน้ำ, โยคะ"
@@ -2219,8 +2222,9 @@ function ManualWorkoutLogForm({
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
-          <label className="text-xs font-bold uppercase tracking-wide text-slate-400">เวลา (นาที)</label>
+          <label htmlFor="mwlf-duration" className="text-xs font-bold uppercase tracking-wide text-slate-400">เวลา (นาที)</label>
           <input
+            id="mwlf-duration"
             type="number"
             className="control"
             placeholder="เช่น 30"
@@ -2231,8 +2235,9 @@ function ManualWorkoutLogForm({
           />
         </div>
         <div className="space-y-1.5">
-          <label className="text-xs font-bold uppercase tracking-wide text-slate-400">ระยะทาง (กม. ถ้ามี)</label>
+          <label htmlFor="mwlf-distance" className="text-xs font-bold uppercase tracking-wide text-slate-400">ระยะทาง (กม. ถ้ามี)</label>
           <input
+            id="mwlf-distance"
             type="number"
             step="0.01"
             className="control"
@@ -2246,8 +2251,9 @@ function ManualWorkoutLogForm({
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
-          <label className="text-xs font-bold uppercase tracking-wide text-slate-400">HR เฉลี่ย (bpm ถ้ามี)</label>
+          <label htmlFor="mwlf-hr" className="text-xs font-bold uppercase tracking-wide text-slate-400">HR เฉลี่ย (bpm ถ้ามี)</label>
           <input
+            id="mwlf-hr"
             type="number"
             className="control"
             placeholder="เช่น 120"
@@ -2257,8 +2263,9 @@ function ManualWorkoutLogForm({
           />
         </div>
         <div className="space-y-1.5">
-          <label className="text-xs font-bold uppercase tracking-wide text-slate-400">แคลอรี (kcal ถ้ามี)</label>
+          <label htmlFor="mwlf-calories" className="text-xs font-bold uppercase tracking-wide text-slate-400">แคลอรี (kcal ถ้ามี)</label>
           <input
+            id="mwlf-calories"
             type="number"
             className="control"
             placeholder="เช่น 250"
@@ -2270,8 +2277,9 @@ function ManualWorkoutLogForm({
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-xs font-bold uppercase tracking-wide text-slate-400">บันทึกเพิ่มเติม</label>
+        <label htmlFor="mwlf-notes" className="text-xs font-bold uppercase tracking-wide text-slate-400">บันทึกเพิ่มเติม</label>
         <textarea
+          id="mwlf-notes"
           className="control min-h-[80px]"
           placeholder="เช่น รู้สึกสดชื่นดี, เหนื่อยปานกลาง"
           value={notes}

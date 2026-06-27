@@ -28,9 +28,13 @@
   --color-info: #6e9fb5;
   --color-info-soft: #e3f2f8;
 
-  /* Border tokens */
-  --color-border: color-mix(in srgb, var(--border-warm) 72%, transparent);
-  --color-border-soft: color-mix(in srgb, var(--border-warm) 45%, transparent);
+  /* Border tokens — pre-computed rgba so Chrome < 111 (no color-mix) still works */
+  --color-border: rgba(228, 216, 200, 0.72);
+  --color-border-soft: rgba(228, 216, 200, 0.45);
+  --color-warning-border: rgba(199, 154, 59, 0.30);
+  --color-success-border: rgba(79, 138, 100, 0.30);
+  --color-info-border: rgba(110, 159, 181, 0.30);
+  --color-danger-border: rgba(184, 92, 92, 0.30);
 
   /* Text tokens */
   --color-text: var(--foreground);
@@ -88,8 +92,10 @@ textarea {
 }
 
 .card {
+  border: 1px solid var(--color-border);
   border: 1px solid color-mix(in srgb, var(--border-warm) 72%, transparent);
   border-radius: 20px;
+  background: var(--surface);
   background: color-mix(in srgb, var(--surface) 88%, transparent);
   box-shadow: 0 18px 45px rgba(72, 82, 72, 0.07);
 }
@@ -97,7 +103,9 @@ textarea {
 .control {
   width: 100%;
   border-radius: 14px;
+  border: 1px solid var(--color-border);
   border: 1px solid color-mix(in srgb, var(--border-warm) 82%, transparent);
+  background: var(--surface);
   background: color-mix(in srgb, var(--surface) 92%, white);
   padding: 0.8rem 0.9rem;
   color: var(--foreground);
@@ -106,6 +114,7 @@ textarea {
 
 .control:focus {
   border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(95, 143, 122, 0.18);
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 18%, transparent);
 }
 
@@ -121,7 +130,9 @@ textarea {
 
 .btn-secondary {
   border-radius: 999px;
+  border: 1px solid var(--color-border);
   border: 1px solid color-mix(in srgb, var(--border-warm) 75%, transparent);
+  background: var(--primary-soft);
   background: color-mix(in srgb, var(--surface) 82%, var(--primary-soft));
   color: var(--foreground);
   padding: 0.85rem 1.1rem;
@@ -155,24 +166,28 @@ textarea {
 }
 
 .card-warning {
+  border: 1px solid var(--color-warning-border);
   border: 1px solid color-mix(in srgb, var(--color-warning) 30%, transparent);
   border-radius: var(--radius-card);
   background: var(--color-warning-soft);
 }
 
 .card-success {
+  border: 1px solid var(--color-success-border);
   border: 1px solid color-mix(in srgb, var(--color-success) 30%, transparent);
   border-radius: var(--radius-card);
   background: var(--color-success-soft);
 }
 
 .card-info {
+  border: 1px solid var(--color-info-border);
   border: 1px solid color-mix(in srgb, var(--color-info) 30%, transparent);
   border-radius: var(--radius-card);
   background: var(--color-info-soft);
 }
 
 .card-danger {
+  border: 1px solid var(--color-danger-border);
   border: 1px solid color-mix(in srgb, var(--color-danger) 30%, transparent);
   border-radius: var(--radius-card);
   background: var(--color-danger-soft);
@@ -193,7 +208,7 @@ textarea {
 .chip-warning { background: var(--color-warning-soft); color: var(--color-warning); }
 .chip-danger  { background: var(--color-danger-soft);  color: var(--color-danger);  }
 .chip-info    { background: var(--color-info-soft);    color: var(--color-info);    }
-.chip-muted   { background: color-mix(in srgb, var(--surface-muted) 100%, transparent); color: var(--color-text-muted); border: 1px solid var(--color-border-soft); }
+.chip-muted   { background: var(--surface-muted); color: var(--color-text-muted); border: 1px solid var(--color-border-soft); }
 .chip-primary { background: var(--primary-soft); color: var(--primary-strong); }
 
 /* Ghost button utility */
@@ -218,7 +233,7 @@ textarea {
   font-size: 0.85rem;
   transition: background 150ms ease;
 }
-.btn-soft:hover { background: color-mix(in srgb, var(--primary-soft) 80%, var(--primary)); }
+.btn-soft:hover { background: #cdddd3; background: color-mix(in srgb, var(--primary-soft) 80%, var(--primary)); }
 
 /* Section heading utility */
 .section-label {

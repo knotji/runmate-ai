@@ -277,6 +277,7 @@ export function ReadinessCard() {
                   </div>
                   <input
                     type="range"
+                    aria-label="ปรับคะแนนการนอน"
                     min="30"
                     max="100"
                     value={sleepScore ?? 70}
@@ -296,6 +297,7 @@ export function ReadinessCard() {
                   </div>
                   <input
                     type="range"
+                    aria-label="ปรับระดับพลังงาน"
                     min="30"
                     max="100"
                     value={energyScore ?? 70}
@@ -376,6 +378,7 @@ export function ReadinessCard() {
                   <label className="relative inline-flex cursor-pointer items-center">
                     <input
                       type="checkbox"
+                      aria-label="ตอนนี้ยังมีอาการเจ็บอยู่"
                       checked={manualCurrentPain}
                       onChange={(e) => {
                         const checked = e.target.checked;

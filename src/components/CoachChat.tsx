@@ -385,7 +385,7 @@ export function CoachChat() {
       ) : null}
 
       <form onSubmit={submit} className="flex gap-2 rounded-3xl border border-[var(--border-warm)] bg-[var(--surface)]/90 p-2 shadow-sm">
-        <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
+        <input ref={fileInputRef} type="file" aria-label="เลือกรูปเพื่อถามโค้ช" className="hidden" accept="image/*" onChange={handleFileChange} />
         <button
           type="button"
           aria-label="แนบรูปเพื่อถามโค้ช"
@@ -396,6 +396,7 @@ export function CoachChat() {
           📷
         </button>
         <input
+          aria-label="ถามโค้ชเรื่องซ้อม กิน นอน recovery หรืออาการเจ็บ"
           className="min-w-0 flex-1 rounded-2xl border-0 bg-[var(--surface-muted)] px-4 py-3 text-sm text-[var(--foreground)] outline-none focus:ring-2 focus:ring-[var(--primary)]/20"
           value={input}
           onChange={(event) => setInput(event.target.value)}
