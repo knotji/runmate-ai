@@ -50,7 +50,7 @@ test("next meal card shows request button before fetch", async ({ page }) => {
   await expect(page.getByRole("button", { name: "แนะนำมื้อต่อไป" })).toBeVisible();
 });
 
-test("next meal card displays 3 options after request", async ({ page }) => {
+test("next meal card displays primary option and expand button after request", async ({ page }) => {
   await installMockBackend(page);
 
   await page.route("**/api/next-meal", async (route) => {
@@ -62,10 +62,16 @@ test("next meal card displays 3 options after request", async ({ page }) => {
   });
 
   await gotoApp(page, "/");
-
   await page.getByRole("button", { name: "แนะนำมื้อต่อไป" }).click();
 
+  // Primary option is always visible
   await expect(page.getByText("ข้าวไก่ย่าง")).toBeVisible();
+
+  // Secondary options start hidden — expand button appears
+  await expect(page.getByRole("button", { name: /ดูตัวเลือกเพิ่ม/ })).toBeVisible();
+
+  // After expanding, secondary options appear
+  await page.getByRole("button", { name: /ดูตัวเลือกเพิ่ม/ }).click();
   await expect(page.getByText("ก๋วยเตี๋ยวน้ำไก่")).toBeVisible();
   await expect(page.getByText("โยเกิร์ต + กล้วย")).toBeVisible();
 });

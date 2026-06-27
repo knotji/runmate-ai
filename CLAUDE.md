@@ -105,3 +105,7 @@ tests/
 - Use `var(--border-warm)` for borders, not `border-slate-200`/`border-slate-100`
 - Thai section headings > English uppercase labels in user-facing areas
 - Keep emoji where it aids scanning; avoid emoji clusters in same card
+- Bottom nav uses inline SVG line icons, not emoji
+- Consistent emoji meanings: 🌙 sleep · 🍱/🍽️ food · 🏃 run/workout · 🏋️ strength · 🩹 pain · 📋 summary · 🎯 focus
+- Segmented/tab controls active state: `bg-[var(--primary-soft)] text-[var(--primary-strong)]` (softer than primary CTA buttons)
+- Readiness score and coaching recommendation state are separate: score uses `getRunMateReadinessLabel()` (Good/Fair/etc.), coaching state label describes today's recommendation ("ควรซ้อมเบา", "ควรพักฟื้น")

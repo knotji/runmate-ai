@@ -128,17 +128,17 @@ export function calculateReadiness(input: ReadinessInput): ReadinessResult {
 
   if (score >= 80) {
     level = "green";
-    label = "พร้อมเต็มที่ (Excellent/Good)";
+    label = "พร้อมเต็มที่";
     recommendation = "พร้อมรับการซ้อมทุกรูปแบบ สามารถวิ่งเซสชันหนัก (Interval/Tempo) หรือซ้อมยาว (Long Run) ได้เต็มที่";
     summary = "ร่างกายของคุณพร้อมเต็มที่สำหรับวันนี้ ซ้อมตามแผนหลักได้เลย";
   } else if (score >= 50) {
     level = "yellow";
-    label = "ควรระวัง (Fair/Caution)";
+    label = "ควรซ้อมเบา";
     recommendation = "เน้นวิ่งโซนต่ำ (Easy/Recovery) คุมอัตราการเต้นหัวใจให้ต่ำ หรือพิจารณายืดเหยียด/ครอสเทรนนิ่งเบา ๆ หลีกเลี่ยงความหนักระดับสูง";
     summary = "ร่างกายมีอาการล้าสะสมเล็กน้อย ควรซ้อมเบาลงหรือเน้น Recovery เพื่อป้องกันการบาดเจ็บ";
   } else {
     level = "red";
-    label = "ควรพักฟื้น (Low/Rest)";
+    label = "ควรพักฟื้น";
     recommendation = "แนะนำให้พักผ่อนเต็มที่ (Rest Day) หรือทำ Active Recovery เบา ๆ เช่น เดิน ยืดเหยียด หรือโยคะ งดการวิ่งซ้อมหนักโดยเด็ดขาด";
     summary = "ร่างกายล้าสะสมในเกณฑ์สูง แนะนำให้เน้นการพักผ่อนฟื้นฟูเป็นหลัก";
   }

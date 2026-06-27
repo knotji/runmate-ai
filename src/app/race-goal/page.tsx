@@ -201,7 +201,7 @@ function PlanAtGlance({ plan, freshness }: { plan: RacePlan; freshness: PlanFres
 function RacePlanFreshnessNote({ freshness }: { freshness: PlanFreshness | null }) {
   if (!freshness?.planTime) {
     return (
-      <p className="mt-4 rounded-2xl bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-500">
+      <p className="mt-4 rounded-2xl bg-[var(--surface-muted)] px-3 py-2 text-xs leading-5 text-[var(--color-text-muted)]">
         กดรีเฟรชแผนเพื่อปรับตามข้อมูลล่าสุดเมื่อพร้อม
       </p>
     );
@@ -209,16 +209,16 @@ function RacePlanFreshnessNote({ freshness }: { freshness: PlanFreshness | null 
 
   if (freshness.isStale) {
     return (
-      <div className="mt-4 rounded-2xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
-        <p className="font-bold">มีข้อมูลใหม่หลังแผนล่าสุด</p>
-        <p>แนะนำกดรีเฟรชแผน เพื่อให้โค้ชปรับตาม sleep / pain / workout ล่าสุด</p>
-        {freshness.latestReportTime ? <p className="mt-1 text-amber-700">อัปเดตล่าสุด: {formatDateTimeThai(freshness.latestReportTime)}</p> : null}
+      <div className="mt-4 rounded-2xl border border-[var(--color-info-soft)] bg-[var(--color-info-soft)] px-3 py-2 text-xs leading-5 text-[var(--color-info)]">
+        <p className="font-bold">อัปเดตจากข้อมูลล่าสุด</p>
+        <p className="mt-0.5 text-[var(--foreground)]/70">แผนวันนี้ปรับตามข้อมูลล่าสุด เช่น sleep / pain / workout เพื่อให้ซ้อมเหมาะกับสภาพร่างกายมากขึ้น</p>
+        {freshness.latestReportTime ? <p className="mt-1 text-[var(--color-text-muted)]">อัปเดตล่าสุด: {formatDateTimeThai(freshness.latestReportTime)}</p> : null}
       </div>
     );
   }
 
   return (
-    <p className="mt-4 text-xs leading-5 text-slate-400">
+    <p className="mt-4 text-xs leading-5 text-[var(--color-text-soft)]">
       อัปเดตล่าสุด: {formatDateTimeThai(freshness.planTime)}
     </p>
   );

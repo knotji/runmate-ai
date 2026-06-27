@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { buildCoachContextFromSupabase, type CoachContext } from "@/lib/buildCoachContext";
 import { calculateReadiness } from "@/lib/readiness";
 import { getTodayReadiness } from "@/lib/todayPlanning";
+import { getRunMateReadinessLabel } from "@/lib/readinessV2";
 import type { UserProfile } from "@/types/profile";
 import { getBangkokDateKey } from "@/lib/date";
 
@@ -149,48 +150,57 @@ export function ReadinessCard() {
       });
 
   const colors = colorMap[result.level];
+  // RunMate label (Good/Fair/Excellent/Low) is computed from the raw score,
+  // separate from the coaching state label (ควรซ้อมเบา, ควรพักฟื้น, etc.)
+  const runmateLabel = getRunMateReadinessLabel(result.score);
 
   return (
     <section className="card rounded-3xl p-5 transition-all duration-300">
       {/* Header Info */}
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--recovery-blue)]">
-              {todayReadiness.isFallback ? "ประเมินความพร้อมล่าสุด" : "ประเมินความพร้อมวันนี้"}
-            </span>
-            {!collapsed && restingHrDelta !== null && (
-              <span className="rounded bg-[var(--surface-muted)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--muted-text)]">
-                ชีพจร {(restingHrDelta >= 0 ? "+" : "") + restingHrDelta} bpm
-              </span>
-            )}
-            {!collapsed && hrvDelta !== null && (
-              <span className="rounded bg-[var(--surface-muted)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--muted-text)]">
-                HRV {(hrvDelta >= 0 ? "+" : "") + hrvDelta} ms
-              </span>
-            )}
-          </div>
+          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--recovery-blue)]">
+            {todayReadiness.isFallback ? "ประเมินความพร้อมล่าสุด" : "ประเมินความพร้อมวันนี้"}
+          </span>
+          {/* Coaching state — what to do today */}
           <h2 className={`mt-1.5 text-lg font-extrabold ${colors.text}`}>
             {result.label}
           </h2>
           {collapsed ? (
             <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-[var(--muted-text)]">
-              <span>{todayReadiness.isFallback ? "Readiness ล่าสุด" : "Readiness"} {result.score}</span>
+              {/* RunMate readiness label separate from coaching recommendation */}
+              <span>{todayReadiness.isFallback ? "Readiness ล่าสุด" : "Readiness"} {result.score} — {runmateLabel}</span>
               {injuryOverrideActive && <span className="font-semibold text-[var(--status-rest)]">· มีอาการเจ็บตอนนี้</span>}
               {!injuryOverrideActive && recentPainHistoryNote && <span className="font-semibold text-[#9b742c]">· เริ่มเบาก่อน</span>}
               {restingHrDelta !== null && <span>· ชีพจร {(restingHrDelta >= 0 ? "+" : "") + restingHrDelta} bpm</span>}
             </div>
           ) : (
-            <p className="mt-1 text-sm font-semibold text-[var(--foreground)]">
-              {result.summary}
-            </p>
+            <>
+              <p className="mt-1 text-sm font-semibold text-[var(--foreground)]">
+                {result.summary}
+              </p>
+              {!collapsed && (restingHrDelta !== null || hrvDelta !== null) && (
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {restingHrDelta !== null && (
+                    <span className="rounded bg-[var(--surface-muted)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--muted-text)]">
+                      ชีพจร {(restingHrDelta >= 0 ? "+" : "") + restingHrDelta} bpm
+                    </span>
+                  )}
+                  {hrvDelta !== null && (
+                    <span className="rounded bg-[var(--surface-muted)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--muted-text)]">
+                      HRV {(hrvDelta >= 0 ? "+" : "") + hrvDelta} ms
+                    </span>
+                  )}
+                </div>
+              )}
+            </>
           )}
         </div>
 
-        {/* Readiness Circular Score */}
+        {/* Readiness Circular Score: shows numeric score + RunMate label (Good/Fair/etc.) */}
         <div className={`flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-full text-white ${colors.bg} shadow-sm transition-colors duration-300`}>
           <span className="text-xl font-black leading-none">{result.score}</span>
-          <span className="text-[9px] font-bold tracking-wider opacity-90 mt-0.5">คะแนน</span>
+          <span className="text-[9px] font-bold tracking-wider opacity-90 mt-0.5">{runmateLabel}</span>
         </div>
       </div>
 

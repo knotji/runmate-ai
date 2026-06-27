@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import type { NextMealRecommendation, NextMealOption } from "@/app/api/next-meal/route";
 
 export const DRAFT_MEAL_KEY = "runmate:draftMeal";
@@ -31,6 +32,7 @@ function useDraftAndNavigate() {
   };
 }
 
+// Full option card (used in expanded view)
 type OptionCardProps = {
   option: NextMealOption;
   mealSlot: string;
@@ -70,15 +72,40 @@ function OptionCard({ option, mealSlot, onUseDraft }: OptionCardProps) {
   );
 }
 
+// Compact secondary option row (shown after expand)
+function OptionRow({ option, mealSlot, onUseDraft }: OptionCardProps) {
+  return (
+    <div className="flex items-center justify-between gap-2 rounded-xl border border-[var(--color-border-soft)] bg-[var(--surface)] px-3 py-2">
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-xs font-semibold text-[var(--foreground)]">{option.title}</p>
+        {option.why && <p className="truncate text-[11px] text-[var(--color-text-muted)]">{option.why}</p>}
+      </div>
+      <button
+        type="button"
+        onClick={() => onUseDraft(option, mealSlot)}
+        className="shrink-0 rounded-lg bg-[var(--surface-muted)] px-2.5 py-1.5 text-[11px] font-medium text-[var(--color-text-muted)] hover:bg-[var(--primary-soft)] hover:text-[var(--primary-strong)] transition-colors"
+      >
+        ใช้
+      </button>
+    </div>
+  );
+}
+
 type Props = {
   recommendation: NextMealRecommendation | null;
   loading: boolean;
   onRequest: () => void;
+  /** compact=true collapses secondary options behind "ดูตัวเลือกเพิ่ม" (default: false) */
+  compact?: boolean;
 };
 
-export function NextMealCard({ recommendation, loading, onRequest }: Props) {
+export function NextMealCard({ recommendation, loading, onRequest, compact = false }: Props) {
   const hasResult = recommendation !== null;
   const navigateWithDraft = useDraftAndNavigate();
+  const [showMore, setShowMore] = useState(false);
+
+  const primaryOption = hasResult ? recommendation.options[0] : null;
+  const secondaryOptions = hasResult ? recommendation.options.slice(1) : [];
 
   return (
     <section className="rounded-3xl border border-[var(--color-border-soft)] bg-[var(--surface-muted)] p-4">
@@ -108,7 +135,7 @@ export function NextMealCard({ recommendation, loading, onRequest }: Props) {
       {hasResult && (
         <>
           {recommendation.summary && (
-            <p className="mt-2 text-xs text-slate-500">{recommendation.summary}</p>
+            <p className="mt-2 text-xs text-[var(--color-text-muted)]">{recommendation.summary}</p>
           )}
 
           {recommendation.caution && (
@@ -117,16 +144,55 @@ export function NextMealCard({ recommendation, loading, onRequest }: Props) {
             </p>
           )}
 
-          <div className="mt-3 flex flex-col gap-2">
-            {recommendation.options.map((opt, i) => (
+          {/* Primary option — always visible */}
+          {primaryOption && (
+            <div className="mt-3">
               <OptionCard
-                key={i}
-                option={opt}
+                option={primaryOption}
                 mealSlot={recommendation.mealSlot}
                 onUseDraft={navigateWithDraft}
               />
-            ))}
-          </div>
+            </div>
+          )}
+
+          {/* Secondary options — collapsed in compact mode */}
+          {secondaryOptions.length > 0 && compact && (
+            <>
+              {showMore && (
+                <div className="mt-2 flex flex-col gap-2">
+                  {secondaryOptions.map((opt, i) => (
+                    <OptionRow
+                      key={i}
+                      option={opt}
+                      mealSlot={recommendation.mealSlot}
+                      onUseDraft={navigateWithDraft}
+                    />
+                  ))}
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => setShowMore((v) => !v)}
+                className="mt-2 w-full rounded-xl py-1.5 text-center text-xs font-semibold text-[var(--primary)] hover:bg-[var(--primary-soft)] transition-colors"
+              >
+                {showMore ? "ซ่อนตัวเลือก ▴" : `ดูตัวเลือกเพิ่ม (${secondaryOptions.length}) ▾`}
+              </button>
+            </>
+          )}
+
+          {/* Non-compact: show all options */}
+          {secondaryOptions.length > 0 && !compact && (
+            <div className="mt-2 flex flex-col gap-2">
+              {secondaryOptions.map((opt, i) => (
+                <OptionCard
+                  key={i}
+                  option={opt}
+                  mealSlot={recommendation.mealSlot}
+                  onUseDraft={navigateWithDraft}
+                />
+              ))}
+            </div>
+          )}
 
           {recommendation.nutritionFocus.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-1">

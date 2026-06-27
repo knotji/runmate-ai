@@ -404,7 +404,7 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
       type="button"
       className={`flex-1 rounded-xl py-2 text-center text-xs font-bold transition-all ${
         active
-          ? "bg-[var(--primary)] text-white shadow-sm"
+          ? "bg-[var(--primary-soft)] text-[var(--primary-strong)] shadow-sm"
           : "text-[var(--muted-text)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)]"
       }`}
       onClick={onClick}

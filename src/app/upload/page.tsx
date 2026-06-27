@@ -684,7 +684,7 @@ export default function UploadPage() {
         </p>
         <div className="grid grid-cols-5 gap-2">
           {(["sleep", "meal", "workout", "body", "health_check"] as UploadType[]).map((item) => (
-            <button key={item} className={`rounded-2xl px-3 py-3 text-sm font-bold ${type === item ? "bg-[var(--primary)] text-white shadow-sm" : "bg-[var(--surface-muted)] text-[var(--muted-text)]"}`} onClick={() => selectUploadType(item)}>
+            <button key={item} className={`rounded-2xl px-3 py-3 text-sm font-bold transition-colors ${type === item ? "bg-[var(--primary-soft)] text-[var(--primary-strong)] shadow-sm ring-1 ring-[var(--primary)]/20" : "bg-[var(--surface-muted)] text-[var(--muted-text)] hover:bg-[var(--surface)]"}`} onClick={() => selectUploadType(item)}>
               {UPLOAD_LABELS[item]}
             </button>
           ))}

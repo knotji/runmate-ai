@@ -418,6 +418,7 @@ export default function TodayPage() {
           recommendation={nextMealRec}
           loading={nextMealLoading}
           onRequest={() => void requestNextMeal()}
+          compact
         />
       )}
 
