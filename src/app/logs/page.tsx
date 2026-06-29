@@ -2081,6 +2081,13 @@ function WeeklyReviewCard({ review }: { review: WeeklyReview }) {
             <p className="text-[9px] text-slate-400">นอนเฉลี่ย</p>
             <p className="text-xs font-bold text-slate-700 mt-0.5">{review.avgSleepHours != null ? `${review.avgSleepHours} ชม.` : "–"}</p>
             <p className="text-[9px] text-slate-400 mt-0.5">{review.sleepNights} คืน</p>
+            {(review.readinessCount > 0 || review.avgReadiness != null) && (
+              <p className="text-[8px] text-slate-400 mt-0.5 leading-tight">
+                {review.readinessCount > 0
+                  ? `Readiness เฉลี่ย ${review.avgReadiness} (${review.readinessCount} วัน)`
+                  : `Readiness ${readinessLabel}`}
+              </p>
+            )}
           </div>
           <div className="rounded-xl bg-slate-50/50 p-2">
             <p className="text-[9px] text-slate-400">อาหาร</p>
