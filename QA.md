@@ -33,8 +33,11 @@
 - [ ] Post-workout recovery appears only after today's workout.
 - [ ] Today strength routine card collapses into completed state after workout is logged today, showing a summary (e.g. "25 นาที", "Recovery Strength", "เวท") and hiding exercise details behind a "ดูรายละเอียดที่ทำ" toggle.
 - [ ] Today focus card recommendation copy shifts to recovery guidance after workout is logged (showing "หลังเวทวันนี้ควรทำอะไรต่อ" or "หลังซ้อมวันนี้ควรทำอะไรต่อ" header), with clear microcopy instructing the user to avoid repeating hard workouts.
-- [ ] Today snapshot card has a "Readiness คืออะไร?" expandable note explaining the morning/current context.
-- [ ] Today snapshot coverage chips prefix label is updated to "ข้อมูลที่ใช้ประเมิน:".
+- [ ] Today snapshot card has a "ระบบ Recovery วันนี้คืออะไร?" expandable note explaining the morning/current context.
+- [ ] Today 4-Axis Grid displays numeric scores (e.g. 78/100) and short status badges (ดี, พอใช้, สูงมาก, ยังน้อย) and one-line summaries.
+- [ ] Today details explanation panel warns: "สำหรับโหลดซ้อม คะแนนสูงหมายถึงโหลดสะสมสูง จึงควรคุมความหนัก ไม่ใช่คะแนนดีเสมอไป" and matches the text "แต่ละแกนให้คะแนน 0–100 เพื่อช่วยดูว่าร่างกายพร้อมแค่ไหน".
+- [ ] Coach ReadinessCard expanded view displays the same compact 4-axis grid format which updates reactively as sliders are adjusted.
+- [ ] Report page "แนวโน้ม Recovery 7 วัน" displays Recovery avg (69/100), Load (86/100 · สูงมาก), Sleep (5.5 ชม. · 62/100), and Fuel (ดี · 82/100) format.
 - [ ] Resolved pain does not force a red/rest state.
 - [ ] Active pain and red flags still apply conservative safety guidance.
 - [ ] Today shows one clear primary recommendation.

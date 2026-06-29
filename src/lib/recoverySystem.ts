@@ -48,7 +48,7 @@ export function buildRunMateRecoverySystem(
       key: "recovery" as const,
       score: 70,
       status: "good" as const,
-      label: "ฟื้นตัวดี",
+      label: "ดี",
       summary: "ข้อมูลมีไม่เพียงพอในการประเมินละเอียด ใช้ค่าเฉลี่ยปกติ",
       reasons: ["ยังไม่มีประวัติการฟื้นตัวเพียงพอ"],
       missing: ["HRV", "ชีพจรขณะพัก"],
@@ -57,7 +57,7 @@ export function buildRunMateRecoverySystem(
       key: "load" as const,
       score: 0,
       status: "low" as const,
-      label: "โหลดต่ำ",
+      label: "ต่ำ",
       summary: "ไม่มีประวัติโหลดวิ่งสะสมใน 7 วันล่าสุด",
       reasons: ["ยังไม่มีบันทึกกิจกรรมวิ่ง"],
       missing: ["กิจกรรมวิ่ง"],
@@ -66,7 +66,7 @@ export function buildRunMateRecoverySystem(
       key: "sleep" as const,
       score: 70,
       status: "good" as const,
-      label: "นอนดี",
+      label: "ดี",
       summary: "ไม่มีข้อมูลบันทึกการนอน ใช้ค่าเริ่มต้นปกติ",
       reasons: ["ยังไม่มีบันทึกการนอน"],
       missing: ["บันทึกการนอน"],
@@ -75,7 +75,7 @@ export function buildRunMateRecoverySystem(
       key: "fuel" as const,
       score: 50,
       status: "moderate" as const,
-      label: "พลังงานปานกลาง",
+      label: "พอใช้",
       summary: "ไม่มีข้อมูลบันทึกอาหาร ใช้ค่าเริ่มต้นปกติ",
       reasons: ["ยังไม่มีบันทึกอาหารวันนี้"],
       missing: ["บันทึกอาหาร"],
@@ -227,25 +227,25 @@ export function buildRunMateRecoverySystem(
   recoveryScore = Math.max(0, Math.min(100, recoveryScore));
 
   let recoveryStatus: RecoveryAxisStatus = "moderate";
-  let recoveryLabel = "ฟื้นตัวปานกลาง";
-  let recoverySummary = "ร่างกายฟื้นตัวปานกลาง ควรควบคุมระดับความเหนื่อย";
+  let recoveryLabel = "พอใช้";
+  let recoverySummary = "ร่างกายฟื้นตัวปานกลาง คุมระดับความเหนื่อย";
 
   if (recoveryScore >= 80) {
     recoveryStatus = "high";
-    recoveryLabel = "ฟื้นตัวดีเยี่ยม";
+    recoveryLabel = "ดีมาก";
     recoverySummary = "ร่างกายฟื้นตัวได้ดีมาก พร้อมซ้อมตามแผนหลัก";
   } else if (recoveryScore >= 66) {
     recoveryStatus = "good";
-    recoveryLabel = "ฟื้นตัวดี";
+    recoveryLabel = "ดี";
     recoverySummary = "ร่างกายฟื้นตัวดี ซ้อมตามแผนปกติได้สมดุล";
   } else if (recoveryScore >= 50) {
     recoveryStatus = "moderate";
-    recoveryLabel = "ฟื้นตัวปานกลาง";
-    recoverySummary = "ร่างกายฟื้นตัวปานกลาง ควรควบคุมความเข้มข้นไม่ให้สูงเกินไป";
+    recoveryLabel = "พอใช้";
+    recoverySummary = "ร่างกายฟื้นตัวปานกลาง คุมระดับความเหนื่อย";
   } else {
     recoveryStatus = "low";
-    recoveryLabel = "ฟื้นตัวต่ำ";
-    recoverySummary = "ฟื้นตัวต่ำมาก แนะนำให้งดซ้อมหรือเดิน/จ็อกเบามาก ๆ";
+    recoveryLabel = "ต่ำ";
+    recoverySummary = "ฟื้นตัวต่ำ แนะนำให้งดซ้อมหรือเบามาก ๆ";
   }
 
   const recoveryAxis: RecoveryAxis = {
@@ -337,25 +337,25 @@ export function buildRunMateRecoverySystem(
   loadScore = Math.max(0, Math.min(100, loadScore));
 
   let loadStatus: RecoveryAxisStatus = "moderate";
-  let loadLabel = "โหลดปานกลาง";
-  let loadSummary = "โหลดซ้อมอยู่ในเกณฑ์สมดุล ไม่เหนื่อยล้าสะสมจนเกินไป";
+  let loadLabel = "ปานกลาง";
+  let loadSummary = "โหลดปานกลาง รักษาสภาพความแข็งแรง";
 
   if (loadScore >= 75) {
     loadStatus = "high";
-    loadLabel = "โหลดสูงมาก";
-    loadSummary = "สะสมโหลดซ้อมค่อนข้างสูงมากจากความถี่หรือระยะทางสัปดาห์นี้ ควรเน้นพักผ่อน";
+    loadLabel = "สูงมาก";
+    loadSummary = "โหลดสะสมสูงมาก คุม intensity";
   } else if (loadScore >= 55) {
     loadStatus = "high";
-    loadLabel = "โหลดสูง";
-    loadSummary = "โหลดซ้อมสะสมสูงกว่าปกติ ควร capped โหลดและเน้นความสม่ำเสมอ";
+    loadLabel = "สูง";
+    loadSummary = "โหลดสะสมสูง คุมความหนักให้สมดุล";
   } else if (loadScore >= 35) {
     loadStatus = "moderate";
-    loadLabel = "โหลดปานกลาง";
-    loadSummary = "โหลดซ้อมระดับปกติ รักษาสภาพความแข็งแรงได้ดี";
+    loadLabel = "ปานกลาง";
+    loadSummary = "โหลดปานกลาง รักษาสภาพความแข็งแรง";
   } else {
     loadStatus = "low";
-    loadLabel = "โหลดต่ำ";
-    loadSummary = "โหลดซ้อมค่อนข้างต่ำ ร่างกายยังสดชื่น ไม่มีอาการสะสมโหลดเหนื่อยล้า";
+    loadLabel = "ต่ำ";
+    loadSummary = "โหลดต่ำ ร่างกายยังสดชื่นไม่มีความล้า";
   }
 
   const loadAxis: RecoveryAxis = {
@@ -446,25 +446,25 @@ export function buildRunMateRecoverySystem(
   sleepScoreVal = Math.max(0, Math.min(100, sleepScoreVal));
 
   let sleepStatus: RecoveryAxisStatus = "moderate";
-  let sleepLabel = "นอนปานกลาง";
-  let sleepSummary = "เวลานอนปานกลาง อาจต้องการนอนหลับชดเชยสะสมเพิ่มเติม";
+  let sleepLabel = "พอใช้";
+  let sleepSummary = "นอนปานกลาง สะสมเวลานอนให้สม่ำเสมอ";
 
   if (sleepScoreVal >= 80) {
     sleepStatus = "high";
-    sleepLabel = "นอนดีเยี่ยม";
-    sleepSummary = "นอนหลับพักผ่อนได้อย่างเต็มที่และสะสมอย่างเพียงพอ";
+    sleepLabel = "ดีมาก";
+    sleepSummary = "นอนเพียงพอกับการฟื้นตัวกล้ามเนื้อดีเยี่ยม";
   } else if (sleepScoreVal >= 60) {
     sleepStatus = "good";
-    sleepLabel = "นอนดี";
-    sleepSummary = "นอนหลับอยู่ในเกณฑ์ปกติดี รักษารอบการนอนได้สม่ำเสมอ";
+    sleepLabel = "ดี";
+    sleepSummary = "นอนดี รักษารอบการนอนได้ดี";
   } else if (sleepScoreVal >= 40) {
     sleepStatus = "moderate";
-    sleepLabel = "นอนปานกลาง";
-    sleepSummary = "นอนหลับปานกลาง สะสมเวลานอนให้สม่ำเสมอขึ้น";
+    sleepLabel = "พอใช้";
+    sleepSummary = "นอนปานกลาง สะสมเวลานอนให้สม่ำเสมอ";
   } else {
     sleepStatus = "low";
-    sleepLabel = "นอนน้อย";
-    sleepSummary = "นอนหลับไม่เพียงพอสะสม อาจตึงล้าและสมาธิลดลงขณะวิ่ง";
+    sleepLabel = "ต่ำ";
+    sleepSummary = "นอนยังไม่พอเต็มที่ ควรนอนชดเชยสะสม";
   }
 
   const sleepAxis: RecoveryAxis = {
@@ -535,25 +535,25 @@ export function buildRunMateRecoverySystem(
   fuelScore = Math.max(0, Math.min(100, fuelScore));
 
   let fuelStatus: RecoveryAxisStatus = "moderate";
-  let fuelLabel = "พลังงานปานกลาง";
-  let fuelSummary = "ปริมาณพลังงานและสารอาหารปานกลาง ควรเติมโปรตีนหรือคาร์บเพิ่ม";
+  let fuelLabel = "พอใช้";
+  let fuelSummary = "ระดับสารอาหารปานกลาง เติมสารอาหารเสริม";
 
   if (fuelScore >= 80) {
     fuelStatus = "high";
-    fuelLabel = "พลังงานดีเยี่ยม";
-    fuelSummary = "สารอาหารพร้อมสนับสนุนการซ้อมหนักและการฟื้นตัวได้เป็นอย่างดี";
+    fuelLabel = "ดีมาก";
+    fuelSummary = "กินรองรับการฟื้นตัวและซ้อมได้ดีเยี่ยม";
   } else if (fuelScore >= 60) {
     fuelStatus = "good";
-    fuelLabel = "พลังงานเพียงพอ";
-    fuelSummary = "พลังงานและโปรตีนเพียงพอสนับสนุนแผนกิจกรรมประจำวัน";
+    fuelLabel = "ดี";
+    fuelSummary = "กินรองรับการฟื้นตัวได้ดี";
   } else if (fuelScore >= 40) {
     fuelStatus = "moderate";
-    fuelLabel = "พลังงานปานกลาง";
-    fuelSummary = "ระดับสารอาหารปานกลาง ทานโปรตีนและคาร์บคุณภาพเสริม";
+    fuelLabel = "พอใช้";
+    fuelSummary = "ระดับสารอาหารปานกลาง เติมสารอาหารเสริม";
   } else {
     fuelStatus = "low";
-    fuelLabel = "พลังงานต่ำ";
-    fuelSummary = "สารอาหารต่ำกว่าเกณฑ์การซ้อม ควรเติมพลังงานก่อนเริ่มซ้อมหนัก";
+    fuelLabel = "ยังน้อย";
+    fuelSummary = "สารอาหารต่ำกว่าเกณฑ์ ควรเติมพลังงานก่อนซ้อม";
   }
 
   const fuelAxis: RecoveryAxis = {
@@ -691,4 +691,62 @@ export function buildRunMateRecoverySystem(
       missing: missingData,
     },
   };
+}
+
+export function formatAxisScore(score: number): string {
+  return `${Math.round(score)}/100`;
+}
+
+export function getRecoveryAxisLabel(axisKey: "recovery" | "load" | "sleep" | "fuel", score: number): string {
+  const rounded = Math.round(score);
+  if (axisKey === "recovery") {
+    if (rounded >= 80) return "ดีมาก";
+    if (rounded >= 66) return "ดี";
+    if (rounded >= 50) return "พอใช้";
+    return "ต่ำ";
+  }
+  if (axisKey === "load") {
+    if (rounded >= 80) return "สูงมาก";
+    if (rounded >= 66) return "สูง";
+    if (rounded >= 40) return "ปานกลาง";
+    return "ต่ำ";
+  }
+  if (axisKey === "sleep") {
+    if (rounded >= 80) return "ดีมาก";
+    if (rounded >= 66) return "ดี";
+    if (rounded >= 50) return "พอใช้";
+    return "ต่ำ";
+  }
+  // fuel
+  if (rounded >= 80) return "ดีมาก";
+  if (rounded >= 66) return "ดี";
+  if (rounded >= 50) return "พอใช้";
+  return "ยังน้อย";
+}
+
+export function getAxisTone(axisKey: "recovery" | "load" | "sleep" | "fuel", score: number): "success" | "warning" | "danger" | "info" | "neutral" {
+  const rounded = Math.round(score);
+  if (axisKey === "load") {
+    if (rounded >= 80) return "warning";
+    if (rounded >= 66) return "warning";
+    if (rounded >= 40) return "info";
+    return "success";
+  }
+  if (axisKey === "recovery") {
+    if (rounded >= 80) return "success";
+    if (rounded >= 66) return "info";
+    if (rounded >= 50) return "warning";
+    return "danger";
+  }
+  if (axisKey === "sleep") {
+    if (rounded >= 80) return "success";
+    if (rounded >= 60) return "info";
+    if (rounded >= 40) return "warning";
+    return "danger";
+  }
+  // fuel
+  if (rounded >= 80) return "success";
+  if (rounded >= 60) return "info";
+  if (rounded >= 40) return "warning";
+  return "danger";
 }

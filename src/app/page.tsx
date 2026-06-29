@@ -13,7 +13,7 @@ import { formatThaiDate, getHistoryItemDateKey, todayBangkokDateKey } from "@/li
 import { buildCoachContextFromSupabase, type CoachContext, type NutritionDaySummary, type PainSummary, type TodayCompletedWorkoutSummary } from "@/lib/buildCoachContext";
 import { getTodayReadiness, getTodayPlannedWorkout, getReadinessCategoryLabel, checkPlannedWorkoutMatching } from "@/lib/todayPlanning";
 import { getRunMateReadinessLabel } from "@/lib/readinessV2";
-import { buildRunMateRecoverySystem } from "@/lib/recoverySystem";
+import { buildRunMateRecoverySystem, getAxisTone, formatAxisScore } from "@/lib/recoverySystem";
 import { createHistoryItem, loadHistoryItems, saveHistoryItems } from "@/lib/cloudHistory";
 import { loadActiveRaceGoalAndPlan } from "@/lib/raceStorage";
 import { loadRoutinesFromSupabase, logCompletedStrength } from "@/lib/strength";
@@ -701,7 +701,7 @@ function PostWorkoutFocusContent({ insight, context }: { insight: DailyCoachInsi
   const parts2: string[] = [];
   if (context.recoverySystem) {
     parts2.push(`ฟื้นตัว ${context.recoverySystem.axes.recovery.score}`);
-    parts2.push(context.recoverySystem.axes.load.label);
+    parts2.push(`โหลด${context.recoverySystem.axes.load.label}`);
   }
   const latestPain = context.latestPain;
   if (latestPain) {
@@ -1315,23 +1315,13 @@ function buildReadinessCoverageSummary(ctx: CoachContext | null): { used: string
   return { used, missing, hasSleepToday };
 }
 
-function getAxisColorClass(score: number, type: "recovery" | "load" | "sleep" | "fuel"): string {
-  if (type === "load") {
-    if (score >= 75) return "text-[var(--status-rest)]"; // Red (fatigue high)
-    if (score >= 40) return "text-[#9b742c]"; // Yellow (moderate load)
-    return "text-[#2a5a39]"; // Green (low load)
-  }
-  if (type === "fuel") {
-    if (score >= 80) return "text-[var(--status-ready)]"; // Green
-    if (score >= 60) return "text-[#42677f]"; // Blue
-    if (score >= 40) return "text-[#9b742c]"; // Yellow
-    return "text-[var(--status-rest)]"; // Red
-  }
-  // recovery & sleep
-  if (score >= 80) return "text-[var(--status-ready)]"; // Green
-  if (score >= 66) return "text-[#42677f]"; // Blue
-  if (score >= 50) return "text-[#9b742c]"; // Yellow
-  return "text-[var(--status-rest)]"; // Red
+function getAxisBadgeClass(axisKey: "recovery" | "load" | "sleep" | "fuel", score: number): string {
+  const tone = getAxisTone(axisKey, score);
+  if (tone === "success") return "bg-[#eef7f0] text-[var(--status-ready)] border border-[#cfe4d5]";
+  if (tone === "warning") return "bg-[#fff6df] text-[#9b742c] border border-[#ead9a9]";
+  if (tone === "danger") return "bg-[#fff0ee] text-[var(--status-rest)] border border-[#e8c1bd]";
+  if (tone === "info") return "bg-[#eef4f8] text-[#42677f] border border-[#ccdce8]";
+  return "bg-slate-50 text-slate-600 border border-slate-100";
 }
 
 function TodaySnapshotCard({
@@ -1396,54 +1386,79 @@ function TodaySnapshotCard({
 
       {/* 4-Axis Recovery System Grid */}
       {!loading && recSys && (
-        <div className="grid grid-cols-2 gap-2.5 my-1">
-          {/* Recovery Axis */}
-          <div className="rounded-2xl p-3 border border-slate-100 bg-white shadow-sm space-y-1">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-slate-400">ฟื้นตัว (Recovery)</span>
-              <span className="text-sm">⚡</span>
+        <div className="space-y-1.5 my-1">
+          <div className="grid grid-cols-2 gap-2.5">
+            {/* Recovery Axis */}
+            <div className="rounded-2xl p-3 border border-slate-100 bg-white shadow-sm flex flex-col justify-between min-h-[90px]">
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-slate-400">ฟื้นตัว</span>
+                  <span className="text-sm">⚡</span>
+                </div>
+                <div className="mt-1 flex items-baseline gap-1.5">
+                  <span className="text-sm font-black text-slate-800">{formatAxisScore(recSys.axes.recovery.score)}</span>
+                  <span className={`inline-block rounded px-1.5 py-0.5 text-[9px] font-bold ${getAxisBadgeClass("recovery", recSys.axes.recovery.score)}`}>
+                    {recSys.axes.recovery.label}
+                  </span>
+                </div>
+              </div>
+              <p className="text-[9px] text-slate-500 leading-tight mt-1">{recSys.axes.recovery.summary}</p>
             </div>
-            <p className={`text-xs font-black ${getAxisColorClass(recSys.axes.recovery.score, "recovery")}`}>
-              {recSys.axes.recovery.score} {recSys.axes.recovery.label}
-            </p>
-            <p className="text-[9px] text-slate-500 leading-normal line-clamp-2">{recSys.axes.recovery.summary}</p>
-          </div>
 
-          {/* Load Axis */}
-          <div className="rounded-2xl p-3 border border-slate-100 bg-white shadow-sm space-y-1">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-slate-400">โหลดซ้อม (Load)</span>
-              <span className="text-sm">🏃</span>
+            {/* Load Axis */}
+            <div className="rounded-2xl p-3 border border-slate-100 bg-white shadow-sm flex flex-col justify-between min-h-[90px]">
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-slate-400">โหลดซ้อม</span>
+                  <span className="text-sm">🏃</span>
+                </div>
+                <div className="mt-1 flex items-baseline gap-1.5">
+                  <span className="text-sm font-black text-slate-800">{formatAxisScore(recSys.axes.load.score)}</span>
+                  <span className={`inline-block rounded px-1.5 py-0.5 text-[9px] font-bold ${getAxisBadgeClass("load", recSys.axes.load.score)}`}>
+                    {recSys.axes.load.label}
+                  </span>
+                </div>
+              </div>
+              <p className="text-[9px] text-slate-500 leading-tight mt-1">{recSys.axes.load.summary}</p>
             </div>
-            <p className={`text-xs font-black ${getAxisColorClass(recSys.axes.load.score, "load")}`}>
-              {recSys.axes.load.label}
-            </p>
-            <p className="text-[9px] text-slate-500 leading-normal line-clamp-2">{recSys.axes.load.summary}</p>
-          </div>
 
-          {/* Sleep Axis */}
-          <div className="rounded-2xl p-3 border border-slate-100 bg-white shadow-sm space-y-1">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-slate-400">การนอน (Sleep)</span>
-              <span className="text-sm">🌙</span>
+            {/* Sleep Axis */}
+            <div className="rounded-2xl p-3 border border-slate-100 bg-white shadow-sm flex flex-col justify-between min-h-[90px]">
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-slate-400">การนอน</span>
+                  <span className="text-sm">🌙</span>
+                </div>
+                <div className="mt-1 flex items-baseline gap-1.5">
+                  <span className="text-sm font-black text-slate-800">{formatAxisScore(recSys.axes.sleep.score)}</span>
+                  <span className={`inline-block rounded px-1.5 py-0.5 text-[9px] font-bold ${getAxisBadgeClass("sleep", recSys.axes.sleep.score)}`}>
+                    {recSys.axes.sleep.label}
+                  </span>
+                </div>
+              </div>
+              <p className="text-[9px] text-slate-500 leading-tight mt-1">{recSys.axes.sleep.summary}</p>
             </div>
-            <p className={`text-xs font-black ${getAxisColorClass(recSys.axes.sleep.score, "sleep")}`}>
-              {recSys.axes.sleep.label}
-            </p>
-            <p className="text-[9px] text-slate-500 leading-normal line-clamp-2">{recSys.axes.sleep.summary}</p>
-          </div>
 
-          {/* Fuel Axis */}
-          <div className="rounded-2xl p-3 border border-slate-100 bg-white shadow-sm space-y-1">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-slate-400">พลังงาน (Fuel)</span>
-              <span className="text-sm">🍱</span>
+            {/* Fuel Axis */}
+            <div className="rounded-2xl p-3 border border-slate-100 bg-white shadow-sm flex flex-col justify-between min-h-[90px]">
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-slate-400">พลังงาน</span>
+                  <span className="text-sm">🍱</span>
+                </div>
+                <div className="mt-1 flex items-baseline gap-1.5">
+                  <span className="text-sm font-black text-slate-800">{formatAxisScore(recSys.axes.fuel.score)}</span>
+                  <span className={`inline-block rounded px-1.5 py-0.5 text-[9px] font-bold ${getAxisBadgeClass("fuel", recSys.axes.fuel.score)}`}>
+                    {recSys.axes.fuel.label}
+                  </span>
+                </div>
+              </div>
+              <p className="text-[9px] text-slate-500 leading-tight mt-1">{recSys.axes.fuel.summary}</p>
             </div>
-            <p className={`text-xs font-black ${getAxisColorClass(recSys.axes.fuel.score, "fuel")}`}>
-              {recSys.axes.fuel.label}
-            </p>
-            <p className="text-[9px] text-slate-500 leading-normal line-clamp-2">{recSys.axes.fuel.summary}</p>
           </div>
+          <p className="text-[9.5px] text-slate-400 leading-normal">
+            * หมายเหตุ: โหลดซ้อมยิ่งสูง = ใช้ร่างกายสะสมเยอะ ไม่ได้แปลว่าคะแนนดี
+          </p>
         </div>
       )}
 
@@ -1479,10 +1494,10 @@ function TodaySnapshotCard({
             <span className="transition-transform group-open:rotate-180">▾</span>
           </summary>
           <div className="mt-1.5 rounded-2xl bg-slate-50 p-3 leading-relaxed text-slate-500 border border-slate-100 space-y-1.5">
-            <p>ระบบนี้ดู 4 เรื่อง: ฟื้นตัว โหลดซ้อม การนอน และอาหาร เพื่อปรับคำแนะนำวันนี้ ไม่ใช่คะแนนสรุปทั้งวัน</p>
+            <p>แต่ละแกนให้คะแนน 0–100 เพื่อช่วยดูว่าร่างกายพร้อมแค่ไหน โหลดสะสมเท่าไร นอนพอไหม และกินพอรองรับไหม</p>
             {recSys && recSys.axes.load.score >= 55 && (
               <p className="text-[10px] text-amber-700 font-semibold bg-amber-50/50 p-1.5 rounded-lg border border-amber-100/50">
-                ⚠️ โหลดสูงหมายถึงร่างกายใช้แรงสะสมเยอะ ไม่ได้แปลว่าคะแนนดีหรือแย่เสมอไป
+                ⚠️ สำหรับโหลดซ้อม คะแนนสูงหมายถึงโหลดสะสมสูง จึงควรคุมความหนัก ไม่ใช่คะแนนดีเสมอไป
               </p>
             )}
             <ul className="list-disc pl-4 space-y-1 text-[11px]">

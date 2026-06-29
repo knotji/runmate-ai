@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { buildCoachContextFromSupabase, type CoachContext } from "@/lib/buildCoachContext";
-import { buildRunMateRecoverySystem } from "@/lib/recoverySystem";
+import { buildRunMateRecoverySystem, getRecoveryAxisLabel, formatAxisScore } from "@/lib/recoverySystem";
 import { getTodayReadiness } from "@/lib/todayPlanning";
 import { getRunMateReadinessLabel } from "@/lib/readinessV2";
 import type { UserProfile } from "@/types/profile";
@@ -222,6 +222,54 @@ export function ReadinessCard() {
         </>
       ) : (
         <>
+          {/* 4-Axis Recovery System Grid */}
+          <div className="mt-4 space-y-1.5">
+            <div className="grid grid-cols-2 gap-2.5">
+              <div className="rounded-2xl p-3 border border-[var(--border-warm)]/60 bg-[var(--surface-muted)]/40 flex flex-col justify-between min-h-[64px]">
+                <div className="flex items-center justify-between text-[10px] font-semibold text-[var(--muted-text)]">
+                  <span>ฟื้นตัว</span>
+                  <span>⚡</span>
+                </div>
+                <p className="mt-1 text-sm font-extrabold text-[var(--foreground)]">
+                  {formatAxisScore(recSys.axes.recovery.score)} · <span className="text-[10px] font-bold">{getRecoveryAxisLabel("recovery", recSys.axes.recovery.score)}</span>
+                </p>
+              </div>
+              
+              <div className="rounded-2xl p-3 border border-[var(--border-warm)]/60 bg-[var(--surface-muted)]/40 flex flex-col justify-between min-h-[64px]">
+                <div className="flex items-center justify-between text-[10px] font-semibold text-[var(--muted-text)]">
+                  <span>โหลดซ้อม</span>
+                  <span>🏃</span>
+                </div>
+                <p className="mt-1 text-sm font-extrabold text-[var(--foreground)]">
+                  {formatAxisScore(recSys.axes.load.score)} · <span className="text-[10px] font-bold">{getRecoveryAxisLabel("load", recSys.axes.load.score)}</span>
+                </p>
+              </div>
+              
+              <div className="rounded-2xl p-3 border border-[var(--border-warm)]/60 bg-[var(--surface-muted)]/40 flex flex-col justify-between min-h-[64px]">
+                <div className="flex items-center justify-between text-[10px] font-semibold text-[var(--muted-text)]">
+                  <span>การนอน</span>
+                  <span>🌙</span>
+                </div>
+                <p className="mt-1 text-sm font-extrabold text-[var(--foreground)]">
+                  {formatAxisScore(recSys.axes.sleep.score)} · <span className="text-[10px] font-bold">{getRecoveryAxisLabel("sleep", recSys.axes.sleep.score)}</span>
+                </p>
+              </div>
+              
+              <div className="rounded-2xl p-3 border border-[var(--border-warm)]/60 bg-[var(--surface-muted)]/40 flex flex-col justify-between min-h-[64px]">
+                <div className="flex items-center justify-between text-[10px] font-semibold text-[var(--muted-text)]">
+                  <span>พลังงาน</span>
+                  <span>🍱</span>
+                </div>
+                <p className="mt-1 text-sm font-extrabold text-[var(--foreground)]">
+                  {formatAxisScore(recSys.axes.fuel.score)} · <span className="text-[10px] font-bold">{getRecoveryAxisLabel("fuel", recSys.axes.fuel.score)}</span>
+                </p>
+              </div>
+            </div>
+            <p className="text-[9.5px] text-[var(--muted-text)]/80 leading-normal">
+              * หมายเหตุ: โหลดซ้อมยิ่งสูง = ใช้ร่างกายสะสมเยอะ ไม่ได้แปลว่าคะแนนดี
+            </p>
+          </div>
+
           {/* Dynamic Recommendation Box */}
           <div className={`mt-4 rounded-2xl border p-4 ${colors.bgLight}`}>
             <p className="text-xs font-bold uppercase tracking-wider text-[var(--muted-text)]">คำแนะนำการซ้อม</p>

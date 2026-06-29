@@ -33,6 +33,7 @@ import { normalizeMealSlot, getMealSlotLabel, getMealSlotIcon, getMealSlotOrder 
 import { getMealSourceInfo, isQuickProteinMeal } from "@/lib/mealSource";
 import { buildWeeklyReview, type WeeklyReview } from "@/lib/weeklyReview";
 import { getRunMateReadinessLabel } from "@/lib/readinessV2";
+import { getRecoveryAxisLabel } from "@/lib/recoverySystem";
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -2035,23 +2036,27 @@ function WeeklyReviewCard({ review }: { review: WeeklyReview }) {
       <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs bg-slate-50/70 p-3 rounded-2xl border border-slate-100">
         <div className="flex justify-between border-b border-slate-100/80 pb-1">
           <span className="text-slate-400">ฟื้นตัวเฉลี่ย:</span>
-          <span className="font-bold text-slate-700">{review.avgRecoveryScore ?? "–"} {readinessLabel ? `(${readinessLabel})` : ""}</span>
-        </div>
-        <div className="flex justify-between border-b border-slate-100/80 pb-1">
-          <span className="text-slate-400">โหลดสะสม:</span>
-          <span className={`font-bold ${review.loadLevel === "สูง" || review.loadLevel === "สูงมาก" ? "text-[var(--status-rest)]" : review.loadLevel === "ปานกลาง" ? "text-[#9b742c]" : "text-[#2a5a39]"}`}>
-            {review.loadLevel} ({review.runningKmTotal} km)
+          <span className="font-bold text-slate-700">
+            {review.avgRecoveryScore != null ? `${review.avgRecoveryScore}/100` : "–"}
           </span>
         </div>
         <div className="flex justify-between border-b border-slate-100/80 pb-1">
-          <span className="text-slate-400">หนี้การนอน:</span>
+          <span className="text-slate-400">โหลดสะสม:</span>
+          <span className={`font-bold ${review.loadLevel === "สูง" || review.loadLevel === "สูงมาก" ? "text-[#9b742c]" : "text-[#2a5a39]"}`}>
+            {review.avgLoadScore != null ? `${review.avgLoadScore}/100 · ` : ""}{review.loadLevel}
+          </span>
+        </div>
+        <div className="flex justify-between border-b border-slate-100/80 pb-1">
+          <span className="text-slate-400">การนอน:</span>
           <span className={`font-bold ${review.sleepDebtLevel === "สูง" ? "text-[var(--status-rest)]" : review.sleepDebtLevel === "ปานกลาง" ? "text-[#9b742c]" : "text-[#2a5a39]"}`}>
-            {review.sleepDebtLevel === "ไม่มี" ? "ไม่มี" : review.sleepDebtLevel}
+            {review.avgSleepHours != null ? `${review.avgSleepHours} ชม.` : "–"}{review.avgSleepScore != null ? ` · ${review.avgSleepScore}/100` : ""}
           </span>
         </div>
         <div className="flex justify-between border-b border-slate-100/80 pb-1">
           <span className="text-slate-400">สารอาหาร:</span>
-          <span className="font-bold text-slate-700">{review.fuelSupportLevel}</span>
+          <span className="font-bold text-slate-700">
+            {review.avgFuelScore != null ? `${getRecoveryAxisLabel("fuel", review.avgFuelScore)} · ${review.avgFuelScore}/100` : "–"}
+          </span>
         </div>
         <div className="flex justify-between col-span-2 pt-0.5">
           <span className="text-slate-400">อาการเจ็บ:</span>

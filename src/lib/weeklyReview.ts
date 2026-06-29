@@ -26,6 +26,9 @@ export type WeeklyReview = {
   fuelSupportLevel: "ต่ำ" | "ปานกลาง" | "สูง";
   painStatusText: string;
   recoveryTrendSummaryText: string;
+  avgLoadScore: number | null;
+  avgSleepScore: number | null;
+  avgFuelScore: number | null;
 };
 
 function toFinite(v: unknown): number | null {
@@ -207,7 +210,43 @@ export function buildWeeklyReview(items: LocalHistoryItem[], todayDateKey: strin
   if (nextFocus.length === 0) nextFocus.push("รักษาความสม่ำเสมอต่ออีกสัปดาห์");
 
   // Calculate Recovery Trend parameters
-  // Calculate Recovery Trend parameters
+  // Longest run in 7-day window
+  let longestRun = 0;
+  for (const item of runItems) {
+    const d = item.data as Record<string, unknown> | null;
+    const ext = (d?.extracted ?? d ?? {}) as Record<string, unknown>;
+    const km = toFinite(ext.distanceKm);
+    if (km != null && km > longestRun) longestRun = km;
+  }
+
+  let avgLoadScore = 0;
+  if (runningKmTotal > 50) avgLoadScore += 40;
+  else if (runningKmTotal > 35) avgLoadScore += 30;
+  else if (runningKmTotal > 15) avgLoadScore += 20;
+  else if (runningKmTotal > 0) avgLoadScore += 10;
+
+  if (runCount >= 5) avgLoadScore += 20;
+  else if (runCount >= 3) avgLoadScore += 10;
+  else if (runCount > 0) avgLoadScore += 5;
+
+  if (longestRun >= 15) avgLoadScore += 20;
+  else if (longestRun >= 8) avgLoadScore += 10;
+
+  if (strengthCount > 0) avgLoadScore += 10;
+  avgLoadScore = Math.max(0, Math.min(100, avgLoadScore));
+
+  const sleepScores: number[] = [];
+  for (const item of sleepItems) {
+    const d = item.data as Record<string, unknown> | null;
+    const ext = (d?.extracted ?? d ?? {}) as Record<string, unknown>;
+    const s = toFinite(ext.sleepScore) ?? toFinite(d?.sleepScore);
+    if (s != null && s > 0) sleepScores.push(s);
+  }
+  const avgSleepScoreVal = sleepScores.length > 0
+    ? Math.round(sleepScores.reduce((a, b) => a + b, 0) / sleepScores.length)
+    : null;
+  const avgSleepScore = avgSleepScoreVal ?? (avgSleepHours != null ? Math.max(30, Math.min(100, Math.round(avgSleepHours * 10))) : null);
+
   const loadLevel: "ต่ำ" | "ปานกลาง" | "สูง" | "สูงมาก" =
     runningKmTotal > 50 || runCount >= 6 ? "สูงมาก" :
     runningKmTotal > 30 || runCount >= 4 ? "สูง" :
@@ -220,6 +259,11 @@ export function buildWeeklyReview(items: LocalHistoryItem[], todayDateKey: strin
   const fuelSupportLevel: "ต่ำ" | "ปานกลาง" | "สูง" =
     mealCount >= 14 ? "สูง" :
     mealCount >= 7 ? "ปานกลาง" : "ต่ำ";
+
+  let avgFuelScore = 50;
+  if (fuelSupportLevel === "สูง") avgFuelScore = 82;
+  else if (fuelSupportLevel === "ปานกลาง") avgFuelScore = 62;
+  else avgFuelScore = 42;
 
   const painStatusText =
     activePainDays > 0 ? `ยังมีอาการเจ็บอยู่ (${activePainDays} วัน)` :
@@ -257,5 +301,8 @@ export function buildWeeklyReview(items: LocalHistoryItem[], todayDateKey: strin
     fuelSupportLevel,
     painStatusText,
     recoveryTrendSummaryText,
+    avgLoadScore,
+    avgSleepScore,
+    avgFuelScore,
   };
 }
