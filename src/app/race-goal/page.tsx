@@ -8,7 +8,7 @@ import { LoadingButton } from "@/components/LoadingButton";
 import { TrainingPhaseCard } from "@/components/TrainingPhaseCard";
 import { WeeklyPlanCard } from "@/components/WeeklyPlanCard";
 import { buildCoachContextFromSupabase, type CoachContext } from "@/lib/buildCoachContext";
-import { getCoachCautionFactors } from "@/lib/coachCautionFactors";
+
 import { loadHistoryItems } from "@/lib/cloudHistory";
 import { suggestStrengthRoutine } from "@/lib/strengthRoutineSelect";
 import { invalidateCoachCache } from "@/lib/invalidateCoachCache";
@@ -143,6 +143,7 @@ export default function RaceGoalPage() {
         <>
           <RaceCountdownCard goal={goal} phase={plan.currentPhase} />
           <PlanAtGlance plan={plan} freshness={planFreshness} />
+          <RecoveryGuardrailsCard coachContext={coachContext} />
           {selectedTodayWorkout ? <TodayWorkoutCard workout={normalizeForDisplay(selectedTodayWorkout)} coachContext={coachContext} /> : null}
           {plan.weeklyPlan?.length ? <ActionableWeekCard workouts={plan.weeklyPlan.map(normalizeForDisplay)} coachContext={coachContext} /> : null}
 
@@ -246,16 +247,42 @@ function isLongRun(workout: WeekWorkout): boolean {
   );
 }
 
+function RecoveryGuardrailsCard({ coachContext }: { coachContext: CoachContext | null }) {
+  if (!coachContext) return null;
+  const recSys = coachContext.recoverySystem;
+  if (!recSys) return null;
+
+  return (
+    <section className="card border border-blue-100 bg-blue-50/20 p-5 space-y-3">
+      <div className="flex items-center gap-2">
+        <span className="text-base">🛡️</span>
+        <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-[#42677f]">Guardrails จากสภาพร่างกายวันนี้</h2>
+      </div>
+      <div>
+        <p className="text-sm font-extrabold text-slate-800">{recSys.headline}</p>
+        <ul className="list-disc pl-4 mt-2 space-y-1 text-xs font-semibold text-slate-600">
+          {recSys.guardrails.map((g, idx) => (
+            <li key={idx}>{g}</li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
 function getAdaptiveLongRunNote(workout: WeekWorkout, context: CoachContext | null): string | null {
   if (!context) return null;
-  const factors = getCoachCautionFactors(context);
-  const isLowSleepAvg = factors.some((f) => f.key === "sleepAvgLow");
-  const isLowReadiness = context.avgReadiness != null && context.avgReadiness < 70;
-  const isHighWeeklyLoad = factors.some((f) => f.key === "weeklyLoadHigh");
-  const hasPainHistory = factors.some((f) => f.key === "activePain" || f.key === "recentPain");
+  const recSys = context.recoverySystem;
+  if (!recSys) return null;
 
   const isLong = isLongRun(workout);
   if (!isLong) return null;
+
+  // Use recovery system metrics for caution checks
+  const isLowSleepAvg = recSys.axes.sleep.score < 60;
+  const isLowReadiness = recSys.axes.recovery.score < 70;
+  const isHighWeeklyLoad = recSys.axes.load.score >= 75;
+  const hasPainHistory = context.activePain || context.recentPainHistory;
 
   const hasCaution = isLowSleepAvg || isLowReadiness || isHighWeeklyLoad || hasPainHistory;
   if (!hasCaution) return null;

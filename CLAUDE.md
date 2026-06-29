@@ -49,7 +49,7 @@ Every item has a `data: jsonb` column holding the AI analysis result and extract
 
 **Today page fallback flow.** `buildClientTodayFallback()` produces a deterministic `DailyCoachInsight` from `CoachContext` synchronously, shown while the `POST /api/coach-insight` fetch is in flight. The 18-second client-side `AbortController` timeout (server AI timeout is 14 seconds) fires the error banner (`insightError && !loading`). Client timeout must be longer than server AI timeout. Expected client-timeout AbortError must be logged as `[today-analysis-timeout]`, not as a generic fetch error. Do not gate `{insight && ...}` on `!loading` — that blocks the fallback from rendering.
 
-**Readiness scoring.** Current implementation in `src/lib/readiness.ts` is sleep-only. `getTodayReadiness()` in `src/lib/todayPlanning.ts` reads `context.sleep7d[0].readiness`. Labels: 0–49 = Low, 50–65 = Fair, 66–79 = Good, 80+ = Excellent.
+**Recovery System & Readiness.** The application uses a 4-axis Recovery System (`src/lib/recoverySystem.ts`) to evaluate state: Recovery (heart/pain), Load (fatigue/volume), Sleep (duration/debt), and Fuel (meals/macros). The overall score aligns with `readinessV2` and maps to a Coaching State (`push` | `maintain` | `easy` | `recover`) and dynamic Thai guardrails. Overrides can be passed to re-evaluate axes dynamically. Legacy readiness labels (0–49 = Low, 50–65 = Fair, 66–79 = Good, 80+ = Excellent) are retained.
 
 ## Directory Map
 
@@ -62,6 +62,7 @@ src/
   components/       # Shared UI components ("use client")
   lib/
     buildCoachContext.ts   # Client-side CoachContext builder (900+ lines)
+    recoverySystem.ts      # 4-axis Recovery System calculator
     readiness.ts           # Sleep-only readiness calculator
     todayPlanning.ts       # getTodayReadiness(), getTodayPlannedWorkout()
     ai.ts                  # jsonFromAI() — dual-provider AI call wrapper

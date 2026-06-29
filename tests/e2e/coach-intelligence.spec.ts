@@ -64,11 +64,9 @@ test.describe("Coach Intelligence UX & Guardrails Polish", () => {
     });
 
     await gotoApp(page, "/");
-    await expect(page.getByText("วิ่งได้ แต่ต้อง easy จริง ๆ")).toBeVisible();
-    await expect(page.getByText("ถ้า HR ลอย ขาหนัก หรือรู้สึกเพลีย ให้ลดเหลือเดิน/จ็อกเบา 30–40 นาทีแทน")).toBeVisible();
-    await expect(page.getByText("คุม HR ให้อยู่โซน easy")).toBeVisible();
-    await expect(page.getByText("ไม่ต้องกด pace")).toBeVisible();
-    await expect(page.getByText("ถ้า HR ลอยหรือขาหนัก ให้ตัดระยะทันที")).toBeVisible();
+    await expect(page.getByText("คำแนะนำการซ้อมวันนี้")).toBeVisible();
+    await expect(page.getByText("Sleep เฉลี่ยสะสมต่ำเกณฑ์ หากชีพจรลอยขณะวิ่งให้ตัดระยะลง 10-20% ทันที")).toBeVisible();
+    await expect(page.getByText("พลังงานสะสมอาหารวันนี้ยังน้อย แนะนำทานคาร์บย่อยง่าย")).toBeVisible();
   });
 
   test("2. Coach page readiness card shows 'not a pace day' override when Good score has caution factors", async ({ page }) => {
@@ -98,7 +96,7 @@ test.describe("Coach Intelligence UX & Guardrails Polish", () => {
     await gotoApp(page, "/coach");
     await page.getByRole("button", { name: "ดูรายละเอียด" }).click();
 
-    await expect(page.getByText("ความพร้อมพอขยับได้ แต่ HR/โหลดซ้อม/การนอนยังบอกว่าควรคุม intensity วันนี้ไม่ใช่วันกด pace")).toBeVisible();
+    await expect(page.getByText("วิ่งประคองตัวคุมความเข้มข้น ห้ามกด Pace")).toBeVisible();
   });
 
   test("3. Race page renders adaptive note for Long Run when caution factors exist", async ({ page }) => {

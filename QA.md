@@ -127,13 +127,15 @@ On PowerShell, set both `$env:E2E_BASE_URL` and `$env:E2E_PRODUCTION_BASE_URL` t
 - [ ] Settings -> Data tab displays correct platform-specific install instructions (iOS vs Android).
 - [ ] Install button is displayed and functional on Android Chrome when `beforeinstallprompt` is available.
 
-## 9. Coach Intelligence Polish
+## 9. Coach Intelligence & Recovery System v1
 
-- [ ] Today page displays "วิ่งได้ แต่ต้อง easy จริง ๆ" guidelines with bullets when Easy Run is recommended under caution factors (e.g. low sleep average, high weekly load, resting HR elevated, pain history).
-- [ ] Today page displays pre-run carb guidelines box ("ก่อนวิ่งเติมคาร์บเบา ๆ 30–50g") when workout is run and day-of carbs/meals are low.
+- [ ] Today page displays the 4-axis snapshot grid (ฟื้นตัว, โหลดซ้อม, การนอน, พลังงาน) with color-coded score/level and summary text.
+- [ ] Today page displays safety guardrails and headline assessment from `recoverySystem` when active (e.g. low sleep debt, high weekly load, pain history).
+- [ ] Today page displays pre-run carbs guidelines box ("ก่อนวิ่งเติมคาร์บเบา ๆ 30–50g") when workout is run and day-of carbs/meals are low.
 - [ ] Today page displays post-run recovery protein/carb guidelines box ("หลังซ้อมเน้นโปรตีน + คาร์บเพื่อฟื้นตัว") if primary workout is completed.
-- [ ] Coach page Circular Readiness Card summary displays the "not a pace day" override ("ความพร้อมพอขยับได้ แต่ HR/โหลดซ้อม/การนอนยังบอกว่าควรคุม intensity วันนี้ไม่ใช่วันกด pace") when score >= 66 but coaching level is yellow (ควรซ้อมเบา).
-- [ ] Race page Today's Workout Card and Actionable Week Card display adaptive reduction warning note ("ปรับตามสภาพ: ถ้าฟื้นตัวไม่ดี ลดเหลือ...") on Long Run workouts under caution factors.
+- [ ] Coach page Circular card is renamed to "ระบบ Recovery วันนี้" and dynamically recalculates all 4 axes scores/summaries on slider adjustment.
+- [ ] Race page renders "Guardrails จากสภาพร่างกายวันนี้" card showing headline and safety guidance, and adaptive reduction notes on Long Run workouts.
 - [ ] Today page Explanation Panel ("ทำไมวันนี้แนะนำแบบนี้?") lists specific sleep, training load, pain history, and walk/jog fallback options correctly.
+- [ ] Report page displays "แนวโน้ม Recovery 7 วัน" trend section with average, load level, sleep debt level, fuel status, pain status, and Thai recovery coach summary.
 
 

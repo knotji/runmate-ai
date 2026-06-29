@@ -7,6 +7,7 @@ import type { DailyCoachInsight } from "@/types/ai";
 import type { WeekWorkout } from "@/types/race";
 import { todayBangkokDateKey } from "@/lib/date";
 import { getCoachCautionFactors } from "@/lib/coachCautionFactors";
+import { buildRunMateRecoverySystem, type RunMateRecoverySystem } from "@/lib/recoverySystem";
 
 const FALLBACK: DailyCoachInsight = {
   todayReadiness: 70,
@@ -62,16 +63,30 @@ export async function POST(request: Request) {
 
     const SERVER_AI_TIMEOUT_MS = 14000;
 
+    const recSys = ctx.recoverySystem;
+    const personalizedFallback: DailyCoachInsight = {
+      todayReadiness: recSys.overallScore,
+      readinessLabel: recSys.overallLabel,
+      readinessNote: recSys.headline,
+      workoutRec: recSys.coachingState === "recover"
+        ? (ctx.latestPain && ctx.latestPain.painLevel >= 5 ? "Rest / พักผ่อนร่างกาย" : "เวทฟื้นฟูร่างกาย / กายภาพ")
+        : (recSys.coachingState === "easy" ? "Easy Run หรือจ็อกเบา" : "วิ่งซ้อมตามแผนปกติ"),
+      workoutTarget: recSys.recommendedIntensity === "rest" ? "ไม่ต้องซ้อมเบิร์นคาร์บ" : "คุม HR โซน Easy / สังเกตความรู้สึก",
+      weekSummary: `วิ่งสะสมสัปดาห์นี้ ${ctx.totalRunKm} km / 7 วัน`,
+      keyObservation: recSys.axes.recovery.summary,
+      coachMessage: recSys.guardrails.join(" · "),
+    };
+
     const aiPromise = jsonFromAI<DailyCoachInsight>({
       system,
       user: buildUserPrompt(ctx),
-      fallback: FALLBACK,
+      fallback: personalizedFallback,
     });
 
     const timeoutPromise = new Promise<JSONAIResult<DailyCoachInsight>>((resolve) =>
       setTimeout(() => {
         resolve({
-          data: FALLBACK,
+          data: personalizedFallback,
           source: "fallback",
           usedFallback: true,
           errorCode: "AI_TIMEOUT",
@@ -141,7 +156,7 @@ function normalizeCoachContext(value: unknown): CoachContext {
     notes: arrayValue((raw.nutritionToday as Record<string, unknown>).notes).filter((note): note is string => typeof note === "string"),
   } as CoachContext["nutritionToday"] : null;
 
-  return {
+  const context: CoachContext = {
     profile: isRecord(raw.profile) ? raw.profile : null,
     raceGoal: isRecord(raw.raceGoal) ? raw.raceGoal : null,
     racePlan: isRecord(raw.racePlan) ? raw.racePlan : null,
@@ -192,7 +207,14 @@ function normalizeCoachContext(value: unknown): CoachContext {
     painResolved: Boolean(raw.painResolved),
     nutritionBalanceToday: isRecord(raw.nutritionBalanceToday) ? raw.nutritionBalanceToday as CoachContext["nutritionBalanceToday"] : null,
     readinessV2: isRecord(raw.readinessV2) ? raw.readinessV2 as CoachContext["readinessV2"] : null,
+    recoverySystem: null as unknown as RunMateRecoverySystem,
   };
+
+  context.recoverySystem = isRecord(raw.recoverySystem)
+    ? raw.recoverySystem as RunMateRecoverySystem
+    : buildRunMateRecoverySystem(context);
+
+  return context;
 }
 
 function normalizeInsight(value: unknown, ctx: CoachContext): DailyCoachInsight {
@@ -764,6 +786,23 @@ function buildSleepContextLine(ctx: CoachContext): string {
 
 const SYSTEM_PROMPT = `คุณคือ RunMate AI โค้ชวิ่งส่วนตัวที่วิเคราะห์ข้อมูลสุขภาพจริงจาก Samsung Health
 พูดภาษาไทย กระชับ ตรงประเด็น เป็นกันเอง ไม่เป็นทางการมากเกินไป
+
+ระบบประเมินความพร้อมและฟื้นฟูร่างกายของเราใช้โมเดล 4 แกน (Recovery, Load, Sleep, Fuel):
+1. ฟื้นตัว (Recovery): สุขภาพหัวใจ (HRV/Resting HR เช้า) และประวัติความเจ็บปวด
+2. โหลดซ้อม (Load): โหลดวิ่งสะสมสัปดาห์นี้ ระยะวิ่งสะสม ความบ่อยการซ้อม
+3. การนอน (Sleep): ชั่วโมงนอนเมื่อคืนและประวัติหนี้การนอนสะสมในรอบสัปดาห์
+4. พลังงาน (Fuel): สารอาหารคาร์โบไฮเดรตและโปรตีนในมื้ออาหารวันนี้
+
+สถานะการประเมินเพื่อปรับความหนักในการซ้อม (Coaching State):
+- push: ร่างกายสด การฟื้นตัวยอดเยี่ยม โหลดต่ำ นอนดี พลังงานพอ -> แนะนำลุยแผนหลัก/ซ้อมหนักได้เต็มที่
+- maintain: ร่างกายปกติ โหลดปานกลาง ฟื้นตัวดี -> รักษารอบการซ้อมตามแผน
+- easy: โหลดวิ่งสะสมสัปดาห์นี้สูงมาก หรือนอนเฉลี่ยต่ำ หรือความพร้อมปานกลาง (Fair 50-65) -> คุมความเข้มข้น ไม่กด Pace วิ่งประคองตัวแบบ Easy
+- recover: ฟื้นตัวต่ำมาก หรือมีอาการบาดเจ็บค้างสะสม -> แนะนำงดซ้อมหรือเดิน/เวทฟื้นฟูแทน
+
+คำเตือนที่สำคัญมาก:
+- ห้ามเอ่ยชื่อยี่ห้อ "WHOOP" หรือคำเฉพาะลิขสิทธิ์ของค่ายอื่นเด็ดขาด!
+- ถ้าความพร้อมโดยรวมต่ำหรือปานกลาง ให้แนะนำ Easy/Recovery คุมความหนัก และเน้นย้ำประโยค "วันนี้ไม่ใช่เวลากด pace หรือเร่งความเร็ว"
+- ถ้ามีอาการเจ็บปวดปัจจุบัน (latestPain) เจ็บระดับ 3 ขึ้นไป ให้เน้นแนะนำให้งดวิ่งและเน้นฟื้นฟู/กายภาพหรือทำท่าเวทกายภาพเบา (Recovery Strength) แทน
 
 วิเคราะห์ข้อมูล 7 วันที่ให้มา แล้วตอบเป็น JSON รูปแบบนี้:
 {

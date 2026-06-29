@@ -314,9 +314,9 @@ test("Today snapshot shows Readiness explanation details and correct coverage la
   await expect(page.getByText("ข้อมูลที่ใช้ประเมิน:")).toBeVisible();
 
   // Target explanation details
-  await expect(page.getByText("Readiness คืออะไร?")).toBeVisible();
-  await page.getByText("Readiness คืออะไร?").click();
-  await expect(page.getByText("คะแนนนี้ประเมินความพร้อมจากข้อมูลล่าสุด เช่น การนอน HRV โหลดซ้อม อาการเจ็บ อาหาร และกิจกรรมที่บันทึกแล้ว ไม่ใช่คะแนนสรุปทั้งวัน")).toBeVisible();
+  await expect(page.getByText("ระบบ Recovery วันนี้คืออะไร?")).toBeVisible();
+  await page.getByText("ระบบ Recovery วันนี้คืออะไร?").click();
+  await expect(page.getByText("ประเมินความพร้อมแบบ 4 แกนเพื่อปรับแผนให้ตรงสภาพร่างกาย:")).toBeVisible();
 });
 
 test("Report page shows updated readiness labels and disclaimers", async ({ page }) => {

@@ -17,6 +17,7 @@ import type { RaceResult } from "@/types/race";
 import type { StrengthLog } from "@/types/strength";
 import { normalizeMealSlot, getMealSlotLabel } from "@/lib/mealSlots";
 import { calculateRunMateReadiness, type ReadinessV2Result } from "@/lib/readinessV2";
+import { buildRunMateRecoverySystem, type RunMateRecoverySystem } from "@/lib/recoverySystem";
 
 export type DayWorkoutSummary = {
   date: string;
@@ -119,6 +120,7 @@ export type CoachContext = {
   painResolved: boolean;
   nutritionBalanceToday: DailyNutritionBalance | null;
   readinessV2: ReadinessV2Result | null;
+  recoverySystem: RunMateRecoverySystem;
 };
 
 export type NutritionDaySummary = {
@@ -547,7 +549,7 @@ export function buildCoachContextFromData(input: {
       : false,
   });
 
-  return {
+  const ctx: CoachContext = {
     profile: input.profile,
     raceGoal: input.raceGoal,
     racePlan: input.racePlan,
@@ -624,7 +626,11 @@ export function buildCoachContextFromData(input: {
       nutritionBalanceToday,
       strengthCount: items.filter((i) => i.type === "strength" && getHistoryItemDateKey(i) >= cutoff).length,
     }),
+    recoverySystem: null as unknown as RunMateRecoverySystem,
   };
+
+  ctx.recoverySystem = buildRunMateRecoverySystem(ctx);
+  return ctx;
 }
 
 function compareHistoryByEventDateDesc(a: LocalHistoryItem, b: LocalHistoryItem): number {

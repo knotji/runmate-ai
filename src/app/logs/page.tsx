@@ -2098,6 +2098,43 @@ function WeeklyReviewCard({ review }: { review: WeeklyReview }) {
         </div>
       </div>
 
+      {/* 7-day Recovery Trend Section */}
+      <div className="rounded-2xl border border-blue-100 bg-blue-50/10 p-4 space-y-3">
+        <div className="flex items-center gap-2 border-b border-blue-100/50 pb-2">
+          <span className="text-base">📈</span>
+          <p className="text-xs font-bold uppercase tracking-wide text-[#42677f]">แนวโน้ม Recovery 7 วัน</p>
+        </div>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+          <div className="flex justify-between border-b border-slate-100 pb-1">
+            <span className="text-slate-400">Recovery เฉลี่ย:</span>
+            <span className="font-bold text-slate-700">{review.avgRecoveryScore ?? "–"} {readinessLabel ? `(${readinessLabel})` : ""}</span>
+          </div>
+          <div className="flex justify-between border-b border-slate-100 pb-1">
+            <span className="text-slate-400">โหลดสะสม:</span>
+            <span className={`font-bold ${review.loadLevel === "สูง" ? "text-[var(--status-rest)]" : review.loadLevel === "ปานกลาง" ? "text-[#9b742c]" : "text-[#2a5a39]"}`}>
+              {review.loadLevel} ({review.runningKmTotal} km)
+            </span>
+          </div>
+          <div className="flex justify-between border-b border-slate-100 pb-1">
+            <span className="text-slate-400">หนี้การนอน:</span>
+            <span className={`font-bold ${review.sleepDebtLevel === "สูง" ? "text-[var(--status-rest)]" : review.sleepDebtLevel === "ปานกลาง" ? "text-[#9b742c]" : "text-[#2a5a39]"}`}>
+              {review.sleepDebtLevel === "ไม่มี" ? "ไม่มี" : review.sleepDebtLevel} ({review.avgSleepHours != null ? `${review.avgSleepHours} ชม.` : "ไม่มีข้อมูล"})
+            </span>
+          </div>
+          <div className="flex justify-between border-b border-slate-100 pb-1">
+            <span className="text-slate-400">สารอาหาร:</span>
+            <span className="font-bold text-slate-700">{review.fuelSupportLevel} ({review.mealCount} มื้อ)</span>
+          </div>
+          <div className="flex justify-between col-span-2">
+            <span className="text-slate-400">อาการเจ็บ:</span>
+            <span className="font-bold text-slate-700">{review.painStatusText}</span>
+          </div>
+        </div>
+        <p className="text-xs leading-relaxed text-[#2e4a5e] bg-white/60 p-2.5 rounded-xl border border-blue-100/50">
+          💡 {review.recoveryTrendSummaryText}
+        </p>
+      </div>
+
       {review.highlights.length > 0 && (
         <div className="space-y-1">
           <p className="text-xs font-semibold text-slate-500">จุดที่ดี</p>

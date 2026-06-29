@@ -13,6 +13,7 @@ import { formatThaiDate, getHistoryItemDateKey, todayBangkokDateKey } from "@/li
 import { buildCoachContextFromSupabase, type CoachContext, type NutritionDaySummary, type PainSummary, type TodayCompletedWorkoutSummary } from "@/lib/buildCoachContext";
 import { getTodayReadiness, getTodayPlannedWorkout, getReadinessCategoryLabel, checkPlannedWorkoutMatching } from "@/lib/todayPlanning";
 import { getRunMateReadinessLabel } from "@/lib/readinessV2";
+import { buildRunMateRecoverySystem } from "@/lib/recoverySystem";
 import { createHistoryItem, loadHistoryItems, saveHistoryItems } from "@/lib/cloudHistory";
 import { loadActiveRaceGoalAndPlan } from "@/lib/raceStorage";
 import { loadRoutinesFromSupabase, logCompletedStrength } from "@/lib/strength";
@@ -407,6 +408,7 @@ export default function TodayPage() {
         isFallback={insightError}
         readinessCoverage={readinessCoverage}
         hasWorkoutToday={hasWorkoutToday}
+        coachCtx={coachCtx}
       />
 
       {/* D. Quick Actions */}
@@ -634,7 +636,18 @@ function PreWorkoutFocusContent({
         </span>
       )}
 
-      {isRun && hasCaution && (
+      {isRun && context?.recoverySystem?.guardrails && context.recoverySystem.guardrails.length > 0 && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50/40 p-4 space-y-2 text-xs leading-relaxed text-amber-900">
+          <p className="font-bold text-sm">💡 คำแนะนำการซ้อมวันนี้ ({context.recoverySystem.headline})</p>
+          <ul className="list-disc pl-4 space-y-1 font-medium">
+            {context.recoverySystem.guardrails.map((g, idx) => (
+              <li key={idx}>{g}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {isRun && !context?.recoverySystem?.guardrails && hasCaution && (
         <div className="rounded-2xl border border-amber-200 bg-amber-50/40 p-4 space-y-2 text-xs leading-relaxed text-amber-900">
           <p className="font-bold text-sm">💡 วิ่งได้ แต่ต้อง easy จริง ๆ</p>
           <p>ถ้า HR ลอย ขาหนัก หรือรู้สึกเพลีย ให้ลดเหลือเดิน/จ็อกเบา 30–40 นาทีแทน</p>
@@ -693,6 +706,23 @@ function PostWorkoutFocusContent({ insight, context }: { insight: DailyCoachInsi
         <p className="mt-2 text-xs leading-relaxed text-slate-500 bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3">
           💡 บันทึกกิจกรรมวันนี้แล้ว ไม่จำเป็นต้องซ้อมหนักซ้ำอีก เน้นการจิบน้ำ เติมโปรตีน ขยับเบา ๆ และนอนหลับให้เพียงพอเพื่อฟื้นฟูกล้ามเนื้อ
         </p>
+
+        {context.recoverySystem?.guardrails && context.recoverySystem.guardrails.filter(g => !g.includes("บันทึกกิจกรรม") && !g.includes("สภาพร่างกายพร้อม")).length > 0 && (
+          <div className="mt-2 rounded-2xl bg-amber-50/60 p-3 text-xs leading-relaxed text-amber-900 border border-amber-100 flex items-start gap-2">
+            <span className="text-sm">⚠️</span>
+            <div>
+              <p className="font-bold">ข้อควรระวังฟื้นตัววันนี้</p>
+              <ul className="list-disc pl-4 mt-1 font-semibold space-y-0.5">
+                {context.recoverySystem.guardrails
+                  .filter(g => !g.includes("บันทึกกิจกรรม") && !g.includes("สภาพร่างกายพร้อม"))
+                  .map((g, idx) => (
+                    <li key={idx}>{g}</li>
+                  ))
+                }
+              </ul>
+            </div>
+          </div>
+        )}
 
         <div className="mt-2 rounded-2xl bg-emerald-50/60 p-3 text-xs leading-relaxed text-emerald-900 border border-emerald-100 flex items-start gap-2">
           <span className="text-sm">🍳</span>
@@ -1263,6 +1293,25 @@ function buildReadinessCoverageSummary(ctx: CoachContext | null): { used: string
   return { used, missing, hasSleepToday };
 }
 
+function getAxisColorClass(score: number, type: "recovery" | "load" | "sleep" | "fuel"): string {
+  if (type === "load") {
+    if (score >= 75) return "text-[var(--status-rest)]"; // Red (fatigue high)
+    if (score >= 40) return "text-[#9b742c]"; // Yellow (moderate load)
+    return "text-[#2a5a39]"; // Green (low load)
+  }
+  if (type === "fuel") {
+    if (score >= 80) return "text-[var(--status-ready)]"; // Green
+    if (score >= 60) return "text-[#42677f]"; // Blue
+    if (score >= 40) return "text-[#9b742c]"; // Yellow
+    return "text-[var(--status-rest)]"; // Red
+  }
+  // recovery & sleep
+  if (score >= 80) return "text-[var(--status-ready)]"; // Green
+  if (score >= 66) return "text-[#42677f]"; // Blue
+  if (score >= 50) return "text-[#9b742c]"; // Yellow
+  return "text-[var(--status-rest)]"; // Red
+}
+
 function TodaySnapshotCard({
   insight,
   readinessScore,
@@ -1272,6 +1321,7 @@ function TodaySnapshotCard({
   isFallback,
   readinessCoverage,
   hasWorkoutToday,
+  coachCtx,
 }: {
   insight: DailyCoachInsight | null;
   readinessScore: number | null;
@@ -1281,6 +1331,7 @@ function TodaySnapshotCard({
   isFallback?: boolean;
   readinessCoverage?: { used: string[]; missing: string[]; hasSleepToday: boolean };
   hasWorkoutToday?: boolean;
+  coachCtx?: CoachContext | null;
 }) {
   const [expanded, setExpanded] = useState(false);
   const completed = todayChecklist.filter((i) => i.done).length;
@@ -1288,6 +1339,8 @@ function TodaySnapshotCard({
   const allDone = completed === total;
   const missing = todayChecklist.filter((i) => !i.done);
   const hasSleepToday = readinessCoverage?.hasSleepToday ?? true;
+
+  const recSys = coachCtx ? coachCtx.recoverySystem : buildRunMateRecoverySystem(null);
 
   return (
     <section className="card px-4 py-3 space-y-2.5">
@@ -1319,6 +1372,59 @@ function TodaySnapshotCard({
         </button>
       </div>
 
+      {/* 4-Axis Recovery System Grid */}
+      {!loading && recSys && (
+        <div className="grid grid-cols-2 gap-2.5 my-1">
+          {/* Recovery Axis */}
+          <div className="rounded-2xl p-3 border border-slate-100 bg-white shadow-sm space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-slate-400">ฟื้นตัว (Recovery)</span>
+              <span className="text-sm">⚡</span>
+            </div>
+            <p className={`text-xs font-black ${getAxisColorClass(recSys.axes.recovery.score, "recovery")}`}>
+              {recSys.axes.recovery.score} {recSys.axes.recovery.label}
+            </p>
+            <p className="text-[9px] text-slate-500 leading-normal line-clamp-2">{recSys.axes.recovery.summary}</p>
+          </div>
+
+          {/* Load Axis */}
+          <div className="rounded-2xl p-3 border border-slate-100 bg-white shadow-sm space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-slate-400">โหลดซ้อม (Load)</span>
+              <span className="text-sm">🏃</span>
+            </div>
+            <p className={`text-xs font-black ${getAxisColorClass(recSys.axes.load.score, "load")}`}>
+              {recSys.axes.load.label}
+            </p>
+            <p className="text-[9px] text-slate-500 leading-normal line-clamp-2">{recSys.axes.load.summary}</p>
+          </div>
+
+          {/* Sleep Axis */}
+          <div className="rounded-2xl p-3 border border-slate-100 bg-white shadow-sm space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-slate-400">การนอน (Sleep)</span>
+              <span className="text-sm">🌙</span>
+            </div>
+            <p className={`text-xs font-black ${getAxisColorClass(recSys.axes.sleep.score, "sleep")}`}>
+              {recSys.axes.sleep.label}
+            </p>
+            <p className="text-[9px] text-slate-500 leading-normal line-clamp-2">{recSys.axes.sleep.summary}</p>
+          </div>
+
+          {/* Fuel Axis */}
+          <div className="rounded-2xl p-3 border border-slate-100 bg-white shadow-sm space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-slate-400">พลังงาน (Fuel)</span>
+              <span className="text-sm">🍱</span>
+            </div>
+            <p className={`text-xs font-black ${getAxisColorClass(recSys.axes.fuel.score, "fuel")}`}>
+              {recSys.axes.fuel.label}
+            </p>
+            <p className="text-[9px] text-slate-500 leading-normal line-clamp-2">{recSys.axes.fuel.summary}</p>
+          </div>
+        </div>
+      )}
+
       {/* Readiness V2 source coverage */}
       {!loading && readinessCoverage && (readinessCoverage.used.length > 0 || readinessCoverage.missing.length > 0) && (
         <div className="space-y-1.5">
@@ -1343,18 +1449,24 @@ function TodaySnapshotCard({
         </div>
       )}
 
-      {/* Readiness explanation note (Phase 3) */}
+      {/* Recovery explanation note */}
       {!loading && readinessScore != null && (
         <details className="text-xs text-slate-500 mt-2 cursor-pointer group">
           <summary className="text-[11px] font-semibold text-slate-400 hover:text-slate-600 list-none flex items-center gap-1">
-            <span>Readiness คืออะไร?</span>
+            <span>ระบบ Recovery วันนี้คืออะไร?</span>
             <span className="transition-transform group-open:rotate-180">▾</span>
           </summary>
-          <div className="mt-1.5 rounded-2xl bg-slate-50 p-3 leading-relaxed text-slate-500 border border-slate-100">
-            คะแนนนี้ประเมินความพร้อมจากข้อมูลล่าสุด เช่น การนอน HRV โหลดซ้อม อาการเจ็บ อาหาร และกิจกรรมที่บันทึกแล้ว ไม่ใช่คะแนนสรุปทั้งวัน
+          <div className="mt-1.5 rounded-2xl bg-slate-50 p-3 leading-relaxed text-slate-500 border border-slate-100 space-y-1.5">
+            <p>ประเมินความพร้อมแบบ 4 แกนเพื่อปรับแผนให้ตรงสภาพร่างกาย:</p>
+            <ul className="list-disc pl-4 space-y-1 text-[11px]">
+              <li><strong>ฟื้นตัว:</strong> ความพร้อมของหัวใจ/HRV และประวัติความตึงเจ็บ</li>
+              <li><strong>โหลดซ้อม:</strong> ปริมาณวิ่งสะสม 7 วัน (คะแนนสูงแปลว่าร่างกายมีความเหนื่อยล้าสะสม)</li>
+              <li><strong>การนอน:</strong> ชั่วโมงนอนเมื่อคืนรวมถึงหนี้การนอนสะสมในช่วงสัปดาห์</li>
+              <li><strong>อาหาร:</strong> สารอาหารคาร์บ/โปรตีนวันนี้เพื่อรองรับซ้อมและการฟื้นฟู</li>
+            </ul>
             {hasWorkoutToday && (
-              <p className="mt-1 text-slate-400 font-semibold">
-                * กิจกรรมวันนี้ใช้เพื่อปรับคำแนะนำต่อจากนี้ ไม่ได้แปลว่าความพร้อมจะเพิ่มขึ้นทันที
+              <p className="text-[10px] text-slate-400 font-semibold mt-1">
+                * บันทึกกิจกรรมซ้อมวันนี้แล้ว โหลดและสารอาหารจะอัปเดตเพื่อปรับคำแนะนำถัดไป
               </p>
             )}
           </div>

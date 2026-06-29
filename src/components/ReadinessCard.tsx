@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { buildCoachContextFromSupabase, type CoachContext } from "@/lib/buildCoachContext";
-import { calculateReadiness } from "@/lib/readiness";
+import { buildRunMateRecoverySystem } from "@/lib/recoverySystem";
 import { getTodayReadiness } from "@/lib/todayPlanning";
 import { getRunMateReadinessLabel } from "@/lib/readinessV2";
 import type { UserProfile } from "@/types/profile";
@@ -126,38 +126,29 @@ export function ReadinessCard() {
     ? getTodayReadiness(context)
     : { score: 65, label: "Readiness ล่าสุด 65", isFallback: true };
 
-  const result = hasUserAdjusted
-    ? calculateReadiness({
-        sleepScore,
-        restingHrDelta,
-        hrvDelta,
-        yesterdayLoad,
-        muscleSoreness,
-        injuryFlag: injuryOverrideActive,
-        injurySource: reportActivePain ? "report" : manualCurrentPain ? "manual" : null,
-        recentPainHistoryNote,
-        energyScore,
-      })
-    : calculateReadiness({
-        sleepScore: todayReadiness.score,
-        restingHrDelta: null,
-        hrvDelta: null,
-        yesterdayLoad: "none",
-        muscleSoreness: "none",
-        injuryFlag: false,
-        recentPainHistoryNote: null,
-        energyScore: null,
-      });
+  const recSys = buildRunMateRecoverySystem(context, hasUserAdjusted ? {
+    sleepScore,
+    energyScore,
+    yesterdayLoad,
+    muscleSoreness,
+    injuryFlag: injuryOverrideActive,
+  } : undefined);
+
+  const result = {
+    score: recSys.overallScore,
+    level: recSys.coachingState === "recover" ? "red" as const : (recSys.coachingState === "easy" ? "yellow" as const : "green" as const),
+    label: recSys.coachingState === "push" ? "พร้อมลุยเต็มที่ (Push)" : (recSys.coachingState === "maintain" ? "ทำตามแผนปกติ (Maintain)" : (recSys.coachingState === "easy" ? "ควรซ้อมเบาประคองตัว (Easy)" : "ควรพักฟื้นฟูร่างกาย (Recover)")),
+    recommendation: recSys.guardrails.join(" · "),
+    summary: recSys.headline,
+    reasons: [...recSys.axes.recovery.reasons, ...recSys.axes.sleep.reasons, ...recSys.axes.load.reasons, ...recSys.axes.fuel.reasons],
+  };
 
   const colors = colorMap[result.level];
   // RunMate label (Good/Fair/Excellent/Low) is computed from the raw score,
   // separate from the coaching state label (ควรซ้อมเบา, ควรพักฟื้น, etc.)
   const runmateLabel = getRunMateReadinessLabel(result.score);
 
-  const showNotPaceDay = result.score >= 66 && result.level === "yellow";
-  const displayedSummary = showNotPaceDay
-    ? "ความพร้อมพอขยับได้ แต่ HR/โหลดซ้อม/การนอนยังบอกว่าควรคุม intensity วันนี้ไม่ใช่วันกด pace"
-    : result.summary;
+  const displayedSummary = result.summary;
 
   return (
     <section className="card rounded-3xl p-5 transition-all duration-300">
@@ -165,7 +156,7 @@ export function ReadinessCard() {
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
           <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--recovery-blue)]">
-            {todayReadiness.isFallback ? "ประเมินความพร้อมล่าสุด" : "ประเมินความพร้อมวันนี้"}
+            {todayReadiness.isFallback ? "ระบบ Recovery ล่าสุด" : "ระบบ Recovery วันนี้"}
           </span>
           {/* Coaching state — what to do today */}
           <h2 className={`mt-1.5 text-lg font-extrabold ${colors.text}`}>
