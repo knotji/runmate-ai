@@ -54,7 +54,7 @@ test("Weekly Review shows sleep avg when sleep records exist", async ({ page }) 
   const weeklyReview = page.locator("section").filter({ hasText: "แนวโน้ม Recovery 7 วัน" }).first();
   await expect(weeklyReview).toBeVisible();
   // Sleep cell shows hours value, not just a dash
-  const sleepCell = weeklyReview.locator("div").filter({ hasText: "นอนเฉลี่ย" });
+  const sleepCell = weeklyReview.locator(".rounded-xl").filter({ hasText: "นอนเฉลี่ย" });
   await expect(sleepCell.getByText(/\d+\.?\d* ชม\./)).toBeVisible();
   // Nights count shown
   await expect(sleepCell.getByText(/\d+ คืน/)).toBeVisible();
@@ -71,7 +71,7 @@ test("Weekly Review sleep avg counts unique nights only (no double-count)", asyn
   await gotoApp(page, "/logs");
 
   const weeklyReview = page.locator("section").filter({ hasText: "แนวโน้ม Recovery 7 วัน" }).first();
-  const sleepCell = weeklyReview.locator("div").filter({ hasText: "นอนเฉลี่ย" });
+  const sleepCell = weeklyReview.locator(".rounded-xl").filter({ hasText: "นอนเฉลี่ย" });
   // Should count 1 night (deduped), not 2
   await expect(sleepCell.getByText("1 คืน")).toBeVisible();
 });
