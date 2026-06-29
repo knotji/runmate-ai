@@ -7,7 +7,8 @@ import { RaceGoalForm } from "@/components/RaceGoalForm";
 import { LoadingButton } from "@/components/LoadingButton";
 import { TrainingPhaseCard } from "@/components/TrainingPhaseCard";
 import { WeeklyPlanCard } from "@/components/WeeklyPlanCard";
-import { buildCoachContextFromSupabase } from "@/lib/buildCoachContext";
+import { buildCoachContextFromSupabase, type CoachContext } from "@/lib/buildCoachContext";
+import { getCoachCautionFactors } from "@/lib/coachCautionFactors";
 import { loadHistoryItems } from "@/lib/cloudHistory";
 import { suggestStrengthRoutine } from "@/lib/strengthRoutineSelect";
 import { invalidateCoachCache } from "@/lib/invalidateCoachCache";
@@ -32,9 +33,15 @@ export default function RaceGoalPage() {
   const [refreshError, setRefreshError] = useState(false);
   const [raceResults, setRaceResults] = useState<RaceResult[]>([]);
   const [planFreshness, setPlanFreshness] = useState<PlanFreshness | null>(null);
+  const [coachContext, setCoachContext] = useState<CoachContext | null>(null);
 
   useEffect(() => {
-    Promise.all([loadActiveRaceGoalAndPlan(), loadRaceResults(10)]).then(([result, completed]) => {
+    Promise.all([
+      loadActiveRaceGoalAndPlan(),
+      loadRaceResults(10),
+      buildCoachContextFromSupabase()
+    ]).then(([result, completed, context]) => {
+      setCoachContext(context);
       let loadedPlan: RacePlan | null = null;
       let loadedResults: RaceResult[] = [];
       if (result.ok) {
@@ -57,6 +64,7 @@ export default function RaceGoalPage() {
   useEffect(() => {
     function handleCloudUpdate() {
       void refreshRacePlanFreshness(plan, raceResults);
+      void buildCoachContextFromSupabase().then((context) => setCoachContext(context));
     }
     window.addEventListener("runmate:cloud-data-updated", handleCloudUpdate);
     return () => window.removeEventListener("runmate:cloud-data-updated", handleCloudUpdate);
@@ -135,8 +143,8 @@ export default function RaceGoalPage() {
         <>
           <RaceCountdownCard goal={goal} phase={plan.currentPhase} />
           <PlanAtGlance plan={plan} freshness={planFreshness} />
-          {selectedTodayWorkout ? <TodayWorkoutCard workout={normalizeForDisplay(selectedTodayWorkout)} /> : null}
-          {plan.weeklyPlan?.length ? <ActionableWeekCard workouts={plan.weeklyPlan.map(normalizeForDisplay)} /> : null}
+          {selectedTodayWorkout ? <TodayWorkoutCard workout={normalizeForDisplay(selectedTodayWorkout)} coachContext={coachContext} /> : null}
+          {plan.weeklyPlan?.length ? <ActionableWeekCard workouts={plan.weeklyPlan.map(normalizeForDisplay)} coachContext={coachContext} /> : null}
 
           <section className="card space-y-3 p-5">
             <div className="flex items-center justify-between gap-3">
@@ -224,8 +232,42 @@ function RacePlanFreshnessNote({ freshness }: { freshness: PlanFreshness | null 
   );
 }
 
-function TodayWorkoutCard({ workout }: { workout: WeekWorkout }) {
+function isLongRun(workout: WeekWorkout): boolean {
+  const type = (workout.workoutType ?? "").toLowerCase();
+  const desc = (workout.description ?? "").toLowerCase();
+  const isRun = isRunType(workout.workoutType ?? "");
+  const distance = workout.distanceKm ?? 0;
+  return isRun && (
+    type.includes("long") ||
+    type.includes("ยาว") ||
+    desc.includes("long run") ||
+    desc.includes("วิ่งยาว") ||
+    distance >= 10
+  );
+}
+
+function getAdaptiveLongRunNote(workout: WeekWorkout, context: CoachContext | null): string | null {
+  if (!context) return null;
+  const factors = getCoachCautionFactors(context);
+  const isLowSleepAvg = factors.some((f) => f.key === "sleepAvgLow");
+  const isLowReadiness = context.avgReadiness != null && context.avgReadiness < 70;
+  const isHighWeeklyLoad = factors.some((f) => f.key === "weeklyLoadHigh");
+  const hasPainHistory = factors.some((f) => f.key === "activePain" || f.key === "recentPain");
+
+  const isLong = isLongRun(workout);
+  if (!isLong) return null;
+
+  const hasCaution = isLowSleepAvg || isLowReadiness || isHighWeeklyLoad || hasPainHistory;
+  if (!hasCaution) return null;
+
+  const d = workout.distanceKm;
+  const reducedText = d ? ` ลดเหลือ ${Math.round(d * 0.8)}–${Math.round(d * 0.9)} km` : " ลดระยะลง 10–20%";
+  return `ปรับตามสภาพ: ถ้าฟื้นตัวไม่ดี${reducedText} (ถ้าคืนก่อนนอนน้อยหรือ HR ลอย ให้ลด Long Run ลง 10–20% · เป้าหมายวันนี้คือสะสมเวลา easy ไม่ใช่ฝืนระยะ · ถ้าเจ็บกลับมา ให้หยุดที่เดิน/จ็อกเบา)`;
+}
+
+function TodayWorkoutCard({ workout, coachContext }: { workout: WeekWorkout; coachContext: CoachContext | null }) {
   const isStrength = isStrengthOrMobilityType(workout.workoutType);
+  const adaptiveNote = getAdaptiveLongRunNote(workout, coachContext);
   return (
     <section className="card border border-[#b7dcc4] bg-[#f4fbf6] p-5">
       <div className="flex items-start justify-between gap-3">
@@ -251,11 +293,16 @@ function TodayWorkoutCard({ workout }: { workout: WeekWorkout }) {
           {workout.adjustment ? <InfoLine label="ปรับตามสภาพ" value={workout.adjustment} /> : null}
         </>
       )}
+      {adaptiveNote && (
+        <div className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800 font-medium border border-amber-200">
+          ⚠️ {adaptiveNote}
+        </div>
+      )}
     </section>
   );
 }
 
-function ActionableWeekCard({ workouts }: { workouts: WeekWorkout[] }) {
+function ActionableWeekCard({ workouts, coachContext }: { workouts: WeekWorkout[]; coachContext: CoachContext | null }) {
   return (
     <section className="card p-5">
       <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#6f8fa6]">แผนสัปดาห์นี้</p>
@@ -263,6 +310,7 @@ function ActionableWeekCard({ workouts }: { workouts: WeekWorkout[] }) {
       <div className="mt-4 space-y-3">
         {workouts.map((workout, index) => {
           const isStrength = isStrengthOrMobilityType(workout.workoutType);
+          const adaptiveNote = getAdaptiveLongRunNote(workout, coachContext);
           return (
             <div key={`${workout.day}-${workout.workoutType}-${index}`} className="rounded-2xl bg-white/80 p-4 shadow-sm ring-1 ring-slate-100">
               <div className="flex items-start justify-between gap-3">
@@ -287,6 +335,11 @@ function ActionableWeekCard({ workouts }: { workouts: WeekWorkout[] }) {
                   {workout.purpose ? <InfoLine label="เป้าหมาย" value={workout.purpose} /> : null}
                   {workout.adjustment ? <InfoLine label="ปรับตามสภาพ" value={workout.adjustment} /> : null}
                 </>
+              )}
+              {adaptiveNote && (
+                <div className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800 font-medium border border-amber-200">
+                  ⚠️ {adaptiveNote}
+                </div>
               )}
             </div>
           );

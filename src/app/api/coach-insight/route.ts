@@ -6,6 +6,7 @@ import { getTodayReadiness, getTodayPlannedWorkout, getReadinessCategoryLabel } 
 import type { DailyCoachInsight } from "@/types/ai";
 import type { WeekWorkout } from "@/types/race";
 import { todayBangkokDateKey } from "@/lib/date";
+import { getCoachCautionFactors } from "@/lib/coachCautionFactors";
 
 const FALLBACK: DailyCoachInsight = {
   todayReadiness: 70,
@@ -80,7 +81,7 @@ export async function POST(request: Request) {
     );
 
     const result = await Promise.race([aiPromise, timeoutPromise]);
-    const guarded = applyPostWorkoutRecoveryGuard(applyTodayPainGuard(normalizeInsight(result.data, ctx), ctx), ctx);
+    const guarded = applyCautionFactorsGuard(applyPostWorkoutRecoveryGuard(applyTodayPainGuard(normalizeInsight(result.data, ctx), ctx), ctx), ctx);
     if (process.env.NODE_ENV === "development") {
       console.info("[today-insight-ai-result]", {
         source: result.source,
@@ -477,6 +478,23 @@ function applyPostWorkoutRecoveryGuard(insight: DailyCoachInsight, ctx: CoachCon
   };
 }
 
+function applyCautionFactorsGuard(insight: DailyCoachInsight, ctx: CoachContext): DailyCoachInsight {
+  const factors = getCoachCautionFactors(ctx);
+  const isRun = /(run|วิ่ง|ซ้อม|easy|tempo|long)/i.test(insight.workoutRec ?? "");
+  const hasCaution = factors.length > 0;
+  
+  if (insight.todayReadiness >= 66 && hasCaution && isRun) {
+    const suffix = " วันนี้ความพร้อมพอขยับได้ แต่ยังมีปัจจัยควรระวัง วันนี้จึงไม่ใช่เวลากด pace หรือเร่งความเร็ว เน้นวิ่งแบบ easy หรือ recovery เท่านั้นครับ";
+    if (insight.coachMessage && !insight.coachMessage.includes("ไม่ใช่เวลากด pace")) {
+      return {
+        ...insight,
+        coachMessage: insight.coachMessage.trim() + suffix,
+      };
+    }
+  }
+  return insight;
+}
+
 function applyTodayPainGuard(insight: DailyCoachInsight, ctx: CoachContext): DailyCoachInsight {
   const cleaned: DailyCoachInsight = {
     ...FALLBACK,
@@ -761,6 +779,7 @@ const SYSTEM_PROMPT = `คุณคือ RunMate AI โค้ชวิ่งส
 
 กฎ:
 - ถ้า readiness < 65 หรือนอนน้อย → แนะนำ easy/recovery ไม่ใช่ hard session
+- ถ้ามีอาการเจ็บปวดหรือ caution factors (เช่น โหลดสะสมสูง, นอนเฉลี่ยต่ำ, HR พักสูงขึ้น) แม้ความพร้อมโดยรวมจะเป็น Good (66-79) แต่ให้แนะนำวิ่งแบบ Easy/Recovery คุมความหนัก และเน้นย้ำว่า "วันนี้ไม่ใช่เวลากด pace หรือเร่งความเร็ว"
 - ถ้าวิ่งติดกัน 3+ วัน → เตือนให้ rest หรือ cross-train
 - ถ้าไม่มีข้อมูล workout → ให้ insight จาก sleep อย่างเดียว
 - coachMessage ต้องมี why เสมอ ไม่ใช่แค่สั่ง

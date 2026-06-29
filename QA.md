@@ -127,3 +127,13 @@ On PowerShell, set both `$env:E2E_BASE_URL` and `$env:E2E_PRODUCTION_BASE_URL` t
 - [ ] Settings -> Data tab displays correct platform-specific install instructions (iOS vs Android).
 - [ ] Install button is displayed and functional on Android Chrome when `beforeinstallprompt` is available.
 
+## 9. Coach Intelligence Polish
+
+- [ ] Today page displays "วิ่งได้ แต่ต้อง easy จริง ๆ" guidelines with bullets when Easy Run is recommended under caution factors (e.g. low sleep average, high weekly load, resting HR elevated, pain history).
+- [ ] Today page displays pre-run carb guidelines box ("ก่อนวิ่งเติมคาร์บเบา ๆ 30–50g") when workout is run and day-of carbs/meals are low.
+- [ ] Today page displays post-run recovery protein/carb guidelines box ("หลังซ้อมเน้นโปรตีน + คาร์บเพื่อฟื้นตัว") if primary workout is completed.
+- [ ] Coach page Circular Readiness Card summary displays the "not a pace day" override ("ความพร้อมพอขยับได้ แต่ HR/โหลดซ้อม/การนอนยังบอกว่าควรคุม intensity วันนี้ไม่ใช่วันกด pace") when score >= 66 but coaching level is yellow (ควรซ้อมเบา).
+- [ ] Race page Today's Workout Card and Actionable Week Card display adaptive reduction warning note ("ปรับตามสภาพ: ถ้าฟื้นตัวไม่ดี ลดเหลือ...") on Long Run workouts under caution factors.
+- [ ] Today page Explanation Panel ("ทำไมวันนี้แนะนำแบบนี้?") lists specific sleep, training load, pain history, and walk/jog fallback options correctly.
+
+

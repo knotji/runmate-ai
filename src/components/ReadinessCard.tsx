@@ -154,6 +154,11 @@ export function ReadinessCard() {
   // separate from the coaching state label (ควรซ้อมเบา, ควรพักฟื้น, etc.)
   const runmateLabel = getRunMateReadinessLabel(result.score);
 
+  const showNotPaceDay = result.score >= 66 && result.level === "yellow";
+  const displayedSummary = showNotPaceDay
+    ? "ความพร้อมพอขยับได้ แต่ HR/โหลดซ้อม/การนอนยังบอกว่าควรคุม intensity วันนี้ไม่ใช่วันกด pace"
+    : result.summary;
+
   return (
     <section className="card rounded-3xl p-5 transition-all duration-300">
       {/* Header Info */}
@@ -177,7 +182,7 @@ export function ReadinessCard() {
           ) : (
             <>
               <p className="mt-1 text-sm font-semibold text-[var(--foreground)]">
-                {result.summary}
+                {displayedSummary}
               </p>
               {!collapsed && (restingHrDelta !== null || hrvDelta !== null) && (
                 <div className="mt-1.5 flex flex-wrap gap-1.5">

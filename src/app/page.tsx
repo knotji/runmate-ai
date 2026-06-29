@@ -8,6 +8,7 @@ import { NutritionBalanceCard } from "@/components/NutritionBalanceCard";
 import { NextMealCard } from "@/components/NextMealCard";
 import type { NextMealRecommendation } from "@/app/api/next-meal/route";
 import { buildTodayRecommendationReasons } from "@/lib/todayReasons";
+import { getCoachCautionFactors } from "@/lib/coachCautionFactors";
 import { formatThaiDate, getHistoryItemDateKey, todayBangkokDateKey } from "@/lib/date";
 import { buildCoachContextFromSupabase, type CoachContext, type NutritionDaySummary, type PainSummary, type TodayCompletedWorkoutSummary } from "@/lib/buildCoachContext";
 import { getTodayReadiness, getTodayPlannedWorkout, getReadinessCategoryLabel, checkPlannedWorkoutMatching } from "@/lib/todayPlanning";
@@ -570,6 +571,12 @@ function PreWorkoutFocusContent({
   isFallback?: boolean;
 }) {
   const decision = getDecisionCard(insight, context);
+  const cautionFactors = getCoachCautionFactors(context);
+
+  const isRun = /(run|วิ่ง|ซ้อม|easy|tempo|long)/i.test(insight.workoutRec ?? "");
+  const hasCaution = cautionFactors.length > 0;
+  const isLowFuel = cautionFactors.some(f => f.key === "lowFuel");
+  const showFuelReminder = isRun && isLowFuel;
 
   return (
     <div className="space-y-3">
@@ -619,12 +626,37 @@ function PreWorkoutFocusContent({
           })()}
         </div>
       ) : null}
+      
       <h2 className="line-clamp-2 text-2xl font-bold text-[#17201d]">{insight.workoutRec}</h2>
       {hasPace && (
         <span className="mt-2 inline-block rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
           {insight.workoutTarget}
         </span>
       )}
+
+      {isRun && hasCaution && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50/40 p-4 space-y-2 text-xs leading-relaxed text-amber-900">
+          <p className="font-bold text-sm">💡 วิ่งได้ แต่ต้อง easy จริง ๆ</p>
+          <p>ถ้า HR ลอย ขาหนัก หรือรู้สึกเพลีย ให้ลดเหลือเดิน/จ็อกเบา 30–40 นาทีแทน</p>
+          <ul className="list-disc pl-4 space-y-1 font-medium">
+            <li>คุม HR ให้อยู่โซน easy</li>
+            <li>ไม่ต้องกด pace</li>
+            <li>ถ้า HR ลอยหรือขาหนัก ให้ตัดระยะทันที</li>
+            {isLowFuel && <li>เติมคาร์บเบา ๆ ก่อนวิ่งถ้ายังไม่ได้กินมื้อหลัก</li>}
+          </ul>
+        </div>
+      )}
+
+      {showFuelReminder && (
+        <div className="mt-2 rounded-2xl bg-blue-50/60 p-3 text-xs leading-relaxed text-blue-900 border border-blue-100 flex items-start gap-2">
+          <span className="text-sm">🍌</span>
+          <div>
+            <p className="font-bold">เติมพลังงานก่อนวิ่ง</p>
+            <p className="mt-0.5">ก่อนวิ่งเติมคาร์บเบา ๆ 30–50g เช่น กล้วย 1 ลูก, ขนมปัง 1–2 แผ่น หรือเครื่องดื่มเกลือแร่ถ้าอากาศร้อน</p>
+          </div>
+        </div>
+      )}
+
       {insight.keyObservation && insight.keyObservation !== "-" && (
         <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-slate-500">{insight.keyObservation}</p>
       )}
@@ -661,6 +693,15 @@ function PostWorkoutFocusContent({ insight, context }: { insight: DailyCoachInsi
         <p className="mt-2 text-xs leading-relaxed text-slate-500 bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3">
           💡 บันทึกกิจกรรมวันนี้แล้ว ไม่จำเป็นต้องซ้อมหนักซ้ำอีก เน้นการจิบน้ำ เติมโปรตีน ขยับเบา ๆ และนอนหลับให้เพียงพอเพื่อฟื้นฟูกล้ามเนื้อ
         </p>
+
+        <div className="mt-2 rounded-2xl bg-emerald-50/60 p-3 text-xs leading-relaxed text-emerald-900 border border-emerald-100 flex items-start gap-2">
+          <span className="text-sm">🍳</span>
+          <div>
+            <p className="font-bold">โภชนาการฟื้นฟูหลังซ้อม</p>
+            <p className="mt-0.5">หลังซ้อมเน้นโปรตีน + คาร์บเพื่อฟื้นตัว (ควรเติมโปรตีน 25–35 g ร่วมกับคาร์บย่อยง่าย)</p>
+          </div>
+        </div>
+
         <div className="mt-3 rounded-2xl bg-[var(--primary-soft)] px-4 py-3 text-sm font-medium leading-relaxed text-[var(--foreground)]">
           <ul className="space-y-1.5">
             {items.map((item) => (

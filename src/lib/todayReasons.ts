@@ -4,6 +4,7 @@ import type { DailyCoachInsight } from "@/types/ai";
 import type { ReadinessV2Result } from "@/lib/readinessV2";
 import { getRunMateReadinessLabel } from "@/lib/readinessV2";
 import { getTodayPlannedWorkout } from "@/lib/todayPlanning";
+import { getCoachCautionFactors } from "./coachCautionFactors";
 
 export function buildTodayRecommendationReasons(
   ctx: CoachContext | null,
@@ -13,6 +14,7 @@ export function buildTodayRecommendationReasons(
 ): string[] {
   if (!ctx && !insight) return [];
   const reasons: string[] = [];
+  const factors = getCoachCautionFactors(ctx);
 
   // 1. Race plan original workout
   if (ctx?.racePlan) {
@@ -41,44 +43,48 @@ export function buildTodayRecommendationReasons(
     reasons.push(v2.cap != null ? `${readinessLine} — ถูกจำกัดคะแนนเพราะมีอาการเจ็บ` : readinessLine);
   }
 
-  // 3. Training load
+  // 3. Sleep Average Check
+  if (ctx && ctx.sleepAvg7dHours != null && ctx.sleepAvg7dHours < 6) {
+    reasons.push(`นอนเฉลี่ย ${ctx.sleepAvg7dHours.toFixed(1)} ชม. ยังควรเพิ่ม`);
+  }
+
+  // 4. Training load / load high
   if (ctx) {
-    if (ctx.totalRunKm > 0) {
+    const isHighLoad = factors.some(f => f.key === "weeklyLoadHigh");
+    if (isHighLoad) {
+      reasons.push(`โหลดสัปดาห์ ${Math.round(ctx.totalRunKm * 10) / 10} km สูงพอสมควร`);
+    } else if (ctx.totalRunKm > 0) {
       reasons.push(`โหลดสัปดาห์ ${Math.round(ctx.totalRunKm * 10) / 10} km${ctx.runDays7d > 0 ? ` ใน ${ctx.runDays7d} วัน` : ""}`);
-    } else if (ctx.workouts7d.length > 0) {
-      reasons.push(`ซ้อม ${ctx.workouts7d.length} ครั้งในสัปดาห์นี้`);
-    } else {
-      reasons.push("ยังไม่มีบันทึกซ้อมในสัปดาห์นี้");
     }
   }
 
-  // 4. Pain
+  // 5. Pain
   if (ctx?.latestPain) {
     const p = ctx.latestPain;
     if (p.hasResolvedPain) {
-      reasons.push(`อาการเจ็บ${p.painLocation ? ` (${p.painLocation})` : ""} หายแล้ว แต่ยังควรค่อย ๆ กลับมาซ้อม`);
+      reasons.push(`อาการเจ็บ${p.painLocation ? ` (${p.painLocation})` : ""}หายแล้ว แต่ยังควรค่อย ๆ กลับโหลด`);
     } else if (p.hasActivePain) {
       reasons.push(`มีอาการเจ็บ${p.painLocation ? ` (${p.painLocation})` : ""} ระดับ ${p.painLevel}/10 — ปรับให้เบาลง`);
     }
-  } else if (ctx && !ctx.activePain && !ctx.recentPainHistory) {
-    reasons.push("ไม่มีอาการเจ็บล่าสุด");
   }
 
-  // 5. Meals / activity today
-  const mealCount = ctx?.mealsToday?.length ?? 0;
-  const hasActivity = ctx?.hasWorkoutToday ?? false;
-  if (mealCount === 0 && !hasActivity) {
-    reasons.push("ยังไม่มีบันทึกอาหารและกิจกรรมวันนี้ — ระบบใช้ข้อมูลสะสม 7 วัน");
-  } else if (mealCount > 0 && !hasActivity) {
-    reasons.push(`วันนี้มีอาหาร ${mealCount} มื้อแล้ว แต่ยังไม่มีบันทึกกิจกรรม`);
-  } else if (mealCount === 0 && hasActivity) {
-    reasons.push("มีบันทึกกิจกรรมวันนี้แล้ว แต่ยังไม่มีข้อมูลอาหาร");
+  // 6. Fueling check
+  const isLowFuel = factors.some(f => f.key === "lowFuel");
+  if (isLowFuel && ctx) {
+    reasons.push(`อาหารวันนี้คาร์บยังต่ำ ควรเติมพลังงานเบา ๆ ก่อนซ้อม`);
   }
 
-  // 6. Resulting recommendation
+  // 7. Resulting recommendation
   if (insight?.workoutRec) {
-    reasons.push(`เลยแนะนำให้: ${insight.workoutRec}`);
+    const isRun = /(run|วิ่ง|ซ้อม|easy|tempo|long)/i.test(insight.workoutRec);
+    const hasCaution = factors.length > 0;
+    if (isRun && hasCaution) {
+      reasons.push(`เลยแนะนำ Easy Run ไม่ใช่ tempo/interval`);
+      reasons.push(`ถ้า HR ลอยหรือขาหนัก ให้ลดเป็น walk/jog 30–40 นาที`);
+    } else {
+      reasons.push(`เลยแนะนำให้: ${insight.workoutRec}`);
+    }
   }
 
-  return reasons.slice(0, 6);
+  return reasons.slice(0, 7);
 }
