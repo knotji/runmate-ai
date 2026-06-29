@@ -112,5 +112,7 @@ tests/
 - Readiness score and coaching recommendation state are separate: score uses `getRunMateReadinessLabel()` (Good/Fair/etc.), coaching state label describes today's recommendation ("ควรซ้อมเบา", "ควรพักฟื้น")
 - Readiness means current/day-context recovery readiness, not a final whole-day score. Workouts today can shift recommendation toward recovery; they should not be treated as immediate readiness improvement.
 - **Coach Caution Factors**: Identified by `getCoachCautionFactors(context)`. Gathers warning indicators (e.g. low sleep average, low daily sleep, high weekly run distance, elevated resting HR, resolved/active pain, low fuel carbs, completed workouts). Modifies summary description to "not a pace day" when readiness score is Good/Excellent but coaching level is yellow (ควรซ้อมเบา), adds conditional easy-run guidelines and carb suggestions to pre-workout/post-workout cards, and appends adaptive reduction notes on Race long run workouts.
+- **Sleep Fallback Copy**: When today's sleep is missing but latest sleep exists, RunMate may provide a temporary recommendation, but UI must clearly label it as based on latest data, not today's sleep.
+
 
 

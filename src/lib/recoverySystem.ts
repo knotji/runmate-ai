@@ -1,4 +1,6 @@
 import type { CoachContext } from "./buildCoachContext";
+import { formatSleepMinutesThai } from "./sleepDuration";
+
 
 export type RecoveryAxisStatus = "low" | "moderate" | "good" | "high";
 
@@ -67,7 +69,7 @@ export function buildRunMateRecoverySystem(
       score: 70,
       status: "good" as const,
       label: "ดี",
-      summary: "ไม่มีข้อมูลบันทึกการนอน ใช้ค่าเริ่มต้นปกติ",
+      summary: "ยังไม่มีข้อมูลการนอน",
       reasons: ["ยังไม่มีบันทึกการนอน"],
       missing: ["บันทึกการนอน"],
     },
@@ -465,6 +467,15 @@ export function buildRunMateRecoverySystem(
     sleepStatus = "low";
     sleepLabel = "ต่ำ";
     sleepSummary = "นอนยังไม่พอเต็มที่ ควรนอนชดเชยสะสม";
+  }
+
+  // Override summary based on sleep presence
+  if (context.sleep7d.length === 0 && manualSleepScore == null) {
+    sleepSummary = "ยังไม่มีข้อมูลการนอน";
+  } else if (!hasSleepToday && manualSleepScore == null) {
+    sleepSummary = "ยังไม่มีการนอนวันนี้ · ใช้ข้อมูลล่าสุด";
+  } else if (latestSleepDurationMin != null) {
+    sleepSummary = `นอนวันนี้ ${formatSleepMinutesThai(latestSleepDurationMin)}`;
   }
 
   const sleepAxis: RecoveryAxis = {

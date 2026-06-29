@@ -580,6 +580,10 @@ function PreWorkoutFocusContent({
   const isLowFuel = cautionFactors.some(f => f.key === "lowFuel");
   const showFuelReminder = isRun && isLowFuel;
 
+  const hasSleepToday = context ? context.sleep7d.some((s) => s.date === context.todayDate) : false;
+  const hasLatestSleep = context ? context.sleep7d.length > 0 : false;
+  const isUsingLatestSleepBecauseTodayMissing = !hasSleepToday && hasLatestSleep;
+
   return (
     <div className="space-y-3">
       {decision && (
@@ -629,6 +633,12 @@ function PreWorkoutFocusContent({
         </div>
       ) : null}
       
+      {isUsingLatestSleepBecauseTodayMissing && (
+        <div className="rounded-2xl border border-[var(--color-info-soft)] bg-[var(--color-info-soft)] px-3 py-2 text-xs leading-relaxed text-[var(--color-info)] font-semibold">
+          ยังไม่มีข้อมูลการนอนวันนี้ — คำแนะนำนี้อิงจากข้อมูลล่าสุด
+        </div>
+      )}
+
       <h2 className="line-clamp-2 text-2xl font-bold text-[#17201d]">{insight.workoutRec}</h2>
       {hasPace && (
         <span className="mt-2 inline-block rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
@@ -714,12 +724,21 @@ function PostWorkoutFocusContent({ insight, context }: { insight: DailyCoachInsi
   const target = todayProteinTarget(context.profile);
   const isProteinNearTarget = protein != null && target > 0 && (protein / target >= 0.7);
 
+  const hasSleepToday = context.sleep7d.some((s) => s.date === context.todayDate);
+  const hasLatestSleep = context.sleep7d.length > 0;
+  const isUsingLatestSleepBecauseTodayMissing = !hasSleepToday && hasLatestSleep;
+
   return (
     <div className="space-y-2.5">
       {matching.isUncertain && (
         <p className="rounded-2xl bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 border border-amber-200">
           ⚠️ วันนี้มีบันทึกกิจกรรมแล้ว (อาจแตกต่างจากแผนที่ตั้งไว้) แนะนำเน้นฟื้นตัวและงดซ้อมหนักซ้ำ
         </p>
+      )}
+      {isUsingLatestSleepBecauseTodayMissing && (
+        <div className="rounded-2xl border border-[var(--color-info-soft)] bg-[var(--color-info-soft)] px-3 py-2 text-xs leading-relaxed text-[var(--color-info)] font-semibold">
+          ยังไม่มีข้อมูลการนอนวันนี้ — คำแนะนำนี้อิงจากข้อมูลล่าสุด
+        </div>
       )}
       <div>
         <h2 className="text-2xl font-bold text-[#17201d]">{title}</h2>
@@ -1495,6 +1514,11 @@ function TodaySnapshotCard({
           </summary>
           <div className="mt-1.5 rounded-2xl bg-slate-50 p-3 leading-relaxed text-slate-500 border border-slate-100 space-y-1.5">
             <p>แต่ละแกนให้คะแนน 0–100 เพื่อช่วยดูว่าร่างกายพร้อมแค่ไหน โหลดสะสมเท่าไร นอนพอไหม และกินพอรองรับไหม</p>
+            {!hasSleepToday && (
+              <p className="text-[10.5px] text-slate-500 font-semibold bg-slate-100/50 p-1.5 rounded-lg border border-slate-200/50">
+                วันนี้ยังไม่มีข้อมูลการนอน จึงใช้ข้อมูลล่าสุดเพื่อประเมินชั่วคราว
+              </p>
+            )}
             {recSys && recSys.axes.load.score >= 55 && (
               <p className="text-[10px] text-amber-700 font-semibold bg-amber-50/50 p-1.5 rounded-lg border border-amber-100/50">
                 ⚠️ สำหรับโหลดซ้อม คะแนนสูงหมายถึงโหลดสะสมสูง จึงควรคุมความหนัก ไม่ใช่คะแนนดีเสมอไป

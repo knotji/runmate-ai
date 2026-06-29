@@ -52,6 +52,15 @@
 - [ ] Today page remains fully usable and displays the fallback recommendation when timeouts occur, without showing raw error text or AbortError messages to the user.
 - [ ] Daily check still works.
 - [ ] End-of-day summary card displays copy warning that it is a summary note and not a separate Daily Score.
+- [ ] Morning before sleep upload:
+  - Today shows latest/fallback wording ("Readiness ล่าสุด", "ยังไม่มีข้อมูลการนอนวันนี้ — คำแนะนำนี้อิงจากข้อมูลล่าสุด").
+  - Sleep axis says no today sleep / using latest ("ยังไม่มีการนอนวันนี้ · ใช้ข้อมูลล่าสุด").
+  - Daily check still marks sleep missing ("บันทึกการนอน" is not done).
+- [ ] After sleep upload:
+  - Fallback wording disappears.
+  - Daily check updates (marked done, count increases).
+  - Sleep axis uses today's sleep ("นอนวันนี้ X ชม. Y นาที").
+
 
 ## 4. Coach
 
