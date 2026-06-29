@@ -13,7 +13,7 @@ import { formatThaiDate, getHistoryItemDateKey, todayBangkokDateKey } from "@/li
 import { buildCoachContextFromSupabase, type CoachContext, type NutritionDaySummary, type PainSummary, type TodayCompletedWorkoutSummary } from "@/lib/buildCoachContext";
 import { getTodayReadiness, getTodayPlannedWorkout, getReadinessCategoryLabel, checkPlannedWorkoutMatching } from "@/lib/todayPlanning";
 import { getRunMateReadinessLabel } from "@/lib/readinessV2";
-import { buildRunMateRecoverySystem, getAxisTone, formatAxisScore } from "@/lib/recoverySystem";
+import { buildRunMateRecoverySystem, getAxisTone, formatAxisScore, getRecoveryAxisLabel } from "@/lib/recoverySystem";
 import { createHistoryItem, loadHistoryItems, saveHistoryItems } from "@/lib/cloudHistory";
 import { loadActiveRaceGoalAndPlan } from "@/lib/raceStorage";
 import { loadRoutinesFromSupabase, logCompletedStrength } from "@/lib/strength";
@@ -700,8 +700,8 @@ function PostWorkoutFocusContent({ insight, context }: { insight: DailyCoachInsi
 
   const parts2: string[] = [];
   if (context.recoverySystem) {
-    parts2.push(`ฟื้นตัว ${context.recoverySystem.axes.recovery.score}`);
-    parts2.push(`โหลด${context.recoverySystem.axes.load.label}`);
+    parts2.push(`ฟื้นตัว ${formatAxisScore(context.recoverySystem.axes.recovery.score)} ${getRecoveryAxisLabel("recovery", context.recoverySystem.axes.recovery.score)}`);
+    parts2.push(`โหลด ${formatAxisScore(context.recoverySystem.axes.load.score)} ${getRecoveryAxisLabel("load", context.recoverySystem.axes.load.score)}`);
   }
   const latestPain = context.latestPain;
   if (latestPain) {
@@ -1398,7 +1398,7 @@ function TodaySnapshotCard({
                 <div className="mt-1 flex items-baseline gap-1.5">
                   <span className="text-sm font-black text-slate-800">{formatAxisScore(recSys.axes.recovery.score)}</span>
                   <span className={`inline-block rounded px-1.5 py-0.5 text-[9px] font-bold ${getAxisBadgeClass("recovery", recSys.axes.recovery.score)}`}>
-                    {recSys.axes.recovery.label}
+                    {getRecoveryAxisLabel("recovery", recSys.axes.recovery.score)}
                   </span>
                 </div>
               </div>
@@ -1415,7 +1415,7 @@ function TodaySnapshotCard({
                 <div className="mt-1 flex items-baseline gap-1.5">
                   <span className="text-sm font-black text-slate-800">{formatAxisScore(recSys.axes.load.score)}</span>
                   <span className={`inline-block rounded px-1.5 py-0.5 text-[9px] font-bold ${getAxisBadgeClass("load", recSys.axes.load.score)}`}>
-                    {recSys.axes.load.label}
+                    {getRecoveryAxisLabel("load", recSys.axes.load.score)}
                   </span>
                 </div>
               </div>
@@ -1432,7 +1432,7 @@ function TodaySnapshotCard({
                 <div className="mt-1 flex items-baseline gap-1.5">
                   <span className="text-sm font-black text-slate-800">{formatAxisScore(recSys.axes.sleep.score)}</span>
                   <span className={`inline-block rounded px-1.5 py-0.5 text-[9px] font-bold ${getAxisBadgeClass("sleep", recSys.axes.sleep.score)}`}>
-                    {recSys.axes.sleep.label}
+                    {getRecoveryAxisLabel("sleep", recSys.axes.sleep.score)}
                   </span>
                 </div>
               </div>
@@ -1449,7 +1449,7 @@ function TodaySnapshotCard({
                 <div className="mt-1 flex items-baseline gap-1.5">
                   <span className="text-sm font-black text-slate-800">{formatAxisScore(recSys.axes.fuel.score)}</span>
                   <span className={`inline-block rounded px-1.5 py-0.5 text-[9px] font-bold ${getAxisBadgeClass("fuel", recSys.axes.fuel.score)}`}>
-                    {recSys.axes.fuel.label}
+                    {getRecoveryAxisLabel("fuel", recSys.axes.fuel.score)}
                   </span>
                 </div>
               </div>
@@ -1457,7 +1457,7 @@ function TodaySnapshotCard({
             </div>
           </div>
           <p className="text-[9.5px] text-slate-400 leading-normal">
-            * หมายเหตุ: โหลดซ้อมยิ่งสูง = ใช้ร่างกายสะสมเยอะ ไม่ได้แปลว่าคะแนนดี
+            * หมายเหตุ: โหลดซ้อมยิ่งสูง = ใช้ร่างกายสะสมเยอะ ไม่ได้แปลว่าคะแนนดี · แกนอื่น 0–100 ยิ่งสูงยิ่งดี
           </p>
         </div>
       )}
