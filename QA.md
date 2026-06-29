@@ -155,4 +155,13 @@ On PowerShell, set both `$env:E2E_BASE_URL` and `$env:E2E_PRODUCTION_BASE_URL` t
 - [ ] Recovery System explanation details clarify that high Load is strain/mileage volume, not goodness/score.
 - [ ] Collapsed daily logs render simplified gray/blue/green badges only and avoid busy orange/red clusters.
 
+## 10. Recovery System Score Audit Validation
+- [ ] Verify that Today's `/100` numeric values match the `axis.score` fields exactly.
+- [ ] Verify that Load axis tone is warning (amber) for high values, and success (green) for low values, conveying accumulated strain instead of "goodness".
+- [ ] Verify that overall Readiness matches `readinessV2.score` (which uses a weighted formula with pain-safety caps) and is separate from the `recovery` axis score.
+- [ ] Verify that when today's sleep is missing, the Sleep axis summary reads `"ยังไม่มีการนอนวันนี้ · ใช้ข้อมูลล่าสุด"` and the main card displays the fallback recommendation warning.
+- [ ] Verify that if active pain exists (pain level >= 5), the Recovery score is heavily penalized (at least `-40`) and the overall Readiness score is capped at `45`.
+- [ ] Verify that the Fuel score can reach 100/100 when meals >= 2, carbs are ok, and protein is ok, and displays `"ดีมาก"`.
+
+
 

@@ -114,5 +114,72 @@ tests/
 - **Coach Caution Factors**: Identified by `getCoachCautionFactors(context)`. Gathers warning indicators (e.g. low sleep average, low daily sleep, high weekly run distance, elevated resting HR, resolved/active pain, low fuel carbs, completed workouts). Modifies summary description to "not a pace day" when readiness score is Good/Excellent but coaching level is yellow (ควรซ้อมเบา), adds conditional easy-run guidelines and carb suggestions to pre-workout/post-workout cards, and appends adaptive reduction notes on Race long run workouts.
 - **Sleep Fallback Copy**: When today's sleep is missing but latest sleep exists, RunMate may provide a temporary recommendation, but UI must clearly label it as based on latest data, not today's sleep.
 
+## Recovery System Axis Scores Audit & Logic
+
+### 1. Overall Readiness (คะแนนรวม Readiness)
+- **Source**: `readinessV2.score` / `recoverySystem.overallScore`
+- **Type**: 100% Deterministic (Progressive readiness calculator).
+- **Inputs**:
+  - Sleep Support (45% weight)
+  - Training Load (25% weight)
+  - Nutrition Support (15% weight)
+  - Pain Safety (15% weight)
+- **Formula**: `sleepRaw * 0.45 + loadRaw * 0.25 + nutriRaw * 0.15 + painRaw * 0.15`
+- **Caps**: If active pain exists, score is capped at `45` (pain level >= 4 or red flags) or `60` (pain level 2-3).
+- **Fallback**: Defaults to `65` (Fair) if data is absent.
+- **Used in**: Today page readiness badge, Coach page circular card, and Report daily logs.
+
+### 2. ฟื้นตัว / Recovery Axis (⚡)
+- **Source**: `recSys.axes.recovery.score`
+- **Inputs**: Latest sleep score (baseline), HRV vs 7d rolling average delta, Resting HR vs 7d rolling average delta, active/resolved pain, and muscle soreness overrides.
+- **Formula/Rules**:
+  - Baseline starts at `latestSleepScore` (or `75` if missing).
+  - HRV Delta: delta < -10 (`-15`), delta < -4 (`-8`), delta > 10 (`+5`). Missing HRV (`-2`).
+  - Resting HR Delta: delta > 10 (`-20`), delta > 5 (`-12`), delta > 2 (`-5`), delta < -2 (`+3`).
+  - Active Pain: painLevel >= 5 (`-40`), painLevel < 5 (`-20`). Resolved pain/history within 7d (`-5`).
+  - Soreness: "sore" (`-15`), "light" (`-5`).
+  - Today Sleep Missing fallback penalty: `-3` (if latest sleep is used).
+- **Label Thresholds**: `>=80` ดีมาก · `>=66` ดี · `>=50` พอใช้ · `<50` ต่ำ.
+
+### 3. โหลดซ้อม / Load Axis (🏃)
+- **Source**: `recSys.axes.load.score`
+- **Tone**: Amber/Warning when high (strain indicator, NOT "goodness" score).
+- **Inputs**: 7d running volume (km), 7d runs count, 7d longest run distance, 7d strength session count, today's completed workout, yesterday's manual load override.
+- **Formula/Rules**:
+  - Starts at `0`.
+  - Weekly Volume: >50km (`+40`), >35km (`+30`), >15km (`+20`), >0km (`+10`).
+  - Frequency: >=5 runs (`+20`), >=3 runs (`+10`), >0 runs (`+5`).
+  - Long Run: >=15km (`+20`), >=8km (`+10`).
+  - Strength Count: >0 sessions (`+10`).
+  - Today Workout Completed: `+10`.
+  - Manual Yesterday Load: "heavy" (`+20`), "light" (`+8`).
+- **Label Thresholds**: `>=75` สูงมาก · `>=55` สูง · `>=35` ปานกลาง · `<35` ต่ำ.
+
+### 4. การนอน / Sleep Axis (🌙)
+- **Source**: `recSys.axes.sleep.score`
+- **Inputs**: Today sleep duration, latest sleep duration, 7-day average hours, sleep quality score, manual overrides.
+- **Formula/Rules**:
+  - Starts at baseline `70` (or `manualSleepScore`).
+  - Latest Sleep Duration: >=8h (`+15`), >=7h (`+10`), >=6h (`+0`), >=5h (`-15`), <5h (`-30`).
+  - 7d Average Duration: >=7.5h (`+15`), >=6.5h (`+5`), >=5.5h (`-15`), <5.5h (`-30`).
+  - Sleep quality score delta: >=85 (`+5`), <60 (`-10`).
+  - Energy override adjustments.
+- **Copy Selection**:
+  - No sleep data: `"ยังไม่มีข้อมูลการนอน"`
+  - Today sleep missing (latest used): `"ยังไม่มีการนอนวันนี้ · ใช้ข้อมูลล่าสุด"`
+  - Today sleep exists: `"นอนวันนี้ X ชม. Y นาที"`
+- **Label Thresholds**: `>=80` ดีมาก · `>=66` ดี · `>=50` พอใช้ · `<50` ต่ำ.
+
+### 5. พลังงาน / Fuel Axis (🍱)
+- **Source**: `recSys.axes.fuel.score`
+- **Definition**: Nutritional support from logged meals, not a complete diet quality check.
+- **Inputs**: Today's meal count, carb status/grams, protein status/grams, high fried fat status, sugar status.
+- **Formula/Rules**:
+  - Base Meal Count: 0 meals (`30`), 1 meal (`50`), >=2 meals (`70`).
+  - Carbs: "low" or <60g (`-15`), "ok"/"high" or >=60g (`+15`).
+  - Protein: "low" (`-10`), "ok"/"high" (`+15`).
+  - Fried Fat high (`-5`), Sugar high (`-5`).
+- **Label Thresholds**: `>=80` ดีมาก · `>=66` ดี · `>=50` พอใช้ · `<50` ยังน้อย.
+
 
 
