@@ -195,10 +195,10 @@ test("Weekly Review readiness avg shows count when coach.readinessScore is in da
 
   await gotoApp(page, "/logs");
 
-  const weeklyReview = page.locator("section").filter({ hasText: "โค้ชสรุปจาก 7 วันล่าสุด" }).first();
+  const weeklyReview = page.locator("section").filter({ hasText: "แนวโน้ม Recovery 7 วัน" }).first();
   await expect(weeklyReview).toBeVisible();
 
-  const sleepCell = weeklyReview.locator(".rounded-2xl").filter({ hasText: "นอนเฉลี่ย" });
+  const sleepCell = weeklyReview.locator("div").filter({ hasText: "นอนเฉลี่ย" });
 
   // Should show readiness avg, NOT just "–"
   await expect(sleepCell.getByText(/Readiness เฉลี่ย \d+/)).toBeVisible();
@@ -217,8 +217,8 @@ test("Weekly Review readiness avg does not double-count duplicate nights", async
 
   await gotoApp(page, "/logs");
 
-  const weeklyReview = page.locator("section").filter({ hasText: "โค้ชสรุปจาก 7 วันล่าสุด" }).first();
-  const sleepCell = weeklyReview.locator(".rounded-2xl").filter({ hasText: "นอนเฉลี่ย" });
+  const weeklyReview = page.locator("section").filter({ hasText: "แนวโน้ม Recovery 7 วัน" }).first();
+  const sleepCell = weeklyReview.locator("div").filter({ hasText: "นอนเฉลี่ย" });
 
   // Count should be 1, not 2
   await expect(sleepCell.getByText("1 วัน")).toBeVisible();

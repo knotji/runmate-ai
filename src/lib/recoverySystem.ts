@@ -342,16 +342,20 @@ export function buildRunMateRecoverySystem(
 
   if (loadScore >= 75) {
     loadStatus = "high";
+    loadLabel = "โหลดสูงมาก";
+    loadSummary = "สะสมโหลดซ้อมค่อนข้างสูงมากจากความถี่หรือระยะทางสัปดาห์นี้ ควรเน้นพักผ่อน";
+  } else if (loadScore >= 55) {
+    loadStatus = "high";
     loadLabel = "โหลดสูง";
-    loadSummary = "ซ้อมหนักหรือวิ่งยาวสะสมสัปดาห์นี้สูง ร่างกายตึงล้าสะสม";
-  } else if (loadScore >= 40) {
+    loadSummary = "โหลดซ้อมสะสมสูงกว่าปกติ ควร capped โหลดและเน้นความสม่ำเสมอ";
+  } else if (loadScore >= 35) {
     loadStatus = "moderate";
     loadLabel = "โหลดปานกลาง";
     loadSummary = "โหลดซ้อมระดับปกติ รักษาสภาพความแข็งแรงได้ดี";
   } else {
     loadStatus = "low";
     loadLabel = "โหลดต่ำ";
-    loadSummary = "โหลดซ้อมต่ำ ร่างกายยังสดชื่น ไม่มีอาการล้าสะสม";
+    loadSummary = "โหลดซ้อมค่อนข้างต่ำ ร่างกายยังสดชื่น ไม่มีอาการสะสมโหลดเหนื่อยล้า";
   }
 
   const loadAxis: RecoveryAxis = {
@@ -625,28 +629,44 @@ export function buildRunMateRecoverySystem(
   // =========================================================================
   const guardrails: string[] = [];
 
-  if (activePain && context.latestPain) {
-    guardrails.push(`มีอาการเจ็บ${context.latestPain.painLocation} ระดับ ${context.latestPain.painLevel}/10 แนะนำให้พักจากการวิ่งหรือเลือกจ็อก/เดินเบามาก ๆ เท่านั้น`);
-  }
+  const isCompleted = context.hasWorkoutToday;
 
-  if (recoveryScore < 50 || sleepScoreVal < 50) {
-    guardrails.push("วันนี้ไม่ใช่วันกด pace หรือเร่งความเร็ว เน้นวิ่งเก็บโซนแอโรบิกเบาเป็นหลัก");
-  }
+  if (isCompleted) {
+    guardrails.push("วันนี้ใช้แรงไปแล้ว ไม่ต้องซ้อมเพิ่ม");
 
-  if (loadScore >= 75) {
-    guardrails.push("ช่วงนี้สะสมโหลดซ้อมสะสมสัปดาห์นี้สูง คุม Easy ให้ Easy จริง ๆ เพื่อป้องกันอาการบาดเจ็บคืบคลาน");
-  }
+    if (activePain && context.latestPain) {
+      guardrails.push(`มีอาการเจ็บ${context.latestPain.painLocation} ระดับ ${context.latestPain.painLevel}/10 เน้นประคบเย็นและพักผ่อนฟื้นฟูอาการเจ็บ`);
+    } else if (recoveryScore < 50 || sleepScoreVal < 50 || loadScore >= 75) {
+      guardrails.push("ถ้าขาหนักหรือ HR ยังสูง ให้เหลือแค่เดินเบา/ยืดเบา");
+    }
 
-  if (sleepScoreVal < 60 && avgSleepHoursVal != null && avgSleepHoursVal < 6) {
-    guardrails.push("Sleep เฉลี่ยสะสมต่ำเกณฑ์ หากชีพจรลอยขณะวิ่งให้ตัดระยะลง 10-20% ทันที");
-  }
+    if (sleepScoreVal < 60) {
+      guardrails.push("คืนนี้เน้นนอนให้พอ เพื่อให้ร่างกายซ่อมตัว");
+    }
 
-  if (fuelScore < 60) {
-    guardrails.push("พลังงานสะสมอาหารวันนี้ยังน้อย แนะนำทานคาร์บย่อยง่าย เช่น กล้วยน้ำว้า 1 ลูก ก่อนวิ่ง 30 นาที");
-  }
+    if (fuelScore < 60) {
+      guardrails.push("เติมน้ำ + โปรตีน + คาร์บให้พอ");
+    }
+  } else {
+    if (activePain && context.latestPain) {
+      guardrails.push(`มีอาการเจ็บ${context.latestPain.painLocation} ระดับ ${context.latestPain.painLevel}/10 แนะนำให้พักจากการวิ่งหรือเลือกจ็อก/เดินเบามาก ๆ เท่านั้น`);
+    }
 
-  if (context.hasWorkoutToday) {
-    guardrails.push("วันนี้บันทึกกิจกรรมซ้อมแล้ว ไม่ควรซ้อมหนักซ้ำ เน้นโภชนาการและการฟื้นตัว");
+    if (recoveryScore < 50 || sleepScoreVal < 50) {
+      guardrails.push("วันนี้ไม่ใช่วันกด pace หรือเร่งความเร็ว เน้นวิ่งเก็บโซนแอโรบิกเบาเป็นหลัก");
+    }
+
+    if (loadScore >= 75) {
+      guardrails.push("ช่วงนี้สะสมโหลดซ้อมสะสมสัปดาห์นี้สูง คุม Easy ให้ Easy จริง ๆ เพื่อป้องกันอาการบาดเจ็บคืบคลาน");
+    }
+
+    if (sleepScoreVal < 60 && avgSleepHoursVal != null && avgSleepHoursVal < 6) {
+      guardrails.push("Sleep เฉลี่ยสะสมต่ำเกณฑ์ หากชีพจรลอยขณะวิ่งให้ตัดระยะลง 10-20% ทันที");
+    }
+
+    if (fuelScore < 60) {
+      guardrails.push("พลังงานสะสมอาหารวันนี้ยังน้อย แนะนำทานคาร์บย่อยง่าย เช่น กล้วยน้ำว้า 1 ลูก ก่อนวิ่ง 30 นาที");
+    }
   }
 
   if (guardrails.length === 0) {

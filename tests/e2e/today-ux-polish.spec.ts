@@ -316,7 +316,7 @@ test("Today snapshot shows Readiness explanation details and correct coverage la
   // Target explanation details
   await expect(page.getByText("ระบบ Recovery วันนี้คืออะไร?")).toBeVisible();
   await page.getByText("ระบบ Recovery วันนี้คืออะไร?").click();
-  await expect(page.getByText("ประเมินความพร้อมแบบ 4 แกนเพื่อปรับแผนให้ตรงสภาพร่างกาย:")).toBeVisible();
+  await expect(page.getByText("ระบบนี้ดู 4 เรื่อง: ฟื้นตัว โหลดซ้อม")).toBeVisible();
 });
 
 test("Report page shows updated readiness labels and disclaimers", async ({ page }) => {

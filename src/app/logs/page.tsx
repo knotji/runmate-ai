@@ -468,18 +468,8 @@ function DayCard({
   const readiness = getReadiness(dedupedSleeps);
   const totalKm = getTotalKm(workouts);
   const runKm = getTotalKm(workouts.filter(isRun));
-  const walkKm = getTotalKm(workouts.filter(isWalk));
   const mealCount = meals.length;
   const mealNutrition = getMealNutrition(meals);
-  const totalMealImages = meals.reduce((sum, item) => {
-    const d = extractMealData(item);
-    const sourceInfo = getMealSourceInfo(d);
-    if (sourceInfo.sourceType === "image") {
-      return sum + (d.imageCount ?? d.entries?.length ?? 1);
-    }
-    return sum;
-  }, 0);
-  const proteinStatus = mealNutrition.proteinG != null ? calcProteinStatus(mealNutrition.proteinG, proteinTarget) : null;
 
   return (
     <section
@@ -496,8 +486,7 @@ function DayCard({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">{day.label}</p>
-            <div className="mt-2 space-y-1.5">
-              {/* Activity row (Row 1) */}
+            <div className="mt-2">
               <div className="flex flex-wrap gap-1.5">
                 {dedupedSleeps.length > 0 && <Badge icon="🌙" label={latestSleepDuration ? formatSleepBadgeDuration(latestSleepDuration) : "นอน"} />}
                 {workouts.some((w) => isRun(w)) && <Badge icon="🏃" label={runKm ? formatDistanceKm(runKm) : "วิ่ง"} color="green" />}
@@ -513,34 +502,10 @@ function DayCard({
                 {pains.length > 0 && (
                   <Badge icon="🩹" label={isResolvedPainItem(pains[0]) ? "หายแล้ว" : `เจ็บ ${getPainLevel(pains[0])}/10`} color={isResolvedPainItem(pains[0]) ? "green" : "red"} />
                 )}
-                {workouts.some((w) => isWalk(w)) && (() => {
-                  const walkMins = parseDurationMins((workouts.find(isWalk)?.data as WorkoutAnalysis)?.extracted?.duration);
-                  return <Badge icon="🚶" label={walkKm ? formatDistanceKm(walkKm) : walkMins ? `เดิน ${walkMins} นาที` : "เดิน"} />;
-                })()}
-                {workouts.some((w) => !isRun(w) && !isWalk(w) && (w.data as WorkoutAnalysis)?.extracted?.workoutKind === "other") && (
-                  <Badge icon="😴" label="Recovery" />
+                {mealCount > 0 && (
+                  <Badge icon="🍽" label={`${mealCount} มื้อ`} />
                 )}
-                {bodies.length > 0 && (() => {
-                  const wt = (bodies[0]?.data as BodyCompositionAnalysis)?.extracted?.weightKg;
-                  return <Badge icon="⚖️" label={wt != null ? `${formatDecimal(wt)} kg` : "ชั่งน้ำหนัก"} />;
-                })()}
-                {healthChecks.length > 0 && <Badge icon="" label="ผลตรวจสุขภาพ" color="blue" />}
-                {summaries.length > 0 && <Badge icon="📋" label="มีสรุปท้ายวัน" />}
               </div>
-              {/* Nutrition row (Row 2) */}
-              {mealCount > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  <Badge icon="🍽" label={`${mealCount} มื้อ`} color="orange" />
-                  {totalMealImages > mealCount && <Badge icon="" label={`${totalMealImages} รูป`} color="orange" />}
-                  {mealNutrition.caloriesKcal != null && <Badge icon="🔥" label={formatCalories(mealNutrition.caloriesKcal)} color="orange" />}
-                  {mealNutrition.proteinG != null && (
-                    <Badge icon="💪" label={`${mealNutrition.proteinG}/${proteinTarget}g`} color="orange" />
-                  )}
-                  {proteinStatus && mealNutrition.proteinG != null && (
-                    <Badge icon="" label={proteinStatus} color="orange" />
-                  )}
-                </div>
-              )}
             </div>
           </div>
 
@@ -2056,104 +2021,94 @@ function WeeklyReviewCard({ review }: { review: WeeklyReview }) {
     : null;
 
   return (
-    <section className="card space-y-3 p-5">
-      <div>
-        <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">โค้ชสรุปจาก 7 วันล่าสุด</p>
-        <p className="mt-0.5 text-xs text-slate-400">แปลจากตัวเลขเพื่อหา pattern และโฟกัสถัดไป</p>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2">
-        <div className="rounded-2xl bg-slate-50 p-3">
-          <p className="text-xs text-slate-400">วิ่งรวม</p>
-          <p className="mt-1 text-xl font-bold text-[#17201d]">
-            {review.runningKmTotal > 0 ? `${review.runningKmTotal} km` : "–"}
-          </p>
-          <p className="text-xs text-slate-400">{review.runCount} ครั้ง</p>
-        </div>
-        <div className="rounded-2xl bg-slate-50 p-3">
-          <p className="text-xs text-slate-400">เวท / Strength</p>
-          <p className="mt-1 text-xl font-bold text-[#17201d]">{review.strengthCount > 0 ? `${review.strengthCount} ครั้ง` : "–"}</p>
-          <p className="text-xs text-slate-400">{review.walkCount > 0 ? `เดิน ${review.walkCount} ครั้ง` : "ไม่มีเดิน"}</p>
-        </div>
-        <div className="rounded-2xl bg-slate-50 p-3">
-          <p className="text-xs text-slate-400">นอนเฉลี่ย</p>
-          <p className="mt-1 text-xl font-bold text-[#17201d]">
-            {review.avgSleepHours != null ? `${review.avgSleepHours} ชม.` : "–"}
-          </p>
-          <p className="text-xs text-slate-400">
-            {review.sleepNights > 0 ? `${review.sleepNights} คืน` : "–"}
-            {review.readinessCount > 0
-              ? ` · Readiness เฉลี่ย ${review.avgReadiness} (${review.readinessCount} วัน)`
-              : review.avgReadiness != null
-                ? ` · Readiness ${readinessLabel}`
-                : ""}
-          </p>
-        </div>
-        <div className="rounded-2xl bg-slate-50 p-3">
-          <p className="text-xs text-slate-400">อาหารบันทึก</p>
-          <p className="mt-1 text-xl font-bold text-[#17201d]">{review.mealCount > 0 ? `${review.mealCount} มื้อ` : "–"}</p>
-          <p className="text-xs text-slate-400">
-            {review.activePainDays > 0 ? `เจ็บ ${review.activePainDays} วัน` : review.resolvedPainCount > 0 ? "อาการหายแล้ว" : "ไม่มีอาการเจ็บ"}
-          </p>
+    <section className="card p-5 space-y-4">
+      {/* Primary header of the card: Recovery Trend */}
+      <div className="flex items-center gap-2 border-b border-[var(--border-warm)] pb-2.5">
+        <span className="text-xl">📈</span>
+        <div>
+          <h3 className="text-sm font-bold text-[#17201d]">แนวโน้ม Recovery 7 วัน</h3>
+          <p className="text-[10px] text-slate-400">ประเมินความพร้อมและแนวโน้มการฟื้นตัวสะสม</p>
         </div>
       </div>
 
-      {/* 7-day Recovery Trend Section */}
-      <div className="rounded-2xl border border-blue-100 bg-blue-50/10 p-4 space-y-3">
-        <div className="flex items-center gap-2 border-b border-blue-100/50 pb-2">
-          <span className="text-base">📈</span>
-          <p className="text-xs font-bold uppercase tracking-wide text-[#42677f]">แนวโน้ม Recovery 7 วัน</p>
+      {/* Dynamic parameters for recovery trend */}
+      <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs bg-slate-50/70 p-3 rounded-2xl border border-slate-100">
+        <div className="flex justify-between border-b border-slate-100/80 pb-1">
+          <span className="text-slate-400">ฟื้นตัวเฉลี่ย:</span>
+          <span className="font-bold text-slate-700">{review.avgRecoveryScore ?? "–"} {readinessLabel ? `(${readinessLabel})` : ""}</span>
         </div>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-          <div className="flex justify-between border-b border-slate-100 pb-1">
-            <span className="text-slate-400">Recovery เฉลี่ย:</span>
-            <span className="font-bold text-slate-700">{review.avgRecoveryScore ?? "–"} {readinessLabel ? `(${readinessLabel})` : ""}</span>
-          </div>
-          <div className="flex justify-between border-b border-slate-100 pb-1">
-            <span className="text-slate-400">โหลดสะสม:</span>
-            <span className={`font-bold ${review.loadLevel === "สูง" ? "text-[var(--status-rest)]" : review.loadLevel === "ปานกลาง" ? "text-[#9b742c]" : "text-[#2a5a39]"}`}>
-              {review.loadLevel} ({review.runningKmTotal} km)
-            </span>
-          </div>
-          <div className="flex justify-between border-b border-slate-100 pb-1">
-            <span className="text-slate-400">หนี้การนอน:</span>
-            <span className={`font-bold ${review.sleepDebtLevel === "สูง" ? "text-[var(--status-rest)]" : review.sleepDebtLevel === "ปานกลาง" ? "text-[#9b742c]" : "text-[#2a5a39]"}`}>
-              {review.sleepDebtLevel === "ไม่มี" ? "ไม่มี" : review.sleepDebtLevel} ({review.avgSleepHours != null ? `${review.avgSleepHours} ชม.` : "ไม่มีข้อมูล"})
-            </span>
-          </div>
-          <div className="flex justify-between border-b border-slate-100 pb-1">
-            <span className="text-slate-400">สารอาหาร:</span>
-            <span className="font-bold text-slate-700">{review.fuelSupportLevel} ({review.mealCount} มื้อ)</span>
-          </div>
-          <div className="flex justify-between col-span-2">
-            <span className="text-slate-400">อาการเจ็บ:</span>
-            <span className="font-bold text-slate-700">{review.painStatusText}</span>
-          </div>
+        <div className="flex justify-between border-b border-slate-100/80 pb-1">
+          <span className="text-slate-400">โหลดสะสม:</span>
+          <span className={`font-bold ${review.loadLevel === "สูง" || review.loadLevel === "สูงมาก" ? "text-[var(--status-rest)]" : review.loadLevel === "ปานกลาง" ? "text-[#9b742c]" : "text-[#2a5a39]"}`}>
+            {review.loadLevel} ({review.runningKmTotal} km)
+          </span>
         </div>
-        <p className="text-xs leading-relaxed text-[#2e4a5e] bg-white/60 p-2.5 rounded-xl border border-blue-100/50">
-          💡 {review.recoveryTrendSummaryText}
-        </p>
+        <div className="flex justify-between border-b border-slate-100/80 pb-1">
+          <span className="text-slate-400">หนี้การนอน:</span>
+          <span className={`font-bold ${review.sleepDebtLevel === "สูง" ? "text-[var(--status-rest)]" : review.sleepDebtLevel === "ปานกลาง" ? "text-[#9b742c]" : "text-[#2a5a39]"}`}>
+            {review.sleepDebtLevel === "ไม่มี" ? "ไม่มี" : review.sleepDebtLevel}
+          </span>
+        </div>
+        <div className="flex justify-between border-b border-slate-100/80 pb-1">
+          <span className="text-slate-400">สารอาหาร:</span>
+          <span className="font-bold text-slate-700">{review.fuelSupportLevel}</span>
+        </div>
+        <div className="flex justify-between col-span-2 pt-0.5">
+          <span className="text-slate-400">อาการเจ็บ:</span>
+          <span className="font-bold text-slate-700">{review.painStatusText}</span>
+        </div>
       </div>
 
-      {review.highlights.length > 0 && (
-        <div className="space-y-1">
-          <p className="text-xs font-semibold text-slate-500">จุดที่ดี</p>
-          {review.highlights.map((h, i) => (
-            <p key={i} className="flex items-start gap-1.5 text-xs text-slate-700 leading-5">
-              <span className="text-[var(--primary)] shrink-0">✓</span>{h}
-            </p>
-          ))}
-        </div>
-      )}
+      <p className="text-xs leading-relaxed text-[#2e4a5e] bg-blue-50/40 p-3 rounded-2xl border border-blue-100/50">
+        💡 {review.recoveryTrendSummaryText}
+      </p>
 
-      {review.cautions.length > 0 && (
-        <div className="space-y-1">
-          <p className="text-xs font-semibold text-amber-600">ควรระวัง</p>
-          {review.cautions.map((c, i) => (
-            <p key={i} className="flex items-start gap-1.5 text-xs text-amber-700 leading-5">
-              <span className="shrink-0">·</span>{c}
-            </p>
-          ))}
+      {/* Stats Summary Grid (Collapsible/smaller visual weight) */}
+      <div className="border-t border-[var(--border-warm)] pt-3.5 space-y-2">
+        <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400">ตัวเลขสรุปรวม 7 วัน</p>
+        <div className="grid grid-cols-4 gap-1.5 text-center">
+          <div className="rounded-xl bg-slate-50/50 p-2">
+            <p className="text-[9px] text-slate-400">วิ่งรวม</p>
+            <p className="text-xs font-bold text-slate-700 mt-0.5">{review.runningKmTotal > 0 ? `${review.runningKmTotal} km` : "–"}</p>
+            <p className="text-[9px] text-slate-400 mt-0.5">{review.runCount} ครั้ง</p>
+          </div>
+          <div className="rounded-xl bg-slate-50/50 p-2">
+            <p className="text-[9px] text-slate-400">เวท</p>
+            <p className="text-xs font-bold text-slate-700 mt-0.5">{review.strengthCount > 0 ? `${review.strengthCount} ครั้ง` : "–"}</p>
+            <p className="text-[9px] text-slate-400 mt-0.5">{review.walkCount > 0 ? `เดิน ${review.walkCount}` : "–"}</p>
+          </div>
+          <div className="rounded-xl bg-slate-50/50 p-2">
+            <p className="text-[9px] text-slate-400">นอนเฉลี่ย</p>
+            <p className="text-xs font-bold text-slate-700 mt-0.5">{review.avgSleepHours != null ? `${review.avgSleepHours} ชม.` : "–"}</p>
+            <p className="text-[9px] text-slate-400 mt-0.5">{review.sleepNights} คืน</p>
+          </div>
+          <div className="rounded-xl bg-slate-50/50 p-2">
+            <p className="text-[9px] text-slate-400">อาหาร</p>
+            <p className="text-xs font-bold text-slate-700 mt-0.5">{review.mealCount > 0 ? `${review.mealCount} มื้อ` : "–"}</p>
+            <p className="text-[9px] text-slate-400 mt-0.5">เจ็บ {review.activePainDays} วัน</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Highlights / cautions */}
+      {(review.highlights.length > 0 || review.cautions.length > 0) && (
+        <div className="grid grid-cols-2 gap-4 border-t border-[var(--border-warm)] pt-3.5 text-[11px] leading-relaxed">
+          {review.highlights.length > 0 && (
+            <div className="space-y-1">
+              <p className="font-bold text-[var(--primary-strong)]">✓ จุดที่ดี</p>
+              {review.highlights.slice(0, 3).map((h, i) => (
+                <p key={i} className="text-slate-600">· {h}</p>
+              ))}
+            </div>
+          )}
+          {review.cautions.length > 0 && (
+            <div className="space-y-1">
+              <p className="font-bold text-amber-600">⚠️ ควรระวัง</p>
+              {review.cautions.slice(0, 3).map((c, i) => (
+                <p key={i} className="text-amber-700">· {c}</p>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

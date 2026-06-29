@@ -685,10 +685,34 @@ function PreWorkoutFocusContent({
 function PostWorkoutFocusContent({ insight, context }: { insight: DailyCoachInsight; context: CoachContext }) {
   const workout = context.todayPrimaryWorkout;
   const title = buildPostWorkoutTitle(workout, insight, context);
-  const subtitle = buildPostWorkoutSubtitle(context, workout);
   const items = buildPostWorkoutChecklist(context, workout);
   const injuryNote = buildPostWorkoutInjuryNote(context);
   const matching = checkPlannedWorkoutMatching(context);
+
+  const parts1: string[] = [];
+  if (workout) {
+    const distance = formatKm(workout.distanceKm);
+    if (workout.kind === "run" && distance) parts1.push(`วิ่งแล้ว ${distance} km`);
+    else parts1.push(`${workout.label}วันนี้แล้ว`);
+    const avgHR = toFiniteNumber(workout.avgHR);
+    if (avgHR != null) parts1.push(`Avg HR ${Math.round(avgHR)}`);
+  }
+
+  const parts2: string[] = [];
+  if (context.recoverySystem) {
+    parts2.push(`ฟื้นตัว ${context.recoverySystem.axes.recovery.score}`);
+    parts2.push(context.recoverySystem.axes.load.label);
+  }
+  const latestPain = context.latestPain;
+  if (latestPain) {
+    parts2.push(latestPain.hasResolvedPain
+      ? `${latestPain.painLocation}หายแล้ว`
+      : `เจ็บ${latestPain.painLocation}ล่าสุด ${latestPain.painLevel}/10`);
+  }
+
+  const protein = context.nutritionToday?.proteinG;
+  const target = todayProteinTarget(context.profile);
+  const isProteinNearTarget = protein != null && target > 0 && (protein / target >= 0.7);
 
   return (
     <div className="space-y-2.5">
@@ -702,7 +726,21 @@ function PostWorkoutFocusContent({ insight, context }: { insight: DailyCoachInsi
         <span className="mt-2 inline-block rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
           ไม่ต้องซ้อมเพิ่ม · เน้นฟื้นตัว
         </span>
-        <p className="mt-2 text-sm leading-relaxed text-slate-500">{subtitle}</p>
+        {parts1.length > 0 && (
+          <p className="mt-2 text-sm font-semibold text-slate-800 leading-normal">
+            {parts1.join(" · ")}
+          </p>
+        )}
+        {parts2.length > 0 && (
+          <p className="mt-1 text-xs text-slate-500 leading-normal">
+            {parts2.join(" · ")}
+          </p>
+        )}
+        {parts1.length === 0 && parts2.length === 0 && (
+          <p className="mt-2 text-sm leading-relaxed text-slate-500">
+            วันนี้มีข้อมูลซ้อมแล้ว ให้ปิดงานด้วย recovery สั้น ๆ และพักให้พอ
+          </p>
+        )}
         <p className="mt-2 text-xs leading-relaxed text-slate-500 bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3">
           💡 บันทึกกิจกรรมวันนี้แล้ว ไม่จำเป็นต้องซ้อมหนักซ้ำอีก เน้นการจิบน้ำ เติมโปรตีน ขยับเบา ๆ และนอนหลับให้เพียงพอเพื่อฟื้นฟูกล้ามเนื้อ
         </p>
@@ -728,7 +766,11 @@ function PostWorkoutFocusContent({ insight, context }: { insight: DailyCoachInsi
           <span className="text-sm">🍳</span>
           <div>
             <p className="font-bold">โภชนาการฟื้นฟูหลังซ้อม</p>
-            <p className="mt-0.5">หลังซ้อมเน้นโปรตีน + คาร์บเพื่อฟื้นตัว (ควรเติมโปรตีน 25–35 g ร่วมกับคาร์บย่อยง่าย)</p>
+            <p className="mt-0.5">
+              {isProteinNearTarget
+                ? "โปรตีนใกล้ถึงเป้าแล้ว เติมคาร์บ/น้ำให้พอ"
+                : "เติมโปรตีนอีกนิด พร้อมคาร์บเพื่อฟื้นตัว"}
+            </p>
           </div>
         </div>
 
@@ -772,26 +814,6 @@ function buildPostWorkoutTitle(workout: TodayCompletedWorkoutSummary | null, ins
   return "พักฟื้นหลังซ้อมวันนี้";
 }
 
-function buildPostWorkoutSubtitle(context: CoachContext, workout: TodayCompletedWorkoutSummary | null): string {
-  const parts: string[] = [];
-  if (workout) {
-    const distance = formatKm(workout.distanceKm);
-    if (workout.kind === "run" && distance) parts.push(`วิ่งแล้ว ${distance} km`);
-    else parts.push(`${workout.label}วันนี้แล้ว`);
-    const avgHR = toFiniteNumber(workout.avgHR);
-    if (avgHR != null) parts.push(`Avg HR ${Math.round(avgHR)}`);
-  }
-  const latestPain = context.latestPain;
-  if (latestPain) {
-    parts.push(latestPain.hasResolvedPain
-      ? `${latestPain.painLocation}หายแล้ว`
-      : `เจ็บ${latestPain.painLocation}ล่าสุด ${latestPain.painLevel}/10`);
-  }
-  if (context.avgReadiness != null) parts.push(`Readiness ${Math.round(context.avgReadiness)}`);
-  return parts.length > 0
-    ? `${parts.join(" · ")} · วันนี้ให้เก็บแรงไว้ฟื้นตัว`
-    : "วันนี้มีข้อมูลซ้อมแล้ว ให้ปิดงานด้วย recovery สั้น ๆ และพักให้พอ";
-}
 
 function buildPostWorkoutChecklist(context: CoachContext, workout: TodayCompletedWorkoutSummary | null): string[] {
   const items = [
@@ -1457,10 +1479,15 @@ function TodaySnapshotCard({
             <span className="transition-transform group-open:rotate-180">▾</span>
           </summary>
           <div className="mt-1.5 rounded-2xl bg-slate-50 p-3 leading-relaxed text-slate-500 border border-slate-100 space-y-1.5">
-            <p>ประเมินความพร้อมแบบ 4 แกนเพื่อปรับแผนให้ตรงสภาพร่างกาย:</p>
+            <p>ระบบนี้ดู 4 เรื่อง: ฟื้นตัว โหลดซ้อม การนอน และอาหาร เพื่อปรับคำแนะนำวันนี้ ไม่ใช่คะแนนสรุปทั้งวัน</p>
+            {recSys && recSys.axes.load.score >= 55 && (
+              <p className="text-[10px] text-amber-700 font-semibold bg-amber-50/50 p-1.5 rounded-lg border border-amber-100/50">
+                ⚠️ โหลดสูงหมายถึงร่างกายใช้แรงสะสมเยอะ ไม่ได้แปลว่าคะแนนดีหรือแย่เสมอไป
+              </p>
+            )}
             <ul className="list-disc pl-4 space-y-1 text-[11px]">
               <li><strong>ฟื้นตัว:</strong> ความพร้อมของหัวใจ/HRV และประวัติความตึงเจ็บ</li>
-              <li><strong>โหลดซ้อม:</strong> ปริมาณวิ่งสะสม 7 วัน (คะแนนสูงแปลว่าร่างกายมีความเหนื่อยล้าสะสม)</li>
+              <li><strong>โหลดซ้อม:</strong> ปริมาณวิ่งสะสม 7 วัน</li>
               <li><strong>การนอน:</strong> ชั่วโมงนอนเมื่อคืนรวมถึงหนี้การนอนสะสมในช่วงสัปดาห์</li>
               <li><strong>อาหาร:</strong> สารอาหารคาร์บ/โปรตีนวันนี้เพื่อรองรับซ้อมและการฟื้นฟู</li>
             </ul>

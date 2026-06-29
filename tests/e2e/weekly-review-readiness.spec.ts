@@ -51,10 +51,10 @@ test("Weekly Review shows sleep avg when sleep records exist", async ({ page }) 
   await expect(page.getByText(/\d+\.?\d* ชม\./).first()).toBeVisible();
 
   // Weekly Review card is present and shows sleep avg (not "–")
-  const weeklyReview = page.locator("section").filter({ hasText: "โค้ชสรุปจาก 7 วันล่าสุด" }).first();
+  const weeklyReview = page.locator("section").filter({ hasText: "แนวโน้ม Recovery 7 วัน" }).first();
   await expect(weeklyReview).toBeVisible();
   // Sleep cell shows hours value, not just a dash
-  const sleepCell = weeklyReview.locator(".rounded-2xl").filter({ hasText: "นอนเฉลี่ย" });
+  const sleepCell = weeklyReview.locator("div").filter({ hasText: "นอนเฉลี่ย" });
   await expect(sleepCell.getByText(/\d+\.?\d* ชม\./)).toBeVisible();
   // Nights count shown
   await expect(sleepCell.getByText(/\d+ คืน/)).toBeVisible();
@@ -70,8 +70,8 @@ test("Weekly Review sleep avg counts unique nights only (no double-count)", asyn
 
   await gotoApp(page, "/logs");
 
-  const weeklyReview = page.locator("section").filter({ hasText: "โค้ชสรุปจาก 7 วันล่าสุด" }).first();
-  const sleepCell = weeklyReview.locator(".rounded-2xl").filter({ hasText: "นอนเฉลี่ย" });
+  const weeklyReview = page.locator("section").filter({ hasText: "แนวโน้ม Recovery 7 วัน" }).first();
+  const sleepCell = weeklyReview.locator("div").filter({ hasText: "นอนเฉลี่ย" });
   // Should count 1 night (deduped), not 2
   await expect(sleepCell.getByText("1 คืน")).toBeVisible();
 });
@@ -99,8 +99,8 @@ test("Report shows correct heading copy for 7 Day Overview and Weekly Review", a
   await expect(page.getByText("สรุป metrics หลักจาก Report")).toBeVisible();
 
   // Weekly Review card uses new headings
-  await expect(page.getByText("โค้ชสรุปจาก 7 วันล่าสุด")).toBeVisible();
-  await expect(page.getByText("แปลจากตัวเลขเพื่อหา pattern และโฟกัสถัดไป")).toBeVisible();
+  await expect(page.getByText("แนวโน้ม Recovery 7 วัน")).toBeVisible();
+  await expect(page.getByText("ประเมินความพร้อมและแนวโน้มการฟื้นตัวสะสม")).toBeVisible();
 
   // Old copy must NOT appear
   await expect(page.getByText("ภาพรวมสัปดาห์ล่าสุด")).toHaveCount(0);

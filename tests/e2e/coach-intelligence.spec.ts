@@ -235,7 +235,7 @@ test.describe("Coach Intelligence UX & Guardrails Polish", () => {
 
     await gotoApp(page, "/");
     await expect(page.getByText("ก่อนวิ่งเติมคาร์บเบา ๆ 30–50g")).toHaveCount(0);
-    await expect(page.getByText("หลังซ้อมเน้นโปรตีน + คาร์บเพื่อฟื้นตัว")).toBeVisible();
+    await expect(page.getByText("เติมโปรตีนอีกนิด พร้อมคาร์บเพื่อฟื้นตัว")).toBeVisible();
   });
 
   test("5. Today explanation panel lists caution factors and walk/jog fallback options correctly", async ({ page }) => {

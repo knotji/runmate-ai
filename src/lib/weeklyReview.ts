@@ -21,7 +21,7 @@ export type WeeklyReview = {
   nextFocus: string[];
   // Recovery trend additions
   avgRecoveryScore: number | null;
-  loadLevel: "ต่ำ" | "ปานกลาง" | "สูง";
+  loadLevel: "ต่ำ" | "ปานกลาง" | "สูง" | "สูงมาก";
   sleepDebtLevel: "ไม่มี" | "ปานกลาง" | "สูง";
   fuelSupportLevel: "ต่ำ" | "ปานกลาง" | "สูง";
   painStatusText: string;
@@ -207,9 +207,11 @@ export function buildWeeklyReview(items: LocalHistoryItem[], todayDateKey: strin
   if (nextFocus.length === 0) nextFocus.push("รักษาความสม่ำเสมอต่ออีกสัปดาห์");
 
   // Calculate Recovery Trend parameters
-  const loadLevel: "ต่ำ" | "ปานกลาง" | "สูง" =
-    runningKmTotal > 35 || runCount >= 5 ? "สูง" :
-    runningKmTotal > 15 || runCount >= 3 ? "ปานกลาง" : "ต่ำ";
+  // Calculate Recovery Trend parameters
+  const loadLevel: "ต่ำ" | "ปานกลาง" | "สูง" | "สูงมาก" =
+    runningKmTotal > 50 || runCount >= 6 ? "สูงมาก" :
+    runningKmTotal > 30 || runCount >= 4 ? "สูง" :
+    runningKmTotal > 10 || runCount >= 2 ? "ปานกลาง" : "ต่ำ";
 
   const sleepDebtLevel: "ไม่มี" | "ปานกลาง" | "สูง" =
     avgSleepHours != null && avgSleepHours < 6 ? "สูง" :
@@ -224,9 +226,9 @@ export function buildWeeklyReview(items: LocalHistoryItem[], todayDateKey: strin
     resolvedPainCount > 0 ? "อาการเจ็บหายแล้ว" : "ไม่มีอาการเจ็บ";
 
   let recoveryTrendSummaryText = "สัปดาห์นี้ภาพรวมอยู่ในเกณฑ์รักษาสมดุลดี แนะนำซ้อมสม่ำเสมอและทานอาหารโปรตีน+คาร์บให้ถึงเป้าหมายถัดไป";
-  if (loadLevel === "สูง" && sleepDebtLevel !== "ไม่มี") {
+  if ((loadLevel === "สูง" || loadLevel === "สูงมาก") && sleepDebtLevel !== "ไม่มี") {
     recoveryTrendSummaryText = "สัปดาห์นี้โหลดซ้อมสูง แต่การนอนยังตามไม่ทัน ทำให้ฟื้นตัวได้ไม่เต็มที่ สัปดาห์หน้าควรเน้นคุม Easy Run ให้เบาจริง ๆ และปรับลดระยะ Long Run ลงเพื่อป้องกันการบาดเจ็บ";
-  } else if (loadLevel === "สูง" && sleepDebtLevel === "ไม่มี") {
+  } else if ((loadLevel === "สูง" || loadLevel === "สูงมาก") && sleepDebtLevel === "ไม่มี") {
     recoveryTrendSummaryText = "สัปดาห์นี้ซ้อมได้ดีและพักผ่อนเพียงพอดี ร่างกายรักษาสมดุลได้เยี่ยม สัปดาห์หน้าสามารถคงความเข้มข้นตามแผนหลักต่อได้";
   } else if (activePainDays > 0) {
     recoveryTrendSummaryText = "ยังมีอาการเจ็บค้างสะสมอยู่ในสัปดาห์นี้ ร่างกายต้องการการฟื้นฟู สัปดาห์หน้าควรหลีกเลี่ยงการซ้อมเร่งความเร็วหรือกด Pace";

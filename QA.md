@@ -130,12 +130,17 @@ On PowerShell, set both `$env:E2E_BASE_URL` and `$env:E2E_PRODUCTION_BASE_URL` t
 ## 9. Coach Intelligence & Recovery System v1
 
 - [ ] Today page displays the 4-axis snapshot grid (ฟื้นตัว, โหลดซ้อม, การนอน, พลังงาน) with color-coded score/level and summary text.
-- [ ] Today page displays safety guardrails and headline assessment from `recoverySystem` when active (e.g. low sleep debt, high weekly load, pain history).
+- [ ] Today page displays safety guardrails and headline assessment from `recoverySystem` when active.
 - [ ] Today page displays pre-run carbs guidelines box ("ก่อนวิ่งเติมคาร์บเบา ๆ 30–50g") when workout is run and day-of carbs/meals are low.
-- [ ] Today page displays post-run recovery protein/carb guidelines box ("หลังซ้อมเน้นโปรตีน + คาร์บเพื่อฟื้นตัว") if primary workout is completed.
+- [ ] Today page displays post-run recovery protein/carb guidelines box ("หลังซ้อมเน้นโปรตีน + คาร์บเพื่อฟื้นตัว" or target status) if primary workout is completed.
 - [ ] Coach page Circular card is renamed to "ระบบ Recovery วันนี้" and dynamically recalculates all 4 axes scores/summaries on slider adjustment.
 - [ ] Race page renders "Guardrails จากสภาพร่างกายวันนี้" card showing headline and safety guidance, and adaptive reduction notes on Long Run workouts.
 - [ ] Today page Explanation Panel ("ทำไมวันนี้แนะนำแบบนี้?") lists specific sleep, training load, pain history, and walk/jog fallback options correctly.
 - [ ] Report page displays "แนวโน้ม Recovery 7 วัน" trend section with average, load level, sleep debt level, fuel status, pain status, and Thai recovery coach summary.
+- [ ] Load axis uses softer Thai labels ("โหลดสูง/โหลดสูงมาก"), never alarmist terms like "สูงสุด".
+- [ ] Post-workout Today card speaks in recovery/rest language only, and split the summary subline into 2 lines for mobile readability.
+- [ ] Pre-workout Today card speaks in cap-effort/fuel cap language.
+- [ ] Recovery System explanation details clarify that high Load is strain/mileage volume, not goodness/score.
+- [ ] Collapsed daily logs render simplified gray/blue/green badges only and avoid busy orange/red clusters.
 
 
