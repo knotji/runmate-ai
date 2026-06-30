@@ -7,6 +7,8 @@ test("Settings explains privacy and temporary chat/file behavior", async ({ page
   await page.getByRole("button", { name: "ข้อมูล", exact: true }).click();
 
   await expect(page.getByText("ข้อมูลและความเป็นส่วนตัว")).toBeVisible();
+  await page.getByText("ดูสรุปความโปร่งใสและการเก็บรักษาข้อมูล").click();
+
   await expect(page.getByText(/Report คือข้อมูลหลัก/)).toBeVisible();
   await expect(page.getByText(/แชทกับโค้ชเป็นชั่วคราว/)).toBeVisible();
   await expect(page.getByText(/ไฟล์อัปโหลดไม่ถูกเก็บเป็นต้นฉบับ/)).toBeVisible();

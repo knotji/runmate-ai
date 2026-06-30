@@ -8,12 +8,10 @@ import { NutritionBalanceCard } from "@/components/NutritionBalanceCard";
 import { NextMealCard } from "@/components/NextMealCard";
 import type { NextMealRecommendation } from "@/app/api/next-meal/route";
 import { buildTodayRecommendationReasons } from "@/lib/todayReasons";
-import { getCoachCautionFactors } from "@/lib/coachCautionFactors";
 import { formatThaiDate, getHistoryItemDateKey, todayBangkokDateKey } from "@/lib/date";
 import { buildCoachContextFromSupabase, type CoachContext, type NutritionDaySummary, type PainSummary, type TodayCompletedWorkoutSummary } from "@/lib/buildCoachContext";
 import { getTodayReadiness, getTodayPlannedWorkout, getReadinessCategoryLabel, checkPlannedWorkoutMatching } from "@/lib/todayPlanning";
-import { getRunMateReadinessLabel } from "@/lib/readinessV2";
-import { buildRunMateRecoverySystem, getAxisTone, formatAxisScore, getRecoveryAxisLabel } from "@/lib/recoverySystem";
+import { buildRunMateRecoverySystem, getAxisTone, formatAxisScore, getRecoveryAxisLabel, getOverallDisplayStatus } from "@/lib/recoverySystem";
 import { createHistoryItem, loadHistoryItems, saveHistoryItems } from "@/lib/cloudHistory";
 import { loadActiveRaceGoalAndPlan } from "@/lib/raceStorage";
 import { loadRoutinesFromSupabase, logCompletedStrength } from "@/lib/strength";
@@ -430,24 +428,68 @@ export default function TodayPage() {
       </section>
 
       {/* F. Compact detail sections */}
-      {(coachCtx?.latestPain || (coachCtx?.recentPainLogs && coachCtx.recentPainLogs.length > 0)) && (
-        <>
-          <p className="mt-1 px-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--color-text-soft)]">Recovery / อาการ</p>
-          <CompactPainCard pains={coachCtx.latestPain ? [coachCtx.latestPain, ...coachCtx.recentPainLogs.filter((pain) => pain.id !== coachCtx.latestPain?.id)] : coachCtx.recentPainLogs} />
-        </>
-      )}
+      {(() => {
+        if (!coachCtx?.latestPain) return null;
+        const latest = coachCtx.latestPain;
+        const hasActivePain = latest.hasActivePain && latest.painLevel > 0;
 
-      {(coachCtx?.nutritionToday || coachCtx?.nutritionBalanceToday || coachCtx) && (
-        <p className="mt-1 px-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--color-text-soft)]">อาหารวันนี้</p>
-      )}
+        if (hasActivePain) {
+          return (
+            <>
+              <p className="mt-1 px-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--color-text-soft)]">Recovery / อาการ</p>
+              <CompactPainCard pains={coachCtx.latestPain ? [coachCtx.latestPain, ...coachCtx.recentPainLogs.filter((pain) => pain.id !== coachCtx.latestPain?.id)] : coachCtx.recentPainLogs} />
+            </>
+          );
+        } else {
+          return (
+            <>
+              <p className="mt-1 px-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--color-text-soft)]">Recovery / อาการ</p>
+              <div className="flex items-center justify-between rounded-2xl border border-[var(--border-warm)] bg-[var(--surface)] px-4 py-2.5 shadow-sm text-xs text-[var(--foreground)] card">
+                <span className="font-semibold text-slate-700">🩹 อาการเจ็บ{latest.painLocation}ดีขึ้นแล้ว</span>
+                <Link href="/pain" className="text-[var(--primary)] font-bold hover:underline">
+                  อัปเดตอาการ →
+                </Link>
+              </div>
+            </>
+          );
+        }
+      })()}
 
-      {coachCtx?.nutritionToday && (
-        <CompactNutritionCard nutrition={coachCtx.nutritionToday} profile={coachCtx.profile} />
-      )}
+      {(() => {
+        if (!coachCtx) return null;
+        const fuelScore = coachCtx.recoverySystem?.axes?.fuel?.score ?? 65;
+        const hasNutrition = coachCtx.nutritionToday || coachCtx.nutritionBalanceToday;
+        if (!hasNutrition) return null;
 
-      {coachCtx?.nutritionBalanceToday && (
-        <NutritionBalanceCard balance={coachCtx.nutritionBalanceToday} />
-      )}
+        return (
+          <>
+            <p className="mt-1 px-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--color-text-soft)]">อาหารวันนี้</p>
+            <details className="group rounded-3xl border border-[var(--border-warm)] bg-[var(--surface)]/75 px-4 py-3 shadow-sm cursor-pointer">
+              <summary className="flex list-none items-center justify-between gap-3 text-sm font-semibold text-[var(--foreground)]">
+                <div>
+                  <p className="text-sm font-bold text-[var(--foreground)]">อาหารและพลังงานวันนี้</p>
+                  <p className="text-xs text-[var(--muted-text)] font-medium mt-0.5">
+                    {fuelScore >= 80 ? "พลังงานวันนี้โอเค (คาร์บ/โปรตีนเพียงพอ)" : `พลังงานวันนี้ ${Math.round(fuelScore)}/100 · ควรรองรับเพิ่มเติม`}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1 text-[11px] text-[var(--primary)] font-bold shrink-0">
+                  <span className="group-open:hidden">ดูรายละเอียด</span>
+                  <span className="hidden group-open:inline">ซ่อน</span>
+                  <span className="transition-transform group-open:rotate-180">▾</span>
+                </div>
+              </summary>
+              <div className="mt-3 pt-3 border-t border-slate-100/60 space-y-3 cursor-default">
+                {coachCtx.nutritionToday && (
+                  <CompactNutritionCard nutrition={coachCtx.nutritionToday} profile={coachCtx.profile} />
+                )}
+                {coachCtx.nutritionBalanceToday && (
+                  <NutritionBalanceCard balance={coachCtx.nutritionBalanceToday} />
+                )}
+              </div>
+            </details>
+          </>
+        );
+      })()}
 
       {coachCtx && (
         <NextMealCard
@@ -455,6 +497,7 @@ export default function TodayPage() {
           loading={nextMealLoading}
           onRequest={() => void requestNextMeal()}
           compact
+          fuelScore={coachCtx.recoverySystem?.axes?.fuel?.score}
         />
       )}
 
@@ -573,121 +616,77 @@ function PreWorkoutFocusContent({
   isFallback?: boolean;
 }) {
   const decision = getDecisionCard(insight, context);
-  const cautionFactors = getCoachCautionFactors(context);
-
-  const isRun = /(run|วิ่ง|ซ้อม|easy|tempo|long)/i.test(insight.workoutRec ?? "");
-  const hasCaution = cautionFactors.length > 0;
-  const isLowFuel = cautionFactors.some(f => f.key === "lowFuel");
-  const showFuelReminder = isRun && isLowFuel;
-
   const hasSleepToday = context ? context.sleep7d.some((s) => s.date === context.todayDate) : false;
   const hasLatestSleep = context ? context.sleep7d.length > 0 : false;
   const isUsingLatestSleepBecauseTodayMissing = !hasSleepToday && hasLatestSleep;
 
+  // Build a concise reason line
+  const reasonParts: string[] = [];
+  if (context?.recoverySystem) {
+    const { load, sleep, fuel } = context.recoverySystem.axes;
+    if (context.activePain) {
+      reasonParts.push("มีรายงานอาการเจ็บ");
+    } else {
+      if (load.score >= 70) reasonParts.push("Load สูง");
+      else if (load.score >= 55) reasonParts.push("Load ปานกลาง");
+      if (sleep.score < 66) reasonParts.push("Sleep พอใช้");
+      if (fuel.score < 66) reasonParts.push("Fuel ยังน้อย");
+    }
+  }
+  const reasonLine = reasonParts.join(" · ") || "ร่างกายอยู่ในเกณฑ์ดี";
+
   return (
     <div className="space-y-3">
-      {decision && (
-        <div className={`rounded-2xl border p-4 space-y-1.5 ${
-          isFallback ? "bg-amber-50/80 border-amber-200 text-amber-900" :
-          decision.type === "pain" ? "bg-red-50/80 border-red-200 text-red-900" :
-          decision.type === "caution" ? "bg-amber-50/80 border-amber-200 text-amber-900" :
-          "bg-[#f5faf7] border-[#d9e8df] text-[#1c472a]"
-        }`}>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-bold uppercase tracking-wider">{decision.title}</span>
-            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
-              isFallback ? "bg-amber-100 text-amber-700" :
-              decision.type === "pain" ? "bg-red-100 text-red-700" :
-              decision.type === "caution" ? "bg-amber-100 text-amber-700" :
-              "bg-[#e7efea] text-[#2a5a39]"
-            }`}>
-              {isFallback ? "คำแนะนำสำรอง" : (decision.type === "pain" ? "งดวิ่ง" : decision.type === "caution" ? "ปรับลดโหลด" : "ตามแผน")}
-            </span>
-          </div>
-          <p className="text-xs leading-relaxed">{decision.body}</p>
-        </div>
-      )}
-
-      {context?.racePlan ? (
-        <div className="space-y-1">
-          {(() => {
-            const plannedWorkout = getTodayPlannedWorkout(context);
-            if (plannedWorkout && plannedWorkout.workoutType && !/rest|พัก/i.test(plannedWorkout.workoutType)) {
-              const originalPlanStr = `${plannedWorkout.workoutType}${plannedWorkout.distanceKm != null && plannedWorkout.distanceKm > 0 ? ` ${plannedWorkout.distanceKm} km` : ""}`;
-              const isAdjusted = insight.workoutRec && !insight.workoutRec.toLowerCase().includes(plannedWorkout.workoutType.toLowerCase());
-              if (isAdjusted) {
-                return (
-                  <div className="flex flex-col gap-0.5 text-xs">
-                    <span className="font-semibold text-slate-400">แผน Race เดิม: {originalPlanStr}</span>
-                    <span className="font-bold text-[#42677f]">วันนี้ปรับเป็น: {insight.workoutRec}</span>
-                  </div>
-                );
-              }
-            }
-            return (
-              <p className="mb-2 text-xs font-semibold leading-5 text-[#42677f]">
-                แผนหลักมาจาก Race แต่วันนี้ปรับตามสภาพร่างกายล่าสุด
-              </p>
-            );
-          })()}
-        </div>
-      ) : null}
-      
-      {isUsingLatestSleepBecauseTodayMissing && (
-        <div className="rounded-2xl border border-[var(--color-info-soft)] bg-[var(--color-info-soft)] px-3 py-2 text-xs leading-relaxed text-[var(--color-info)] font-semibold">
-          ยังไม่มีข้อมูลการนอนวันนี้ — คำแนะนำนี้อิงจากข้อมูลล่าสุด
-        </div>
-      )}
-
+      {/* 1. Headline first */}
       <h2 className="line-clamp-2 text-2xl font-bold text-[#17201d]">{insight.workoutRec}</h2>
+
+      {/* 2. Target plan line */}
       {hasPace && (
-        <span className="mt-2 inline-block rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+        <span className="inline-block rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
           {insight.workoutTarget}
         </span>
       )}
 
-      {isRun && context?.recoverySystem?.guardrails && context.recoverySystem.guardrails.length > 0 && (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50/40 p-4 space-y-2 text-xs leading-relaxed text-amber-900">
-          <p className="font-bold text-sm">💡 คำแนะนำการซ้อมวันนี้ ({context.recoverySystem.headline})</p>
-          <ul className="list-disc pl-4 space-y-1 font-medium">
-            {context.recoverySystem.guardrails.map((g, idx) => (
-              <li key={idx}>{g}</li>
-            ))}
-          </ul>
+      {/* 3. Reason line */}
+      <p className="text-xs font-medium text-slate-400 mt-1">{reasonLine}</p>
+
+      {/* 4. Sleep Fallback note (if any) */}
+      {isUsingLatestSleepBecauseTodayMissing && (
+        <div className="rounded-2xl border border-[var(--color-info-soft)] bg-[var(--color-info-soft)] px-3 py-2 text-xs leading-relaxed text-[var(--color-info)] font-semibold">
+          ใช้ข้อมูลล่าสุดชั่วคราว — ยังไม่มีการนอนวันนี้
         </div>
       )}
 
-      {isRun && !context?.recoverySystem?.guardrails && hasCaution && (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50/40 p-4 space-y-2 text-xs leading-relaxed text-amber-900">
-          <p className="font-bold text-sm">💡 วิ่งได้ แต่ต้อง easy จริง ๆ</p>
-          <p>ถ้า HR ลอย ขาหนัก หรือรู้สึกเพลีย ให้ลดเหลือเดิน/จ็อกเบา 30–40 นาทีแทน</p>
-          <ul className="list-disc pl-4 space-y-1 font-medium">
-            <li>คุม HR ให้อยู่โซน easy</li>
-            <li>ไม่ต้องกด pace</li>
-            <li>ถ้า HR ลอยหรือขาหนัก ให้ตัดระยะทันที</li>
-            {isLowFuel && <li>เติมคาร์บเบา ๆ ก่อนวิ่งถ้ายังไม่ได้กินมื้อหลัก</li>}
-          </ul>
+      {/* 5. Detailed information inside accordion */}
+      <details className="mt-3 group border-t border-slate-100/60 pt-3 cursor-pointer">
+        <summary className="text-[11px] font-bold text-slate-400 hover:text-slate-500 list-none flex items-center justify-between">
+          <span>ดูเหตุผลและข้อแนะนำเพิ่มเติม</span>
+          <span className="transition-transform group-open:rotate-180">▾</span>
+        </summary>
+        <div className="mt-3 space-y-3 cursor-default">
+          {decision && (
+            <div className={`rounded-2xl border p-4 space-y-1.5 ${
+              isFallback ? "bg-amber-50/80 border-amber-200 text-amber-900" :
+              decision.type === "pain" ? "bg-red-50/80 border-red-200 text-red-900" :
+              decision.type === "caution" ? "bg-amber-50/80 border-amber-200 text-amber-900" :
+              "bg-[#f5faf7] border-[#d9e8df] text-[#1c472a]"
+            }`}>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold uppercase tracking-wider">{decision.title}</span>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                  isFallback ? "bg-amber-100 text-amber-700" :
+                  decision.type === "pain" ? "bg-red-100 text-red-700" :
+                  decision.type === "caution" ? "bg-amber-100 text-amber-700" :
+                  "bg-[#e7efea] text-[#2a5a39]"
+                }`}>
+                  {isFallback ? "คำแนะนำสำรอง" : (decision.type === "pain" ? "งดวิ่ง" : decision.type === "caution" ? "ปรับลดโหลด" : "ตามแผน")}
+                </span>
+              </div>
+              <p className="text-xs leading-relaxed">{decision.body}</p>
+            </div>
+          )}
         </div>
-      )}
-
-      {showFuelReminder && (
-        <div className="mt-2 rounded-2xl bg-blue-50/60 p-3 text-xs leading-relaxed text-blue-900 border border-blue-100 flex items-start gap-2">
-          <span className="text-sm">🍌</span>
-          <div>
-            <p className="font-bold">เติมพลังงานก่อนวิ่ง</p>
-            <p className="mt-0.5">ก่อนวิ่งเติมคาร์บเบา ๆ 30–50g เช่น กล้วย 1 ลูก, ขนมปัง 1–2 แผ่น หรือเครื่องดื่มเกลือแร่ถ้าอากาศร้อน</p>
-          </div>
-        </div>
-      )}
-
-      {insight.keyObservation && insight.keyObservation !== "-" && (
-        <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-slate-500">{insight.keyObservation}</p>
-      )}
-      {insight.coachMessage && (
-        <p className="mt-3 rounded-2xl bg-[var(--primary-soft)] px-4 py-3 text-sm font-medium leading-relaxed text-[var(--foreground)]">
-          {insight.coachMessage}
-        </p>
-      )}
+      </details>
     </div>
   );
 }
@@ -728,8 +727,30 @@ function PostWorkoutFocusContent({ insight, context }: { insight: DailyCoachInsi
   const hasLatestSleep = context.sleep7d.length > 0;
   const isUsingLatestSleepBecauseTodayMissing = !hasSleepToday && hasLatestSleep;
 
+  // Build a concise reason line for post-workout
+  const reasonParts = [];
+  if (context.recoverySystem) {
+    const { recovery, load } = context.recoverySystem.axes;
+    if (load.score >= 70) reasonParts.push("Load สูง");
+    reasonParts.push(`ฟื้นตัว${getRecoveryAxisLabel("recovery", recovery.score)}`);
+    reasonParts.push("วันนี้ไม่ต้องซ้อมเพิ่ม");
+  }
+  const reasonLine = reasonParts.join(" · ") || "ซ้อมวันนี้แล้ว · เน้นฟื้นตัว";
+
   return (
-    <div className="space-y-2.5">
+    <div className="space-y-3">
+      {/* 1. Headline first */}
+      <h2 className="text-2xl font-bold text-[#17201d]">{title}</h2>
+
+      {/* 2. Target plan line */}
+      <span className="inline-block rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+        ไม่ต้องซ้อมเพิ่ม · เน้นฟื้นตัว
+      </span>
+
+      {/* 3. Reason line */}
+      <p className="text-xs font-medium text-slate-400 mt-1">{reasonLine}</p>
+
+      {/* Warnings & Notes */}
       {matching.isUncertain && (
         <p className="rounded-2xl bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 border border-amber-200">
           ⚠️ วันนี้มีบันทึกกิจกรรมแล้ว (อาจแตกต่างจากแผนที่ตั้งไว้) แนะนำเน้นฟื้นตัวและงดซ้อมหนักซ้ำ
@@ -737,78 +758,78 @@ function PostWorkoutFocusContent({ insight, context }: { insight: DailyCoachInsi
       )}
       {isUsingLatestSleepBecauseTodayMissing && (
         <div className="rounded-2xl border border-[var(--color-info-soft)] bg-[var(--color-info-soft)] px-3 py-2 text-xs leading-relaxed text-[var(--color-info)] font-semibold">
-          ยังไม่มีข้อมูลการนอนวันนี้ — คำแนะนำนี้อิงจากข้อมูลล่าสุด
+          ใช้ข้อมูลล่าสุดชั่วคราว — ยังไม่มีการนอนวันนี้
         </div>
       )}
-      <div>
-        <h2 className="text-2xl font-bold text-[#17201d]">{title}</h2>
-        <span className="mt-2 inline-block rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-          ไม่ต้องซ้อมเพิ่ม · เน้นฟื้นตัว
-        </span>
-        {parts1.length > 0 && (
-          <p className="mt-2 text-sm font-semibold text-slate-800 leading-normal">
-            {parts1.join(" · ")}
-          </p>
-        )}
-        {parts2.length > 0 && (
-          <p className="mt-1 text-xs text-slate-500 leading-normal">
-            {parts2.join(" · ")}
-          </p>
-        )}
-        {parts1.length === 0 && parts2.length === 0 && (
-          <p className="mt-2 text-sm leading-relaxed text-slate-500">
-            วันนี้มีข้อมูลซ้อมแล้ว ให้ปิดงานด้วย recovery สั้น ๆ และพักให้พอ
-          </p>
-        )}
-        <p className="mt-2 text-xs leading-relaxed text-slate-500 bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3">
-          💡 บันทึกกิจกรรมวันนี้แล้ว ไม่จำเป็นต้องซ้อมหนักซ้ำอีก เน้นการจิบน้ำ เติมโปรตีน ขยับเบา ๆ และนอนหลับให้เพียงพอเพื่อฟื้นฟูกล้ามเนื้อ
-        </p>
 
-        {context.recoverySystem?.guardrails && context.recoverySystem.guardrails.filter(g => !g.includes("บันทึกกิจกรรม") && !g.includes("สภาพร่างกายพร้อม")).length > 0 && (
-          <div className="mt-2 rounded-2xl bg-amber-50/60 p-3 text-xs leading-relaxed text-amber-900 border border-amber-100 flex items-start gap-2">
-            <span className="text-sm">⚠️</span>
-            <div>
-              <p className="font-bold">ข้อควรระวังฟื้นตัววันนี้</p>
-              <ul className="list-disc pl-4 mt-1 font-semibold space-y-0.5">
-                {context.recoverySystem.guardrails
-                  .filter(g => !g.includes("บันทึกกิจกรรม") && !g.includes("สภาพร่างกายพร้อม"))
-                  .map((g, idx) => (
-                    <li key={idx}>{g}</li>
-                  ))
-                }
-              </ul>
-            </div>
-          </div>
-        )}
-
-        <div className="mt-2 rounded-2xl bg-emerald-50/60 p-3 text-xs leading-relaxed text-emerald-900 border border-emerald-100 flex items-start gap-2">
-          <span className="text-sm">🍳</span>
-          <div>
-            <p className="font-bold">โภชนาการฟื้นฟูหลังซ้อม</p>
-            <p className="mt-0.5">
-              {isProteinNearTarget
-                ? "โปรตีนใกล้ถึงเป้าแล้ว เติมคาร์บ/น้ำให้พอ"
-                : "เติมโปรตีนอีกนิด พร้อมคาร์บเพื่อฟื้นตัว"}
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-3 rounded-2xl bg-[var(--primary-soft)] px-4 py-3 text-sm font-medium leading-relaxed text-[var(--foreground)]">
-          <ul className="space-y-1.5">
-            {items.map((item) => (
-              <li key={item} className="flex gap-2">
-                <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#2a5a39]" />
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
-          {injuryNote && (
-            <p className="mt-3 border-t border-[#d9e8df] pt-2 text-xs font-semibold leading-5 text-[#2a5a39]">
-              {injuryNote}
+      {/* 4. Detailed list collapsed behind details accordion */}
+      <details className="mt-3 group border-t border-slate-100/60 pt-3 cursor-pointer">
+        <summary className="text-[11px] font-bold text-slate-400 hover:text-slate-500 list-none flex items-center justify-between">
+          <span>ดูสิ่งที่ควรทำต่อ</span>
+          <span className="transition-transform group-open:rotate-180">▾</span>
+        </summary>
+        <div className="mt-3 space-y-3 cursor-default text-xs">
+          {parts1.length > 0 && (
+            <p className="text-xs font-semibold text-slate-800 leading-normal">
+              {parts1.join(" · ")}
             </p>
           )}
+          {parts2.length > 0 && (
+            <p className="text-[11px] text-slate-500 leading-normal">
+              {parts2.join(" · ")}
+            </p>
+          )}
+
+          <p className="text-xs leading-relaxed text-slate-500 bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3">
+            💡 บันทึกกิจกรรมวันนี้แล้ว ไม่จำเป็นต้องซ้อมหนักซ้ำอีก เน้นการจิบน้ำ เติมโปรตีน ขยับเบา ๆ และนอนหลับให้เพียงพอเพื่อฟื้นฟูกล้ามเนื้อ
+          </p>
+
+          {context.recoverySystem?.guardrails && context.recoverySystem.guardrails.filter(g => !g.includes("บันทึกกิจกรรม") && !g.includes("สภาพร่างกายพร้อม")).length > 0 && (
+            <div className="rounded-2xl bg-amber-50/60 p-3 text-xs leading-relaxed text-amber-900 border border-amber-100 flex items-start gap-2">
+              <span className="text-sm">⚠️</span>
+              <div>
+                <p className="font-bold">ข้อควรระวังฟื้นตัววันนี้</p>
+                <ul className="list-disc pl-4 mt-1 font-semibold space-y-0.5">
+                  {context.recoverySystem.guardrails
+                    .filter(g => !g.includes("บันทึกกิจกรรม") && !g.includes("สภาพร่างกายพร้อม"))
+                    .map((g, idx) => (
+                      <li key={idx}>{g}</li>
+                    ))
+                  }
+                </ul>
+              </div>
+            </div>
+          )}
+
+          <div className="rounded-2xl bg-emerald-50/60 p-3 text-xs leading-relaxed text-emerald-900 border border-emerald-100 flex items-start gap-2">
+            <span className="text-sm">🍳</span>
+            <div>
+              <p className="font-bold">โภชนาการฟื้นฟูหลังซ้อม</p>
+              <p className="mt-0.5">
+                {isProteinNearTarget
+                  ? "โปรตีนใกล้ถึงเป้าแล้ว เติมคาร์บ/น้ำให้พอ"
+                  : "เติมโปรตีนอีกนิด พร้อมคาร์บเพื่อฟื้นตัว"}
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded-2xl bg-[var(--primary-soft)] px-4 py-3 text-xs font-medium leading-relaxed text-[var(--foreground)]">
+            <ul className="space-y-1.5">
+              {items.map((item) => (
+                <li key={item} className="flex gap-2">
+                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#2a5a39]" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+            {injuryNote && (
+              <p className="mt-3 border-t border-[#d9e8df] pt-2 text-[11px] font-semibold leading-5 text-[#2a5a39]">
+                {injuryNote}
+              </p>
+            )}
+          </div>
         </div>
-      </div>
+      </details>
     </div>
   );
 }
@@ -1373,6 +1394,16 @@ function TodaySnapshotCard({
 
   const recSys = coachCtx ? coachCtx.recoverySystem : buildRunMateRecoverySystem(null);
 
+  const displayStatus = getOverallDisplayStatus(
+    readinessScore ?? recSys.overallScore,
+    recSys.axes.recovery.score,
+    recSys.axes.load.score,
+    recSys.axes.sleep.score,
+    recSys.axes.fuel.score,
+    !!(coachCtx?.activePain),
+    !!(coachCtx?.painResolved || coachCtx?.recentPainHistory)
+  );
+
   return (
     <section className="card px-4 py-3 space-y-2.5">
       <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">ภาพรวมวันนี้</p>
@@ -1384,8 +1415,8 @@ function TodaySnapshotCard({
         )}
         {!loading && readinessScore != null && insight && (
           <>
-            <span className={`rounded-full px-3 py-1 text-xs font-bold ${readinessChipClass(readinessScore)}`}>
-              {readinessScore} Readiness {hasSleepToday ? getRunMateReadinessLabel(readinessScore) : "ล่าสุด"}
+            <span className={`rounded-full px-3 py-1 text-xs font-bold ${readinessChipClass(readinessScore, displayStatus.displayLabel)}`}>
+              {readinessScore} Readiness {hasSleepToday ? displayStatus.displayLabel : `ล่าสุด · ${displayStatus.displayLabel}`}
             </span>
             {isFallback && (
               <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-500 font-semibold">
@@ -1403,19 +1434,47 @@ function TodaySnapshotCard({
         </button>
       </div>
 
-      {/* 4-Axis Recovery System Grid */}
+      {/* Caution Note Banner */}
+      {!loading && displayStatus?.note && (
+        <div className="rounded-2xl border border-amber-100 bg-[#fffbeb] px-3.5 py-2.5 text-xs leading-relaxed text-amber-900 font-semibold my-1 shadow-sm flex items-start gap-2">
+          <span className="text-sm mt-0.5">⚠️</span>
+          <div>
+            <p className="text-[10px] text-amber-700 uppercase tracking-wider font-bold">ข้อแนะนำความพร้อม</p>
+            <p className="mt-0.5 text-amber-900 leading-snug">{displayStatus.note}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Compact/Collapsible Recovery System */}
       {!loading && recSys && (
-        <div className="space-y-1.5 my-1">
-          <div className="grid grid-cols-2 gap-2.5">
+        <details className="text-xs text-slate-500 cursor-pointer group border border-slate-100 bg-white p-3.5 rounded-2xl shadow-sm space-y-3 transition-all duration-300">
+          <summary className="text-xs list-none flex items-center justify-between font-semibold text-slate-700">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 font-semibold text-slate-700">
+              <span>ฟื้นตัว {Math.round(recSys.axes.recovery.score)}</span>
+              <span className="text-slate-300">·</span>
+              <span>โหลด {Math.round(recSys.axes.load.score)}</span>
+              <span className="text-slate-300">·</span>
+              <span>นอน {Math.round(recSys.axes.sleep.score)}</span>
+              <span className="text-slate-300">·</span>
+              <span>พลังงาน {Math.round(recSys.axes.fuel.score)}</span>
+            </div>
+            <div className="flex items-center gap-1 text-[11px] text-[var(--primary)] font-bold shrink-0">
+              <span className="group-open:hidden">ดูรายละเอียด Recovery</span>
+              <span className="hidden group-open:inline">ซ่อนรายละเอียด</span>
+              <span className="transition-transform group-open:rotate-180">▾</span>
+            </div>
+          </summary>
+
+          <div className="pt-3 border-t border-slate-50 grid grid-cols-2 gap-2.5 cursor-default">
             {/* Recovery Axis */}
-            <div className="rounded-2xl p-3 border border-slate-100 bg-white shadow-sm flex flex-col justify-between min-h-[90px]">
+            <div className="rounded-2xl p-3 border border-slate-100 bg-slate-50/50 flex flex-col justify-between min-h-[90px]">
               <div>
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-bold text-slate-400">ฟื้นตัว</span>
                   <span className="text-sm">⚡</span>
                 </div>
                 <div className="mt-1 flex items-baseline gap-1.5">
-                  <span className="text-sm font-black text-slate-800">{formatAxisScore(recSys.axes.recovery.score)}</span>
+                  <span className="text-sm font-black text-slate-800">{formatAxisScore(recSys.axes.recovery.score)}/100</span>
                   <span className={`inline-block rounded px-1.5 py-0.5 text-[9px] font-bold ${getAxisBadgeClass("recovery", recSys.axes.recovery.score)}`}>
                     {getRecoveryAxisLabel("recovery", recSys.axes.recovery.score)}
                   </span>
@@ -1425,14 +1484,14 @@ function TodaySnapshotCard({
             </div>
 
             {/* Load Axis */}
-            <div className="rounded-2xl p-3 border border-slate-100 bg-white shadow-sm flex flex-col justify-between min-h-[90px]">
+            <div className="rounded-2xl p-3 border border-slate-100 bg-slate-50/50 flex flex-col justify-between min-h-[90px]">
               <div>
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-bold text-slate-400">โหลดซ้อม</span>
                   <span className="text-sm">🏃</span>
                 </div>
                 <div className="mt-1 flex items-baseline gap-1.5">
-                  <span className="text-sm font-black text-slate-800">{formatAxisScore(recSys.axes.load.score)}</span>
+                  <span className="text-sm font-black text-slate-800">{formatAxisScore(recSys.axes.load.score)}/100</span>
                   <span className={`inline-block rounded px-1.5 py-0.5 text-[9px] font-bold ${getAxisBadgeClass("load", recSys.axes.load.score)}`}>
                     {getRecoveryAxisLabel("load", recSys.axes.load.score)}
                   </span>
@@ -1442,14 +1501,14 @@ function TodaySnapshotCard({
             </div>
 
             {/* Sleep Axis */}
-            <div className="rounded-2xl p-3 border border-slate-100 bg-white shadow-sm flex flex-col justify-between min-h-[90px]">
+            <div className="rounded-2xl p-3 border border-slate-100 bg-slate-50/50 flex flex-col justify-between min-h-[90px]">
               <div>
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-bold text-slate-400">การนอน</span>
                   <span className="text-sm">🌙</span>
                 </div>
                 <div className="mt-1 flex items-baseline gap-1.5">
-                  <span className="text-sm font-black text-slate-800">{formatAxisScore(recSys.axes.sleep.score)}</span>
+                  <span className="text-sm font-black text-slate-800">{formatAxisScore(recSys.axes.sleep.score)}/100</span>
                   <span className={`inline-block rounded px-1.5 py-0.5 text-[9px] font-bold ${getAxisBadgeClass("sleep", recSys.axes.sleep.score)}`}>
                     {getRecoveryAxisLabel("sleep", recSys.axes.sleep.score)}
                   </span>
@@ -1459,14 +1518,14 @@ function TodaySnapshotCard({
             </div>
 
             {/* Fuel Axis */}
-            <div className="rounded-2xl p-3 border border-slate-100 bg-white shadow-sm flex flex-col justify-between min-h-[90px]">
+            <div className="rounded-2xl p-3 border border-slate-100 bg-slate-50/50 flex flex-col justify-between min-h-[90px]">
               <div>
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-bold text-slate-400">พลังงาน</span>
                   <span className="text-sm">🍱</span>
                 </div>
                 <div className="mt-1 flex items-baseline gap-1.5">
-                  <span className="text-sm font-black text-slate-800">{formatAxisScore(recSys.axes.fuel.score)}</span>
+                  <span className="text-sm font-black text-slate-800">{formatAxisScore(recSys.axes.fuel.score)}/100</span>
                   <span className={`inline-block rounded px-1.5 py-0.5 text-[9px] font-bold ${getAxisBadgeClass("fuel", recSys.axes.fuel.score)}`}>
                     {getRecoveryAxisLabel("fuel", recSys.axes.fuel.score)}
                   </span>
@@ -1475,10 +1534,11 @@ function TodaySnapshotCard({
               <p className="text-[9px] text-slate-500 leading-tight mt-1">{recSys.axes.fuel.summary}</p>
             </div>
           </div>
-          <p className="text-[9.5px] text-slate-400 leading-normal">
-            * หมายเหตุ: โหลดซ้อมยิ่งสูง = ใช้ร่างกายสะสมเยอะ ไม่ได้แปลว่าคะแนนดี · แกนอื่น 0–100 ยิ่งสูงยิ่งดี
+
+          <p className="text-[9.5px] text-slate-400 leading-normal pt-2 border-t border-slate-50 cursor-default">
+            * Load สูง = ใช้ร่างกายเยอะ · แกนอื่น 0–100 ยิ่งสูงยิ่งดี
           </p>
-        </div>
+        </details>
       )}
 
       {/* Readiness V2 source coverage */}
@@ -1524,6 +1584,9 @@ function TodaySnapshotCard({
                 ⚠️ สำหรับโหลดซ้อม คะแนนสูงหมายถึงโหลดสะสมสูง จึงควรคุมความหนัก ไม่ใช่คะแนนดีเสมอไป
               </p>
             )}
+            <p className="text-[10px] text-slate-500 bg-slate-100/50 p-1.5 rounded-lg border border-slate-200/50 font-semibold leading-normal">
+              * แม้คะแนนพื้นฐาน (HRV/RHR) จะสูง แต่หากความล้าสะสมสูง นอนน้อย หรือกินไม่พอ ระบบจะคุมระดับคำแนะนำเป็นสีฟ้า/เหลือง (Good/Fair) เพื่อช่วยป้องกันการฝืนซ้อม
+            </p>
             <ul className="list-disc pl-4 space-y-1 text-[11px]">
               <li><strong>ฟื้นตัว:</strong> ความพร้อมของหัวใจ/HRV และประวัติความตึงเจ็บ</li>
               <li><strong>โหลดซ้อม:</strong> ปริมาณวิ่งสะสม 7 วัน</li>
@@ -1582,7 +1645,13 @@ function TodaySnapshotCard({
   );
 }
 
-function readinessChipClass(score: number): string {
+function readinessChipClass(score: number, label?: string): string {
+  if (label) {
+    if (label.includes("Excellent")) return "bg-[#eef7f0] text-[var(--status-ready)]";
+    if (label.includes("Good")) return "bg-[#e7f0fa] text-[#42677f]";
+    if (label.includes("Fair")) return "bg-[#fff6df] text-[#9b742c]";
+    if (label.includes("Low")) return "bg-red-50 text-[var(--status-rest)]";
+  }
   if (score >= 80) return "bg-[#eef7f0] text-[var(--status-ready)]";
   if (score >= 66) return "bg-[#e7f0fa] text-[#42677f]";
   if (score >= 50) return "bg-[#fff6df] text-[#9b742c]";
@@ -1753,78 +1822,87 @@ function EndOfDaySummaryCard({
 }) {
   const summary = item?.data as DailySummary | undefined;
   const hasSummary = Boolean(summary);
-  const [expanded, setExpanded] = useState(false);
   const generatedAt = item ? formatSummaryGeneratedAt(item.createdAt) : "";
-  const existingSummaryNote = `สรุปจาก Report ตอนกดล่าสุด${generatedAt ? ` · อัปเดตล่าสุด: ${generatedAt}` : ""} หากเพิ่งเพิ่ม/ลบข้อมูล แนะนำกดอัปเดตอีกครั้ง`;
-  const newSummaryNote = "ระบบจะสรุปจากข้อมูลใน Report ตอนกดสร้าง อาจคลาดเคลื่อนได้ถ้าข้อมูลยังไม่ครบ";
+  const existingSummaryNote = `สรุปจาก Report ตอนกดล่าสุด${generatedAt ? ` · อัปเดตล่าสุด: ${generatedAt}` : ""}`;
+  const newSummaryNote = "ระบบจะสรุปจากข้อมูลใน Report ตอนกดสร้าง";
 
-  if (hasSummary && !expanded) {
+  const bangkokHour = (() => {
+    try {
+      const now = new Date();
+      const formatter = new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Asia/Bangkok",
+        hour: "2-digit",
+        hour12: false,
+      });
+      return Number(formatter.format(now));
+    } catch {
+      return new Date().getHours();
+    }
+  })();
+  const isEvening = bangkokHour >= 18;
+
+  // Case 1: summary exists -> show compact done state
+  if (hasSummary) {
     return (
-      <section id="end-of-day-summary" className="card scroll-mt-6 px-4 py-3 space-y-2">
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">สรุปท้ายวัน</p>
-          <span className="rounded-full bg-[#eef7f0] px-2 py-0.5 text-[10px] font-bold text-[var(--status-ready)]">พร้อมแล้ว</span>
-        </div>
-        {summary?.overallSummary && (
-          <p className="line-clamp-2 text-sm leading-6 text-slate-700">{summary.overallSummary}</p>
-        )}
-        <p className="text-[11px] leading-5 text-slate-400">{existingSummaryNote}</p>
-        <p className="text-[11px] leading-5 text-slate-400 font-medium">
-          💡 สรุปท้ายวันจะช่วยให้โค้ชเข้าใจวันนั้นมากขึ้น แต่ยังไม่ใช่คะแนน Daily Score แยก
-        </p>
-        <div className="flex gap-2">
-          <button type="button" onClick={() => setExpanded(true)} className="flex-1 rounded-full bg-slate-100 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200">
-            ดูสรุป
-          </button>
-          <LoadingButton type="button" loading={loading} loadingText="กำลังอัปเดต..." onClick={onGenerate} className="flex-1 rounded-full bg-slate-100 py-2 text-xs font-bold text-slate-600 hover:bg-slate-200 disabled:opacity-50">
-            อัปเดต
+      <div id="end-of-day-summary" className="flex items-center justify-between rounded-2xl border border-[var(--border-warm)] bg-[var(--surface)] px-4 py-2.5 shadow-sm text-xs text-[var(--foreground)] card scroll-mt-6">
+        <span className="font-semibold text-slate-700">📋 สรุปท้ายวันของวันนี้บันทึกเรียบร้อยแล้ว</span>
+        <details className="inline-block cursor-pointer">
+          <summary className="list-none text-[var(--primary)] font-bold hover:underline">ดูบันทึก</summary>
+          <div className="mt-2 text-left space-y-1 text-slate-500 border-t border-slate-100 pt-2 font-medium cursor-default">
+            <p className="font-bold text-slate-800 leading-snug">{summary?.overallSummary}</p>
+            {summary?.trainingReview && <p>ความรู้สึก/ซ้อม: {summary.trainingReview}</p>}
+            {summary?.tomorrowPlan && <p>แผนพรุ่งนี้: {summary.tomorrowPlan}</p>}
+            {summary?.coachMessage && (
+              <p className="mt-1 rounded bg-[var(--primary-soft)] px-2 py-1 text-[11px] text-[var(--primary-strong)]">
+                {summary.coachMessage}
+              </p>
+            )}
+            <p className="text-[10px] text-slate-400 mt-1">{existingSummaryNote}</p>
+            <div className="flex gap-2 mt-2 pt-2 border-t border-slate-50">
+              <LoadingButton type="button" loading={loading} loadingText="กำลังอัปเดต..." onClick={onGenerate} className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-bold text-slate-600 hover:bg-slate-200">
+                อัปเดตสรุปท้ายวัน
+              </LoadingButton>
+            </div>
+          </div>
+        </details>
+      </div>
+    );
+  }
+
+  // Case 2: summary missing & before evening -> show collapsed details card
+  if (!isEvening) {
+    return (
+      <details id="end-of-day-summary" className="group rounded-3xl border border-[var(--border-warm)] bg-[var(--surface)]/75 px-4 py-3 shadow-sm cursor-pointer scroll-mt-6">
+        <summary className="flex list-none items-center justify-between gap-3 text-sm font-semibold text-[var(--foreground)]">
+          <div>
+            <p className="text-sm font-bold text-[var(--foreground)]">สรุปท้ายวัน</p>
+            <p className="text-xs text-[var(--muted-text)] font-medium mt-0.5">ช่วยให้โค้ชเข้าใจวันนี้มากขึ้น</p>
+          </div>
+          <div className="flex items-center gap-1 text-[11px] text-[var(--primary)] font-bold shrink-0">
+            <span className="group-open:hidden">เขียนสรุป</span>
+            <span className="hidden group-open:inline">ปิด</span>
+            <span className="transition-transform group-open:rotate-180">▾</span>
+          </div>
+        </summary>
+        <div className="mt-3 pt-3 border-t border-slate-100/60 cursor-default space-y-3">
+          <p className="text-xs text-slate-500">กดก่อนนอนเพื่อสรุปวันนี้และวางแผนพรุ่งนี้จากข้อมูลใน Report ({newSummaryNote})</p>
+          {message && <p className="text-xs font-semibold text-green-600">{message}</p>}
+          {error && <p className="rounded-2xl bg-red-50 px-3 py-2 text-xs font-bold text-red-500">{error}</p>}
+          <LoadingButton type="button" loading={loading} loadingText="กำลังสร้างสรุป..." onClick={onGenerate} className="btn-primary w-full py-2.5 text-xs font-bold disabled:opacity-50">
+            สร้างสรุปท้ายวัน
           </LoadingButton>
         </div>
-      </section>
+      </details>
     );
   }
 
-  if (hasSummary && expanded) {
-    return (
-      <section id="end-of-day-summary" className="card scroll-mt-6 px-4 py-3 space-y-3">
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">สรุปท้ายวัน</p>
-          <button type="button" onClick={() => setExpanded(false)} className="text-xs text-slate-400 hover:text-slate-600">ซ่อน</button>
-        </div>
-        <div className="space-y-2 rounded-2xl bg-slate-50 p-3">
-          {summary?.overallSummary && <p className="text-sm font-bold leading-6 text-[#17201d]">{summary.overallSummary}</p>}
-          <SummaryLine label="วันนี้" text={summary?.trainingReview} />
-          <SummaryLine label="สิ่งที่ควรระวัง" text={summary?.recoveryReview || summary?.whatToImprove} />
-          <SummaryLine label="แผนพรุ่งนี้" text={summary?.tomorrowPlan} />
-          {summary?.coachMessage && (
-            <p className="rounded-2xl bg-[var(--primary-soft)] px-3 py-2 text-sm font-semibold leading-6 text-[var(--foreground)]">
-              {summary.coachMessage}
-            </p>
-          )}
-          <p className="text-[11px] leading-5 text-slate-400">{existingSummaryNote}</p>
-          <p className="text-[11px] leading-5 text-slate-400 font-medium mt-1">
-            💡 สรุปท้ายวันจะช่วยให้โค้ชเข้าใจวันนั้นมากขึ้น แต่ยังไม่ใช่คะแนน Daily Score แยก
-          </p>
-        </div>
-        {message && <p className="text-xs font-semibold text-green-600">{message}</p>}
-        {error && <p className="rounded-2xl bg-red-50 px-3 py-2 text-xs font-bold text-red-500">{error}</p>}
-        <LoadingButton type="button" loading={loading} loadingText="กำลังอัปเดตสรุป..." onClick={onGenerate} className="w-full rounded-full bg-slate-100 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-200 disabled:opacity-50">
-          อัปเดตสรุปท้ายวัน
-        </LoadingButton>
-      </section>
-    );
-  }
-
-  // No summary yet
+  // Case 3: summary missing & evening -> show prominent uploader card
   return (
     <section id="end-of-day-summary" className="card scroll-mt-6 px-4 py-3 space-y-3">
       <div>
         <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">สรุปท้ายวัน</p>
         <p className="mt-1 text-sm leading-6 text-slate-500">กดก่อนนอนเพื่อสรุปวันนี้และวางแผนพรุ่งนี้จากข้อมูลใน Report</p>
-        <p className="mt-1 text-[11px] leading-5 text-slate-400 font-medium text-slate-500">
-          💡 สรุปท้ายวันจะช่วยให้โค้ชเข้าใจวันนั้นมากขึ้น แต่ยังไม่ใช่คะแนน Daily Score แยก
-        </p>
-        <p className="mt-1 text-[11px] leading-5 text-slate-400">{newSummaryNote}</p>
+        <p className="mt-1 text-[11px] text-slate-400">{newSummaryNote}</p>
       </div>
       {message && <p className="text-xs font-semibold text-green-600">{message}</p>}
       {error && <p className="rounded-2xl bg-red-50 px-3 py-2 text-xs font-bold text-red-500">{error}</p>}
@@ -1832,16 +1910,6 @@ function EndOfDaySummaryCard({
         สรุปท้ายวัน
       </LoadingButton>
     </section>
-  );
-}
-
-function SummaryLine({ label, text }: { label: string; text?: string }) {
-  if (!text) return null;
-  return (
-    <div className="text-sm leading-6 text-slate-700">
-      <span className="font-bold text-[#17201d]">{label}: </span>
-      {text}
-    </div>
   );
 }
 

@@ -237,19 +237,28 @@ export default function SettingsPage() {
             </section>
           )}
 
-          <section className="card space-y-4 p-5">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">ข้อมูลและความเป็นส่วนตัว</p>
-              <h2 className="mt-1 text-xl font-bold text-[#17201d]">สรุปว่าแอปใช้ข้อมูลของคุณอย่างไร</h2>
-            </div>
-            <div className="divide-y divide-slate-100/70">
-              <PrivacyItem icon="🗂️" title="Report คือข้อมูลหลัก" desc="ข้อมูลที่กดบันทึกจาก Upload จะเข้า Report และถูกใช้เป็นบริบทให้โค้ชตอบได้แม่นขึ้น" />
-              <PrivacyItem icon="💬" title="แชทกับโค้ชเป็นชั่วคราว" desc="ข้อความในแชทจะไม่ถูกเพิ่มเข้า Report อัตโนมัติ เว้นแต่คุณบันทึกผ่าน Upload/Report" />
-              <PrivacyItem icon="📎" title="ไฟล์อัปโหลดไม่ถูกเก็บเป็นต้นฉบับ" desc="ระบบใช้รูปหรือ PDF เพื่อวิเคราะห์เท่านั้น และบันทึกเฉพาะผลสรุปที่คุณกดยืนยัน" />
-              <PrivacyItem icon="🩺" title="ผลตรวจสุขภาพ" desc="Health Check จะบันทึกเฉพาะค่าที่สรุปแล้ว ไม่บันทึกไฟล์ PDF ต้นฉบับหรือข้อความดิบ" />
-              <PrivacyItem icon="🗑️" title="ลบข้อมูลได้" desc="คุณสามารถลบรายการที่บันทึกไว้จากหน้า Report ได้" />
-              <PrivacyItem icon="⚕️" title="คำแนะนำไม่ใช่การวินิจฉัย" desc="คำแนะนำเป็นแนวทางทั่วไปจากข้อมูลที่บันทึกไว้ ไม่ใช่คำแนะนำทางการแพทย์ หากกังวลเรื่องสุขภาพควรปรึกษาแพทย์" />
-            </div>
+          <section className="card p-4">
+            <details className="group cursor-pointer text-xs">
+              <summary className="list-none flex items-center justify-between font-bold text-[#17201d]">
+                <div className="flex flex-col gap-0.5">
+                  <p className="text-[10px] uppercase tracking-[0.15em] text-[#6f8fa6]">ข้อมูลและความเป็นส่วนตัว</p>
+                  <p className="text-sm">ดูสรุปความโปร่งใสและการเก็บรักษาข้อมูล</p>
+                </div>
+                <div className="flex items-center gap-1.5 text-xs text-[var(--primary)] font-bold shrink-0">
+                  <span className="group-open:hidden">แสดง</span>
+                  <span className="hidden group-open:inline">ซ่อน</span>
+                  <span className="transition-transform group-open:rotate-180">▾</span>
+                </div>
+              </summary>
+              <div className="mt-4 divide-y divide-slate-100/70 border-t border-slate-100 pt-3 cursor-default">
+                <PrivacyItem icon="🗂️" title="Report คือข้อมูลหลัก" desc="ข้อมูลที่กดบันทึกจาก Upload จะเข้า Report และถูกใช้เป็นบริบทให้โค้ชตอบได้แม่นขึ้น" />
+                <PrivacyItem icon="💬" title="แชทกับโค้ชเป็นชั่วคราว" desc="ข้อความในแชทจะไม่ถูกเพิ่มเข้า Report อัตโนมัติ เว้นแต่คุณบันทึกผ่าน Upload/Report" />
+                <PrivacyItem icon="📎" title="ไฟล์อัปโหลดไม่ถูกเก็บเป็นต้นฉบับ" desc="ระบบใช้รูปหรือ PDF เพื่อวิเคราะห์เท่านั้น และบันทึกเฉพาะผลสรุปที่คุณกดยืนยัน" />
+                <PrivacyItem icon="🩺" title="ผลตรวจสุขภาพ" desc="Health Check จะบันทึกเฉพาะค่าที่สรุปแล้ว ไม่บันทึกไฟล์ PDF ต้นฉบับหรือข้อความดิบ" />
+                <PrivacyItem icon="🗑️" title="ลบข้อมูลได้" desc="คุณสามารถลบรายการที่บันทึกไว้จากหน้า Report ได้" />
+                <PrivacyItem icon="⚕️" title="คำแนะนำไม่ใช่การวินิจฉัย" desc="คำแนะนำเป็นแนวทางทั่วไปจากข้อมูลที่บันทึกไว้ ไม่ใช่คำแนะนำทางการแพทย์ หากกังวลเรื่องสุขภาพควรปรึกษาแพทย์" />
+              </div>
+            </details>
           </section>
 
           {process.env.NODE_ENV === "development" && (

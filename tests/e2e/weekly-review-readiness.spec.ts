@@ -94,8 +94,11 @@ test("Report shows correct heading copy for 7 Day Overview and Weekly Review", a
 
   await gotoApp(page, "/logs");
 
-  // 7 Day Overview card uses new headings
-  await expect(page.getByText("ตัวเลข 7 วันล่าสุด")).toBeVisible();
+  // 7 Day Overview card uses new headings (summary text visible even when collapsed)
+  await expect(page.getByText("ตัวเลขสรุป 7 วันล่าสุด")).toBeVisible();
+
+  // "สรุป metrics หลักจาก Report" is inside the accordion — expand first
+  await page.getByText("ตัวเลขสรุป 7 วันล่าสุด").click();
   await expect(page.getByText("สรุป metrics หลักจาก Report")).toBeVisible();
 
   // Weekly Review card uses new headings

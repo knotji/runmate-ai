@@ -147,22 +147,39 @@ export default function RaceGoalPage() {
           {selectedTodayWorkout ? <TodayWorkoutCard workout={normalizeForDisplay(selectedTodayWorkout)} coachContext={coachContext} /> : null}
           {plan.weeklyPlan?.length ? <ActionableWeekCard workouts={plan.weeklyPlan.map(normalizeForDisplay)} coachContext={coachContext} /> : null}
 
-          <section className="card space-y-3 p-5">
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="text-xl font-bold">ภาพรวมแผน</h2>
-              <LoadingButton
-                type="button"
-                loading={refreshing}
-                loadingText="กำลังอัปเดตแผน..."
-                onClick={refreshPlan}
-                className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold text-[#42677f] transition-colors hover:bg-slate-100 disabled:opacity-40"
-              >
-                รีเฟรชแผน
-              </LoadingButton>
-            </div>
-            {refreshError ? <p className="text-xs text-red-500">อัปเดตแผนไม่สำเร็จ ลองใหม่อีกครั้ง</p> : null}
-            <p className="text-sm leading-6 text-slate-600">{sanitizePaceInText(plan.planSummary)}</p>
-            {plan.phases?.map((phase) => <TrainingPhaseCard key={phase.name} phase={phase} />)}
+          <section className="card p-4">
+            <details className="group cursor-pointer">
+              <summary className="list-none flex items-center justify-between font-bold text-[#17201d]">
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-[10px] uppercase tracking-[0.15em] text-[#6f8fa6]">ภาพรวมแผน</span>
+                  <span className="text-sm font-bold text-[#17201d]">รายละเอียดแต่ละเฟสการซ้อม</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-xs text-[var(--primary)] font-bold shrink-0">
+                  <span className="group-open:hidden">ดูเฟสซ้อม</span>
+                  <span className="hidden group-open:inline">ซ่อน</span>
+                  <span className="transition-transform group-open:rotate-180">▾</span>
+                </div>
+              </summary>
+              <div className="mt-3 pt-3 border-t border-slate-100/60 cursor-default space-y-3">
+                <div className="flex justify-between items-center gap-3">
+                  <span className="text-xs text-slate-500 font-semibold">สรุปโครงสร้างแผนซ้อม</span>
+                  <LoadingButton
+                    type="button"
+                    loading={refreshing}
+                    loadingText="กำลังอัปเดตแผน..."
+                    onClick={refreshPlan}
+                    className="flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold text-[#42677f] transition-colors hover:bg-slate-100 disabled:opacity-40"
+                  >
+                    รีเฟรชแผน
+                  </LoadingButton>
+                </div>
+                {refreshError ? <p className="text-xs text-red-500">อัปเดตแผนไม่สำเร็จ ลองใหม่อีกครั้ง</p> : null}
+                <p className="text-xs leading-relaxed text-slate-600 font-medium bg-slate-50 p-3 rounded-2xl border border-slate-100">{sanitizePaceInText(plan.planSummary)}</p>
+                <div className="space-y-2 mt-2">
+                  {plan.phases?.map((phase) => <TrainingPhaseCard key={phase.name} phase={phase} />)}
+                </div>
+              </div>
+            </details>
           </section>
 
           {!plan.weeklyPlan?.length && plan.weeks?.[0] ? <WeeklyPlanCard week={plan.weeks[0]} /> : null}
@@ -250,22 +267,31 @@ function isLongRun(workout: WeekWorkout): boolean {
 function RecoveryGuardrailsCard({ coachContext }: { coachContext: CoachContext | null }) {
   if (!coachContext) return null;
   const recSys = coachContext.recoverySystem;
-  if (!recSys) return null;
+  if (!recSys || !recSys.guardrails?.length) return null;
 
   return (
-    <section className="card border border-blue-100 bg-blue-50/20 p-5 space-y-3">
-      <div className="flex items-center gap-2">
-        <span className="text-base">🛡️</span>
-        <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-[#42677f]">Guardrails จากสภาพร่างกายวันนี้</h2>
-      </div>
-      <div>
-        <p className="text-sm font-extrabold text-slate-800">{recSys.headline}</p>
-        <ul className="list-disc pl-4 mt-2 space-y-1 text-xs font-semibold text-slate-600">
-          {recSys.guardrails.map((g, idx) => (
-            <li key={idx}>{g}</li>
-          ))}
-        </ul>
-      </div>
+    <section className="card border border-blue-100 bg-blue-50/20 p-4">
+      <details className="group cursor-pointer">
+        <summary className="list-none flex items-center justify-between font-semibold text-[#42677f]">
+          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-[#42677f]">
+            <span className="text-base">🛡️</span>
+            <span>Guardrails สภาพร่างกายวันนี้</span>
+          </div>
+          <div className="flex items-center gap-1 text-[11px] text-[var(--primary)] font-bold shrink-0">
+            <span className="group-open:hidden">ดู Guardrails</span>
+            <span className="hidden group-open:inline">ซ่อน</span>
+            <span className="transition-transform group-open:rotate-180">▾</span>
+          </div>
+        </summary>
+        <div className="mt-3 pt-3 border-t border-blue-100/50 cursor-default">
+          <p className="text-xs font-extrabold text-slate-800 leading-snug">{recSys.headline}</p>
+          <ul className="list-disc pl-4 mt-2 space-y-1 text-xs font-semibold text-slate-600">
+            {recSys.guardrails.map((g, idx) => (
+              <li key={idx}>{g}</li>
+            ))}
+          </ul>
+        </div>
+      </details>
     </section>
   );
 }
@@ -329,6 +355,43 @@ function TodayWorkoutCard({ workout, coachContext }: { workout: WeekWorkout; coa
   );
 }
 
+function isTodayWorkout(dayStr: string): boolean {
+  if (/today/i.test(dayStr)) return true;
+
+  const bangkokDayName = (() => {
+    try {
+      const now = new Date();
+      const formatter = new Intl.DateTimeFormat("th-TH", {
+        timeZone: "Asia/Bangkok",
+        weekday: "long",
+      });
+      return formatter.format(now); // e.g. "วันจันทร์", "วันอังคาร"
+    } catch {
+      return "";
+    }
+  })();
+
+  const cleanDayStr = dayStr.trim();
+
+  if (bangkokDayName.includes(cleanDayStr) || cleanDayStr.includes(bangkokDayName)) {
+    return true;
+  }
+
+  const shortDaysMap: Record<string, string> = {
+    "อา.": "วันอาทิตย์", "จ.": "วันจันทร์", "อ.": "วันอังคาร", "พ.": "วันพุธ",
+    "พฤ.": "วันพฤหัสบดี", "ศ.": "วันศุกร์", "ส.": "วันเสาร์",
+    "อาทิตย์": "วันอาทิตย์", "จันทร์": "วันจันทร์", "อังคาร": "วันอังคาร", "พุธ": "วันพุธ",
+    "พฤหัสบดี": "วันพฤหัสบดี", "ศุกร์": "วันศุกร์", "เสาร์": "วันเสาร์"
+  };
+
+  const mapped = shortDaysMap[cleanDayStr];
+  if (mapped && bangkokDayName === mapped) {
+    return true;
+  }
+
+  return false;
+}
+
 function ActionableWeekCard({ workouts, coachContext }: { workouts: WeekWorkout[]; coachContext: CoachContext | null }) {
   return (
     <section className="card p-5">
@@ -338,37 +401,54 @@ function ActionableWeekCard({ workouts, coachContext }: { workouts: WeekWorkout[
         {workouts.map((workout, index) => {
           const isStrength = isStrengthOrMobilityType(workout.workoutType);
           const adaptiveNote = getAdaptiveLongRunNote(workout, coachContext);
+          const isToday = isTodayWorkout(workout.day);
           return (
-            <div key={`${workout.day}-${workout.workoutType}-${index}`} className="rounded-2xl bg-white/80 p-4 shadow-sm ring-1 ring-slate-100">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs font-bold text-[#6f8fa6]">{workout.day}</p>
-                  <p className="mt-1 font-bold text-[#17201d]">{workout.workoutType}</p>
+            <details
+              key={`${workout.day}-${workout.workoutType}-${index}`}
+              className="group cursor-pointer rounded-2xl bg-white/80 p-4 shadow-sm ring-1 ring-slate-100"
+              open={isToday}
+            >
+              <summary className="list-none flex items-start justify-between gap-3 font-semibold">
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-xs font-bold text-[#6f8fa6] flex items-center gap-1.5">
+                    {workout.day}
+                    {isToday && (
+                      <span className="rounded bg-[var(--primary-soft)] px-1.5 py-0.5 text-[9px] font-bold text-[var(--primary-strong)]">
+                        วันนี้
+                      </span>
+                    )}
+                  </span>
+                  <span className="mt-1 font-bold text-[#17201d]">{workout.workoutType}</span>
                 </div>
-                <span className="rounded-full bg-[#eef4ef] px-3 py-1 text-xs font-bold text-[#2a5a39]">
-                  {formatWorkoutAmount(workout)}
-                </span>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="rounded-full bg-[#eef4ef] px-3 py-1 text-xs font-bold text-[#2a5a39]">
+                    {formatWorkoutAmount(workout)}
+                  </span>
+                  <span className="text-xs text-slate-400 group-open:rotate-180 transition-transform">▾</span>
+                </div>
+              </summary>
+              <div className="mt-3 pt-3 border-t border-slate-50 cursor-default text-xs space-y-2">
+                <p className="text-sm leading-relaxed text-slate-600 font-medium">{workout.description}</p>
+                {renderWorkoutDetails(workout)}
+                {isStrength ? (
+                  <>
+                    <InfoLine label="Focus / กล้ามเนื้อ" value={workout.purpose || "แกนกลาง & เสริมความแข็งแรง"} />
+                    {workout.adjustment ? <InfoLine label="Effort / แรงต้าน" value={workout.adjustment} /> : null}
+                    <InfoLine label="รูทีนแนะนำ" value={suggestStrengthRoutine(workout.workoutType, workout.purpose, workout.adjustment)} />
+                  </>
+                ) : (
+                  <>
+                    {workout.purpose ? <InfoLine label="เป้าหมาย" value={workout.purpose} /> : null}
+                    {workout.adjustment ? <InfoLine label="ปรับตามสภาพ" value={workout.adjustment} /> : null}
+                  </>
+                )}
+                {adaptiveNote && (
+                  <div className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800 font-semibold border border-amber-200">
+                    ⚠️ {adaptiveNote}
+                  </div>
+                )}
               </div>
-              <p className="mt-3 text-sm leading-6 text-slate-600">{workout.description}</p>
-              {renderWorkoutDetails(workout)}
-              {isStrength ? (
-                <>
-                  <InfoLine label="Focus / กล้ามเนื้อ" value={workout.purpose || "แกนกลาง & เสริมความแข็งแรง"} />
-                  {workout.adjustment ? <InfoLine label="Effort / แรงต้าน" value={workout.adjustment} /> : null}
-                  <InfoLine label="รูทีนแนะนำ" value={suggestStrengthRoutine(workout.workoutType, workout.purpose, workout.adjustment)} />
-                </>
-              ) : (
-                <>
-                  {workout.purpose ? <InfoLine label="เป้าหมาย" value={workout.purpose} /> : null}
-                  {workout.adjustment ? <InfoLine label="ปรับตามสภาพ" value={workout.adjustment} /> : null}
-                </>
-              )}
-              {adaptiveNote && (
-                <div className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800 font-medium border border-amber-200">
-                  ⚠️ {adaptiveNote}
-                </div>
-              )}
-            </div>
+            </details>
           );
         })}
       </div>

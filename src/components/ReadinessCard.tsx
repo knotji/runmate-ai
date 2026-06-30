@@ -144,9 +144,9 @@ export function ReadinessCard() {
   };
 
   const colors = colorMap[result.level];
-  // RunMate label (Good/Fair/Excellent/Low) is computed from the raw score,
+  // RunMate label (Good/Fair/Excellent/Low) is computed from display status to support caution softening,
   // separate from the coaching state label (ควรซ้อมเบา, ควรพักฟื้น, etc.)
-  const runmateLabel = getRunMateReadinessLabel(result.score);
+  const runmateLabel = recSys.overallDisplayStatus?.displayLabel ?? getRunMateReadinessLabel(result.score);
 
   const displayedSummary = result.summary;
 
@@ -163,12 +163,25 @@ export function ReadinessCard() {
             {result.label}
           </h2>
           {collapsed ? (
-            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-[var(--muted-text)]">
-              {/* RunMate readiness label separate from coaching recommendation */}
-              <span>{todayReadiness.isFallback ? "Readiness ล่าสุด" : "Readiness"} {result.score} — {runmateLabel}</span>
-              {injuryOverrideActive && <span className="font-semibold text-[var(--status-rest)]">· มีอาการเจ็บตอนนี้</span>}
-              {!injuryOverrideActive && recentPainHistoryNote && <span className="font-semibold text-[#9b742c]">· เริ่มเบาก่อน</span>}
-              {restingHrDelta !== null && <span>· ชีพจร {(restingHrDelta >= 0 ? "+" : "") + restingHrDelta} bpm</span>}
+            <div className="mt-1.5 flex flex-col gap-1 text-xs text-[var(--muted-text)]">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                {/* RunMate readiness label separate from coaching recommendation */}
+                <span>{todayReadiness.isFallback ? "Readiness ล่าสุด" : "Readiness"} {result.score} — {runmateLabel}</span>
+                {injuryOverrideActive && <span className="font-semibold text-[var(--status-rest)]">· มีอาการเจ็บตอนนี้</span>}
+                {!injuryOverrideActive && recentPainHistoryNote && <span className="font-semibold text-[#9b742c]">· เริ่มเบาก่อน</span>}
+                {restingHrDelta !== null && <span>· ชีพจร {(restingHrDelta >= 0 ? "+" : "") + restingHrDelta} bpm</span>}
+              </div>
+              {recSys && (
+                <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] font-semibold text-slate-500/90 mt-0.5">
+                  <span>ฟื้นตัว {Math.round(recSys.axes.recovery.score)}</span>
+                  <span>·</span>
+                  <span>โหลด {Math.round(recSys.axes.load.score)}</span>
+                  <span>·</span>
+                  <span>นอน {Math.round(recSys.axes.sleep.score)}</span>
+                  <span>·</span>
+                  <span>พลังงาน {Math.round(recSys.axes.fuel.score)}</span>
+                </div>
+              )}
             </div>
           ) : (
             <>
@@ -196,7 +209,7 @@ export function ReadinessCard() {
         {/* Readiness Circular Score: shows numeric score + RunMate label (Good/Fair/etc.) */}
         <div className={`flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-full text-white ${colors.bg} shadow-sm transition-colors duration-300`}>
           <span className="text-xl font-black leading-none">{result.score}</span>
-          <span className="text-[9px] font-bold tracking-wider opacity-90 mt-0.5">{runmateLabel}</span>
+          <span className="text-[9px] font-bold tracking-wider opacity-90 mt-0.5">{recSys.overallDisplayStatus?.label ?? runmateLabel}</span>
         </div>
       </div>
 

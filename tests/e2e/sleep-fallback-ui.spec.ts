@@ -33,11 +33,15 @@ test.describe("Sleep Fallback UI and States", () => {
     // Today should show "Readiness ล่าสุด"
     await expect(page.getByText("Readiness ล่าสุด")).toBeVisible();
 
+    // Expand the Recovery System details to check axis texts
+    await page.getByText("ดูรายละเอียด Recovery").click();
+
     // Sleep axis summary should explicitly say "ยังไม่มีการนอนวันนี้ · ใช้ข้อมูลล่าสุด"
     await expect(page.getByText("ยังไม่มีการนอนวันนี้ · ใช้ข้อมูลล่าสุด")).toBeVisible();
 
-    // Main recommendation card should show "ยังไม่มีข้อมูลการนอนวันนี้ — คำแนะนำนี้อิงจากข้อมูลล่าสุด"
-    await expect(page.getByText("ยังไม่มีข้อมูลการนอนวันนี้ — คำแนะนำนี้อิงจากข้อมูลล่าสุด")).toBeVisible();
+    // Main recommendation card shows sleep fallback note inside the details accordion
+    await page.getByText("ใช้ข้อมูลล่าสุดชั่วคราว — ยังไม่มีการนอนวันนี้").first().waitFor({ state: "attached" });
+    await expect(page.getByText("ใช้ข้อมูลล่าสุดชั่วคราว — ยังไม่มีการนอนวันนี้").first()).toBeVisible();
 
     // Used chips should include "ใช้การนอนล่าสุด"
     await expect(page.getByText("ใช้การนอนล่าสุด")).toBeVisible();
@@ -77,8 +81,12 @@ test.describe("Sleep Fallback UI and States", () => {
 
     await gotoApp(page, "/");
 
-    // Today should NOT show fallback note
+    // Today should NOT show fallback note anywhere
     await expect(page.getByText("ยังไม่มีข้อมูลการนอนวันนี้ — คำแนะนำนี้อิงจากข้อมูลล่าสุด")).toHaveCount(0);
+    await expect(page.getByText("ใช้ข้อมูลล่าสุดชั่วคราว — ยังไม่มีการนอนวันนี้")).toHaveCount(0);
+
+    // Expand Recovery System to check axis texts
+    await page.getByText("ดูรายละเอียด Recovery").click();
 
     // Sleep axis summary should NOT say "ยังไม่มีการนอนวันนี้"
     await expect(page.getByText("ยังไม่มีการนอนวันนี้ · ใช้ข้อมูลล่าสุด")).toHaveCount(0);
@@ -96,6 +104,9 @@ test.describe("Sleep Fallback UI and States", () => {
   test("3. No sleep data at all", async ({ page }) => {
     await installMockBackend(page);
     await gotoApp(page, "/");
+
+    // Expand the Recovery System details to check axis texts
+    await page.getByText("ดูรายละเอียด Recovery").click();
 
     // Sleep axis summary should show "ยังไม่มีข้อมูลการนอน"
     await expect(page.getByText("ยังไม่มีข้อมูลการนอน")).toBeVisible();

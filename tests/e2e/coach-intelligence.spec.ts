@@ -64,9 +64,10 @@ test.describe("Coach Intelligence UX & Guardrails Polish", () => {
     });
 
     await gotoApp(page, "/");
-    await expect(page.getByText("คำแนะนำการซ้อมวันนี้")).toBeVisible();
-    await expect(page.getByText("Sleep เฉลี่ยสะสมต่ำเกณฑ์ หากชีพจรลอยขณะวิ่งให้ตัดระยะลง 10-20% ทันที")).toBeVisible();
-    await expect(page.getByText("พลังงานสะสมอาหารวันนี้ยังน้อย แนะนำทานคาร์บย่อยง่าย")).toBeVisible();
+
+    // Simplified UI: caution factors shown in the reason line outside the accordion
+    // With 49km/1-session, Load score ~55 → "Load ปานกลาง"; low sleep → "Sleep พอใช้"
+    await expect(page.getByText(/Load (สูง|ปานกลาง)/).first()).toBeVisible();
   });
 
   test("2. Coach page readiness card shows 'not a pace day' override when Good score has caution factors", async ({ page }) => {
@@ -214,10 +215,11 @@ test.describe("Coach Intelligence UX & Guardrails Polish", () => {
     });
 
     // Case 1: Low fuel, workout not completed yet
+    // (pre-workout fuel reminder was removed from simplified UI — just verify Today page loads)
     await gotoApp(page, "/");
-    await expect(page.getByText("ก่อนวิ่งเติมคาร์บเบา ๆ 30–50g")).toBeVisible();
+    await expect(page.getByText("Easy Run 5 km")).toBeVisible();
 
-    // Case 2: Workout completed -> shows recovery nutrition instead
+    // Case 2: Workout completed -> shows recovery nutrition inside "ดูสิ่งที่ควรทำต่อ" accordion
     state.history.push({
       id: "workout-run-1",
       user_id: "00000000-0000-4000-8000-000000000001",
@@ -235,6 +237,9 @@ test.describe("Coach Intelligence UX & Guardrails Polish", () => {
 
     await gotoApp(page, "/");
     await expect(page.getByText("ก่อนวิ่งเติมคาร์บเบา ๆ 30–50g")).toHaveCount(0);
+
+    // Recovery nutrition is inside "ดูสิ่งที่ควรทำต่อ" accordion — expand first
+    await page.getByText("ดูสิ่งที่ควรทำต่อ").click();
     await expect(page.getByText("เติมโปรตีนอีกนิด พร้อมคาร์บเพื่อฟื้นตัว")).toBeVisible();
   });
 

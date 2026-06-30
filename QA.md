@@ -52,14 +52,17 @@
 - [ ] Today page remains fully usable and displays the fallback recommendation when timeouts occur, without showing raw error text or AbortError messages to the user.
 - [ ] Daily check still works.
 - [ ] End-of-day summary card displays copy warning that it is a summary note and not a separate Daily Score.
-- [ ] Morning before sleep upload:
-  - Today shows latest/fallback wording ("Readiness ล่าสุด", "ยังไม่มีข้อมูลการนอนวันนี้ — คำแนะนำนี้อิงจากข้อมูลล่าสุด").
-  - Sleep axis says no today sleep / using latest ("ยังไม่มีการนอนวันนี้ · ใช้ข้อมูลล่าสุด").
-  - Daily check still marks sleep missing ("บันทึกการนอน" is not done).
-- [ ] After sleep upload:
-  - Fallback wording disappears.
-  - Daily check updates (marked done, count increases).
-  - Sleep axis uses today's sleep ("นอนวันนี้ X ชม. Y นาที").
+  - Morning before sleep upload:
+    - Today shows latest/fallback wording ("Readiness ล่าสุด", "ยังไม่มีข้อมูลการนอนวันนี้ — คำแนะนำนี้อิงจากข้อมูลล่าสุด").
+    - Sleep axis says no today sleep / using latest ("ยังไม่มีการนอนวันนี้ · ใช้ข้อมูลล่าสุด").
+    - Daily check still marks sleep missing ("บันทึกการนอน" is not done).
+  - After sleep upload:
+    - Fallback wording disappears.
+    - Daily check updates (marked done, count increases).
+    - Sleep axis uses today's sleep ("นอนวันนี้ X ชม. Y นาที").
+- [ ] Overall readiness chip and visual color is softened dynamically (e.g., showing "Good" / Blue instead of "Excellent" / Green) when caution factors are present (e.g., high training load, low sleep, or low fuel).
+- [ ] Caution note banner ("ข้อแนะนำความพร้อม") is displayed with a clear Thai explanation when readiness is softened due to caution factors.
+- [ ] Today snapshot card expandable details contains a note explaining the safety/easy downgrading rule.
 
 
 ## 4. Coach
@@ -81,6 +84,7 @@ Confirm:
 - [ ] Respects food allergies/preferences and gives practical options.
 - [ ] Coach readiness matches Today readiness.
 - [ ] Coach context card and circular readiness card match on initial load, using the getTodayReadiness score.
+- [ ] Coach page circular badge and card header label display the display-safe softened readiness label (e.g. "Good" instead of "Excellent") to match the Today page softening logic and prevent contradiction with coaching guidance.
 
 ## 5. Race
 

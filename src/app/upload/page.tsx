@@ -677,14 +677,19 @@ export default function UploadPage() {
   }
 
   return (
-    <AppShell title="เพิ่มข้อมูล" subtitle="อัปโหลดหรือลงบันทึก เพื่อให้โค้ชเข้าใจวันนี้มากขึ้น">
-      <section className="card space-y-3 p-5">
-        <p className="text-xs leading-5 text-slate-500">
-          เมื่อวิเคราะห์และกดบันทึก ข้อมูลจะเข้า Report เพื่อให้โค้ชตอบได้แม่นขึ้น
-        </p>
-        <div className="grid grid-cols-5 gap-2">
+    <AppShell title="เพิ่มข้อมูล" subtitle="บันทึกข้อมูลวันนี้ให้โค้ชประเมิน">
+      <section className="card space-y-4 p-4">
+        <div className="flex gap-2 overflow-x-auto no-scrollbar scroll-smooth pb-1 -mx-4 px-4 select-none">
           {(["sleep", "meal", "workout", "body", "health_check"] as UploadType[]).map((item) => (
-            <button key={item} className={`rounded-2xl px-3 py-3 text-sm font-bold transition-colors ${type === item ? "bg-[var(--primary-soft)] text-[var(--primary-strong)] shadow-sm ring-1 ring-[var(--primary)]/20" : "bg-[var(--surface-muted)] text-[var(--muted-text)] hover:bg-[var(--surface)]"}`} onClick={() => selectUploadType(item)}>
+            <button
+              key={item}
+              className={`rounded-full px-4 py-2 text-xs font-semibold whitespace-nowrap transition-all ${
+                type === item
+                  ? "bg-[var(--primary-soft)] text-[var(--primary-strong)] font-bold shadow-sm ring-1 ring-[var(--primary)]/10"
+                  : "bg-slate-100/80 text-slate-500 hover:bg-slate-200/50"
+              }`}
+              onClick={() => selectUploadType(item)}
+            >
               {UPLOAD_LABELS[item]}
             </button>
           ))}
@@ -1069,11 +1074,17 @@ function UploadEmptyGuide({
       <div className="rounded-2xl bg-slate-50/80 px-4 py-3 text-sm text-slate-600">
         <p className="font-bold text-[#17201d]">ลองอัปโหลดเพื่อสร้าง Report</p>
         <p className="mt-1 text-xs leading-5 text-slate-500">บันทึกอาหารเพื่อวิเคราะห์โภชนาการและพลังงาน</p>
-        <div className="mt-2 space-y-1.5 text-xs leading-5">
-          <p><span className="font-semibold text-slate-700">รูปอาหาร</span> — กินไปกี่อย่าง / คร่าว ๆ ได้ไหม</p>
-          <p><span className="font-semibold text-slate-700">ฉลากโภชนาการ</span> — kcal / โปรตีน / คาร์บ</p>
-          <p><span className="font-semibold text-slate-700">เมนูหรือใบเสร็จ</span> — ช่วยประเมินมื้ออาหาร</p>
-        </div>
+        <details className="mt-2 text-xs group cursor-pointer">
+          <summary className="list-none flex items-center justify-between font-bold text-[var(--primary)] text-[11px] hover:underline">
+            <span>อ่านอะไรได้บ้าง?</span>
+            <span className="transition-transform group-open:rotate-180">▾</span>
+          </summary>
+          <div className="mt-2 space-y-1.5 leading-5 text-slate-500 cursor-default border-t border-slate-100/50 pt-2">
+            <p><span className="font-semibold text-slate-700">รูปอาหาร</span> — กินไปกี่อย่าง / คร่าว ๆ ได้ไหม</p>
+            <p><span className="font-semibold text-slate-700">ฉลากโภชนาการ</span> — kcal / โปรตีน / คาร์บ</p>
+            <p><span className="font-semibold text-slate-700">เมนูหรือใบเสร็จ</span> — ช่วยประเมินมื้ออาหาร</p>
+          </div>
+        </details>
       </div>
     );
   }
@@ -1085,11 +1096,17 @@ function UploadEmptyGuide({
           <p className="mt-1 text-xs leading-5 text-slate-500">
             AI จะอ่านข้อมูลจากรูป เช่น ระยะเวลา แคลอรี่ HR และท่าออกกำลังกาย (ถ้ามี)
           </p>
-          <div className="mt-2 space-y-1.5 text-xs leading-5">
-            <p><span className="font-semibold text-slate-700">รูปสรุป Strength session</span> — Garmin, Apple Watch, Polar</p>
-            <p><span className="font-semibold text-slate-700">รูป Gym app</span> — Strong, Hevy, Fitbod หรือแอปอื่น ๆ</p>
-            <p><span className="font-semibold text-slate-700">รูปสรุปทั่วไป</span> — ระยะเวลา / แคลอรี่ / HR ก็เพียงพอ</p>
-          </div>
+          <details className="mt-2 text-xs group cursor-pointer">
+            <summary className="list-none flex items-center justify-between font-bold text-[var(--primary)] text-[11px] hover:underline">
+              <span>อ่านอะไรได้บ้าง?</span>
+              <span className="transition-transform group-open:rotate-180">▾</span>
+            </summary>
+            <div className="mt-2 space-y-1.5 leading-5 text-slate-500 cursor-default border-t border-slate-100/50 pt-2">
+              <p><span className="font-semibold text-slate-700">รูปสรุป Strength session</span> — Garmin, Apple Watch, Polar</p>
+              <p><span className="font-semibold text-slate-700">รูป Gym app</span> — Strong, Hevy, Fitbod หรือแอปอื่น ๆ</p>
+              <p><span className="font-semibold text-slate-700">รูปสรุปทั่วไป</span> — ระยะเวลา / แคลอรี่ / HR ก็เพียงพอ</p>
+            </div>
+          </details>
           <p className="mt-2 text-xs leading-5 text-slate-400">
             🛡️ ไม่จำเป็นต้องมีระยะทางหรือ pace — บันทึกเฉพาะ structured data ไม่บันทึกรูปต้นฉบับ
           </p>
@@ -1100,11 +1117,17 @@ function UploadEmptyGuide({
       <div className="rounded-2xl bg-slate-50/80 px-4 py-3 text-sm text-slate-600">
         <p className="font-bold text-[#17201d]">🏃 อัปโหลดรูปผลการออกกำลังกาย</p>
         <p className="mt-1 text-xs leading-5 text-slate-500"> AI จะอ่านข้อมูลจากรูปวิ่งหรือกิจกรรมอื่น ๆ และประเมินความหนักเพื่อช่วยโค้ชวางแผน</p>
-        <div className="mt-2 space-y-1.5 text-xs leading-5">
-          <p><span className="font-semibold text-slate-700">รูปผลวิ่ง</span> — ระยะ / เวลา / pace / HR</p>
-          <p><span className="font-semibold text-slate-700">รูปเวท</span> — ระยะเวลา / HR / calories / ท่าที่เล่น</p>
-          <p><span className="font-semibold text-slate-700">รูปกิจกรรมอื่น</span> — สรุปเป็นบันทึกการออกกำลังกาย</p>
-        </div>
+        <details className="mt-2 text-xs group cursor-pointer">
+          <summary className="list-none flex items-center justify-between font-bold text-[var(--primary)] text-[11px] hover:underline">
+            <span>อ่านอะไรได้บ้าง?</span>
+            <span className="transition-transform group-open:rotate-180">▾</span>
+          </summary>
+          <div className="mt-2 space-y-1.5 leading-5 text-slate-500 cursor-default border-t border-slate-100/50 pt-2">
+            <p><span className="font-semibold text-slate-700">รูปผลวิ่ง</span> — ระยะ / เวลา / pace / HR</p>
+            <p><span className="font-semibold text-slate-700">รูปเวท</span> — ระยะเวลา / HR / calories / ท่าที่เล่น</p>
+            <p><span className="font-semibold text-slate-700">รูปกิจกรรมอื่น</span> — สรุปเป็นบันทึกการออกกำลังกาย</p>
+          </div>
+        </details>
       </div>
     );
   }
@@ -1113,10 +1136,16 @@ function UploadEmptyGuide({
       <div className="rounded-2xl bg-slate-50/80 px-4 py-3 text-sm text-slate-600">
         <p className="font-bold text-[#17201d]">😴 อัปโหลดข้อมูลการนอนเพื่อประเมินความพร้อม</p>
         <p className="mt-1 text-xs leading-5 text-slate-500"> AI จะอ่านข้อมูลสรุปการนอนและคะแนนฟื้นตัวเพื่อประเมินความพร้อมซ้อมวันนี้</p>
-        <div className="mt-2 space-y-1.5 text-xs leading-5">
-          <p><span className="font-semibold text-slate-700">รูปการนอน</span> — duration / sleep score / HRV</p>
-          <p><span className="font-semibold text-slate-700">รูป Energy score</span> — readiness / recovery</p>
-        </div>
+        <details className="mt-2 text-xs group cursor-pointer">
+          <summary className="list-none flex items-center justify-between font-bold text-[var(--primary)] text-[11px] hover:underline">
+            <span>อ่านอะไรได้บ้าง?</span>
+            <span className="transition-transform group-open:rotate-180">▾</span>
+          </summary>
+          <div className="mt-2 space-y-1.5 leading-5 text-slate-500 cursor-default border-t border-slate-100/50 pt-2">
+            <p><span className="font-semibold text-slate-700">รูปการนอน</span> — duration / sleep score / HRV</p>
+            <p><span className="font-semibold text-slate-700">รูป Energy score</span> — readiness / recovery</p>
+          </div>
+        </details>
       </div>
     );
   }
@@ -1125,12 +1154,18 @@ function UploadEmptyGuide({
       <div className="rounded-2xl bg-slate-50/80 px-4 py-3 text-sm text-slate-600">
         <p className="font-bold text-[#17201d]">⚖️ อัปโหลดค่าร่างกายเพื่อสร้าง Report</p>
         <p className="mt-1 text-xs leading-5 text-slate-500">บันทึกแนวโน้มน้ำหนัก ไขมัน กล้ามเนื้อ เพื่อให้โค้ชวิเคราะห์ได้</p>
-        <div className="mt-2 space-y-1.5 text-xs leading-5">
-          <p><span className="font-semibold text-slate-700">รูปชั่งน้ำหนัก</span> — น้ำหนัก / ไขมัน / กล้ามเนื้อ</p>
-        </div>
+        <details className="mt-2 text-xs group cursor-pointer">
+          <summary className="list-none flex items-center justify-between font-bold text-[var(--primary)] text-[11px] hover:underline">
+            <span>อ่านอะไรได้บ้าง?</span>
+            <span className="transition-transform group-open:rotate-180">▾</span>
+          </summary>
+          <div className="mt-2 space-y-1.5 leading-5 text-slate-500 cursor-default border-t border-slate-100/50 pt-2">
+            <p><span className="font-semibold text-slate-700">รูปชั่งน้ำหนัก</span> — น้ำหนัก / ไขมัน / กล้ามเนื้อ</p>
+          </div>
+        </details>
         <Link
           href="/pain"
-          className="mt-3 flex items-center gap-1.5 rounded-xl bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200"
+          className="mt-3 flex items-center gap-1.5 rounded-xl bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200 animate-pulse"
         >
           <span>🩹</span>
           <span>มีอาการเจ็บ? บันทึกที่หน้า &ldquo;เจ็บ&rdquo;</span>
@@ -1145,9 +1180,15 @@ function UploadEmptyGuide({
         <p className="mt-1 text-xs leading-5 text-slate-500">
           ระบบจะอ่านค่าเลือดที่เกี่ยวกับโภชนาการและ recovery และบันทึกเฉพาะค่าที่สรุปแล้ว
         </p>
-        <div className="mt-2 space-y-1.5 text-xs leading-5">
-          <p><span className="font-semibold text-slate-700">PDF/รูปผลตรวจ</span> — ใช้เป็นบริบทอาหารและไลฟ์สไตล์แบบระวัง</p>
-        </div>
+        <details className="mt-2 text-xs group cursor-pointer">
+          <summary className="list-none flex items-center justify-between font-bold text-[var(--primary)] text-[11px] hover:underline">
+            <span>อ่านอะไรได้บ้าง?</span>
+            <span className="transition-transform group-open:rotate-180">▾</span>
+          </summary>
+          <div className="mt-2 space-y-1.5 leading-5 text-slate-500 cursor-default border-t border-slate-100/50 pt-2">
+            <p><span className="font-semibold text-slate-700">PDF/รูปผลตรวจ</span> — ใช้เป็นบริบทอาหารและไลฟ์สไตล์แบบระวัง</p>
+          </div>
+        </details>
         <p className="mt-1.5 text-xs leading-5 text-slate-400">
           🛡️ ระบบบันทึกเฉพาะค่าที่สรุปแล้ว ไม่บันทึกไฟล์ PDF ต้นฉบับหรือข้อความดิบ
         </p>

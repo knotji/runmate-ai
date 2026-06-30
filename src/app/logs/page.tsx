@@ -181,8 +181,8 @@ export default function ReportPage() {
           <section className="rounded-3xl border border-[var(--color-border-soft)] bg-[var(--surface)]/70 px-4 py-3 text-xs leading-5 text-[var(--color-text-muted)] shadow-sm">
             Report คือข้อมูลจริงจาก Upload และการบันทึก ส่วนแชทกับโค้ชจะไม่ถูกเพิ่มเข้าหน้านี้อัตโนมัติ
           </section>
-          <WeeklyDashboard dashboard={dashboard} proteinTarget={pTarget} items={items} cutoff={dashboardCutoff} />
           {weeklyReview && <WeeklyReviewCard review={weeklyReview} />}
+          <WeeklyDashboard dashboard={dashboard} proteinTarget={pTarget} items={items} cutoff={dashboardCutoff} />
           {deleteStatus ? (
             <section className={`rounded-2xl px-4 py-3 text-xs font-semibold ${deleteStatus.startsWith("ลบไม่สำเร็จ") ? "bg-red-50 text-red-600" : "bg-[#e7efea] text-[#2a5a39]"}`}>
               {deleteStatus}
@@ -272,27 +272,39 @@ function WeeklyDashboard({ dashboard, proteinTarget, items, cutoff }: { dashboar
   const assessmentText = getDayMealsAssessmentText(meals7d);
 
   return (
-    <section className="card space-y-4 p-5">
-      <div>
-        <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">METRICS 7 วัน</p>
-        <h2 className="mt-1 text-xl font-bold text-[#17201d]">ตัวเลข 7 วันล่าสุด</h2>
-        <p className="mt-0.5 text-xs text-slate-400">สรุป metrics หลักจาก Report</p>
-        <p className="mt-1 text-sm leading-6 text-slate-600">{dashboard.coachNote}</p>
+    <details className="group cursor-pointer rounded-3xl border border-slate-100 bg-white p-4 shadow-sm">
+      <summary className="list-none flex items-center justify-between font-bold text-[#17201d]">
+        <div className="flex flex-col gap-0.5">
+          <span className="text-[10px] uppercase tracking-[0.15em] text-[#6f8fa6]">METRICS 7 วัน</span>
+          <span className="text-sm font-bold text-[#17201d]">ตัวเลขสรุป 7 วันล่าสุด</span>
+        </div>
+        <div className="flex items-center gap-1.5 text-xs text-[var(--primary)] font-bold shrink-0">
+          <span className="group-open:hidden">ดูรายละเอียด</span>
+          <span className="hidden group-open:inline">ซ่อน</span>
+          <span className="transition-transform group-open:rotate-180">▾</span>
+        </div>
+      </summary>
+
+      <div className="mt-3 pt-3 border-t border-slate-100/60 cursor-default space-y-4">
+        <div>
+          <p className="text-xs text-slate-400">สรุป metrics หลักจาก Report</p>
+          <p className="mt-1 text-xs leading-relaxed text-slate-600 font-medium bg-slate-50 p-3 rounded-2xl border border-slate-100">{dashboard.coachNote}</p>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <DashboardMetric label="Run volume" value={dashboard.runKm > 0 ? formatDistanceKm(dashboard.runKm) : "-"} sub={`${dashboard.runSessions} sessions`} />
+          <DashboardMetric label="Longest run" value={dashboard.longestRunKm != null ? formatDistanceKm(dashboard.longestRunKm) : "-"} sub="last 7 days" />
+          <DashboardMetric label="Readiness เฉลี่ย" value={dashboard.avgReadiness != null ? formatScore(dashboard.avgReadiness) : "-"} sub="จากวันที่มีข้อมูล" />
+          <DashboardMetric label="Sleep avg 7 วัน" value={formatSleepAverageHours(dashboard.avgSleepHours)} sub={sleepAverageSubtext(dashboard.sleepCount)} />
+          <DashboardMetric label="Meal kcal avg" value={dashboard.avgMealCalories != null ? formatCalories(dashboard.avgMealCalories) : "-"} sub={assessmentText} />
+          <DashboardMetric label="Protein avg / day" value={dashboard.avgMealProtein != null ? formatMacro(dashboard.avgMealProtein) : "-"} sub={`target ${proteinTarget} g`} />
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          <DashboardMetric label="Weight" value={dashboard.latestBody?.weightKg != null ? `${formatDecimal(dashboard.latestBody.weightKg)} kg` : "-"} compact />
+          <DashboardMetric label="Body fat" value={formatPercent(dashboard.latestBody?.bodyFatPct)} compact />
+          <DashboardMetric label="Muscle" value={dashboard.latestBody?.muscleKg != null ? `${formatDecimal(dashboard.latestBody.muscleKg)} kg` : "-"} compact />
+        </div>
       </div>
-      <div className="grid grid-cols-2 gap-2">
-        <DashboardMetric label="Run volume" value={dashboard.runKm > 0 ? formatDistanceKm(dashboard.runKm) : "-"} sub={`${dashboard.runSessions} sessions`} />
-        <DashboardMetric label="Longest run" value={dashboard.longestRunKm != null ? formatDistanceKm(dashboard.longestRunKm) : "-"} sub="last 7 days" />
-        <DashboardMetric label="Readiness เฉลี่ย" value={dashboard.avgReadiness != null ? formatScore(dashboard.avgReadiness) : "-"} sub="จากวันที่มีข้อมูล" />
-        <DashboardMetric label="Sleep avg 7 วัน" value={formatSleepAverageHours(dashboard.avgSleepHours)} sub={sleepAverageSubtext(dashboard.sleepCount)} />
-        <DashboardMetric label="Meal kcal avg" value={dashboard.avgMealCalories != null ? formatCalories(dashboard.avgMealCalories) : "-"} sub={assessmentText} />
-        <DashboardMetric label="Protein avg / day" value={dashboard.avgMealProtein != null ? formatMacro(dashboard.avgMealProtein) : "-"} sub={`target ${proteinTarget} g`} />
-      </div>
-      <div className="grid grid-cols-3 gap-2">
-        <DashboardMetric label="Weight" value={dashboard.latestBody?.weightKg != null ? `${formatDecimal(dashboard.latestBody.weightKg)} kg` : "-"} compact />
-        <DashboardMetric label="Body fat" value={formatPercent(dashboard.latestBody?.bodyFatPct)} compact />
-        <DashboardMetric label="Muscle" value={dashboard.latestBody?.muscleKg != null ? `${formatDecimal(dashboard.latestBody.muscleKg)} kg` : "-"} compact />
-      </div>
-    </section>
+    </details>
   );
 }
 
@@ -489,23 +501,30 @@ function DayCard({
             <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">{day.label}</p>
             <div className="mt-2">
               <div className="flex flex-wrap gap-1.5">
-                {dedupedSleeps.length > 0 && <Badge icon="🌙" label={latestSleepDuration ? formatSleepBadgeDuration(latestSleepDuration) : "นอน"} />}
-                {workouts.some((w) => isRun(w)) && <Badge icon="🏃" label={runKm ? formatDistanceKm(runKm) : "วิ่ง"} color="green" />}
-                {raceResults.length > 0 && <Badge icon="🏁" label="Race Result" color="green" />}
-                {(strengths.length > 0 || workouts.some((w) => !isRun(w) && !isWalk(w) && (w.data as WorkoutAnalysis)?.extracted?.workoutKind === "strength")) && (() => {
-                  const firstStrength = strengths[0];
-                  const strengthWorkout = workouts.find((w) => !isRun(w) && !isWalk(w) && (w.data as WorkoutAnalysis)?.extracted?.workoutKind === "strength");
-                  const durationMins = firstStrength
-                    ? ((firstStrength.data as StrengthLog)?.durationMin ?? null)
-                    : parseDurationMins((strengthWorkout?.data as WorkoutAnalysis)?.extracted?.duration);
-                  return <Badge icon="🏋️" label={durationMins ? `เวท ${durationMins} นาที` : "เวท"} color="blue" />;
+                {(() => {
+                  const badgeElements: React.ReactNode[] = [];
+                  if (dedupedSleeps.length > 0) {
+                    badgeElements.push(<Badge icon="🌙" label={latestSleepDuration ? formatSleepBadgeDuration(latestSleepDuration) : "นอน"} key="sleep" />);
+                  }
+                  if (workouts.some((w) => isRun(w))) {
+                    badgeElements.push(<Badge icon="🏃" label={runKm ? formatDistanceKm(runKm) : "วิ่ง"} color="green" key="run" />);
+                  }
+                  if (raceResults.length > 0) {
+                    badgeElements.push(<Badge icon="🏁" label="Race Result" color="green" key="race" />);
+                  }
+                  if (strengths.length > 0 || workouts.some((w) => !isRun(w) && !isWalk(w) && (w.data as WorkoutAnalysis)?.extracted?.workoutKind === "strength")) {
+                    const firstStrength = strengths[0];
+                    const strengthWorkout = workouts.find((w) => !isRun(w) && !isWalk(w) && (w.data as WorkoutAnalysis)?.extracted?.workoutKind === "strength");
+                    const durationMins = firstStrength
+                      ? ((firstStrength.data as StrengthLog)?.durationMin ?? null)
+                      : parseDurationMins((strengthWorkout?.data as WorkoutAnalysis)?.extracted?.duration);
+                    badgeElements.push(<Badge icon="🏋️" label={durationMins ? `เวท ${durationMins} นาที` : "เวท"} color="blue" key="strength" />);
+                  }
+                  if (pains.length > 0) {
+                    badgeElements.push(<Badge icon="🩹" label={isResolvedPainItem(pains[0]) ? "หายแล้ว" : `เจ็บ ${getPainLevel(pains[0])}/10`} color={isResolvedPainItem(pains[0]) ? "green" : "red"} key="pain" />);
+                  }
+                  return badgeElements.slice(0, 4);
                 })()}
-                {pains.length > 0 && (
-                  <Badge icon="🩹" label={isResolvedPainItem(pains[0]) ? "หายแล้ว" : `เจ็บ ${getPainLevel(pains[0])}/10`} color={isResolvedPainItem(pains[0]) ? "green" : "red"} />
-                )}
-                {mealCount > 0 && (
-                  <Badge icon="🍽" label={`${mealCount} มื้อ`} />
-                )}
               </div>
             </div>
           </div>

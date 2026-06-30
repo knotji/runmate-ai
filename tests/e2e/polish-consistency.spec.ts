@@ -119,11 +119,16 @@ test("Polish consistency: Today recommendation decision, Coach readiness, Race s
 
   // Test 1: Today Page shows clear primary recommendation
   await gotoApp(page, "/");
+
+  // Decision card is inside "ดูเหตุผลและข้อแนะนำเพิ่มเติม" accordion — expand it
+  await page.getByText("ดูเหตุผลและข้อแนะนำเพิ่มเติม").click();
   await expect(page.getByText("วันนี้เลือกอย่างใดอย่างหนึ่งก่อน")).toBeVisible();
-  await expect(page.getByText("แผน Race เดิมคือ")).toBeVisible();
   // With readiness 60, decision card explanation should contain "Fair", and MUST NOT contain "Good"
   await expect(page.getByText(/readiness ยัง Fair/)).toBeVisible();
   await expect(page.getByText(/readiness ยัง Good/)).toHaveCount(0);
+
+  // Race plan reason text appears in the readiness explanation area
+  await expect(page.getByText("แผน Race เดิมคือ")).toBeVisible();
   
   // Test 2: Readiness Chip shows Readiness 60 matching Coach readiness
   await expect(page.getByText("60 Readiness Fair")).toBeVisible();
@@ -145,9 +150,8 @@ test("Polish consistency: Today recommendation decision, Coach readiness, Race s
   // Test 4: Race strength card hides pace/HR
   await gotoApp(page, "/race-goal");
   await expect(page.getByText("Strength").first()).toBeVisible();
-  // Each individual workout card is a div with ring-1 ring-slate-100
-  // Find the one that contains "Strength" workoutType
-  const strengthCard = page.locator("div.ring-1").filter({ hasText: "Strength" }).first();
+  // Each individual workout card has ring-1 ring-slate-100 (now <details> elements)
+  const strengthCard = page.locator(".ring-1").filter({ hasText: "Strength" }).first();
   await expect(strengthCard).toBeVisible();
   // Strength card should NOT have Pace label
   await expect(strengthCard.getByText("Pace")).toHaveCount(0);
@@ -172,25 +176,30 @@ test("Polish consistency: Today recommendation decision, Coach readiness, Race s
   await expect(page.getByText("ฟื้นตัวหลังเวทวันนี้").first()).toBeVisible();
   await expect(page.locator("body")).not.toContainText("หลังวิ่งวันนี้แล้ว");
 
-  // Test 6: Upload page helper copy matches tab context
+  // Test 6: Upload page helper copy matches tab context (texts inside "อ่านอะไรได้บ้าง?" accordion)
   await gotoApp(page, "/upload?type=meal");
   await expect(page.getByText("ลองอัปโหลดเพื่อสร้าง Report")).toBeVisible();
+  await page.getByText("อ่านอะไรได้บ้าง?").first().click();
   await expect(page.getByText("รูปอาหาร")).toBeVisible();
   await expect(page.getByText("ฉลากโภชนาการ")).toBeVisible();
   await expect(page.getByText("เมนูหรือใบเสร็จ")).toBeVisible();
 
   await gotoApp(page, "/upload?type=workout");
+  await page.getByText("อ่านอะไรได้บ้าง?").first().click();
   await expect(page.getByText("รูปผลวิ่ง")).toBeVisible();
   await expect(page.getByText("รูปเวท")).toBeVisible();
   await expect(page.getByText("รูปกิจกรรมอื่น")).toBeVisible();
 
   await gotoApp(page, "/upload?type=sleep");
+  await page.getByText("อ่านอะไรได้บ้าง?").first().click();
   await expect(page.getByText("รูปการนอน")).toBeVisible();
   await expect(page.getByText("รูป Energy score")).toBeVisible();
 
   await gotoApp(page, "/upload?type=body");
+  await page.getByText("อ่านอะไรได้บ้าง?").first().click();
   await expect(page.getByText("รูปชั่งน้ำหนัก")).toBeVisible();
 
   await gotoApp(page, "/upload?type=health_check");
+  await page.getByText("อ่านอะไรได้บ้าง?").first().click();
   await expect(page.getByText("PDF/รูปผลตรวจ")).toBeVisible();
 });

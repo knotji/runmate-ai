@@ -31,6 +31,9 @@ test("Today axis grid shows four numeric /100 scores", async ({ page }) => {
 
   await gotoApp(page, "/");
 
+  // Expand the recovery system details first
+  await page.getByText("ดูรายละเอียด Recovery").click();
+
   // At least 4 texts matching NN/100 must be visible in the axis grid section
   const axisScores = page.locator("text=/\\d{1,3}\\/100/");
   await expect(axisScores.first()).toBeVisible();
@@ -43,6 +46,9 @@ test("Today axis grid shows axis title labels ฟื้นตัว โหลด
   state.history.push(makeSleepRecord(bangkokDateKey(), "sleep-today-2"));
 
   await gotoApp(page, "/");
+
+  // Expand the recovery system details first
+  await page.getByText("ดูรายละเอียด Recovery").click();
 
   await expect(page.getByText("ฟื้นตัว", { exact: true })).toBeVisible();
   await expect(page.getByText("โหลดซ้อม", { exact: true })).toBeVisible();

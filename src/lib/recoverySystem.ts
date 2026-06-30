@@ -22,9 +22,118 @@ export type RecoverySystemOverrides = {
   injuryFlag?: boolean;
 };
 
+export interface OverallDisplayStatus {
+  score: number;
+  label: "Low" | "Fair" | "Good" | "Excellent";
+  thaiLabel: string;
+  displayLabel: string;
+  cautionLevel: "none" | "light" | "moderate" | "high";
+  note?: string;
+}
+
+export function getOverallDisplayStatus(
+  overallScore: number,
+  recoveryScore: number,
+  loadScore: number,
+  sleepScore: number,
+  fuelScore: number,
+  activePain: boolean,
+  painResolvedOrHistory: boolean
+): OverallDisplayStatus {
+  let label: "Low" | "Fair" | "Good" | "Excellent" = "Fair";
+  if (overallScore >= 80) label = "Excellent";
+  else if (overallScore >= 66) label = "Good";
+  else if (overallScore >= 50) label = "Fair";
+  else label = "Low";
+
+  let thaiLabel = "พอใช้";
+  if (label === "Excellent") thaiLabel = "ดีมาก";
+  else if (label === "Good") thaiLabel = "ดี";
+  else if (label === "Fair") thaiLabel = "พอใช้";
+  else thaiLabel = "ต่ำ";
+
+  let displayLabel: string = label;
+  let cautionLevel: "none" | "light" | "moderate" | "high" = "none";
+  let note: string | undefined = undefined;
+
+  const isLoadHigh = loadScore >= 70;
+  const isSleepLow = sleepScore < 66;
+  const isFuelLow = fuelScore < 66;
+  const isRecoveryLow = recoveryScore < 66;
+
+  let cautionCount = 0;
+  if (isLoadHigh) cautionCount++;
+  if (isSleepLow) cautionCount++;
+  if (isFuelLow) cautionCount++;
+  if (isRecoveryLow) cautionCount++;
+
+  if (activePain) {
+    label = "Fair";
+    displayLabel = "Fair";
+    thaiLabel = "พอใช้ · เลี่ยงแรงกระแทก";
+    cautionLevel = "high";
+    note = "มีรายงานอาการบาดเจ็บ ควรเน้นฟื้นฟูและเลี่ยงแรงกระแทกหนัก";
+  } else if (painResolvedOrHistory && isLoadHigh) {
+    if (label === "Excellent") {
+      label = "Good";
+      displayLabel = "Good · เฝ้าระวังเจ็บ";
+      thaiLabel = "ดี · เฝ้าระวังเจ็บ";
+      cautionLevel = "moderate";
+      note = "เพิ่งหายจากอาการเจ็บและมีโหลดสะสมสูง ควรวิ่งประคองตัวไม่กด Pace";
+    }
+  } else if (isLoadHigh && isSleepLow) {
+    if (label === "Excellent") {
+      label = "Good";
+      displayLabel = "Good · คุมเบา";
+      thaiLabel = "ดี · คุมเบา";
+      cautionLevel = "moderate";
+      note = "วันนี้สะสมโหลดซ้อมสูงและการนอนยังไม่เต็มอิ่ม ควรวิ่งประคองตัวคุมความเร็ว";
+    }
+  } else if (isLoadHigh && isFuelLow) {
+    if (label === "Excellent") {
+      label = "Good";
+      displayLabel = "Good · คุมเบา";
+      thaiLabel = "ดี · คุมเบา";
+      cautionLevel = "moderate";
+      note = "สะสมโหลดซ้อมสูงแต่พลังงานอาหารวันนี้ยังน้อย ควรคุมระดับความเหนื่อย";
+    }
+  } else if (sleepScore < 60 && fuelScore < 60) {
+    if (label === "Excellent") {
+      label = "Good";
+      displayLabel = "Good · คุมเบา";
+      thaiLabel = "ดี · คุมเบา";
+      cautionLevel = "light";
+      note = "การนอนและพลังงานวันนี้น้อย แนะนำวิ่งโซนแอโรบิกเบาเป็นหลักเพื่อกันล้า";
+    }
+  } else if (label === "Excellent" && cautionCount >= 2) {
+    label = "Good";
+    displayLabel = "Good · คุมเบา";
+    thaiLabel = "ดี · คุมเบา";
+    cautionLevel = "moderate";
+    note = "คะแนนพื้นฐานดี แต่มีข้อเฝ้าระวังในหลายแกน แนะนำวิ่งควบคุมความเข้มข้น";
+  }
+
+  if (label === "Good" && cautionCount >= 2 && !displayLabel.includes("คุมเบา")) {
+    displayLabel = "Good · คุมเบา";
+    thaiLabel = "ดี · คุมเบา";
+    cautionLevel = "moderate";
+    note = "มีปัจจัยล้าสะสมหรือข้อมูลประกอบอื่นต่ำกว่าเกณฑ์ คุมระดับความเหนื่อยให้สมดุล";
+  }
+
+  return {
+    score: overallScore,
+    label,
+    thaiLabel,
+    displayLabel,
+    cautionLevel,
+    note,
+  };
+}
+
 export type RunMateRecoverySystem = {
   overallScore: number; // 0–100
   overallLabel: "Low" | "Fair" | "Good" | "Excellent";
+  overallDisplayStatus: OverallDisplayStatus;
   coachingState: "push" | "maintain" | "easy" | "recover";
   headline: string;
   axes: {
@@ -87,6 +196,13 @@ export function buildRunMateRecoverySystem(
   const fallbackResult: RunMateRecoverySystem = {
     overallScore: 70,
     overallLabel: "Good",
+    overallDisplayStatus: {
+      score: 70,
+      label: "Good" as const,
+      thaiLabel: "ดี",
+      displayLabel: "Good",
+      cautionLevel: "none" as const,
+    },
     coachingState: "maintain",
     headline: "รักษาระดับการฟื้นตัวและซ้อมตามความเหมาะสม",
     axes: fallbackAxes,
@@ -684,9 +800,20 @@ export function buildRunMateRecoverySystem(
     guardrails.push("สภาพร่างกายพร้อมดีเยี่ยม รักษารูปแบบและวินัยซ้อมตามแผนปกติครับ");
   }
 
+  const overallDisplayStatus = getOverallDisplayStatus(
+    overallScore,
+    recoveryScore,
+    loadScore,
+    sleepScoreVal,
+    fuelScore,
+    !!activePain,
+    !!(context.painResolved || context.recentPainHistory)
+  );
+
   return {
     overallScore,
     overallLabel,
+    overallDisplayStatus,
     coachingState,
     headline,
     axes: {

@@ -97,15 +97,30 @@ type Props = {
   onRequest: () => void;
   /** compact=true collapses secondary options behind "ดูตัวเลือกเพิ่ม" (default: false) */
   compact?: boolean;
+  fuelScore?: number;
 };
 
-export function NextMealCard({ recommendation, loading, onRequest, compact = false }: Props) {
+export function NextMealCard({ recommendation, loading, onRequest, compact = false, fuelScore }: Props) {
   const hasResult = recommendation !== null;
   const navigateWithDraft = useDraftAndNavigate();
   const [showMore, setShowMore] = useState(false);
 
   const primaryOption = hasResult ? recommendation.options[0] : null;
   const secondaryOptions = hasResult ? recommendation.options.slice(1) : [];
+
+  if (!hasResult && fuelScore != null && fuelScore >= 80) {
+    return (
+      <button
+        type="button"
+        onClick={onRequest}
+        disabled={loading}
+        className="w-full rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface)] px-4 py-2.5 text-xs font-semibold text-slate-600 shadow-sm flex items-center justify-between hover:bg-[var(--surface-muted)] transition-all"
+      >
+        <span className="flex items-center gap-1.5">🍴 อยากทานมื้อต่อไป?</span>
+        <span className="text-[var(--primary)] font-bold">{loading ? "กำลังคิดเมนู..." : "ขอไอเดียมื้อต่อไป →"}</span>
+      </button>
+    );
+  }
 
   return (
     <section className="rounded-3xl border border-[var(--color-border-soft)] bg-[var(--surface-muted)] p-4">
