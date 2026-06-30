@@ -124,6 +124,9 @@ test("Today shows normal Readiness label when today sleep exists", async ({ page
   await expect(page.locator(".rounded-full").filter({ hasText: /Readiness/ }).first()).toBeVisible();
   await expect(page.locator(".rounded-full").filter({ hasText: /Readiness ล่าสุด/ })).toHaveCount(0);
 
+  // Coverage chips are inside the Recovery accordion — expand first
+  await page.getByText("ดูรายละเอียด Recovery").click();
+
   // Coverage should show "การนอนวันนี้" not "ใช้การนอนล่าสุด"
   await expect(page.getByText("การนอนวันนี้")).toBeVisible();
   await expect(page.getByText("ใช้การนอนล่าสุด")).toHaveCount(0);
@@ -145,6 +148,9 @@ test("Today shows Readiness ล่าสุด and fallback note when only yeste
   // Readiness chip should say "ล่าสุด"
   await expect(page.locator(".rounded-full").filter({ hasText: /Readiness ล่าสุด/ }).first()).toBeVisible();
 
+  // Coverage chips are inside the Recovery accordion — expand first
+  await page.getByText("ดูรายละเอียด Recovery").click();
+
   // Coverage should show "ใช้การนอนล่าสุด"
   await expect(page.getByText("ใช้การนอนล่าสุด")).toBeVisible();
 
@@ -163,7 +169,8 @@ test("Today shows missing coverage for sleep when no sleep data at all", async (
 
   await gotoApp(page, "/");
 
-  // Missing chips include "บันทึกการนอน"
+  // Missing chips are inside the Recovery accordion — expand first
+  await page.getByText("ดูรายละเอียด Recovery").click();
   await expect(page.getByText("+บันทึกการนอน").first()).toBeVisible();
 
   // Daily check: sleep missing

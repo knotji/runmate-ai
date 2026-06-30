@@ -91,6 +91,21 @@ test("Coach page Recovery card shows /100 for all axes after expanding", async (
   await expect(page.getByText("พลังงาน", { exact: true }).first()).toBeVisible();
 });
 
+// ─── Phase 7B+: No duplicate /100/100 anywhere ───────────────────────────────
+
+test("No duplicated /100/100 score appears on Today page", async ({ page }) => {
+  const state = await installMockBackend(page);
+  state.history.push(makeSleepRecord(bangkokDateKey(), "sleep-nodup"));
+
+  await gotoApp(page, "/");
+
+  // Expand the recovery axis details
+  await page.getByText("ดูรายละเอียด Recovery").click();
+
+  // Must not contain any /100/100 format
+  await expect(page.getByText(/\d{1,3}\/100\/100/)).toHaveCount(0);
+});
+
 // ─── Phase 7C: Report Recovery Trend ─────────────────────────────────────────
 
 test("Report แนวโน้ม Recovery 7 วัน shows /100 numeric values", async ({ page }) => {

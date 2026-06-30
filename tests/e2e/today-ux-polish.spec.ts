@@ -327,10 +327,13 @@ test("Today snapshot shows Readiness explanation details and correct coverage la
 
   await gotoApp(page, "/");
 
-  // Coverage chip container prefix label has been updated
+  // Coverage chips and explanation are inside the Recovery accordion — expand first
+  await page.getByText("ดูรายละเอียด Recovery").click();
+
+  // Coverage chip container prefix label
   await expect(page.getByText("ข้อมูลที่ใช้ประเมิน:")).toBeVisible();
 
-  // Target explanation details
+  // Target explanation details (nested inside Recovery accordion)
   await expect(page.getByText("ระบบ Recovery วันนี้คืออะไร?")).toBeVisible();
   await page.getByText("ระบบ Recovery วันนี้คืออะไร?").click();
   await expect(page.getByText("แต่ละแกนให้คะแนน 0–100 เพื่อช่วยดูว่าร่างกายพร้อมแค่ไหน")).toBeVisible();

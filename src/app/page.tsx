@@ -410,22 +410,20 @@ export default function TodayPage() {
       />
 
       {/* D. Quick Actions */}
-      <section className="card p-4">
-        <div className="grid grid-cols-5 gap-1">
-          {[
-            { href: "/upload?type=sleep", icon: "🌙", label: "นอน" },
-            { href: "/upload?type=meal", icon: "🍱", label: "อาหาร" },
-            { href: `/upload?type=workout&subtype=${getRecommendedSubtype(insight, coachCtx)}`, icon: "🏃", label: "ซ้อม" },
-            { href: "/pain", icon: "🩹", label: "เจ็บ" },
-            { href: "#end-of-day-summary", icon: "📋", label: "สรุปวัน" },
-          ].map(({ href, icon, label }) => (
-            <Link key={href} href={href} className="flex flex-col items-center gap-1.5 rounded-2xl py-3 transition-colors hover:bg-[var(--surface-muted)] active:scale-95">
-              <span className="text-2xl">{icon}</span>
-              <span className="text-xs font-medium text-slate-500">{label}</span>
-            </Link>
-          ))}
-        </div>
-      </section>
+      <div className="flex justify-around gap-0.5 px-1">
+        {[
+          { href: "/upload?type=sleep", icon: "🌙", label: "นอน" },
+          { href: "/upload?type=meal", icon: "🍱", label: "อาหาร" },
+          { href: `/upload?type=workout&subtype=${getRecommendedSubtype(insight, coachCtx)}`, icon: "🏃", label: "ซ้อม" },
+          { href: "/pain", icon: "🩹", label: "เจ็บ" },
+          { href: "#end-of-day-summary", icon: "📋", label: "สรุปวัน" },
+        ].map(({ href, icon, label }) => (
+          <Link key={href} href={href} className="flex flex-col items-center gap-1 min-w-[52px] py-2 px-1 rounded-xl transition-colors hover:bg-[var(--surface-muted)] active:scale-95">
+            <span className="text-xl">{icon}</span>
+            <span className="text-[10px] font-medium text-slate-500">{label}</span>
+          </Link>
+        ))}
+      </div>
 
       {/* F. Compact detail sections */}
       {(() => {
@@ -1434,8 +1432,8 @@ function TodaySnapshotCard({
         </button>
       </div>
 
-      {/* Caution Note Banner */}
-      {!loading && displayStatus?.note && (
+      {/* Caution Note — heavy card only for high severity */}
+      {!loading && displayStatus?.note && displayStatus.cautionLevel === "high" && (
         <div className="rounded-2xl border border-amber-100 bg-[#fffbeb] px-3.5 py-2.5 text-xs leading-relaxed text-amber-900 font-semibold my-1 shadow-sm flex items-start gap-2">
           <span className="text-sm mt-0.5">⚠️</span>
           <div>
@@ -1444,8 +1442,13 @@ function TodaySnapshotCard({
           </div>
         </div>
       )}
+      {!loading && displayStatus?.note && (displayStatus.cautionLevel === "light" || displayStatus.cautionLevel === "moderate") && (
+        <p className="text-[11px] text-slate-500 leading-relaxed px-0.5">
+          💡 {displayStatus.note}
+        </p>
+      )}
 
-      {/* Compact/Collapsible Recovery System */}
+      {/* Compact/Collapsible Recovery System — coverage chips and explanation inside */}
       {!loading && recSys && (
         <details className="text-xs text-slate-500 cursor-pointer group border border-slate-100 bg-white p-3.5 rounded-2xl shadow-sm space-y-3 transition-all duration-300">
           <summary className="text-xs list-none flex items-center justify-between font-semibold text-slate-700">
@@ -1474,7 +1477,7 @@ function TodaySnapshotCard({
                   <span className="text-sm">⚡</span>
                 </div>
                 <div className="mt-1 flex items-baseline gap-1.5">
-                  <span className="text-sm font-black text-slate-800">{formatAxisScore(recSys.axes.recovery.score)}/100</span>
+                  <span className="text-sm font-black text-slate-800">{formatAxisScore(recSys.axes.recovery.score)}</span>
                   <span className={`inline-block rounded px-1.5 py-0.5 text-[9px] font-bold ${getAxisBadgeClass("recovery", recSys.axes.recovery.score)}`}>
                     {getRecoveryAxisLabel("recovery", recSys.axes.recovery.score)}
                   </span>
@@ -1491,7 +1494,7 @@ function TodaySnapshotCard({
                   <span className="text-sm">🏃</span>
                 </div>
                 <div className="mt-1 flex items-baseline gap-1.5">
-                  <span className="text-sm font-black text-slate-800">{formatAxisScore(recSys.axes.load.score)}/100</span>
+                  <span className="text-sm font-black text-slate-800">{formatAxisScore(recSys.axes.load.score)}</span>
                   <span className={`inline-block rounded px-1.5 py-0.5 text-[9px] font-bold ${getAxisBadgeClass("load", recSys.axes.load.score)}`}>
                     {getRecoveryAxisLabel("load", recSys.axes.load.score)}
                   </span>
@@ -1508,7 +1511,7 @@ function TodaySnapshotCard({
                   <span className="text-sm">🌙</span>
                 </div>
                 <div className="mt-1 flex items-baseline gap-1.5">
-                  <span className="text-sm font-black text-slate-800">{formatAxisScore(recSys.axes.sleep.score)}/100</span>
+                  <span className="text-sm font-black text-slate-800">{formatAxisScore(recSys.axes.sleep.score)}</span>
                   <span className={`inline-block rounded px-1.5 py-0.5 text-[9px] font-bold ${getAxisBadgeClass("sleep", recSys.axes.sleep.score)}`}>
                     {getRecoveryAxisLabel("sleep", recSys.axes.sleep.score)}
                   </span>
@@ -1525,7 +1528,7 @@ function TodaySnapshotCard({
                   <span className="text-sm">🍱</span>
                 </div>
                 <div className="mt-1 flex items-baseline gap-1.5">
-                  <span className="text-sm font-black text-slate-800">{formatAxisScore(recSys.axes.fuel.score)}/100</span>
+                  <span className="text-sm font-black text-slate-800">{formatAxisScore(recSys.axes.fuel.score)}</span>
                   <span className={`inline-block rounded px-1.5 py-0.5 text-[9px] font-bold ${getAxisBadgeClass("fuel", recSys.axes.fuel.score)}`}>
                     {getRecoveryAxisLabel("fuel", recSys.axes.fuel.score)}
                   </span>
@@ -1535,77 +1538,80 @@ function TodaySnapshotCard({
             </div>
           </div>
 
+          {/* Coverage chips — inside accordion */}
+          {readinessCoverage && (readinessCoverage.used.length > 0 || readinessCoverage.missing.length > 0) && (
+            <div className="pt-2 border-t border-slate-50 space-y-1.5 cursor-default">
+              <div className="flex flex-wrap gap-1">
+                <span className="text-xs text-slate-400 self-center">ข้อมูลที่ใช้ประเมิน:</span>
+                {readinessCoverage.used.map((label) => (
+                  <span key={label} className="rounded-full bg-[var(--primary-soft)] px-2 py-0.5 text-xs font-medium text-[var(--primary-strong)]">
+                    {label}
+                  </span>
+                ))}
+                {readinessCoverage.missing.map((label) => (
+                  <span key={label} className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-400">
+                    +{label}
+                  </span>
+                ))}
+              </div>
+              {!hasSleepToday && readinessCoverage.used.some((l) => l.startsWith("ใช้การนอนล่าสุด")) && (
+                <p className="text-[11px] text-slate-400 leading-4">
+                  ยังไม่มีข้อมูลการนอนวันนี้ — คะแนนนี้อิงจากข้อมูลการนอนล่าสุด
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Recovery explanation — nested inside accordion */}
+          {readinessScore != null && (
+            <details className="group/recexp text-xs text-slate-500 cursor-pointer border-t border-slate-50 pt-2">
+              <summary className="text-[11px] font-semibold text-slate-400 hover:text-slate-600 list-none flex items-center gap-1">
+                <span>ระบบ Recovery วันนี้คืออะไร?</span>
+                <span className="transition-transform group-open/recexp:rotate-180">▾</span>
+              </summary>
+              <div className="mt-1.5 rounded-2xl bg-slate-50 p-3 leading-relaxed text-slate-500 border border-slate-100 space-y-1.5">
+                <p>แต่ละแกนให้คะแนน 0–100 เพื่อช่วยดูว่าร่างกายพร้อมแค่ไหน โหลดสะสมเท่าไร นอนพอไหม และกินพอรองรับไหม</p>
+                {!hasSleepToday && (
+                  <p className="text-[10.5px] text-slate-500 font-semibold bg-slate-100/50 p-1.5 rounded-lg border border-slate-200/50">
+                    วันนี้ยังไม่มีข้อมูลการนอน จึงใช้ข้อมูลล่าสุดเพื่อประเมินชั่วคราว
+                  </p>
+                )}
+                {recSys.axes.load.score >= 55 && (
+                  <p className="text-[10px] text-amber-700 font-semibold bg-amber-50/50 p-1.5 rounded-lg border border-amber-100/50">
+                    ⚠️ สำหรับโหลดซ้อม คะแนนสูงหมายถึงโหลดสะสมสูง จึงควรคุมความหนัก ไม่ใช่คะแนนดีเสมอไป
+                  </p>
+                )}
+                <p className="text-[10px] text-slate-500 bg-slate-100/50 p-1.5 rounded-lg border border-slate-200/50 font-semibold leading-normal">
+                  * แม้คะแนนพื้นฐาน (HRV/RHR) จะสูง แต่หากความล้าสะสมสูง นอนน้อย หรือกินไม่พอ ระบบจะคุมระดับคำแนะนำเป็นสีฟ้า/เหลือง (Good/Fair) เพื่อช่วยป้องกันการฝืนซ้อม
+                </p>
+                <ul className="list-disc pl-4 space-y-1 text-[11px]">
+                  <li><strong>ฟื้นตัว:</strong> ความพร้อมของหัวใจ/HRV และประวัติความตึงเจ็บ</li>
+                  <li><strong>โหลดซ้อม:</strong> ปริมาณวิ่งสะสม 7 วัน</li>
+                  <li><strong>การนอน:</strong> ชั่วโมงนอนเมื่อคืนรวมถึงหนี้การนอนสะสมในช่วงสัปดาห์</li>
+                  <li><strong>อาหาร:</strong> สารอาหารคาร์บ/โปรตีนวันนี้เพื่อรองรับซ้อมและการฟื้นฟู</li>
+                </ul>
+                {hasWorkoutToday && (
+                  <p className="text-[10px] text-slate-400 font-semibold mt-1">
+                    * บันทึกกิจกรรมซ้อมวันนี้แล้ว โหลดและสารอาหารจะอัปเดตเพื่อปรับคำแนะนำถัดไป
+                  </p>
+                )}
+              </div>
+            </details>
+          )}
+
           <p className="text-[9.5px] text-slate-400 leading-normal pt-2 border-t border-slate-50 cursor-default">
             * Load สูง = ใช้ร่างกายเยอะ · แกนอื่น 0–100 ยิ่งสูงยิ่งดี
           </p>
         </details>
       )}
 
-      {/* Readiness V2 source coverage */}
-      {!loading && readinessCoverage && (readinessCoverage.used.length > 0 || readinessCoverage.missing.length > 0) && (
-        <div className="space-y-1.5">
-          <div className="flex flex-wrap gap-1">
-            <span className="text-xs text-slate-400 self-center">ข้อมูลที่ใช้ประเมิน:</span>
-            {readinessCoverage.used.map((label) => (
-              <span key={label} className="rounded-full bg-[var(--primary-soft)] px-2 py-0.5 text-xs font-medium text-[var(--primary-strong)]">
-                {label}
-              </span>
-            ))}
-            {readinessCoverage.missing.map((label) => (
-              <span key={label} className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-400">
-                +{label}
-              </span>
-            ))}
-          </div>
-          {!hasSleepToday && readinessCoverage.used.some((l) => l.startsWith("ใช้การนอนล่าสุด")) && (
-            <p className="text-[11px] text-slate-400 leading-4">
-              ยังไม่มีข้อมูลการนอนวันนี้ — คะแนนนี้อิงจากข้อมูลการนอนล่าสุด
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* Recovery explanation note */}
-      {!loading && readinessScore != null && (
-        <details className="text-xs text-slate-500 mt-2 cursor-pointer group">
-          <summary className="text-[11px] font-semibold text-slate-400 hover:text-slate-600 list-none flex items-center gap-1">
-            <span>ระบบ Recovery วันนี้คืออะไร?</span>
-            <span className="transition-transform group-open:rotate-180">▾</span>
-          </summary>
-          <div className="mt-1.5 rounded-2xl bg-slate-50 p-3 leading-relaxed text-slate-500 border border-slate-100 space-y-1.5">
-            <p>แต่ละแกนให้คะแนน 0–100 เพื่อช่วยดูว่าร่างกายพร้อมแค่ไหน โหลดสะสมเท่าไร นอนพอไหม และกินพอรองรับไหม</p>
-            {!hasSleepToday && (
-              <p className="text-[10.5px] text-slate-500 font-semibold bg-slate-100/50 p-1.5 rounded-lg border border-slate-200/50">
-                วันนี้ยังไม่มีข้อมูลการนอน จึงใช้ข้อมูลล่าสุดเพื่อประเมินชั่วคราว
-              </p>
-            )}
-            {recSys && recSys.axes.load.score >= 55 && (
-              <p className="text-[10px] text-amber-700 font-semibold bg-amber-50/50 p-1.5 rounded-lg border border-amber-100/50">
-                ⚠️ สำหรับโหลดซ้อม คะแนนสูงหมายถึงโหลดสะสมสูง จึงควรคุมความหนัก ไม่ใช่คะแนนดีเสมอไป
-              </p>
-            )}
-            <p className="text-[10px] text-slate-500 bg-slate-100/50 p-1.5 rounded-lg border border-slate-200/50 font-semibold leading-normal">
-              * แม้คะแนนพื้นฐาน (HRV/RHR) จะสูง แต่หากความล้าสะสมสูง นอนน้อย หรือกินไม่พอ ระบบจะคุมระดับคำแนะนำเป็นสีฟ้า/เหลือง (Good/Fair) เพื่อช่วยป้องกันการฝืนซ้อม
-            </p>
-            <ul className="list-disc pl-4 space-y-1 text-[11px]">
-              <li><strong>ฟื้นตัว:</strong> ความพร้อมของหัวใจ/HRV และประวัติความตึงเจ็บ</li>
-              <li><strong>โหลดซ้อม:</strong> ปริมาณวิ่งสะสม 7 วัน</li>
-              <li><strong>การนอน:</strong> ชั่วโมงนอนเมื่อคืนรวมถึงหนี้การนอนสะสมในช่วงสัปดาห์</li>
-              <li><strong>อาหาร:</strong> สารอาหารคาร์บ/โปรตีนวันนี้เพื่อรองรับซ้อมและการฟื้นฟู</li>
-            </ul>
-            {hasWorkoutToday && (
-              <p className="text-[10px] text-slate-400 font-semibold mt-1">
-                * บันทึกกิจกรรมซ้อมวันนี้แล้ว โหลดและสารอาหารจะอัปเดตเพื่อปรับคำแนะนำถัดไป
-              </p>
-            )}
-          </div>
-        </details>
-      )}
-
-      {/* Collapsed state: show daily check missing items */}
+      {/* Collapsed state: compact missing hint */}
       {!expanded && !allDone && missing.length > 0 && (
         <p className="text-xs text-slate-500">
-          ยังขาด: <span className="font-semibold">{missing.map((i) => i.label).join(" · ")}</span>
+          {missing.length > 2
+            ? <>ยังขาด <span className="font-semibold">{missing.length} อย่าง</span></>
+            : <>ยังขาด: <span className="font-semibold">{missing.map((i) => i.label).join(" · ")}</span></>
+          }
         </p>
       )}
 

@@ -172,9 +172,9 @@ test.describe("Readiness Label Softening with Caution Axes", () => {
     const chip = page.locator("span:has-text('Readiness')").first();
     await expect(chip).toHaveClass(/bg-\[#e7f0fa\]/);
 
-    // Verify the Caution Note banner is visible explaining the warning
-    await expect(page.getByText("ข้อแนะนำความพร้อม")).toBeVisible();
-    await expect(page.getByText("วันนี้สะสมโหลดซ้อมสูงและการนอนยังไม่เต็มอิ่ม")).toBeVisible();
+    // Moderate caution: heavy card NOT shown, soft note shown instead
+    await expect(page.getByText("ข้อแนะนำความพร้อม")).toHaveCount(0);
+    await expect(page.getByText(/วันนี้สะสมโหลดซ้อมสูงและการนอนยังไม่เต็มอิ่ม/).first()).toBeVisible();
 
     // Now navigate to Coach page and verify consistency
     await page.getByRole("link", { name: "Coach" }).click();
