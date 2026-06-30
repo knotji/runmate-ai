@@ -14,13 +14,21 @@ test("End of day summary card shows สรุปท้ายวัน when no su
 
 // ─── Phase 2: Today section headings ─────────────────────────────────────────
 
-test("Today page shows section headings แผนวันนี้ and ภาพรวมวันนี้", async ({ page }) => {
+test("Today page shows ภาพรวมวันนี้ and วันนี้ควรทำอะไร headings in correct order", async ({ page }) => {
   await installMockBackend(page);
   await gotoApp(page, "/");
 
-  await expect(page.getByText("แผนวันนี้", { exact: true })).toBeVisible();
+  // ภาพรวมวันนี้ is now the first card (recovery-first)
   await expect(page.getByText("ภาพรวมวันนี้", { exact: true }).first()).toBeVisible();
-  // "สรุป" exact match targets section heading
+  // วันนี้ควรทำอะไร is the internal heading of the hero card (second card)
+  await expect(page.getByText("วันนี้ควรทำอะไร", { exact: true })).toBeVisible();
+  // ภาพรวมวันนี้ must appear before วันนี้ควรทำอะไร in the DOM
+  const overviewPos = await page.getByText("ภาพรวมวันนี้", { exact: true }).first().boundingBox();
+  const heroPos = await page.getByText("วันนี้ควรทำอะไร", { exact: true }).boundingBox();
+  if (overviewPos && heroPos) {
+    expect(overviewPos.y).toBeLessThan(heroPos.y);
+  }
+  // "สรุป" section still present
   await expect(page.getByText("สรุป", { exact: true })).toBeVisible();
 });
 

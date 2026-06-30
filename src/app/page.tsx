@@ -304,10 +304,20 @@ export default function TodayPage() {
   return (
     <AppShell title="โค้ชข้างทาง" subtitle={formatThaiDate()}>
 
-      {/* Section: แผนวันนี้ */}
-      <p className="mt-1 px-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--color-text-soft)]">แผนวันนี้</p>
+      {/* 1. Recovery rings first — ภาพรวมวันนี้ */}
+      <TodaySnapshotCard
+        insight={insight}
+        readinessScore={readinessScore}
+        todayChecklist={todayChecklist}
+        loading={loading}
+        hasHistory={hasHistory}
+        isFallback={insightError}
+        readinessCoverage={readinessCoverage}
+        hasWorkoutToday={hasWorkoutToday}
+        coachCtx={coachCtx}
+      />
 
-      {/* B. Today Focus Card */}
+      {/* 2. วันนี้ควรทำอะไร — hero recommendation */}
       <section className="card p-5 space-y-4">
         <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
           {hasWorkoutToday ? (coachCtx?.todayWorkouts.some((w) => w.kind === "strength") ? "หลังเวทวันนี้ควรทำอะไรต่อ" : "หลังซ้อมวันนี้ควรทำอะไรต่อ") : "วันนี้ควรทำอะไร"}
@@ -393,23 +403,7 @@ export default function TodayPage() {
         />
       ) : null}
 
-      {/* Section: ภาพรวมวันนี้ */}
-      <p className="mt-1 px-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--color-text-soft)]">ภาพรวมวันนี้</p>
-
-      {/* C. Today Snapshot: readiness + daily check */}
-      <TodaySnapshotCard
-        insight={insight}
-        readinessScore={readinessScore}
-        todayChecklist={todayChecklist}
-        loading={loading}
-        hasHistory={hasHistory}
-        isFallback={insightError}
-        readinessCoverage={readinessCoverage}
-        hasWorkoutToday={hasWorkoutToday}
-        coachCtx={coachCtx}
-      />
-
-      {/* D. Quick Actions */}
+      {/* 3. Quick Actions */}
       <div className="flex justify-around gap-0.5 px-1">
         {[
           { href: "/upload?type=sleep", icon: "🌙", label: "นอน" },
@@ -1137,18 +1131,30 @@ function TodayStrengthRoutineCard({
         </p>
       ) : null}
 
-      {!safety.blockWorkout ? (
-        <div className="rounded-2xl bg-slate-50/80 p-3">
-          <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">ตัวอย่างท่า</p>
-          <div className="mt-2 space-y-1.5">
-            {exercises.slice(0, 3).map((exercise) => (
-              <div key={`${exercise.name}-${exercise.sets}-${exercise.reps}`} className="flex justify-between gap-3 text-xs">
-                <span className="font-semibold text-slate-700">{exercise.name}</span>
-                <span className="shrink-0 text-slate-500">{formatStrengthExerciseLine(exercise)}</span>
+      {!safety.blockWorkout && exercises.length > 0 ? (
+        <div className="border-t border-slate-100/60 pt-1">
+          <button
+            type="button"
+            onClick={() => setShowDetails(!showDetails)}
+            className="flex items-center gap-1 text-xs font-semibold text-slate-400 hover:text-slate-600 py-1"
+          >
+            <span>{showDetails ? "ซ่อนท่า" : "ดูท่า"}</span>
+            <span className={`transition-transform duration-200 ${showDetails ? "rotate-180" : ""}`}>▾</span>
+          </button>
+          {showDetails && (
+            <div className="mt-1.5 rounded-2xl bg-slate-50/80 p-3">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">ตัวอย่างท่า</p>
+              <div className="mt-2 space-y-1.5">
+                {exercises.slice(0, 3).map((exercise) => (
+                  <div key={`${exercise.name}-${exercise.sets}-${exercise.reps}`} className="flex justify-between gap-3 text-xs">
+                    <span className="font-semibold text-slate-700">{exercise.name}</span>
+                    <span className="shrink-0 text-slate-500">{formatStrengthExerciseLine(exercise)}</span>
+                  </div>
+                ))}
+                {exercises.length > 3 ? <p className="text-xs text-slate-400">+ อีก {exercises.length - 3} ท่า</p> : null}
               </div>
-            ))}
-            {exercises.length > 3 ? <p className="text-xs text-slate-400">+ อีก {exercises.length - 3} ท่า</p> : null}
-          </div>
+            </div>
+          )}
         </div>
       ) : null}
 
@@ -1401,12 +1407,12 @@ function RecoveryRing({
 
   return (
     <div
-      className="flex flex-col items-center gap-0.5"
+      className="flex flex-col items-center gap-1"
       data-tone={tone}
       aria-label={`${title} ${Math.round(score)} จาก 100 ระดับ${label}`}
     >
-      <div className="relative w-14 h-14">
-        <svg width="56" height="56" viewBox="0 0 56 56" aria-hidden="true">
+      <div className="relative w-16 h-16 sm:w-14 sm:h-14">
+        <svg width="100%" height="100%" viewBox="0 0 56 56" aria-hidden="true">
           <circle cx={cx} cy={cy} r={r} fill="none" stroke="#e2e8f0" strokeWidth="4.5" />
           <circle
             cx={cx} cy={cy} r={r}
@@ -1420,11 +1426,11 @@ function RecoveryRing({
           />
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-[13px] font-black text-slate-800 leading-none">{Math.round(score)}</span>
+          <span className="text-[14px] sm:text-[13px] font-black text-slate-800 leading-none">{Math.round(score)}</span>
         </div>
       </div>
-      <p className="text-[9px] font-semibold text-slate-500 leading-tight text-center mt-0.5">{title}</p>
-      <p className={`text-[8px] font-bold leading-tight text-center ${labelClass}`}>{label}</p>
+      <p className="text-[10px] sm:text-[9px] font-semibold text-slate-500 leading-tight text-center mt-0.5">{title}</p>
+      <p className={`text-[9px] sm:text-[8px] font-bold leading-tight text-center ${labelClass}`}>{label}</p>
     </div>
   );
 }
@@ -1465,11 +1471,19 @@ function TodaySnapshotCard({
     !!(coachCtx?.painResolved || coachCtx?.recentPainHistory)
   );
 
+  // One-line axis summary: only surface notable states
+  const axisSummaryParts: string[] = [];
+  if (recSys.axes.load.score >= 55) axisSummaryParts.push(`Load ${getRecoveryAxisLabel("load", recSys.axes.load.score)}`);
+  if (recSys.axes.sleep.score < 66) axisSummaryParts.push(`Sleep ${getRecoveryAxisLabel("sleep", recSys.axes.sleep.score)}`);
+  if (recSys.axes.fuel.score < 66) axisSummaryParts.push(`Fuel ${getRecoveryAxisLabel("fuel", recSys.axes.fuel.score)}`);
+  if (recSys.axes.recovery.score < 66) axisSummaryParts.push(`ฟื้นตัว ${getRecoveryAxisLabel("recovery", recSys.axes.recovery.score)}`);
+  const axisSummaryLine = axisSummaryParts.join(" · ");
+
   return (
     <section className="card px-4 py-3 space-y-2.5">
       <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">ภาพรวมวันนี้</p>
 
-      {/* Readiness chip — Daily Check removed from primary view */}
+      {/* Readiness chip */}
       <div className="flex flex-wrap gap-2">
         {loading && (
           <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-400">รอข้อมูลล่าสุด</span>
@@ -1488,23 +1502,21 @@ function TodaySnapshotCard({
         )}
       </div>
 
-      {/* Caution Note — heavy card only for high severity */}
-      {!loading && displayStatus?.note && displayStatus.cautionLevel === "high" && (
-        <div className="rounded-2xl border border-amber-100 bg-[#fffbeb] px-3.5 py-2.5 text-xs leading-relaxed text-amber-900 font-semibold shadow-sm flex items-start gap-2">
-          <span className="text-sm mt-0.5">⚠️</span>
-          <div>
-            <p className="text-[10px] text-amber-700 uppercase tracking-wider font-bold">ข้อแนะนำความพร้อม</p>
-            <p className="mt-0.5 text-amber-900 leading-snug">{displayStatus.note}</p>
-          </div>
-        </div>
-      )}
-      {!loading && displayStatus?.note && (displayStatus.cautionLevel === "light" || displayStatus.cautionLevel === "moderate") && (
-        <p className="text-[11px] text-slate-500 leading-relaxed px-0.5">💡 {displayStatus.note}</p>
+      {/* One-line axis summary */}
+      {!loading && axisSummaryLine && (
+        <p className="text-[11px] text-slate-400 leading-tight px-0.5">{axisSummaryLine}</p>
       )}
 
-      {/* 4-axis ring grid — always visible */}
+      {/* Caution note */}
+      {!loading && displayStatus?.note && (
+        <p className="text-[11px] text-slate-500 leading-relaxed px-0.5">
+          {displayStatus.cautionLevel === "high" ? "⚠️" : "💡"} {displayStatus.note}
+        </p>
+      )}
+
+      {/* 4-axis ring grid — always visible, 2×2 on mobile */}
       {!loading && recSys && (
-        <div className="grid grid-cols-4 gap-1.5">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-1.5">
           {([
             { key: "recovery" as const, title: "ฟื้นตัว" },
             { key: "load" as const, title: "โหลดซ้อม" },
