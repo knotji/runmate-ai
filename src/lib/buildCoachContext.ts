@@ -18,6 +18,7 @@ import type { StrengthLog } from "@/types/strength";
 import { normalizeMealSlot, getMealSlotLabel } from "@/lib/mealSlots";
 import { calculateRunMateReadiness, type ReadinessV2Result } from "@/lib/readinessV2";
 import { buildRunMateRecoverySystem, type RunMateRecoverySystem } from "@/lib/recoverySystem";
+import { buildRunMateRecoveryLoop, type RunMateRecoveryLoop } from "@/lib/recoveryLoop";
 
 export type DayWorkoutSummary = {
   date: string;
@@ -121,6 +122,7 @@ export type CoachContext = {
   nutritionBalanceToday: DailyNutritionBalance | null;
   readinessV2: ReadinessV2Result | null;
   recoverySystem: RunMateRecoverySystem;
+  recoveryLoop: RunMateRecoveryLoop;
 };
 
 export type NutritionDaySummary = {
@@ -627,9 +629,11 @@ export function buildCoachContextFromData(input: {
       strengthCount: items.filter((i) => i.type === "strength" && getHistoryItemDateKey(i) >= cutoff).length,
     }),
     recoverySystem: null as unknown as RunMateRecoverySystem,
+    recoveryLoop: null as unknown as RunMateRecoveryLoop,
   };
 
   ctx.recoverySystem = buildRunMateRecoverySystem(ctx);
+  ctx.recoveryLoop = buildRunMateRecoveryLoop(ctx, ctx.recoverySystem);
   return ctx;
 }
 

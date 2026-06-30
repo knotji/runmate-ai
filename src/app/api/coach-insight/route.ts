@@ -8,6 +8,7 @@ import type { WeekWorkout } from "@/types/race";
 import { todayBangkokDateKey } from "@/lib/date";
 import { getCoachCautionFactors } from "@/lib/coachCautionFactors";
 import { buildRunMateRecoverySystem, type RunMateRecoverySystem } from "@/lib/recoverySystem";
+import { buildRunMateRecoveryLoop, type RunMateRecoveryLoop } from "@/lib/recoveryLoop";
 
 const FALLBACK: DailyCoachInsight = {
   todayReadiness: 70,
@@ -208,11 +209,13 @@ function normalizeCoachContext(value: unknown): CoachContext {
     nutritionBalanceToday: isRecord(raw.nutritionBalanceToday) ? raw.nutritionBalanceToday as CoachContext["nutritionBalanceToday"] : null,
     readinessV2: isRecord(raw.readinessV2) ? raw.readinessV2 as CoachContext["readinessV2"] : null,
     recoverySystem: null as unknown as RunMateRecoverySystem,
+    recoveryLoop: null as unknown as RunMateRecoveryLoop,
   };
 
   context.recoverySystem = isRecord(raw.recoverySystem)
     ? raw.recoverySystem as RunMateRecoverySystem
     : buildRunMateRecoverySystem(context);
+  context.recoveryLoop = buildRunMateRecoveryLoop(context, context.recoverySystem);
 
   return context;
 }
@@ -459,6 +462,17 @@ function buildUserPrompt(ctx: CoachContext): string {
     if (r.missingDataLabels.length) lines.push(`- Missing data: ${r.missingDataLabels.join(", ")}`);
     lines.push(`- Note: ${r.readinessNote}`);
     lines.push("- Rule: Use this V2 score as the primary readiness signal. It combines sleep, training load, nutrition, and pain safety.");
+  }
+
+  if (ctx.recoveryLoop) {
+    const { dayLoad, sleepNeed, tomorrowPreview } = ctx.recoveryLoop;
+    lines.push(`\nRecovery Loop v1:`);
+    lines.push(`- Day load: ${dayLoad.label} (score ${dayLoad.score}/100) — ${dayLoad.summary}`);
+    if (dayLoad.reasons.length) lines.push(`  Day load reasons: ${dayLoad.reasons.join(" | ")}`);
+    lines.push(`- Sleep need tonight: ${sleepNeed.targetHoursMin}–${sleepNeed.targetHoursMax} hrs — ${sleepNeed.summary}`);
+    lines.push(`- Tomorrow preview: state=${tomorrowPreview.state} — ${tomorrowPreview.headline}`);
+    if (tomorrowPreview.conditions.length) lines.push(`  Conditions: ${tomorrowPreview.conditions.join(" | ")}`);
+    lines.push("- Rule: Use Recovery Loop sleep target in post-workout recovery advice (bedtime, sleep goal). Use Tomorrow Preview state to frame tomorrow's recommendation.");
   }
 
   return lines.join("\n");

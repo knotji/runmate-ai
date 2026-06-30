@@ -115,6 +115,23 @@ tests/
 - **Coach Caution Factors**: Identified by `getCoachCautionFactors(context)`. Gathers warning indicators (e.g. low sleep average, low daily sleep, high weekly run distance, elevated resting HR, resolved/active pain, low fuel carbs, completed workouts). Modifies summary description to "not a pace day" when readiness score is Good/Excellent but coaching level is yellow (ควรซ้อมเบา), adds conditional easy-run guidelines and carb suggestions to pre-workout/post-workout cards, and appends adaptive reduction notes on Race long run workouts.
 - **Today is recovery-first**: The Today page answers "ร่างกายวันนี้เป็นยังไง?" before "วันนี้ควรทำอะไร?". The `TodaySnapshotCard` (Recovery rings 2×2 on mobile, 4-col on sm+) is rendered first in the page JSX, above the hero recommendation card. The hero reason line should read as a consequence of the axis states ("Load สูง · Sleep พอใช้"). Recovery details (coverage chips, /100 values, missing list, explanation) stay collapsed behind "ดูรายละเอียด Recovery". Daily Check chip is not shown in the overview card.
 
+## RunMate Recovery Loop v1
+
+**File**: `src/lib/recoveryLoop.ts` — pure helper, no React/Supabase.
+
+**Purpose**: Answers three coaching questions using `CoachContext` + `RunMateRecoverySystem`:
+1. **Day Load** (`dayLoad`) — วันนี้ใช้แรงไปแล้วเท่าไร: scored 0–100 from `todayWorkouts` (run: `dist*6 + dur*0.4`, cap 90; strength: `dur*0.8`, cap 70; walk: `dur*0.25`, cap 35). Levels: 0–24 ต่ำ, 25–49 ปานกลาง, 50–74 สูง, 75–100 สูงมาก.
+2. **Sleep Need** (`sleepNeed`) — คืนนี้ควรนอนเท่าไร: base 7.0h + adjustments for day load (+0.5 high / +0.75 very_high), weekly load (+0.5 if ≥75), sleep axis debt (+0.25–0.5), pain (+0.25–0.5). Clamped 7.0–9.0h.
+3. **Tomorrow Preview** (`tomorrowPreview`) — states: `ready | easy | recovery | watch`. Uses dayLoad level + sleepAxisScore + weeklyLoadScore + recoveryScore + race/pain flags. Race-tomorrow overrides to `ready`.
+
+**Integration**: `buildRunMateRecoveryLoop(ctx, recSys)` is called in `buildCoachContextFromSupabase()` right after `buildRunMateRecoverySystem`. The result is stored as `ctx.recoveryLoop: RunMateRecoveryLoop`.
+
+**UI**: `RecoveryLoopCard` in `page.tsx` — compact card after the hero section, data-testid `recovery-loop-card`. Shows Day Load + Sleep Need + Tomorrow Preview headline. Details behind "ดูเหตุผล" accordion.
+
+**Prompt**: `buildUserPrompt` in `route.ts` appends Recovery Loop section with day load summary, sleep target, and tomorrow preview state for the AI coach.
+
+**Do not**: Change Recovery System scoring. Do not add new Supabase fields. Do not make the card dense or always-expanded.
+
 ## Recovery System Axis Scores Audit & Logic
 
 ### 1. Overall Readiness (คะแนนรวม Readiness)

@@ -395,6 +395,9 @@ export default function TodayPage() {
         )}
       </section>
 
+      {/* 3. Recovery Loop — คืนนี้ควรฟื้นตัวยังไง */}
+      {coachCtx && <RecoveryLoopCard coachCtx={coachCtx} />}
+
       {insight && coachCtx && shouldShowTodayStrengthCard(insight, coachCtx) ? (
         <TodayStrengthRoutineCard
           insight={insight}
@@ -1376,6 +1379,82 @@ const RING_STROKE: Record<string, string> = {
   info: "#5082a0",
   neutral: "#94a3b8",
 };
+
+function RecoveryLoopCard({ coachCtx }: { coachCtx: CoachContext }) {
+  const [showDetail, setShowDetail] = useState(false);
+  const loop = coachCtx.recoveryLoop;
+  if (!loop) return null;
+
+  const { dayLoad, sleepNeed, tomorrowPreview } = loop;
+
+  const previewIcon: Record<string, string> = {
+    ready: "✅",
+    easy: "🟡",
+    recovery: "🩹",
+    watch: "⚠️",
+  };
+  const icon = previewIcon[tomorrowPreview.state] ?? "💤";
+
+  return (
+    <section className="card p-4 space-y-2.5" data-testid="recovery-loop-card">
+      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">คืนนี้ควรฟื้นตัวยังไง</p>
+      {/* Day Load mini-row */}
+      <div className="flex items-center gap-2 text-xs text-slate-600">
+        <span className="font-semibold text-slate-400 shrink-0">โหลดวันนี้</span>
+        <span className="font-bold text-slate-700">{dayLoad.label}</span>
+        {dayLoad.primaryActivity?.distanceKm != null && (
+          <span className="text-slate-400">· วิ่ง {Math.round(dayLoad.primaryActivity.distanceKm * 10) / 10} km</span>
+        )}
+        {!dayLoad.loggedWorkoutToday && (
+          <span className="text-slate-400">· ยังไม่มีกิจกรรม</span>
+        )}
+      </div>
+      {/* Sleep need */}
+      <div className="flex items-center gap-2 text-xs text-slate-600">
+        <span className="text-base leading-none">🌙</span>
+        <span className="font-semibold text-slate-700">{sleepNeed.label}</span>
+      </div>
+      {/* Tomorrow preview headline */}
+      <div className="flex items-start gap-2 text-xs text-slate-600 pt-0.5 border-t border-slate-100">
+        <span className="text-sm leading-none shrink-0">{icon}</span>
+        <span className="font-semibold text-slate-700 leading-snug">{tomorrowPreview.headline}</span>
+      </div>
+      {/* Expandable detail */}
+      <button
+        type="button"
+        onClick={() => setShowDetail((v) => !v)}
+        className="flex items-center gap-1 text-[11px] font-semibold text-slate-400 hover:text-slate-600 py-0.5"
+      >
+        <span>{showDetail ? "ซ่อนเหตุผล" : "ดูเหตุผล"}</span>
+        <span className={`transition-transform duration-200 ${showDetail ? "rotate-180" : ""}`}>▾</span>
+      </button>
+      {showDetail && (
+        <div className="rounded-2xl bg-slate-50/80 px-3 py-2.5 space-y-2">
+          {tomorrowPreview.conditions.length > 0 && (
+            <ul className="space-y-1">
+              {tomorrowPreview.conditions.map((c, i) => (
+                <li key={i} className="flex items-start gap-1.5 text-[11px] text-slate-600 leading-5">
+                  <span className="shrink-0 text-[var(--primary)]">·</span>
+                  <span>{c}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {sleepNeed.reasons.length > 0 && (
+            <div className="pt-1 border-t border-slate-100/60">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">เหตุที่ต้องนอน {sleepNeed.targetHoursMin}–{sleepNeed.targetHoursMax} ชม.</p>
+              <ul className="space-y-0.5">
+                {sleepNeed.reasons.map((r, i) => (
+                  <li key={i} className="text-[11px] text-slate-500 leading-5">· {r}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
 
 const RING_LABEL_CLASS: Record<string, string> = {
   success: "text-[#2a6e45]",

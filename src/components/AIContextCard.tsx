@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { buildCoachContextFromSupabase, type CoachContext } from "@/lib/buildCoachContext";
 import { getTodayPlannedWorkout } from "@/lib/todayPlanning";
 import type { RunMateRecoverySystem } from "@/lib/recoverySystem";
+import type { RunMateRecoveryLoop } from "@/lib/recoveryLoop";
 import type { UserProfile } from "@/types/profile";
 import type { RacePlan, WeekWorkout } from "@/types/race";
 import { todayBangkokDateKey } from "@/lib/date";
@@ -395,6 +396,7 @@ const emptyContext: CoachContext = {
   nutritionBalanceToday: null,
   readinessV2: null,
   recoverySystem: null as unknown as RunMateRecoverySystem,
+  recoveryLoop: null as unknown as RunMateRecoveryLoop,
 };
 
 
