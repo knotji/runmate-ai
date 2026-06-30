@@ -47,13 +47,11 @@ test("Today axis grid shows axis title labels ฟื้นตัว โหลด
 
   await gotoApp(page, "/");
 
-  // Expand the recovery system details first
-  await page.getByText("ดูรายละเอียด Recovery").click();
-
-  await expect(page.getByText("ฟื้นตัว", { exact: true })).toBeVisible();
-  await expect(page.getByText("โหลดซ้อม", { exact: true })).toBeVisible();
-  await expect(page.getByText("การนอน", { exact: true })).toBeVisible();
-  await expect(page.getByText("พลังงาน", { exact: true })).toBeVisible();
+  // Ring titles are always visible (no accordion needed)
+  await expect(page.getByText("ฟื้นตัว", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("โหลดซ้อม", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("การนอน", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("พลังงาน", { exact: true }).first()).toBeVisible();
 });
 
 test("Today axis grid does not render old combined text-only format", async ({ page }) => {
@@ -65,6 +63,47 @@ test("Today axis grid does not render old combined text-only format", async ({ p
   // Old-style combined labels must NOT appear
   await expect(page.getByText("โหลดสูงสุด")).toHaveCount(0);
   // Labels must not appear without a /100 score nearby — validated by presence of /100 texts above
+});
+
+// ─── Phase 7 Ring: Rings always visible, no Daily Check chip ─────────────────
+
+test("Today recovery rings visible without expanding accordion", async ({ page }) => {
+  const state = await installMockBackend(page);
+  state.history.push(makeSleepRecord(bangkokDateKey(), "sleep-ring-1"));
+
+  await gotoApp(page, "/");
+
+  // All 4 ring titles visible without clicking anything
+  await expect(page.getByText("ฟื้นตัว", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("โหลดซ้อม", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("การนอน", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("พลังงาน", { exact: true }).first()).toBeVisible();
+
+  // Daily Check chip must NOT be visible in the overview card
+  await expect(page.getByText(/Daily check/)).toHaveCount(0);
+});
+
+test("Today Load ring has data-tone warning when load is high", async ({ page }) => {
+  const state = await installMockBackend(page);
+  // 4 past runs + 1 today = 60km total, freq 5 → load score ≥ 70 (สูง → warning)
+  for (let i = 0; i <= 3; i++) {
+    state.history.push({
+      id: `workout-load-${i}`,
+      user_id: "00000000-0000-4000-8000-000000000001",
+      type: "workout",
+      created_at: `${bangkokDateKey(-i)}T16:00:00.000Z`,
+      data: {
+        date: bangkokDateKey(-i),
+        extracted: { workoutKind: "outdoor_run", distanceKm: 15, duration: "01:20:00" },
+      },
+    });
+  }
+
+  await gotoApp(page, "/");
+
+  // The โหลดซ้อม ring container should have data-tone="warning" (amber, not success)
+  const loadRing = page.locator("[data-tone]").filter({ hasText: "โหลดซ้อม" });
+  await expect(loadRing).toHaveAttribute("data-tone", "warning");
 });
 
 // ─── Phase 7B: Coach page numeric axes ───────────────────────────────────────

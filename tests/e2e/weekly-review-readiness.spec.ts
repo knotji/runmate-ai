@@ -130,11 +130,6 @@ test("Today shows normal Readiness label when today sleep exists", async ({ page
   // Coverage should show "การนอนวันนี้" not "ใช้การนอนล่าสุด"
   await expect(page.getByText("การนอนวันนี้")).toBeVisible();
   await expect(page.getByText("ใช้การนอนล่าสุด")).toHaveCount(0);
-
-  // Daily check: sleep should be marked done (today sleep exists)
-  await page.getByRole("button", { name: /Daily check/ }).click();
-  const sleepRow = page.locator("a").filter({ hasText: "บันทึกการนอน" });
-  await expect(sleepRow.getByText("เสร็จ")).toBeVisible();
 });
 
 test("Today shows Readiness ล่าสุด and fallback note when only yesterday sleep exists", async ({ page }) => {
@@ -156,11 +151,6 @@ test("Today shows Readiness ล่าสุด and fallback note when only yeste
 
   // Fallback note appears
   await expect(page.getByText(/อิงจากข้อมูลการนอนล่าสุด/)).toBeVisible();
-
-  // Daily check: sleep should still be marked MISSING (today sleep not uploaded)
-  await page.getByRole("button", { name: /Daily check/ }).click();
-  const sleepRow = page.locator("a").filter({ hasText: "บันทึกการนอน" });
-  await expect(sleepRow.getByText("ยัง")).toBeVisible();
 });
 
 test("Today shows missing coverage for sleep when no sleep data at all", async ({ page }) => {
@@ -172,9 +162,4 @@ test("Today shows missing coverage for sleep when no sleep data at all", async (
   // Missing chips are inside the Recovery accordion — expand first
   await page.getByText("ดูรายละเอียด Recovery").click();
   await expect(page.getByText("+บันทึกการนอน").first()).toBeVisible();
-
-  // Daily check: sleep missing
-  await page.getByRole("button", { name: /Daily check/ }).click();
-  const sleepRow = page.locator("a").filter({ hasText: "บันทึกการนอน" });
-  await expect(sleepRow.getByText("ยัง")).toBeVisible();
 });

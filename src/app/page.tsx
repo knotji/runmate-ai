@@ -1362,6 +1362,73 @@ function getAxisBadgeClass(axisKey: "recovery" | "load" | "sleep" | "fuel", scor
   return "bg-slate-50 text-slate-600 border border-slate-100";
 }
 
+// Ring stroke colors keyed by tone
+const RING_STROKE: Record<string, string> = {
+  success: "#4a9960",
+  warning: "#c9961d",
+  danger: "#e05050",
+  info: "#5082a0",
+  neutral: "#94a3b8",
+};
+
+const RING_LABEL_CLASS: Record<string, string> = {
+  success: "text-[#2a6e45]",
+  warning: "text-[#9b742c]",
+  danger: "text-[#c04040]",
+  info: "text-[#42677f]",
+  neutral: "text-[#64748b]",
+};
+
+function RecoveryRing({
+  title,
+  score,
+  label,
+  tone,
+}: {
+  title: string;
+  score: number;
+  label: string;
+  tone: string;
+}) {
+  const r = 22;
+  const cx = 28;
+  const cy = 28;
+  const circumference = 2 * Math.PI * r;
+  const pct = Math.max(0, Math.min(100, score)) / 100;
+  const offset = circumference * (1 - pct);
+  const stroke = RING_STROKE[tone] ?? RING_STROKE.neutral;
+  const labelClass = RING_LABEL_CLASS[tone] ?? RING_LABEL_CLASS.neutral;
+
+  return (
+    <div
+      className="flex flex-col items-center gap-0.5"
+      data-tone={tone}
+      aria-label={`${title} ${Math.round(score)} จาก 100 ระดับ${label}`}
+    >
+      <div className="relative w-14 h-14">
+        <svg width="56" height="56" viewBox="0 0 56 56" aria-hidden="true">
+          <circle cx={cx} cy={cy} r={r} fill="none" stroke="#e2e8f0" strokeWidth="4.5" />
+          <circle
+            cx={cx} cy={cy} r={r}
+            fill="none"
+            stroke={stroke}
+            strokeWidth="4.5"
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={offset}
+            transform={`rotate(-90 ${cx} ${cy})`}
+          />
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-[13px] font-black text-slate-800 leading-none">{Math.round(score)}</span>
+        </div>
+      </div>
+      <p className="text-[9px] font-semibold text-slate-500 leading-tight text-center mt-0.5">{title}</p>
+      <p className={`text-[8px] font-bold leading-tight text-center ${labelClass}`}>{label}</p>
+    </div>
+  );
+}
+
 function TodaySnapshotCard({
   insight,
   readinessScore,
@@ -1383,11 +1450,7 @@ function TodaySnapshotCard({
   hasWorkoutToday?: boolean;
   coachCtx?: CoachContext | null;
 }) {
-  const [expanded, setExpanded] = useState(false);
-  const completed = todayChecklist.filter((i) => i.done).length;
-  const total = todayChecklist.length;
-  const allDone = completed === total;
-  const missing = todayChecklist.filter((i) => !i.done);
+  const missingChecklist = todayChecklist.filter((i) => !i.done);
   const hasSleepToday = readinessCoverage?.hasSleepToday ?? true;
 
   const recSys = coachCtx ? coachCtx.recoverySystem : buildRunMateRecoverySystem(null);
@@ -1406,7 +1469,7 @@ function TodaySnapshotCard({
     <section className="card px-4 py-3 space-y-2.5">
       <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">ภาพรวมวันนี้</p>
 
-      {/* Status chips */}
+      {/* Readiness chip — Daily Check removed from primary view */}
       <div className="flex flex-wrap gap-2">
         {loading && (
           <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-400">รอข้อมูลล่าสุด</span>
@@ -1423,18 +1486,11 @@ function TodaySnapshotCard({
             )}
           </>
         )}
-        <button
-          type="button"
-          onClick={() => setExpanded((v) => !v)}
-          className={`rounded-full px-3 py-1 text-xs font-bold transition-colors ${allDone ? "bg-[#eef7f0] text-[var(--status-ready)]" : "bg-slate-100 text-slate-600"}`}
-        >
-          Daily check {completed}/{total} {allDone ? "✓" : ""}
-        </button>
       </div>
 
       {/* Caution Note — heavy card only for high severity */}
       {!loading && displayStatus?.note && displayStatus.cautionLevel === "high" && (
-        <div className="rounded-2xl border border-amber-100 bg-[#fffbeb] px-3.5 py-2.5 text-xs leading-relaxed text-amber-900 font-semibold my-1 shadow-sm flex items-start gap-2">
+        <div className="rounded-2xl border border-amber-100 bg-[#fffbeb] px-3.5 py-2.5 text-xs leading-relaxed text-amber-900 font-semibold shadow-sm flex items-start gap-2">
           <span className="text-sm mt-0.5">⚠️</span>
           <div>
             <p className="text-[10px] text-amber-700 uppercase tracking-wider font-bold">ข้อแนะนำความพร้อม</p>
@@ -1443,176 +1499,140 @@ function TodaySnapshotCard({
         </div>
       )}
       {!loading && displayStatus?.note && (displayStatus.cautionLevel === "light" || displayStatus.cautionLevel === "moderate") && (
-        <p className="text-[11px] text-slate-500 leading-relaxed px-0.5">
-          💡 {displayStatus.note}
-        </p>
+        <p className="text-[11px] text-slate-500 leading-relaxed px-0.5">💡 {displayStatus.note}</p>
       )}
 
-      {/* Compact/Collapsible Recovery System — coverage chips and explanation inside */}
+      {/* 4-axis ring grid — always visible */}
       {!loading && recSys && (
-        <details className="text-xs text-slate-500 cursor-pointer group border border-slate-100 bg-white p-3.5 rounded-2xl shadow-sm space-y-3 transition-all duration-300">
-          <summary className="text-xs list-none flex items-center justify-between font-semibold text-slate-700">
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 font-semibold text-slate-700">
-              <span>ฟื้นตัว {Math.round(recSys.axes.recovery.score)}</span>
-              <span className="text-slate-300">·</span>
-              <span>โหลด {Math.round(recSys.axes.load.score)}</span>
-              <span className="text-slate-300">·</span>
-              <span>นอน {Math.round(recSys.axes.sleep.score)}</span>
-              <span className="text-slate-300">·</span>
-              <span>พลังงาน {Math.round(recSys.axes.fuel.score)}</span>
-            </div>
-            <div className="flex items-center gap-1 text-[11px] text-[var(--primary)] font-bold shrink-0">
-              <span className="group-open:hidden">ดูรายละเอียด Recovery</span>
-              <span className="hidden group-open:inline">ซ่อนรายละเอียด</span>
-              <span className="transition-transform group-open:rotate-180">▾</span>
-            </div>
+        <div className="grid grid-cols-4 gap-1.5">
+          {([
+            { key: "recovery" as const, title: "ฟื้นตัว" },
+            { key: "load" as const, title: "โหลดซ้อม" },
+            { key: "sleep" as const, title: "การนอน" },
+            { key: "fuel" as const, title: "พลังงาน" },
+          ] as const).map(({ key, title }) => (
+            <RecoveryRing
+              key={key}
+              title={title}
+              score={recSys.axes[key].score}
+              label={getRecoveryAxisLabel(key, recSys.axes[key].score)}
+              tone={getAxisTone(key, recSys.axes[key].score)}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Details: full /100 values, coverage, missing, explanation */}
+      {!loading && recSys && (
+        <details className="group cursor-pointer">
+          <summary className="list-none flex items-center gap-1 text-[11px] font-bold text-[var(--primary)]">
+            <span className="group-open:hidden">ดูรายละเอียด Recovery</span>
+            <span className="hidden group-open:inline">ซ่อนรายละเอียด</span>
+            <span className="transition-transform group-open:rotate-180">▾</span>
           </summary>
 
-          <div className="pt-3 border-t border-slate-50 grid grid-cols-2 gap-2.5 cursor-default">
-            {/* Recovery Axis */}
-            <div className="rounded-2xl p-3 border border-slate-100 bg-slate-50/50 flex flex-col justify-between min-h-[90px]">
-              <div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold text-slate-400">ฟื้นตัว</span>
-                  <span className="text-sm">⚡</span>
-                </div>
-                <div className="mt-1 flex items-baseline gap-1.5">
-                  <span className="text-sm font-black text-slate-800">{formatAxisScore(recSys.axes.recovery.score)}</span>
-                  <span className={`inline-block rounded px-1.5 py-0.5 text-[9px] font-bold ${getAxisBadgeClass("recovery", recSys.axes.recovery.score)}`}>
-                    {getRecoveryAxisLabel("recovery", recSys.axes.recovery.score)}
-                  </span>
-                </div>
-              </div>
-              <p className="text-[9px] text-slate-500 leading-tight mt-1">{recSys.axes.recovery.summary}</p>
+          <div className="mt-2.5 space-y-3 cursor-default text-xs">
+            {/* Axis rows with /100 */}
+            <div className="space-y-1.5">
+              {([
+                { key: "recovery" as const, title: "ฟื้นตัว" },
+                { key: "load" as const, title: "โหลดซ้อม" },
+                { key: "sleep" as const, title: "การนอน" },
+                { key: "fuel" as const, title: "พลังงาน" },
+              ] as const).map(({ key, title }) => {
+                const axis = recSys.axes[key];
+                return (
+                  <div key={key} className="flex items-start gap-2">
+                    <span className="w-14 shrink-0 text-[10px] font-semibold text-slate-500">{title}</span>
+                    <span className="font-black text-slate-800 shrink-0">{formatAxisScore(axis.score)}</span>
+                    <span className={`rounded px-1.5 py-0.5 text-[9px] font-bold shrink-0 ${getAxisBadgeClass(key, axis.score)}`}>
+                      {getRecoveryAxisLabel(key, axis.score)}
+                    </span>
+                    <span className="text-[10px] text-slate-400 leading-tight min-w-0">{axis.summary}</span>
+                  </div>
+                );
+              })}
             </div>
 
-            {/* Load Axis */}
-            <div className="rounded-2xl p-3 border border-slate-100 bg-slate-50/50 flex flex-col justify-between min-h-[90px]">
-              <div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold text-slate-400">โหลดซ้อม</span>
-                  <span className="text-sm">🏃</span>
-                </div>
-                <div className="mt-1 flex items-baseline gap-1.5">
-                  <span className="text-sm font-black text-slate-800">{formatAxisScore(recSys.axes.load.score)}</span>
-                  <span className={`inline-block rounded px-1.5 py-0.5 text-[9px] font-bold ${getAxisBadgeClass("load", recSys.axes.load.score)}`}>
-                    {getRecoveryAxisLabel("load", recSys.axes.load.score)}
-                  </span>
-                </div>
-              </div>
-              <p className="text-[9px] text-slate-500 leading-tight mt-1">{recSys.axes.load.summary}</p>
-            </div>
+            <p className="text-[9.5px] text-slate-400">* Load สูง = ใช้ร่างกายเยอะ · แกนอื่น 0–100 ยิ่งสูงยิ่งดี</p>
 
-            {/* Sleep Axis */}
-            <div className="rounded-2xl p-3 border border-slate-100 bg-slate-50/50 flex flex-col justify-between min-h-[90px]">
-              <div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold text-slate-400">การนอน</span>
-                  <span className="text-sm">🌙</span>
+            {/* Coverage chips */}
+            {readinessCoverage && (readinessCoverage.used.length > 0 || readinessCoverage.missing.length > 0) && (
+              <div className="space-y-1.5">
+                <div className="flex flex-wrap gap-1">
+                  <span className="text-slate-400 self-center">ข้อมูลที่ใช้ประเมิน:</span>
+                  {readinessCoverage.used.map((label) => (
+                    <span key={label} className="rounded-full bg-[var(--primary-soft)] px-2 py-0.5 font-medium text-[var(--primary-strong)]">
+                      {label}
+                    </span>
+                  ))}
+                  {readinessCoverage.missing.map((label) => (
+                    <span key={label} className="rounded-full bg-slate-100 px-2 py-0.5 text-slate-400">
+                      +{label}
+                    </span>
+                  ))}
                 </div>
-                <div className="mt-1 flex items-baseline gap-1.5">
-                  <span className="text-sm font-black text-slate-800">{formatAxisScore(recSys.axes.sleep.score)}</span>
-                  <span className={`inline-block rounded px-1.5 py-0.5 text-[9px] font-bold ${getAxisBadgeClass("sleep", recSys.axes.sleep.score)}`}>
-                    {getRecoveryAxisLabel("sleep", recSys.axes.sleep.score)}
-                  </span>
-                </div>
+                {!hasSleepToday && readinessCoverage.used.some((l) => l.startsWith("ใช้การนอนล่าสุด")) && (
+                  <p className="text-[11px] text-slate-400 leading-4">
+                    ยังไม่มีข้อมูลการนอนวันนี้ — คะแนนนี้อิงจากข้อมูลการนอนล่าสุด
+                  </p>
+                )}
               </div>
-              <p className="text-[9px] text-slate-500 leading-tight mt-1">{recSys.axes.sleep.summary}</p>
-            </div>
+            )}
 
-            {/* Fuel Axis */}
-            <div className="rounded-2xl p-3 border border-slate-100 bg-slate-50/50 flex flex-col justify-between min-h-[90px]">
-              <div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold text-slate-400">พลังงาน</span>
-                  <span className="text-sm">🍱</span>
-                </div>
-                <div className="mt-1 flex items-baseline gap-1.5">
-                  <span className="text-sm font-black text-slate-800">{formatAxisScore(recSys.axes.fuel.score)}</span>
-                  <span className={`inline-block rounded px-1.5 py-0.5 text-[9px] font-bold ${getAxisBadgeClass("fuel", recSys.axes.fuel.score)}`}>
-                    {getRecoveryAxisLabel("fuel", recSys.axes.fuel.score)}
-                  </span>
+            {/* Missing checklist items */}
+            {missingChecklist.length > 0 && (
+              <div className="space-y-1">
+                <p className="text-[10px] font-semibold text-slate-400">ยังขาด:</p>
+                <div className="flex flex-wrap gap-1">
+                  {missingChecklist.map((item) => (
+                    <Link
+                      key={item.label}
+                      href={item.href}
+                      className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-500 hover:bg-slate-200"
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
                 </div>
               </div>
-              <p className="text-[9px] text-slate-500 leading-tight mt-1">{recSys.axes.fuel.summary}</p>
-            </div>
+            )}
+
+            {/* Recovery explanation */}
+            {readinessScore != null && (
+              <details className="group/recexp cursor-pointer border-t border-slate-50 pt-1.5">
+                <summary className="text-[10px] font-semibold text-slate-400 hover:text-slate-600 list-none flex items-center gap-1">
+                  <span>ระบบ Recovery วันนี้คืออะไร?</span>
+                  <span className="transition-transform group-open/recexp:rotate-180">▾</span>
+                </summary>
+                <div className="mt-1.5 rounded-2xl bg-slate-50 p-3 leading-relaxed text-slate-500 border border-slate-100 space-y-1.5">
+                  <p>แต่ละแกนให้คะแนน 0–100 เพื่อช่วยดูว่าร่างกายพร้อมแค่ไหน โหลดสะสมเท่าไร นอนพอไหม และกินพอรองรับไหม</p>
+                  {!hasSleepToday && (
+                    <p className="text-[10.5px] text-slate-500 font-semibold bg-slate-100/50 p-1.5 rounded-lg border border-slate-200/50">
+                      วันนี้ยังไม่มีข้อมูลการนอน จึงใช้ข้อมูลล่าสุดเพื่อประเมินชั่วคราว
+                    </p>
+                  )}
+                  {recSys.axes.load.score >= 55 && (
+                    <p className="text-[10px] text-amber-700 font-semibold bg-amber-50/50 p-1.5 rounded-lg border border-amber-100/50">
+                      ⚠️ สำหรับโหลดซ้อม คะแนนสูงหมายถึงโหลดสะสมสูง จึงควรคุมความหนัก ไม่ใช่คะแนนดีเสมอไป
+                    </p>
+                  )}
+                  <ul className="list-disc pl-4 space-y-1 text-[11px]">
+                    <li><strong>ฟื้นตัว:</strong> ความพร้อมของหัวใจ/HRV และประวัติความตึงเจ็บ</li>
+                    <li><strong>โหลดซ้อม:</strong> ปริมาณวิ่งสะสม 7 วัน</li>
+                    <li><strong>การนอน:</strong> ชั่วโมงนอนเมื่อคืนรวมถึงหนี้การนอนสะสมในช่วงสัปดาห์</li>
+                    <li><strong>อาหาร:</strong> สารอาหารคาร์บ/โปรตีนวันนี้เพื่อรองรับซ้อมและการฟื้นฟู</li>
+                  </ul>
+                  {hasWorkoutToday && (
+                    <p className="text-[10px] text-slate-400 font-semibold mt-1">
+                      * บันทึกกิจกรรมซ้อมวันนี้แล้ว โหลดและสารอาหารจะอัปเดตเพื่อปรับคำแนะนำถัดไป
+                    </p>
+                  )}
+                </div>
+              </details>
+            )}
           </div>
-
-          {/* Coverage chips — inside accordion */}
-          {readinessCoverage && (readinessCoverage.used.length > 0 || readinessCoverage.missing.length > 0) && (
-            <div className="pt-2 border-t border-slate-50 space-y-1.5 cursor-default">
-              <div className="flex flex-wrap gap-1">
-                <span className="text-xs text-slate-400 self-center">ข้อมูลที่ใช้ประเมิน:</span>
-                {readinessCoverage.used.map((label) => (
-                  <span key={label} className="rounded-full bg-[var(--primary-soft)] px-2 py-0.5 text-xs font-medium text-[var(--primary-strong)]">
-                    {label}
-                  </span>
-                ))}
-                {readinessCoverage.missing.map((label) => (
-                  <span key={label} className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-400">
-                    +{label}
-                  </span>
-                ))}
-              </div>
-              {!hasSleepToday && readinessCoverage.used.some((l) => l.startsWith("ใช้การนอนล่าสุด")) && (
-                <p className="text-[11px] text-slate-400 leading-4">
-                  ยังไม่มีข้อมูลการนอนวันนี้ — คะแนนนี้อิงจากข้อมูลการนอนล่าสุด
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* Recovery explanation — nested inside accordion */}
-          {readinessScore != null && (
-            <details className="group/recexp text-xs text-slate-500 cursor-pointer border-t border-slate-50 pt-2">
-              <summary className="text-[11px] font-semibold text-slate-400 hover:text-slate-600 list-none flex items-center gap-1">
-                <span>ระบบ Recovery วันนี้คืออะไร?</span>
-                <span className="transition-transform group-open/recexp:rotate-180">▾</span>
-              </summary>
-              <div className="mt-1.5 rounded-2xl bg-slate-50 p-3 leading-relaxed text-slate-500 border border-slate-100 space-y-1.5">
-                <p>แต่ละแกนให้คะแนน 0–100 เพื่อช่วยดูว่าร่างกายพร้อมแค่ไหน โหลดสะสมเท่าไร นอนพอไหม และกินพอรองรับไหม</p>
-                {!hasSleepToday && (
-                  <p className="text-[10.5px] text-slate-500 font-semibold bg-slate-100/50 p-1.5 rounded-lg border border-slate-200/50">
-                    วันนี้ยังไม่มีข้อมูลการนอน จึงใช้ข้อมูลล่าสุดเพื่อประเมินชั่วคราว
-                  </p>
-                )}
-                {recSys.axes.load.score >= 55 && (
-                  <p className="text-[10px] text-amber-700 font-semibold bg-amber-50/50 p-1.5 rounded-lg border border-amber-100/50">
-                    ⚠️ สำหรับโหลดซ้อม คะแนนสูงหมายถึงโหลดสะสมสูง จึงควรคุมความหนัก ไม่ใช่คะแนนดีเสมอไป
-                  </p>
-                )}
-                <p className="text-[10px] text-slate-500 bg-slate-100/50 p-1.5 rounded-lg border border-slate-200/50 font-semibold leading-normal">
-                  * แม้คะแนนพื้นฐาน (HRV/RHR) จะสูง แต่หากความล้าสะสมสูง นอนน้อย หรือกินไม่พอ ระบบจะคุมระดับคำแนะนำเป็นสีฟ้า/เหลือง (Good/Fair) เพื่อช่วยป้องกันการฝืนซ้อม
-                </p>
-                <ul className="list-disc pl-4 space-y-1 text-[11px]">
-                  <li><strong>ฟื้นตัว:</strong> ความพร้อมของหัวใจ/HRV และประวัติความตึงเจ็บ</li>
-                  <li><strong>โหลดซ้อม:</strong> ปริมาณวิ่งสะสม 7 วัน</li>
-                  <li><strong>การนอน:</strong> ชั่วโมงนอนเมื่อคืนรวมถึงหนี้การนอนสะสมในช่วงสัปดาห์</li>
-                  <li><strong>อาหาร:</strong> สารอาหารคาร์บ/โปรตีนวันนี้เพื่อรองรับซ้อมและการฟื้นฟู</li>
-                </ul>
-                {hasWorkoutToday && (
-                  <p className="text-[10px] text-slate-400 font-semibold mt-1">
-                    * บันทึกกิจกรรมซ้อมวันนี้แล้ว โหลดและสารอาหารจะอัปเดตเพื่อปรับคำแนะนำถัดไป
-                  </p>
-                )}
-              </div>
-            </details>
-          )}
-
-          <p className="text-[9.5px] text-slate-400 leading-normal pt-2 border-t border-slate-50 cursor-default">
-            * Load สูง = ใช้ร่างกายเยอะ · แกนอื่น 0–100 ยิ่งสูงยิ่งดี
-          </p>
         </details>
-      )}
-
-      {/* Collapsed state: compact missing hint */}
-      {!expanded && !allDone && missing.length > 0 && (
-        <p className="text-xs text-slate-500">
-          {missing.length > 2
-            ? <>ยังขาด <span className="font-semibold">{missing.length} อย่าง</span></>
-            : <>ยังขาด: <span className="font-semibold">{missing.map((i) => i.label).join(" · ")}</span></>
-          }
-        </p>
       )}
 
       {/* Low data hint */}
@@ -1621,32 +1641,6 @@ function TodaySnapshotCard({
           ลอง Upload ข้อมูลนอน อาหาร หรือซ้อม เพื่อให้คำแนะนำแม่นขึ้น
         </p>
       )}
-
-      {/* Expanded checklist */}
-      {expanded && (
-        <div className="space-y-1.5 pt-0.5">
-          <div className="grid gap-1.5">
-            {todayChecklist.map((item) => (
-              <Link
-                key={item.label}
-                href={item.href}
-                className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-sm"
-              >
-                <span className="font-semibold text-[#17201d]">{item.label}</span>
-                <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${item.done ? "bg-[#eef7f0] text-[var(--status-ready)]" : "bg-slate-100 text-slate-500"}`}>
-                  {item.done ? "เสร็จ" : "ยัง"}
-                </span>
-              </Link>
-            ))}
-          </div>
-          <p className="text-xs text-slate-400">ไม่ต้องครบทุกข้อก็ได้ ใช้เป็นตัวช่วยเช็กข้อมูลประจำวัน</p>
-        </div>
-      )}
-
-      {/* Toggle link */}
-      <button type="button" onClick={() => setExpanded((v) => !v)} className="text-xs text-slate-400 hover:text-slate-600">
-        {expanded ? "ซ่อน" : allDone ? "ดูรายละเอียด" : "ดูทั้งหมด"}
-      </button>
     </section>
   );
 }
