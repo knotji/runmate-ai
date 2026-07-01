@@ -97,6 +97,7 @@ test("Strength workout image upload, review, and save flow", async ({ page }) =>
 
   // Verify in Report logs
   await gotoApp(page, "/logs");
+  await page.getByText("รายการทั้งหมด").click();
   const reportDay = reportDayByDate(page, today);
   await expect(reportDay).toBeVisible();
   

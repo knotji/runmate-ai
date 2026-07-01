@@ -194,6 +194,7 @@ test("Weekly Review readiness avg shows count when coach.readinessScore is in da
   // Average would be (71+72+73)/3 = 72
 
   await gotoApp(page, "/logs");
+  await page.getByText("Insight 7 วันล่าสุด").click();
 
   const weeklyReview = page.locator("section").filter({ hasText: "แนวโน้ม Recovery 7 วัน" }).first();
   await expect(weeklyReview).toBeVisible();
@@ -216,6 +217,7 @@ test("Weekly Review readiness avg does not double-count duplicate nights", async
   state.history.push({ ...makeSleepRecord(dateKey, "sleep-dup-b", 80), created_at: `${dateKey}T11:00:00.000Z` });
 
   await gotoApp(page, "/logs");
+  await page.getByText("Insight 7 วันล่าสุด").click();
 
   const weeklyReview = page.locator("section").filter({ hasText: "แนวโน้ม Recovery 7 วัน" }).first();
   const sleepCell = weeklyReview.locator(".rounded-xl").filter({ hasText: "นอนเฉลี่ย" });

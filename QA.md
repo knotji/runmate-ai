@@ -39,7 +39,14 @@
 - [ ] Recovery Loop card leads with sleep target ("ควรนอน X–Y ชม."), followed by tomorrow preview, then day load context in coaching language (e.g., "วันนี้ยังไม่มีโหลดซ้อมหลัก" / "วันนี้ใช้แรงสูงแล้ว · วิ่ง X km"). No debug-like labels such as "โหลดวันนี้ ต่ำ" or "ยังไม่มีกิจกรรม" visible in default state.
 - [ ] Hero reason line and overview axis summary use the same axis label wording as the 4-axis rings. Sleep score 40 shows "นอนต่ำ" in both places, not "Sleep พอใช้" in one and "ต่ำ" in another.
 - [ ] Coach ReadinessCard expanded view displays the same compact 4-axis grid format which updates reactively as sliders are adjusted.
-- [ ] Report page "แนวโน้ม Recovery 7 วัน" displays Recovery avg (69/100), Load (86/100 · สูงมาก), Sleep (5.5 ชม. · 62/100), and Fuel (ดี · 82/100) format.
+- [ ] Report default shows only calendar summary + calendar content at top level.
+- [ ] Report rolling 7d insight is collapsed by default and opens from "Insight 7 วันล่าสุด".
+- [ ] Report old filter pills are not visible at top level.
+- [ ] Report old DayCard list is hidden by default inside "รายการทั้งหมด".
+- [ ] Report daily nutrition details are collapsed; DaySlot shows only compact meal/protein/carb summary.
+- [ ] Report month mode remains high-level with month summary and week blocks only.
+- [ ] Report does not show duplicate daily logs in the default view.
+- [ ] Report page "แนวโน้ม Recovery 7 วัน" displays Recovery avg (69/100), Load (86/100 · สูงมาก), Sleep (5.5 ชม. · 62/100), and Fuel (ดี · 82/100) format after opening rolling insight.
 - [ ] Resolved pain does not force a red/rest state.
 - [ ] Active pain and red flags still apply conservative safety guidance.
 - [ ] Today shows one clear primary recommendation.
@@ -154,7 +161,7 @@ On PowerShell, set both `$env:E2E_BASE_URL` and `$env:E2E_PRODUCTION_BASE_URL` t
 - [ ] Coach page Circular card is renamed to "ระบบ Recovery วันนี้" and dynamically recalculates all 4 axes scores/summaries on slider adjustment.
 - [ ] Race page renders "Guardrails จากสภาพร่างกายวันนี้" card showing headline and safety guidance, and adaptive reduction notes on Long Run workouts.
 - [ ] Today page Explanation Panel ("ทำไมวันนี้แนะนำแบบนี้?") lists specific sleep, training load, pain history, and walk/jog fallback options correctly.
-- [ ] Report page displays "แนวโน้ม Recovery 7 วัน" trend section with average, load level, sleep debt level, fuel status, pain status, and Thai recovery coach summary.
+- [ ] Report page displays "แนวโน้ม Recovery 7 วัน" trend section with average, load level, sleep debt level, fuel status, pain status, and Thai recovery coach summary after opening rolling insight.
 - [ ] Load axis uses softer Thai labels ("โหลดสูง/โหลดสูงมาก"), never alarmist terms like "สูงสุด".
 - [ ] Post-workout Today card speaks in recovery/rest language only, and split the summary subline into 2 lines for mobile readability.
 - [ ] Pre-workout Today card speaks in cap-effort/fuel cap language.
@@ -168,6 +175,5 @@ On PowerShell, set both `$env:E2E_BASE_URL` and `$env:E2E_PRODUCTION_BASE_URL` t
 - [ ] Verify that when today's sleep is missing, the Sleep axis summary reads `"ยังไม่มีการนอนวันนี้ · ใช้ข้อมูลล่าสุด"` and the main card displays the fallback recommendation warning.
 - [ ] Verify that if active pain exists (pain level >= 5), the Recovery score is heavily penalized (at least `-40`) and the overall Readiness score is capped at `45`.
 - [ ] Verify that the Fuel score can reach 100/100 when meals >= 2, carbs are ok, and protein is ok, and displays `"ดีมาก"`.
-
 
 

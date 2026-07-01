@@ -25,6 +25,7 @@ test("suggested date is not applied until the user confirms it", async ({ page }
   await expect(page.getByText("บันทึกเข้า Report แล้ว").first()).toBeVisible();
 
   await gotoApp(page, "/logs");
+  await page.getByText("รายการทั้งหมด").click();
   await expect(reportDayByDate(page, yesterday)).toBeVisible();
   await expect(reportDayByDate(page, today)).toHaveCount(0);
 });

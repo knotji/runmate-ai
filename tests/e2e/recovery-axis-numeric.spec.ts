@@ -156,6 +156,7 @@ test("Report แนวโน้ม Recovery 7 วัน shows /100 numeric value
   }
 
   await gotoApp(page, "/logs");
+  await page.getByText("Insight 7 วันล่าสุด").click();
 
   const trendCard = page.locator("section").filter({ hasText: "แนวโน้ม Recovery 7 วัน" }).first();
   await expect(trendCard).toBeVisible();

@@ -51,13 +51,15 @@ import {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+type ReportFilter = "all" | "run" | "meal" | "strength" | "pain" | "health";
+
 export default function ReportPage() {
   const [items, setItems] = useState<LocalHistoryItem[]>([]);
   const [raceResults, setRaceResults] = useState<RaceResult[]>([]);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [activeFilter, setActiveFilter] = useState<"all" | "run" | "meal" | "strength" | "pain" | "health">("all");
+  const [activeFilter, setActiveFilter] = useState<ReportFilter>("all");
   const [showOlderDays, setShowOlderDays] = useState(false);
   const [deleteStatus, setDeleteStatus] = useState("");
   const [deletingKey, setDeletingKey] = useState<string | null>(null);
@@ -253,70 +255,35 @@ export default function ReportPage() {
             </>
           )}
 
-          {/* Rolling 7-day review and full history log */}
-          {weeklyReview && <WeeklyReviewCard review={weeklyReview} />}
-          <WeeklyDashboard dashboard={dashboard} proteinTarget={pTarget} items={items} cutoff={dashboardCutoff} />
+          <RollingSevenDayInsight
+            dashboard={dashboard}
+            proteinTarget={pTarget}
+            items={items}
+            cutoff={dashboardCutoff}
+            review={weeklyReview}
+          />
 
-          {/* Filter Pills */}
-          <div className="flex gap-2 overflow-x-auto pb-1 my-4 scrollbar-none">
-            {(
-              [
-                { id: "all", label: "ทั้งหมด" },
-                { id: "run", label: "วิ่ง" },
-                { id: "meal", label: "อาหาร" },
-                { id: "strength", label: "เวท" },
-                { id: "pain", label: "เจ็บ" },
-                { id: "health", label: "สุขภาพ" },
-              ] as const
-            ).map((f) => (
-              <button
-                key={f.id}
-                type="button"
-                onClick={() => {
-                  setActiveFilter(f.id);
-                  setShowOlderDays(false);
-                }}
-                className={`rounded-[var(--radius-pill)] px-4 py-2 text-xs font-semibold whitespace-nowrap min-h-[36px] transition-all border ${activeFilter === f.id ? "bg-[var(--primary)] text-white border-[var(--primary)]" : "bg-[var(--surface)] border-[var(--border-warm)] text-[var(--color-text-muted)] hover:bg-[var(--surface-muted)]"}`}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
-
-          {activeFilter === "pain" && (
-            <div className="mb-4">
-              <PainHistoryCompactList items={items} onDelete={handleDeleteItem} deletingKey={deletingKey} />
-            </div>
-          )}
-
-          {filteredDays.length === 0 ? (
-            <section className="card p-5 text-sm text-slate-500 text-center">ไม่พบรายการที่ตรงกับตัวกรอง</section>
-          ) : (
-            <>
-              {visibleDays.map((day) => (
-                <DayCard
-                  key={day.date}
-                  day={day}
-                  raceResults={raceResultsByDate.get(day.date) ?? []}
-                  proteinTarget={pTarget}
-                  onDeleteItem={handleDeleteItem}
-                  onEditItem={setEditingMeal}
-                  onDeleteRaceResult={handleDeleteRaceResult}
-                  deletingKey={deletingKey}
-                  initialExpanded={day.date >= yesterdayDateKey}
-                />
-              ))}
-              {olderDays.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setShowOlderDays((value) => !value)}
-                  className="w-full rounded-2xl border border-slate-200 bg-white/75 px-4 py-3 text-sm font-bold text-slate-600"
-                >
-                  {showOlderDays ? "ซ่อนรายการก่อนหน้า" : `ดูรายการก่อนหน้า (${olderDays.length} วัน)`}
-                </button>
-              )}
-            </>
-          )}
+          <FullHistoryDetails
+            activeFilter={activeFilter}
+            onFilterChange={(filter) => {
+              setActiveFilter(filter);
+              setShowOlderDays(false);
+            }}
+            filteredDays={filteredDays}
+            visibleDays={visibleDays}
+            olderDays={olderDays}
+            showOlderDays={showOlderDays}
+            onToggleOlderDays={() => setShowOlderDays((value) => !value)}
+            items={items}
+            raceResultsByDate={raceResultsByDate}
+            proteinTarget={pTarget}
+            onDeleteItem={handleDeleteItem}
+            onEditItem={setEditingMeal}
+            onDeleteRaceResult={handleDeleteRaceResult}
+            deletingKey={deletingKey}
+            todayDateKey={todayDateKey}
+            yesterdayDateKey={yesterdayDateKey}
+          />
         </>
       )}
       {editingMeal && (
@@ -445,6 +412,9 @@ function PeriodMetrics({
 }
 
 function DaySlot({ day }: { day: import("@/lib/reportSummary").DailyReportItem }) {
+  const nutritionText = formatDayNutritionSummary(day);
+  const activityText = formatDayActivitySummary(day);
+
   return (
     <div
       className={`rounded-2xl border p-3 ${day.isToday ? "border-[var(--primary)]/30 bg-[var(--primary)]/5" : "border-[var(--color-border-soft)] bg-[var(--surface)]"}`}
@@ -461,8 +431,8 @@ function DaySlot({ day }: { day: import("@/lib/reportSummary").DailyReportItem }
       </div>
       {day.hasData && (
         <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5">
-          {day.runKm != null && day.runKm > 0 && (
-            <span className="text-xs text-[var(--color-text-muted)]">🏃 {day.runKm} กม.</span>
+          {activityText && (
+            <span className="text-xs text-[var(--color-text-muted)]">{activityText}</span>
           )}
           {day.sleepHours != null && (
             <span className="text-xs text-[var(--color-text-muted)]">🌙 {day.sleepHours} ชม.</span>
@@ -470,13 +440,35 @@ function DaySlot({ day }: { day: import("@/lib/reportSummary").DailyReportItem }
           {day.readiness != null && (
             <span className="text-xs text-[var(--color-text-muted)]">Readiness {day.readiness}</span>
           )}
-          {day.strengthMins != null && day.strengthMins > 0 && (
-            <span className="text-xs text-[var(--color-text-muted)]">💪 {day.strengthMins} นาที</span>
+          {nutritionText && (
+            <span className="text-xs text-[var(--color-text-muted)]">{nutritionText}</span>
+          )}
+          {day.painStatus === "active" && day.painLevel != null && (
+            <span className="rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-600">เจ็บ {day.painLevel}/10</span>
+          )}
+          {day.painStatus === "resolved" && (
+            <span className="rounded-full bg-[#e7efea] px-2 py-0.5 text-[10px] font-bold text-[#2a5a39]">หายเจ็บแล้ว</span>
           )}
         </div>
       )}
     </div>
   );
+}
+
+function formatDayActivitySummary(day: import("@/lib/reportSummary").DailyReportItem): string | null {
+  if (day.runKm != null && day.runKm > 0) return `🏃 ${day.runKm} กม.`;
+  if (day.strengthMins != null && day.strengthMins > 0) return `💪 เวท ${day.strengthMins} นาที`;
+  if (day.walkMins != null && day.walkMins > 0) return `เดิน ${day.walkMins} นาที`;
+  if (day.hasRestWorkout) return "Recovery";
+  return null;
+}
+
+function formatDayNutritionSummary(day: import("@/lib/reportSummary").DailyReportItem): string | null {
+  if (day.mealCount <= 0) return null;
+  const parts = [`อาหาร ${day.mealCount} มื้อ`];
+  if (day.proteinG != null) parts.push(`โปรตีน ${day.proteinG}g`);
+  if (day.carbsG != null) parts.push(`คาร์บ ${day.carbsG}g`);
+  return parts.join(" · ");
 }
 
 function MonthWeekBlock({
@@ -509,7 +501,9 @@ function MonthWeekBlock({
         <div className="mt-1.5 flex flex-wrap gap-3 text-xs text-[var(--color-text-muted)]">
           {week.totals.runDistanceKm > 0 && <span>🏃 {week.totals.runDistanceKm} กม.</span>}
           {week.totals.workoutDays > 0 && <span>ซ้อม {week.totals.workoutDays} วัน</span>}
+          {week.averages.sleepHours != null && <span>นอนเฉลี่ย {week.averages.sleepHours} ชม.</span>}
           {week.averages.readiness != null && <span>Readiness {week.averages.readiness}</span>}
+          {week.pain.activePainDays > 0 && <span>เจ็บ {week.pain.activePainDays} วัน</span>}
         </div>
       ) : (
         <p className="mt-1 text-[10px] text-[var(--color-text-muted)]">ยังไม่มีข้อมูล</p>
@@ -519,6 +513,175 @@ function MonthWeekBlock({
 }
 
 // ─── Rolling 7-day components ─────────────────────────────────────────────────
+
+function RollingSevenDayInsight({
+  dashboard,
+  proteinTarget,
+  items,
+  cutoff,
+  review,
+}: {
+  dashboard: Dashboard;
+  proteinTarget: number;
+  items: LocalHistoryItem[];
+  cutoff: string;
+  review: WeeklyReview | null;
+}) {
+  const preview = buildRollingInsightPreview(dashboard, review);
+
+  return (
+    <details className="group rounded-3xl border border-[var(--color-border-soft)] bg-[var(--surface)] p-4 shadow-sm" data-testid="rolling-insight">
+      <summary className="list-none cursor-pointer">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#6f8fa6]">Insight 7 วันล่าสุด</p>
+            <p className="mt-1 text-xs leading-5 text-[var(--color-text-muted)]">{preview}</p>
+          </div>
+          <span className="shrink-0 rounded-full bg-[var(--surface-muted)] px-3 py-1.5 text-[10px] font-bold text-[var(--primary)]">
+            <span className="group-open:hidden">ดูรายละเอียด 7 วันล่าสุด</span>
+            <span className="hidden group-open:inline">ซ่อน</span>
+          </span>
+        </div>
+      </summary>
+
+      <div className="mt-4 space-y-3 border-t border-[var(--color-border-soft)] pt-4">
+        {review && <WeeklyReviewCard review={review} />}
+        <WeeklyDashboard dashboard={dashboard} proteinTarget={proteinTarget} items={items} cutoff={cutoff} />
+      </div>
+    </details>
+  );
+}
+
+function FullHistoryDetails({
+  activeFilter,
+  onFilterChange,
+  filteredDays,
+  visibleDays,
+  olderDays,
+  showOlderDays,
+  onToggleOlderDays,
+  items,
+  raceResultsByDate,
+  proteinTarget,
+  onDeleteItem,
+  onEditItem,
+  onDeleteRaceResult,
+  deletingKey,
+  yesterdayDateKey,
+}: {
+  activeFilter: ReportFilter;
+  onFilterChange: (filter: ReportFilter) => void;
+  filteredDays: DayGroup[];
+  visibleDays: DayGroup[];
+  olderDays: DayGroup[];
+  showOlderDays: boolean;
+  onToggleOlderDays: () => void;
+  items: LocalHistoryItem[];
+  raceResultsByDate: Map<string, RaceResult[]>;
+  proteinTarget: number;
+  onDeleteItem: (item: LocalHistoryItem) => void;
+  onEditItem: (item: LocalHistoryItem) => void;
+  onDeleteRaceResult: (result: RaceResult) => void;
+  deletingKey: string | null;
+  todayDateKey: string;
+  yesterdayDateKey: string;
+}) {
+  return (
+    <details className="group rounded-3xl border border-[var(--color-border-soft)] bg-[var(--surface)] p-4 shadow-sm" data-testid="full-history-details">
+      <summary className="list-none cursor-pointer">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-bold text-[#17201d]">รายการทั้งหมด</p>
+            <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">ดูบันทึกทั้งหมดแบบละเอียด</p>
+          </div>
+          <span className="rounded-full bg-[var(--surface-muted)] px-3 py-1.5 text-[10px] font-bold text-[var(--primary)]">
+            <span className="group-open:hidden">เปิดดู</span>
+            <span className="hidden group-open:inline">ซ่อน</span>
+          </span>
+        </div>
+      </summary>
+
+      <div className="mt-4 space-y-4 border-t border-[var(--color-border-soft)] pt-4">
+        <FilterPills activeFilter={activeFilter} onFilterChange={onFilterChange} />
+
+        {activeFilter === "pain" && (
+          <PainHistoryCompactList items={items} onDelete={onDeleteItem} deletingKey={deletingKey} />
+        )}
+
+        {filteredDays.length === 0 ? (
+          <section className="card p-5 text-center text-sm text-slate-500">ไม่พบรายการที่ตรงกับตัวกรอง</section>
+        ) : (
+          <>
+            {visibleDays.map((day) => (
+              <DayCard
+                key={day.date}
+                day={day}
+                raceResults={raceResultsByDate.get(day.date) ?? []}
+                proteinTarget={proteinTarget}
+                onDeleteItem={onDeleteItem}
+                onEditItem={onEditItem}
+                onDeleteRaceResult={onDeleteRaceResult}
+                deletingKey={deletingKey}
+                initialExpanded={day.date >= yesterdayDateKey}
+              />
+            ))}
+            {olderDays.length > 0 && (
+              <button
+                type="button"
+                onClick={onToggleOlderDays}
+                className="w-full rounded-2xl border border-slate-200 bg-white/75 px-4 py-3 text-sm font-bold text-slate-600"
+              >
+                {showOlderDays ? "ซ่อนรายการก่อนหน้า" : `ดูรายการก่อนหน้า (${olderDays.length} วัน)`}
+              </button>
+            )}
+          </>
+        )}
+      </div>
+    </details>
+  );
+}
+
+function FilterPills({
+  activeFilter,
+  onFilterChange,
+}: {
+  activeFilter: ReportFilter;
+  onFilterChange: (filter: ReportFilter) => void;
+}) {
+  return (
+    <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+      {(
+        [
+          { id: "all", label: "ทั้งหมด" },
+          { id: "run", label: "วิ่ง" },
+          { id: "meal", label: "อาหาร" },
+          { id: "strength", label: "เวท" },
+          { id: "pain", label: "เจ็บ" },
+          { id: "health", label: "สุขภาพ" },
+        ] as const
+      ).map((f) => (
+        <button
+          key={f.id}
+          type="button"
+          onClick={() => onFilterChange(f.id)}
+          className={`min-h-[36px] whitespace-nowrap rounded-[var(--radius-pill)] border px-4 py-2 text-xs font-semibold transition-all ${activeFilter === f.id ? "border-[var(--primary)] bg-[var(--primary)] text-white" : "border-[var(--border-warm)] bg-[var(--surface)] text-[var(--color-text-muted)] hover:bg-[var(--surface-muted)]"}`}
+        >
+          {f.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function buildRollingInsightPreview(dashboard: Dashboard, review: WeeklyReview | null): string {
+  const parts = [
+    dashboard.runKm > 0 ? `Load ${formatDistanceKm(dashboard.runKm)}` : null,
+    review?.avgRecoveryScore != null ? `Recovery เฉลี่ย ${review.avgRecoveryScore}` : null,
+    dashboard.avgSleepHours != null ? `นอนเฉลี่ย ${formatSleepAverageHours(dashboard.avgSleepHours)}` : null,
+  ].filter(Boolean);
+
+  return parts.length > 0 ? parts.join(" · ") : "ยังไม่มีข้อมูล 7 วันที่พอสำหรับสรุปแนวโน้ม";
+}
 
 function WeeklyDashboard({ dashboard, proteinTarget, items, cutoff }: { dashboard: Dashboard; proteinTarget: number; items: LocalHistoryItem[]; cutoff: string }) {
   const meals7d = items

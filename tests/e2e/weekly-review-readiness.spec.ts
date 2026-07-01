@@ -46,6 +46,7 @@ test("Weekly Review shows sleep avg when sleep records exist", async ({ page }) 
   }
 
   await gotoApp(page, "/logs");
+  await page.getByText("Insight 7 วันล่าสุด").click();
 
   // 7 Day Overview shows sleep avg somewhere on the page
   await expect(page.getByText(/\d+\.?\d* ชม\./).first()).toBeVisible();
@@ -69,6 +70,7 @@ test("Weekly Review sleep avg counts unique nights only (no double-count)", asyn
   state.history.push(makeSleepRecord(dateKey, "sleep-dup-2", { created_at: `${dateKey}T11:00:00.000Z` }));
 
   await gotoApp(page, "/logs");
+  await page.getByText("Insight 7 วันล่าสุด").click();
 
   const weeklyReview = page.locator("section").filter({ hasText: "แนวโน้ม Recovery 7 วัน" }).first();
   const sleepCell = weeklyReview.locator(".rounded-xl").filter({ hasText: "นอนเฉลี่ย" });
@@ -93,8 +95,9 @@ test("Report shows correct heading copy for 7 Day Overview and Weekly Review", a
   });
 
   await gotoApp(page, "/logs");
+  await page.getByText("Insight 7 วันล่าสุด").click();
 
-  // 7 Day Overview card uses new headings (summary text visible even when collapsed)
+  // 7 Day Overview card is available after opening the secondary rolling insight.
   await expect(page.getByText("ตัวเลขสรุป 7 วันล่าสุด")).toBeVisible();
 
   // "สรุป metrics หลักจาก Report" is inside the accordion — expand first

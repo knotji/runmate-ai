@@ -40,6 +40,27 @@ function makeRun(dateKey: string, id: string, distanceKm: number, durationMin = 
   };
 }
 
+function makeMeal(dateKey: string, id: string) {
+  return {
+    id,
+    user_id: "00000000-0000-4000-8000-000000000001",
+    type: "meal",
+    created_at: `${dateKey}T12:00:00.000Z`,
+    data: {
+      mealType: "lunch",
+      detectedFoods: [{ name: "ข้าวไก่ย่าง" }],
+      nutrition: {
+        caloriesKcal: 620,
+        proteinG: 38,
+        carbsG: 82,
+        fatG: 18,
+        fiberG: 4,
+      },
+      trainingFit: { coachNote: "มื้อนี้ช่วยเติมพลังได้ดี" },
+    },
+  };
+}
+
 // ─── Report defaults to Week mode ─────────────────────────────────────────────
 
 test("Report page defaults to week mode", async ({ page }) => {
@@ -93,6 +114,7 @@ test("Daily slots are collapsed by default (no full DayCard details)", async ({ 
   const state = await installMockBackend(page);
   state.history.push(makeSleep(bangkokDateKey(), "sleep-rc-slot"));
   state.history.push(makeRun(bangkokDateKey(), "run-rc-slot", 5));
+  state.history.push(makeMeal(bangkokDateKey(), "meal-rc-slot"));
 
   await gotoApp(page, "/logs");
 
@@ -100,6 +122,33 @@ test("Daily slots are collapsed by default (no full DayCard details)", async ({ 
   await expect(page.getByTestId("day-slot")).toHaveCount(7);
   // Today's slot shows run distance
   await expect(page.getByTestId("week-day-list").getByText(/5 กม\./)).toBeVisible();
+  await expect(page.getByTestId("week-day-list").getByText(/อาหาร 1 มื้อ · โปรตีน 38g · คาร์บ 82g/)).toBeVisible();
+  await expect(page.getByText("ข้าวไก่ย่าง")).not.toBeVisible();
+  await expect(page.getByTestId("report-day").first()).not.toBeVisible();
+});
+
+test("Rolling 7d insight and full history are collapsed by default", async ({ page }) => {
+  const state = await installMockBackend(page);
+  state.history.push(makeSleep(bangkokDateKey(), "sleep-rc-rolling"));
+  state.history.push(makeRun(bangkokDateKey(), "run-rc-rolling", 5));
+
+  await gotoApp(page, "/logs");
+
+  await expect(page.getByTestId("rolling-insight")).toBeVisible();
+  await expect(page.getByText("Insight 7 วันล่าสุด")).toBeVisible();
+  await expect(page.getByText("แนวโน้ม Recovery 7 วัน")).not.toBeVisible();
+  await expect(page.getByText("ตัวเลขสรุป 7 วันล่าสุด")).not.toBeVisible();
+  await expect(page.getByTestId("full-history-details")).toBeVisible();
+  await expect(page.getByTestId("report-day").first()).not.toBeVisible();
+  await expect(page.getByRole("button", { name: "ทั้งหมด" })).not.toBeVisible();
+
+  await page.getByText("ดูรายละเอียด 7 วันล่าสุด").click();
+  await expect(page.getByText("แนวโน้ม Recovery 7 วัน")).toBeVisible();
+  await expect(page.getByText("ตัวเลขสรุป 7 วันล่าสุด")).toBeVisible();
+
+  await page.getByText("รายการทั้งหมด").click();
+  await expect(page.getByRole("button", { name: "ทั้งหมด" })).toBeVisible();
+  await expect(page.getByTestId("report-day").first()).toBeVisible();
 });
 
 // ─── Month mode shows monthly summary ─────────────────────────────────────────
@@ -118,6 +167,7 @@ test("Switching to month mode shows month week blocks", async ({ page }) => {
   await expect(page.getByTestId("month-week-block").first()).toBeVisible();
   // Period metrics visible
   await expect(page.getByTestId("period-metrics")).toBeVisible();
+  await expect(page.getByTestId("report-day").first()).not.toBeVisible();
 });
 
 // ─── Month navigation ──────────────────────────────────────────────────────────

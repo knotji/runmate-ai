@@ -366,6 +366,7 @@ test("Report page shows updated readiness labels and disclaimers", async ({ page
   await gotoApp(page, "/logs");
 
   // 7-Day Overview labels — inside WeeklyDashboard accordion, expand first
+  await page.getByText("Insight 7 วันล่าสุด").click();
   await page.getByText("ตัวเลขสรุป 7 วันล่าสุด").click();
   await expect(page.getByText("Readiness เฉลี่ย", { exact: true })).toBeVisible();
   await expect(page.getByText("จากวันที่มีข้อมูล")).toBeVisible();
@@ -374,6 +375,9 @@ test("Report page shows updated readiness labels and disclaimers", async ({ page
   await expect(page.getByText("Readiness", { exact: true }).first()).toBeVisible();
 
   // Expanded Sleep Detail shows the warning disclaimer
+  await page.getByTestId("full-history-details").evaluate((el) => {
+    (el as HTMLDetailsElement).open = true;
+  });
   await expect(page.getByText("* Readiness เป็นคะแนนความพร้อมจากข้อมูล recovery ของวันนั้น ไม่ใช่คะแนนสรุปทั้งวัน")).toBeVisible();
 });
 
@@ -460,5 +464,3 @@ test("Today page handles client timeout gracefully and uses fallback", async ({ 
   expect(consoleLogs.some((log) => log.includes("[today-analysis-timeout]"))).toBe(true);
   expect(consoleLogs.some((log) => log.includes("[today-analysis-fetch-error]"))).toBe(false);
 });
-
-

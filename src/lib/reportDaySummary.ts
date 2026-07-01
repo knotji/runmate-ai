@@ -19,6 +19,8 @@ export type ReportDaySummary = {
   hasRestWorkout: boolean;
   mealCount: number;
   proteinG: number | null;
+  carbsG: number | null;
+  fatG: number | null;
   caloriesKcal: number | null;
   /** "active" | "resolved" | null */
   painStatus: "active" | "resolved" | null;
@@ -140,10 +142,14 @@ export function buildReportDaySummary(items: LocalHistoryItem[], dateKey: string
   // Meals / nutrition
   const mealCount = meals.length;
   let proteinG: number | null = null;
+  let carbsG: number | null = null;
+  let fatG: number | null = null;
   let caloriesKcal: number | null = null;
   for (const m of meals) {
     const n = normalizeMealNutrition(extractMealData(m) as unknown as Record<string, unknown>);
     if (n.proteinG != null) proteinG = (proteinG ?? 0) + n.proteinG;
+    if (n.carbsG != null) carbsG = (carbsG ?? 0) + n.carbsG;
+    if (n.fatG != null) fatG = (fatG ?? 0) + n.fatG;
     if (n.caloriesKcal != null) caloriesKcal = (caloriesKcal ?? 0) + n.caloriesKcal;
   }
 
@@ -171,6 +177,8 @@ export function buildReportDaySummary(items: LocalHistoryItem[], dateKey: string
     hasRestWorkout,
     mealCount,
     proteinG: proteinG != null ? Math.round(proteinG) : null,
+    carbsG: carbsG != null ? Math.round(carbsG) : null,
+    fatG: fatG != null ? Math.round(fatG) : null,
     caloriesKcal: caloriesKcal != null ? Math.round(caloriesKcal) : null,
     painStatus,
     painLevel,

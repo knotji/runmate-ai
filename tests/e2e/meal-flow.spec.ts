@@ -8,6 +8,7 @@ test("manual breakfast saves to Report without an image badge", async ({ page })
   await saveManualBreakfast(page, state);
 
   await gotoApp(page, "/logs");
+  await page.getByText("รายการทั้งหมด").click();
   const today = reportDayByDate(page, bangkokDateKey());
   await expect(today).toBeVisible();
 

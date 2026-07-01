@@ -10,6 +10,9 @@ test("editing a meal moves it to yesterday and removes it from Today context", a
   const yesterdayKey = bangkokDateKey(-1);
 
   await gotoApp(page, "/logs");
+  await page.getByTestId("full-history-details").evaluate((el) => {
+    (el as HTMLDetailsElement).open = true;
+  });
   const today = reportDayByDate(page, todayKey);
   // Today starts expanded by default — no toggle click needed
   await today.getByTestId("report-meal-card").getByRole("button", { name: "แก้ไข" }).click();
@@ -22,6 +25,9 @@ test("editing a meal moves it to yesterday and removes it from Today context", a
   await modal.getByRole("button", { name: "บันทึกการแก้ไข" }).click();
 
   await expect(page.getByRole("heading", { name: "แก้ไขมื้ออาหาร" })).toHaveCount(0);
+  await page.getByTestId("full-history-details").evaluate((el) => {
+    (el as HTMLDetailsElement).open = true;
+  });
   const yesterday = reportDayByDate(page, yesterdayKey);
   await expect(yesterday).toBeVisible();
   // Yesterday starts expanded by default — no toggle click needed
