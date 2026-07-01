@@ -620,7 +620,7 @@ function PreWorkoutFocusContent({
   if (context?.recoverySystem) {
     const { load, sleep, fuel } = context.recoverySystem.axes;
     if (context.activePain) {
-      reasonParts.push("มีรายงานอาการเจ็บ");
+      reasonParts.push("ยังมีอาการเจ็บ ควรเลี่ยงกดหนัก");
     } else {
       if (load.score >= 55) reasonParts.push(`Load ${getRecoveryAxisLabel("load", load.score)}`);
       if (sleep.score < 66) reasonParts.push(`นอน${getRecoveryAxisLabel("sleep", sleep.score)}`);
@@ -1538,8 +1538,10 @@ function buildTodayOverviewReasonLine(
     const recentMaxPain = coachCtx.recentMaxPain;
     if (recentMaxPain?.painLevel && recentMaxPain.painLevel >= 3) {
       parts.push(`เคยเจ็บ ${recentMaxPain.painLevel}/10 ล่าสุด`);
+    } else if (coachCtx?.painResolved) {
+      parts.push("อาการเจ็บเพิ่งดีขึ้น");
     } else {
-      parts.push("มีประวัติเจ็บล่าสุด");
+      parts.push("เพิ่งมีอาการเจ็บ คุมไว้ก่อน");
     }
   }
 
