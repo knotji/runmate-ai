@@ -1121,15 +1121,14 @@ function TodayStrengthRoutineCard({
         ) : null}
       </div>
 
-      {strengthHelperCopy && (
-        <p className="rounded-2xl bg-slate-50 px-4 py-3 text-xs leading-relaxed text-slate-600 border border-slate-100">
-          💡 {strengthHelperCopy}
-        </p>
-      )}
-
-      {safety.note ? (
-        <p className={`rounded-2xl px-3 py-2 text-xs leading-5 ${safety.blockWorkout ? "bg-amber-50 text-amber-800" : "bg-slate-50 text-slate-600"}`}>
+      {/* Show only the most important note: blocking safety note takes priority, else helper copy */}
+      {safety.blockWorkout && safety.note ? (
+        <p className="rounded-2xl bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
           {safety.note}
+        </p>
+      ) : strengthHelperCopy ? (
+        <p className="rounded-2xl border border-slate-100 bg-slate-50 px-3 py-2.5 text-xs leading-relaxed text-slate-600">
+          💡 {strengthHelperCopy}
         </p>
       ) : null}
 
@@ -1144,17 +1143,24 @@ function TodayStrengthRoutineCard({
             <span className={`transition-transform duration-200 ${showDetails ? "rotate-180" : ""}`}>▾</span>
           </button>
           {showDetails && (
-            <div className="mt-1.5 rounded-2xl bg-slate-50/80 p-3">
-              <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">ตัวอย่างท่า</p>
-              <div className="mt-2 space-y-1.5">
-                {exercises.slice(0, 3).map((exercise) => (
-                  <div key={`${exercise.name}-${exercise.sets}-${exercise.reps}`} className="flex justify-between gap-3 text-xs">
-                    <span className="font-semibold text-slate-700">{exercise.name}</span>
-                    <span className="shrink-0 text-slate-500">{formatStrengthExerciseLine(exercise)}</span>
-                  </div>
-                ))}
-                {exercises.length > 3 ? <p className="text-xs text-slate-400">+ อีก {exercises.length - 3} ท่า</p> : null}
+            <div className="mt-1.5 space-y-2">
+              <div className="rounded-2xl bg-slate-50/80 p-3">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">ตัวอย่างท่า</p>
+                <div className="mt-2 space-y-1.5">
+                  {exercises.slice(0, 3).map((exercise) => (
+                    <div key={`${exercise.name}-${exercise.sets}-${exercise.reps}`} className="flex justify-between gap-3 text-xs">
+                      <span className="font-semibold text-slate-700">{exercise.name}</span>
+                      <span className="shrink-0 text-slate-500">{formatStrengthExerciseLine(exercise)}</span>
+                    </div>
+                  ))}
+                  {exercises.length > 3 ? <p className="text-xs text-slate-400">+ อีก {exercises.length - 3} ท่า</p> : null}
+                </div>
               </div>
+              {safety.note && (
+                <p className="rounded-2xl bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-600">
+                  {safety.note}
+                </p>
+              )}
             </div>
           )}
         </div>
@@ -1168,24 +1174,24 @@ function TodayStrengthRoutineCard({
       {error ? <p className="rounded-2xl bg-red-50 px-3 py-2 text-xs font-semibold text-red-600">{error}</p> : null}
 
       {!alreadyCompleted && !safety.blockWorkout ? (
-        <div className="grid gap-2 sm:grid-cols-2">
-          <LoadingButton
-            type="button"
-            loading={adjusting}
-            loadingText="กำลังปรับ..."
-            onClick={() => void adjustForToday()}
-            className="btn-secondary py-2.5 text-xs font-bold"
-          >
-            ปรับเป็นเวอร์ชันวันนี้
-          </LoadingButton>
+        <div className="space-y-2">
           <LoadingButton
             type="button"
             loading={saving}
             loadingText="กำลังบันทึก..."
             onClick={() => void saveDone()}
-            className="btn-primary py-2.5 text-xs font-bold"
+            className="btn-primary w-full py-2.5 text-xs font-bold"
           >
             บันทึกว่าเสร็จแล้ว
+          </LoadingButton>
+          <LoadingButton
+            type="button"
+            loading={adjusting}
+            loadingText="กำลังปรับ..."
+            onClick={() => void adjustForToday()}
+            className="w-full rounded-full border border-slate-200 bg-white/80 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+          >
+            ปรับเป็นเวอร์ชันวันนี้
           </LoadingButton>
         </div>
       ) : null}

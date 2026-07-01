@@ -287,11 +287,8 @@ export default function ReportPage() {
             onMonthChange={(month) => runCalendarTransition(() => setCalendarMonth(month))}
             todayDateKey={todayDateKey}
             transitioning={calendarTransitioning}
-          />
-
-          <ReportExportControl
-            preparing={exportPreparing}
-            status={exportStatus}
+            exportPreparing={exportPreparing}
+            exportStatus={exportStatus}
             onExport={() => void handleExportJson()}
           />
 
@@ -391,6 +388,7 @@ export default function ReportPage() {
 
 function CalendarNav({
   mode, onModeChange, week, month, onWeekChange, onMonthChange, todayDateKey, transitioning,
+  exportPreparing, exportStatus, onExport,
 }: {
   mode: "week" | "month";
   onModeChange: (m: "week" | "month") => void;
@@ -400,6 +398,9 @@ function CalendarNav({
   onMonthChange: (m: CalendarPeriod) => void;
   todayDateKey: string;
   transitioning: boolean;
+  exportPreparing?: boolean;
+  exportStatus?: string;
+  onExport?: () => void;
 }) {
   const currentWeekStart = getCurrentCalendarWeek(todayDateKey).startDateKey;
   const currentMonthStart = getCurrentCalendarMonth(todayDateKey).startDateKey;
@@ -469,36 +470,25 @@ function CalendarNav({
           </button>
         )}
       </div>
-    </div>
-  );
-}
-
-function ReportExportControl({
-  preparing,
-  status,
-  onExport,
-}: {
-  preparing: boolean;
-  status: string;
-  onExport: () => void;
-}) {
-  return (
-    <section className="flex flex-wrap items-center justify-end gap-2 px-1" data-testid="report-export-control">
-      <button
-        type="button"
-        title="ส่งออกข้อมูลช่วงนี้เป็นไฟล์ JSON"
-        disabled={preparing}
-        onClick={onExport}
-        className="rounded-full border border-[var(--color-border-soft)] bg-white/80 px-3 py-1.5 text-[11px] font-bold text-[var(--primary)] transition hover:bg-[var(--surface-muted)] disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {preparing ? "กำลังเตรียมไฟล์..." : "ส่งออก JSON"}
-      </button>
-      {status && (
-        <p className={`text-[11px] font-semibold ${status.includes("ไม่สำเร็จ") ? "text-red-600" : "text-[#2a5a39]"}`} data-testid="report-export-status">
-          {status}
-        </p>
+      {onExport !== undefined && (
+        <div className="flex items-center justify-end gap-2 px-0.5" data-testid="report-export-control">
+          {exportStatus && (
+            <p className={`text-[11px] font-semibold ${exportStatus.includes("ไม่สำเร็จ") ? "text-red-600" : "text-[#2a5a39]"}`} data-testid="report-export-status">
+              {exportStatus}
+            </p>
+          )}
+          <button
+            type="button"
+            title="ส่งออกข้อมูลช่วงนี้เป็นไฟล์ JSON"
+            disabled={exportPreparing}
+            onClick={onExport}
+            className="rounded-full border border-[var(--color-border-soft)] bg-white/80 px-3 py-1.5 text-[11px] font-bold text-[var(--primary)] transition hover:bg-[var(--surface-muted)] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {exportPreparing ? "กำลังเตรียมไฟล์..." : "ส่งออก JSON"}
+          </button>
+        </div>
       )}
-    </section>
+    </div>
   );
 }
 

@@ -32,6 +32,7 @@
 - [ ] Backdated meals/workouts do not affect Today.
 - [ ] Post-workout recovery appears only after today's workout.
 - [ ] Today strength routine card collapses into completed state after workout is logged today, showing a summary (e.g. "25 นาที", "Recovery Strength", "เวท") and hiding exercise details behind a "ดูรายละเอียดที่ทำ" toggle.
+- [ ] Recovery Strength card (non-completed) shows only one note/helper box by default. Exercise list and extra notes stay behind "ดูท่า". Primary CTA "บันทึกว่าเสร็จแล้ว" is full-width; "ปรับเป็นเวอร์ชันวันนี้" appears as a smaller secondary action below it.
 - [ ] Today focus card recommendation copy shifts to recovery guidance after workout is logged (showing "หลังเวทวันนี้ควรทำอะไรต่อ" or "หลังซ้อมวันนี้ควรทำอะไรต่อ" header), with clear microcopy instructing the user to avoid repeating hard workouts.
 - [ ] Today snapshot card has a "ระบบ Recovery วันนี้คืออะไร?" expandable note explaining the morning/current context.
 - [ ] Today 4-Axis Grid displays numeric scores (e.g. 78/100) and short status badges (ดี, พอใช้, สูงมาก, ยังน้อย) and one-line summaries.
@@ -56,7 +57,7 @@
 - [ ] Report JSON export filename includes the selected period date range.
 - [ ] Report JSON export metadata confirms no raw images/OCR/auth data.
 - [ ] Report JSON export still shows preparing/success feedback.
-- [ ] Report JSON export is a small secondary action near the period controls, not a prominent standalone card.
+- [ ] Report JSON export appears as a compact right-aligned action inside the calendar nav section (below the date range row), not as a floating standalone section.
 - [ ] Report navigation still works after exporting JSON.
 - [ ] Report page "แนวโน้ม Recovery 7 วัน" displays Recovery avg (69/100), Load (86/100 · สูงมาก), Sleep (5.5 ชม. · 62/100), and Fuel (ดี · 82/100) format after opening rolling insight.
 - [ ] Resolved pain does not force a red/rest state.

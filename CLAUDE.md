@@ -237,6 +237,8 @@ tests/
 
 **Calendar transition rule**: Fast client-side calendar navigation should use subtle transitions, not loading copy. Reserve explicit loading text for real async actions such as export/download.
 
-**Export JSON v1**: `schemaVersion = "runmate_export_v1"`, `exportType = "report_period"`. Week export includes compact `days`; month export includes compact `weeks`. Never export raw uploaded images, base64, raw OCR, auth/session data, API keys, or hidden prompts. Metadata flags must stay `includesRawImages: false`, `includesRawOcr: false`, `includesAuthData: false`.
+**Export JSON v1**: `schemaVersion = "runmate_export_v1"`, `exportType = "report_period"`. Week export includes compact `days`; month export includes compact `weeks`. Never export raw uploaded images, base64, raw OCR, auth/session data, API keys, or hidden prompts. Metadata flags must stay `includesRawImages: false`, `includesRawOcr: false`, `includesAuthData: false`. The export button lives inside `CalendarNav` as a compact right-aligned row (`data-testid="report-export-control"` nested inside `data-testid="calendar-nav"`), not a standalone floating section.
+
+**Routine card UI principle**: Show the action and one key reason by default. Exercise details and secondary notes stay behind the "ดูท่า" toggle. Primary CTA is full-width; secondary action is a smaller outline below it.
 
 **Do not**: Change Recovery System scoring. Change Recovery Loop scoring. Change Readiness V2 logic. Add new database schema. Remove rolling 7-day content. Make Today page dense.
