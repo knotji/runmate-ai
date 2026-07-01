@@ -8,8 +8,15 @@ import { loadProfileFromSupabase } from "@/lib/profileStorage";
 import { buildCoachContextFromSupabase } from "@/lib/buildCoachContext";
 import { saveRaceGoalAndPlan } from "@/lib/raceStorage";
 
-export function RaceGoalForm({ onCreated }: { onCreated: (goal: RaceGoal, plan: RacePlan) => void }) {
+export function RaceGoalForm({
+  onCreated,
+  onPlanReady,
+}: {
+  onCreated?: (goal: RaceGoal, plan: RacePlan) => void;
+  onPlanReady?: (goal: RaceGoal, plan: RacePlan) => void;
+}) {
   const [loading, setLoading] = useState(false);
+  const [submitError, setSubmitError] = useState("");
   const [sectionOpen, setSectionOpen] = useState(true);
   const [autoFilledFields, setAutoFilledFields] = useState<Record<string, boolean>>({});
   
@@ -88,20 +95,44 @@ export function RaceGoalForm({ onCreated }: { onCreated: (goal: RaceGoal, plan: 
   async function submit(event: FormEvent) {
     event.preventDefault();
     setLoading(true);
-    const context = await buildCoachContextFromSupabase();
-    const response = await fetch("/api/generate-race-plan", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ goal, context }),
-    });
-    const result = await response.json();
-    const saveResult = await saveRaceGoalAndPlan(goal, result.data);
-    if (!saveResult.ok) {
-      setLoading(false);
-      return;
+    setSubmitError("");
+    try {
+      const context = await buildCoachContextFromSupabase();
+      const response = await fetch("/api/generate-race-plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ goal, context }),
+      });
+      if (!response.ok) {
+        setSubmitError("สร้างแผนไม่สำเร็จ ลองใหม่อีกครั้ง");
+        setLoading(false);
+        return;
+      }
+      const result = (await response.json()) as { data: RacePlan };
+      if (!result.data) {
+        setSubmitError("สร้างแผนไม่สำเร็จ ลองใหม่อีกครั้ง");
+        setLoading(false);
+        return;
+      }
+
+      if (onPlanReady) {
+        // Draft/replace mode: pass generated plan to parent without saving to DB yet.
+        onPlanReady(goal, result.data);
+        setLoading(false);
+        return;
+      }
+
+      const saveResult = await saveRaceGoalAndPlan(goal, result.data);
+      if (!saveResult.ok) {
+        setSubmitError("บันทึกแผนไม่สำเร็จ ลองใหม่อีกครั้ง");
+        setLoading(false);
+        return;
+      }
+      invalidateCoachCache();
+      onCreated?.(saveResult.goal, saveResult.plan);
+    } catch {
+      setSubmitError("สร้างแผนไม่สำเร็จ ลองใหม่อีกครั้ง");
     }
-    invalidateCoachCache();
-    onCreated(saveResult.goal, saveResult.plan);
     setLoading(false);
   }
 
@@ -222,6 +253,7 @@ export function RaceGoalForm({ onCreated }: { onCreated: (goal: RaceGoal, plan: 
         )}
       </div>
 
+      {submitError && <p className="rounded-xl bg-red-50 px-3 py-2 text-xs text-red-600">{submitError}</p>}
       <LoadingButton className="btn-primary w-full py-3 font-bold" loading={loading} loadingText="กำลังสร้าง..." type="submit">
         สร้างแผนซ้อม
       </LoadingButton>

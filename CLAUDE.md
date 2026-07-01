@@ -284,3 +284,17 @@ RunMate's visual identity is warm beige/sage/cream — a soft recovery health ap
 **Final polish rule**: Once Today Dashboard v3 composition is set, polish only hierarchy, alignment, tone, and spacing rhythm. Do not return to large ring panels or add new top-level cards for polish.
 
 **Do not**: Change Recovery System scoring. Change Recovery Loop scoring. Change Readiness V2 logic. Add new database schema. Remove rolling 7-day content. Make Today page dense.
+
+## Race Goal Safety Rule
+
+**Race Goal creation must be non-destructive.** When an active race goal exists, clicking "สร้างแผนใหม่" must only enter `isCreatingDraft` mode — it must never delete or overwrite the existing goal or plan until the user explicitly confirms.
+
+**Flow:**
+1. "สร้างแผนใหม่" → sets `isCreatingDraft = true`. No DB writes.
+2. Draft mode shows `DraftModeHint` (current goal name + safety note) and `RaceGoalForm` with `onPlanReady` prop.
+3. `onPlanReady` fires after plan generation (before any DB save) → sets `pendingCreate` state.
+4. `ConfirmReplaceSection` appears; user must click "ยืนยันสร้างแผนใหม่".
+5. `handleConfirmReplace()` saves new goal/plan **first**, then deletes old goal — order ensures no data loss on partial failure.
+6. First-time create (no existing goal) uses `onCreated` prop and saves directly without any confirmation.
+
+**Do not:** call `deleteRaceGoalAndPlan` before the user explicitly confirms replacement. Do not call `saveRaceGoalAndPlan` from the draft form directly (use `onPlanReady` instead when an existing goal is present).

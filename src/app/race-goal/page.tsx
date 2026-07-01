@@ -35,6 +35,12 @@ export default function RaceGoalPage() {
   const [planFreshness, setPlanFreshness] = useState<PlanFreshness | null>(null);
   const [coachContext, setCoachContext] = useState<CoachContext | null>(null);
 
+  // Draft/replace mode — existing goal is never touched until user explicitly confirms
+  const [isCreatingDraft, setIsCreatingDraft] = useState(false);
+  const [pendingCreate, setPendingCreate] = useState<{ goal: RaceGoal; plan: RacePlan } | null>(null);
+  const [replacing, setReplacing] = useState(false);
+  const [replaceError, setReplaceError] = useState(false);
+
   useEffect(() => {
     Promise.all([
       loadActiveRaceGoalAndPlan(),
@@ -110,11 +116,30 @@ export default function RaceGoalPage() {
     setRefreshing(false);
   }
 
-  async function resetAll() {
-    if (goal?.id) await deleteRaceGoalAndPlan(goal.id);
-    invalidateCoachCache({ clearChat: true });
-    setGoal(null);
-    setPlan(null);
+  async function handleConfirmReplace() {
+    if (!pendingCreate) return;
+    setReplacing(true);
+    setReplaceError(false);
+    try {
+      // Save new goal/plan first so data is never lost if delete fails
+      const saveResult = await saveRaceGoalAndPlan(pendingCreate.goal, pendingCreate.plan);
+      if (!saveResult.ok) { setReplaceError(true); setReplacing(false); return; }
+      if (goal?.id) await deleteRaceGoalAndPlan(goal.id);
+      invalidateCoachCache({ clearChat: true });
+      setGoal(saveResult.goal);
+      setPlan(saveResult.plan);
+      setPendingCreate(null);
+      setIsCreatingDraft(false);
+      void refreshRacePlanFreshness(saveResult.plan, raceResults);
+    } catch {
+      setReplaceError(true);
+    }
+    setReplacing(false);
+  }
+
+  function cancelDraft() {
+    setPendingCreate(null);
+    setIsCreatingDraft(false);
   }
 
   if (!mounted) {
@@ -131,7 +156,32 @@ export default function RaceGoalPage() {
 
   return (
     <AppShell title="แผนแข่ง" subtitle="วางแผนจากวันนี้ไปถึงวันแข่ง">
-      {!goal || !plan ? (
+      {goal && plan && isCreatingDraft ? (
+        /* ── Draft / replace mode: existing plan is safe until user confirms ── */
+        <>
+          <button
+            type="button"
+            onClick={cancelDraft}
+            className="flex items-center gap-1.5 text-sm font-semibold text-[var(--primary-strong)]"
+          >
+            ← กลับไปแผนเดิม
+          </button>
+          <DraftModeHint currentGoal={goal} />
+          {pendingCreate ? (
+            <ConfirmReplaceSection
+              currentGoal={goal}
+              newGoal={pendingCreate.goal}
+              replacing={replacing}
+              replaceError={replaceError}
+              onConfirm={() => void handleConfirmReplace()}
+              onCancel={() => setPendingCreate(null)}
+            />
+          ) : (
+            <RaceGoalForm onPlanReady={(newGoal, newPlan) => setPendingCreate({ goal: newGoal, plan: newPlan })} />
+          )}
+        </>
+      ) : !goal || !plan ? (
+        /* ── Empty state: first-time create (no confirmation needed) ── */
         <>
           {raceResults.length > 0 ? <LatestRacePrompt result={raceResults[0]} /> : null}
           <section className="soft-panel px-4 py-3 text-sm leading-6 text-[var(--muted-text)]">
@@ -140,6 +190,7 @@ export default function RaceGoalPage() {
           <RaceGoalForm onCreated={(nextGoal, nextPlan) => { setGoal(nextGoal); setPlan(nextPlan); }} />
         </>
       ) : (
+        /* ── View mode: existing plan ── */
         <>
           <RaceCountdownCard goal={goal} phase={plan.currentPhase} />
           {selectedTodayWorkout ? <TodayWorkoutCard workout={normalizeForDisplay(selectedTodayWorkout)} coachContext={coachContext} /> : null}
@@ -183,13 +234,92 @@ export default function RaceGoalPage() {
           </section>
 
           {!plan.weeklyPlan?.length && plan.weeks?.[0] ? <WeeklyPlanCard week={plan.weeks[0]} /> : null}
-          <button className="w-full py-2 text-center text-xs text-[var(--muted-text)] hover:text-[var(--foreground)] transition-colors" onClick={() => void resetAll()}>
-            สร้างแผนใหม่ / รีเซ็ตเป้าหมาย
+          <button
+            type="button"
+            className="w-full py-2 text-center text-xs text-[var(--muted-text)] hover:text-[var(--foreground)] transition-colors"
+            onClick={() => setIsCreatingDraft(true)}
+          >
+            สร้างแผนใหม่ / เปลี่ยนเป้าหมาย
           </button>
         </>
       )}
       {raceResults.length > 0 ? <CompletedRaceSection results={raceResults} /> : null}
     </AppShell>
+  );
+}
+
+function DraftModeHint({ currentGoal }: { currentGoal: RaceGoal }) {
+  return (
+    <section
+      className="rounded-2xl border border-[var(--border-warm)] bg-[var(--surface-muted)]/70 px-4 py-3"
+      data-testid="draft-mode-hint"
+    >
+      <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--label-color)]">แผนปัจจุบัน</p>
+      <p className="mt-1 text-sm font-bold text-[var(--foreground)]">
+        {currentGoal.raceName} · {currentGoal.raceDistance}
+      </p>
+      {currentGoal.raceDate && (
+        <p className="text-xs text-[var(--muted-text)]">วันแข่ง {currentGoal.raceDate}</p>
+      )}
+      <p className="mt-2 text-xs leading-5 text-[var(--color-text-soft)]">
+        การสร้างใหม่จะยังไม่แทนที่แผนเดิมจนกว่าจะยืนยัน · แผนเดิมยังปลอดภัย
+      </p>
+    </section>
+  );
+}
+
+function ConfirmReplaceSection({
+  currentGoal,
+  newGoal,
+  replacing,
+  replaceError,
+  onConfirm,
+  onCancel,
+}: {
+  currentGoal: RaceGoal;
+  newGoal: RaceGoal;
+  replacing: boolean;
+  replaceError: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <section className="card space-y-4 p-5" data-testid="confirm-replace-section">
+      <div>
+        <h2 className="text-lg font-bold text-[var(--foreground)]">สร้างแผนใหม่แทนแผนเดิม?</h2>
+        <p className="mt-2 text-sm leading-6 text-[var(--muted-text)]">
+          แผนแข่งปัจจุบันจะถูกแทนที่ด้วยเป้าหมายใหม่ แต่ประวัติการซ้อมและ Report จะยังอยู่
+        </p>
+      </div>
+      <div className="rounded-2xl bg-[var(--surface-muted)] px-4 py-3 text-sm">
+        <span className="font-semibold text-[var(--foreground)]">{currentGoal.raceName}</span>
+        <span className="mx-1.5 text-[var(--label-color)]">→</span>
+        <span className="font-semibold text-[var(--foreground)]">{newGoal.raceName}</span>
+        {newGoal.raceDistance ? <span className="ml-1 text-[var(--muted-text)]">· {newGoal.raceDistance}</span> : null}
+      </div>
+      {replaceError && (
+        <p className="text-xs text-red-500">สร้างแผนใหม่ไม่สำเร็จ ลองใหม่อีกครั้ง</p>
+      )}
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={replacing}
+          className="btn-secondary flex-1 py-3"
+        >
+          ยกเลิก
+        </button>
+        <LoadingButton
+          type="button"
+          loading={replacing}
+          loadingText="กำลังบันทึก..."
+          onClick={onConfirm}
+          className="flex-1 rounded-2xl bg-[var(--primary)] py-3 text-sm font-bold text-white disabled:opacity-40"
+        >
+          ยืนยันสร้างแผนใหม่
+        </LoadingButton>
+      </div>
+    </section>
   );
 }
 

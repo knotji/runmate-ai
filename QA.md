@@ -210,3 +210,14 @@ On PowerShell, set both `$env:E2E_BASE_URL` and `$env:E2E_PRODUCTION_BASE_URL` t
 - [ ] Verify that when today's sleep is missing, the Sleep axis summary reads `"ยังไม่มีการนอนวันนี้ · ใช้ข้อมูลล่าสุด"` and the main card displays the fallback recommendation warning.
 - [ ] Verify that if active pain exists (pain level >= 5), the Recovery score is heavily penalized (at least `-40`) and the overall Readiness score is capped at `45`.
 - [ ] Verify that the Fuel score can reach 100/100 when meals >= 2, carbs are ok, and protein is ok, and displays `"ดีมาก"`.
+
+## 11. Race Goal Replacement Safety
+
+- [ ] Clicking "สร้างแผนใหม่" when an active race plan exists enters **draft mode only** — the existing goal and plan are NOT deleted or overwritten.
+- [ ] In draft mode, a compact "แผนปัจจุบัน" hint displays the current goal name and the message "การสร้างใหม่จะยังไม่แทนที่แผนเดิมจนกว่าจะยืนยัน".
+- [ ] A "กลับไปแผนเดิม" cancel button is visible; clicking it exits draft mode and restores the existing plan view without any data loss.
+- [ ] Submitting the new goal form does **not** save to the database immediately — it shows a "สร้างแผนใหม่แทนแผนเดิม?" confirmation section with both old and new goal names visible.
+- [ ] Clicking "ยกเลิก" in the confirmation dismisses it and returns to the draft form (still in draft mode, no plan replaced).
+- [ ] Clicking "ยืนยันสร้างแผนใหม่" saves the new goal/plan and then deletes the old one — page exits draft mode and shows the view mode.
+- [ ] First-time create (no existing goal) shows the form directly with no replacement warning and no cancel button.
+- [ ] Report / history data is never affected by replacing an active race goal.
