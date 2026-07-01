@@ -57,14 +57,17 @@ test("Recovery Loop card shows sleep need label", async ({ page }) => {
   await expect(page.getByText(/ควรนอน \d+(\.\d)?–\d+(\.\d)? ชม\./)).toBeVisible();
 });
 
-test("Recovery Loop card shows Day Load label", async ({ page }) => {
+test("Recovery Loop card shows human day load copy, not debug label", async ({ page }) => {
   const state = await installMockBackend(page);
   state.history.push(makeSleep(bangkokDateKey(), "sleep-loop-load"));
 
   await gotoApp(page, "/");
 
-  // Card should show โหลดวันนี้ prefix
-  await expect(page.getByTestId("recovery-loop-card").getByText("โหลดวันนี้")).toBeVisible();
+  const card = page.getByTestId("recovery-loop-card");
+  // No-activity copy: natural coaching language
+  await expect(card.getByTestId("day-load-context")).toContainText("วันนี้ยังไม่มีโหลดซ้อมหลัก");
+  // Must NOT show old debug-like prefix
+  await expect(card.getByText("โหลดวันนี้")).toHaveCount(0);
 });
 
 test("Recovery Loop shows high Day Load with today run", async ({ page }) => {
@@ -109,4 +112,54 @@ test("Recovery Loop detail expands on ดูเหตุผล click", async ({ 
 
   // Now shows collapse label
   await expect(card.getByText("ซ่อนเหตุผล")).toBeVisible();
+});
+
+// ─── Phase 6: Copy polish and ordering tests ──────────────────────────────────
+
+test("Recovery Loop no-activity shows human copy, not debug label", async ({ page }) => {
+  const state = await installMockBackend(page);
+  // Only sleep, no workout today
+  state.history.push(makeSleep(bangkokDateKey(), "sleep-loop-noact"));
+
+  await gotoApp(page, "/");
+
+  const card = page.getByTestId("recovery-loop-card");
+  await expect(card.getByTestId("day-load-context")).toContainText("วันนี้ยังไม่มีโหลดซ้อมหลัก");
+  // Must not show old debug fragment
+  await expect(card.getByText(/ยังไม่มีกิจกรรม/)).toHaveCount(0);
+});
+
+test("Recovery Loop card shows sleep target before day load context", async ({ page }) => {
+  const state = await installMockBackend(page);
+  state.history.push(makeSleep(bangkokDateKey(), "sleep-loop-order"));
+
+  await gotoApp(page, "/");
+
+  const card = page.getByTestId("recovery-loop-card");
+  // Both elements exist
+  const sleepEl = card.getByText(/ควรนอน \d/);
+  const loadEl = card.getByTestId("day-load-context");
+  await expect(sleepEl).toBeVisible();
+  await expect(loadEl).toBeVisible();
+
+  // Sleep target's bounding box top should be higher (lower Y) than load context
+  const sleepBox = await sleepEl.boundingBox();
+  const loadBox = await loadEl.boundingBox();
+  expect(sleepBox!.y).toBeLessThan(loadBox!.y);
+});
+
+test("Recovery Loop high load shows human copy with activity detail", async ({ page }) => {
+  const state = await installMockBackend(page);
+  const today = bangkokDateKey();
+  // 15km today → very_high load
+  state.history.push(makeRun(today, "run-loop-human-high", 15, 75));
+  state.history.push(makeSleep(today, "sleep-loop-human-high"));
+
+  await gotoApp(page, "/");
+
+  const card = page.getByTestId("recovery-loop-card");
+  // Human copy for very_high: "วันนี้โหลดสูงมาก ควรเน้นฟื้นตัว"
+  await expect(card.getByTestId("day-load-context")).toContainText("วันนี้โหลดสูงมาก");
+  // Activity detail appended
+  await expect(card.getByTestId("day-load-context")).toContainText("15 km");
 });

@@ -36,6 +36,8 @@
 - [ ] Today snapshot card has a "ระบบ Recovery วันนี้คืออะไร?" expandable note explaining the morning/current context.
 - [ ] Today 4-Axis Grid displays numeric scores (e.g. 78/100) and short status badges (ดี, พอใช้, สูงมาก, ยังน้อย) and one-line summaries.
 - [ ] Today details explanation panel warns: "สำหรับโหลดซ้อม คะแนนสูงหมายถึงโหลดสะสมสูง จึงควรคุมความหนัก ไม่ใช่คะแนนดีเสมอไป" and matches the text "แต่ละแกนให้คะแนน 0–100 เพื่อช่วยดูว่าร่างกายพร้อมแค่ไหน".
+- [ ] Recovery Loop card leads with sleep target ("ควรนอน X–Y ชม."), followed by tomorrow preview, then day load context in coaching language (e.g., "วันนี้ยังไม่มีโหลดซ้อมหลัก" / "วันนี้ใช้แรงสูงแล้ว · วิ่ง X km"). No debug-like labels such as "โหลดวันนี้ ต่ำ" or "ยังไม่มีกิจกรรม" visible in default state.
+- [ ] Hero reason line and overview axis summary use the same axis label wording as the 4-axis rings. Sleep score 40 shows "นอนต่ำ" in both places, not "Sleep พอใช้" in one and "ต่ำ" in another.
 - [ ] Coach ReadinessCard expanded view displays the same compact 4-axis grid format which updates reactively as sliders are adjusted.
 - [ ] Report page "แนวโน้ม Recovery 7 วัน" displays Recovery avg (69/100), Load (86/100 · สูงมาก), Sleep (5.5 ชม. · 62/100), and Fuel (ดี · 82/100) format.
 - [ ] Resolved pain does not force a red/rest state.

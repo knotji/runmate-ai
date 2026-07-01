@@ -615,17 +615,16 @@ function PreWorkoutFocusContent({
   const hasLatestSleep = context ? context.sleep7d.length > 0 : false;
   const isUsingLatestSleepBecauseTodayMissing = !hasSleepToday && hasLatestSleep;
 
-  // Build a concise reason line
+  // Build a concise reason line — use getRecoveryAxisLabel for consistency with rings
   const reasonParts: string[] = [];
   if (context?.recoverySystem) {
     const { load, sleep, fuel } = context.recoverySystem.axes;
     if (context.activePain) {
       reasonParts.push("มีรายงานอาการเจ็บ");
     } else {
-      if (load.score >= 70) reasonParts.push("Load สูง");
-      else if (load.score >= 55) reasonParts.push("Load ปานกลาง");
-      if (sleep.score < 66) reasonParts.push("Sleep พอใช้");
-      if (fuel.score < 66) reasonParts.push("Fuel ยังน้อย");
+      if (load.score >= 55) reasonParts.push(`Load ${getRecoveryAxisLabel("load", load.score)}`);
+      if (sleep.score < 66) reasonParts.push(`นอน${getRecoveryAxisLabel("sleep", sleep.score)}`);
+      if (fuel.score < 66) reasonParts.push(`พลังงาน${getRecoveryAxisLabel("fuel", fuel.score)}`);
     }
   }
   const reasonLine = reasonParts.join(" · ") || "ร่างกายอยู่ในเกณฑ์ดี";
@@ -1395,30 +1394,33 @@ function RecoveryLoopCard({ coachCtx }: { coachCtx: CoachContext }) {
   };
   const icon = previewIcon[tomorrowPreview.state] ?? "💤";
 
+  // Day load context line using human coaching copy
+  const activitySuffix = dayLoad.primaryActivity?.distanceKm != null
+    ? ` · วิ่ง ${Math.round(dayLoad.primaryActivity.distanceKm * 10) / 10} km`
+    : dayLoad.primaryActivity?.durationMin != null && dayLoad.primaryActivity.type === "strength"
+    ? ` · เวท ${dayLoad.primaryActivity.durationMin} นาที`
+    : "";
+  const dayLoadContextLine = `${dayLoad.summary}${activitySuffix}`;
+
   return (
     <section className="card p-4 space-y-2.5" data-testid="recovery-loop-card">
       <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">คืนนี้ควรฟื้นตัวยังไง</p>
-      {/* Day Load mini-row */}
-      <div className="flex items-center gap-2 text-xs text-slate-600">
-        <span className="font-semibold text-slate-400 shrink-0">โหลดวันนี้</span>
-        <span className="font-bold text-slate-700">{dayLoad.label}</span>
-        {dayLoad.primaryActivity?.distanceKm != null && (
-          <span className="text-slate-400">· วิ่ง {Math.round(dayLoad.primaryActivity.distanceKm * 10) / 10} km</span>
-        )}
-        {!dayLoad.loggedWorkoutToday && (
-          <span className="text-slate-400">· ยังไม่มีกิจกรรม</span>
-        )}
-      </div>
-      {/* Sleep need */}
+
+      {/* 1. Sleep need — lead message */}
       <div className="flex items-center gap-2 text-xs text-slate-600">
         <span className="text-base leading-none">🌙</span>
         <span className="font-semibold text-slate-700">{sleepNeed.label}</span>
       </div>
-      {/* Tomorrow preview headline */}
+
+      {/* 2. Tomorrow preview headline */}
       <div className="flex items-start gap-2 text-xs text-slate-600 pt-0.5 border-t border-slate-100">
         <span className="text-sm leading-none shrink-0">{icon}</span>
         <span className="font-semibold text-slate-700 leading-snug">{tomorrowPreview.headline}</span>
       </div>
+
+      {/* 3. Day Load — supporting context in natural coaching language */}
+      <p className="text-[11px] text-slate-400 leading-snug" data-testid="day-load-context">{dayLoadContextLine}</p>
+
       {/* Expandable detail */}
       <button
         type="button"
@@ -1430,24 +1432,33 @@ function RecoveryLoopCard({ coachCtx }: { coachCtx: CoachContext }) {
       </button>
       {showDetail && (
         <div className="rounded-2xl bg-slate-50/80 px-3 py-2.5 space-y-2">
-          {tomorrowPreview.conditions.length > 0 && (
-            <ul className="space-y-1">
-              {tomorrowPreview.conditions.map((c, i) => (
-                <li key={i} className="flex items-start gap-1.5 text-[11px] text-slate-600 leading-5">
-                  <span className="shrink-0 text-[var(--primary)]">·</span>
-                  <span>{c}</span>
-                </li>
+          {/* Day load activity reasons */}
+          {dayLoad.reasons.length > 0 ? (
+            <ul className="space-y-0.5">
+              {dayLoad.reasons.map((r, i) => (
+                <li key={i} className="text-[11px] text-slate-600 leading-5">· {r}</li>
               ))}
             </ul>
+          ) : (
+            <p className="text-[11px] text-slate-500 leading-5">· {dayLoad.summary}</p>
           )}
+          {/* Sleep need reasons */}
           {sleepNeed.reasons.length > 0 && (
-            <div className="pt-1 border-t border-slate-100/60">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">เหตุที่ต้องนอน {sleepNeed.targetHoursMin}–{sleepNeed.targetHoursMax} ชม.</p>
-              <ul className="space-y-0.5">
-                {sleepNeed.reasons.map((r, i) => (
-                  <li key={i} className="text-[11px] text-slate-500 leading-5">· {r}</li>
-                ))}
-              </ul>
+            <div className="pt-1 border-t border-slate-100/60 space-y-0.5">
+              {sleepNeed.reasons.map((r, i) => (
+                <p key={i} className="text-[11px] text-slate-500 leading-5">· {r}</p>
+              ))}
+            </div>
+          )}
+          {/* Tomorrow conditions */}
+          {tomorrowPreview.conditions.length > 0 && (
+            <div className="pt-1 border-t border-slate-100/60 space-y-1">
+              {tomorrowPreview.conditions.map((c, i) => (
+                <div key={i} className="flex items-start gap-1.5 text-[11px] text-slate-600 leading-5">
+                  <span className="shrink-0 text-[var(--primary)]">·</span>
+                  <span>{c}</span>
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -1550,12 +1561,12 @@ function TodaySnapshotCard({
     !!(coachCtx?.painResolved || coachCtx?.recentPainHistory)
   );
 
-  // One-line axis summary: only surface notable states
+  // One-line axis summary: only surface notable states — match hero reason line format
   const axisSummaryParts: string[] = [];
   if (recSys.axes.load.score >= 55) axisSummaryParts.push(`Load ${getRecoveryAxisLabel("load", recSys.axes.load.score)}`);
-  if (recSys.axes.sleep.score < 66) axisSummaryParts.push(`Sleep ${getRecoveryAxisLabel("sleep", recSys.axes.sleep.score)}`);
-  if (recSys.axes.fuel.score < 66) axisSummaryParts.push(`Fuel ${getRecoveryAxisLabel("fuel", recSys.axes.fuel.score)}`);
-  if (recSys.axes.recovery.score < 66) axisSummaryParts.push(`ฟื้นตัว ${getRecoveryAxisLabel("recovery", recSys.axes.recovery.score)}`);
+  if (recSys.axes.sleep.score < 66) axisSummaryParts.push(`นอน${getRecoveryAxisLabel("sleep", recSys.axes.sleep.score)}`);
+  if (recSys.axes.fuel.score < 66) axisSummaryParts.push(`พลังงาน${getRecoveryAxisLabel("fuel", recSys.axes.fuel.score)}`);
+  if (recSys.axes.recovery.score < 66) axisSummaryParts.push(`ฟื้นตัว${getRecoveryAxisLabel("recovery", recSys.axes.recovery.score)}`);
   const axisSummaryLine = axisSummaryParts.join(" · ");
 
   return (

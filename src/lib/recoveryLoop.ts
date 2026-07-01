@@ -75,8 +75,8 @@ function calcDayLoad(
       score: 0,
       level: "low",
       label: "ต่ำ",
-      summary: "วันนี้ยังไม่ได้บันทึกกิจกรรม",
-      reasons: ["ยังไม่มีกิจกรรมวันนี้"],
+      summary: "วันนี้ยังไม่มีโหลดซ้อมหลัก",
+      reasons: [],
       loggedWorkoutToday: false,
     };
   }
@@ -158,19 +158,19 @@ function calcDayLoad(
   if (score >= 75) {
     level = "very_high";
     label = "สูงมาก";
-    summary = "วันนี้ใช้แรงพอแล้ว เน้นฟื้นตัวต่อ";
+    summary = "วันนี้โหลดสูงมาก ควรเน้นฟื้นตัว";
   } else if (score >= 50) {
     level = "high";
     label = "สูง";
-    summary = "โหลดวันนี้สูง ควรเน้นฟื้นตัว";
+    summary = "วันนี้ใช้แรงสูงแล้ว";
   } else if (score >= 25) {
     level = "moderate";
     label = "ปานกลาง";
-    summary = "โหลดวันนี้ปานกลาง ร่างกายยังรับได้";
+    summary = "วันนี้ใช้แรงพอประมาณ";
   } else {
     level = "low";
     label = "ต่ำ";
-    summary = "วันนี้โหลดซ้อมต่ำ";
+    summary = "วันนี้ใช้แรงยังน้อย";
   }
 
   return {

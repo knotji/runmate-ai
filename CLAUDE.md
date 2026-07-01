@@ -126,7 +126,11 @@ tests/
 
 **Integration**: `buildRunMateRecoveryLoop(ctx, recSys)` is called in `buildCoachContextFromSupabase()` right after `buildRunMateRecoverySystem`. The result is stored as `ctx.recoveryLoop: RunMateRecoveryLoop`.
 
-**UI**: `RecoveryLoopCard` in `page.tsx` — compact card after the hero section, data-testid `recovery-loop-card`. Shows Day Load + Sleep Need + Tomorrow Preview headline. Details behind "ดูเหตุผล" accordion.
+**UI**: `RecoveryLoopCard` in `page.tsx` — compact card after the hero section, data-testid `recovery-loop-card`. Default visible order: (1) Sleep Need 🌙, (2) Tomorrow Preview, (3) Day Load context. Details (day load reasons + sleep reasons + tomorrow conditions) behind "ดูเหตุผล" accordion.
+
+**Copy rule**: Recovery Loop UI must lead with the sleep target and tomorrow guidance. Day Load is supporting context, not the headline. Day Load copy uses coaching language (`dayLoad.summary`), not raw labels — no "โหลดวันนี้ ต่ำ · ยังไม่มีกิจกรรม" in default view. Day load `summary` strings: no activity → "วันนี้ยังไม่มีโหลดซ้อมหลัก", low → "วันนี้ใช้แรงยังน้อย", moderate → "วันนี้ใช้แรงพอประมาณ", high → "วันนี้ใช้แรงสูงแล้ว", very_high → "วันนี้โหลดสูงมาก ควรเน้นฟื้นตัว".
+
+**Axis label consistency**: The hero reason line and overview axis summary (`axisSummaryLine`) must use `getRecoveryAxisLabel(axisKey, score)` — never hardcoded labels. Sleep score 40 must show "นอนต่ำ" everywhere, not "Sleep พอใช้" in one place and "ต่ำ" in another. Format: `Load {label}` · `นอน{label}` · `พลังงาน{label}` · `ฟื้นตัว{label}`.
 
 **Prompt**: `buildUserPrompt` in `route.ts` appends Recovery Loop section with day load summary, sleep target, and tomorrow preview state for the AI coach.
 
