@@ -241,4 +241,30 @@ tests/
 
 **Routine card UI principle**: Show the action and one key reason by default. Exercise details and secondary notes stay behind the "ดูท่า" toggle. Primary CTA is full-width; secondary action is a smaller outline below it.
 
+## Soft Health UI v2 (Today page)
+
+RunMate's visual identity is warm beige/sage/cream — a soft recovery health app, not a bright fitness tracker.
+
+**CSS classes** (defined in `globals.css`):
+
+- `.health-score-card` — soft sage gradient bg, warm border (`rgba(228,216,200,0.58)`), layered shadow. Used for `TodaySnapshotCard`.
+- `.ring-panel` — cream bg, rounded-16px mini card wrapping each `RecoveryRing`. Applied inside the 4-axis grid.
+
+**Today overview card (`TodaySnapshotCard`)** layout order:
+
+1. Section label `"ภาพรวมวันนี้"` (10px, wide tracking, `text-[#6f8fa6]`)
+2. Readiness chip — must stay `.rounded-full` with text `"{score} Readiness {label}"` (tested by `readiness-consistency.spec.ts`)
+3. **Coach headline** — short action directive from `buildTodaySnapshotCoachHeadline()` e.g. "พร้อมขยับตามแผน", "คุมเบาไว้ก่อน", "วันนี้เน้นพักฟื้นตัว"
+4. Axis summary line (`data-testid="today-overview-reason"`)
+5. Caution note (if any)
+6. 4-axis ring grid (2×2 mobile, 1×4 sm+) — each ring wrapped in `.ring-panel`
+7. Expandable details `<details>`
+
+**Hero card (`PreWorkoutFocusContent`)** layout:
+
+- Short coach insight line from `buildHeroCoachInsight()` appears ABOVE the main `workoutRec` h2, in `text-[var(--primary)]` color.
+- `workoutRec` headline uses `text-xl` (was `text-2xl`).
+
+**`RecoveryLoopCard`** uses `bg-gradient-to-b from-[#fdfcf8] to-[#f8fcf9]` subtle tint and `text-[#6f8fa6]` label color for visual consistency with the overview card.
+
 **Do not**: Change Recovery System scoring. Change Recovery Loop scoring. Change Readiness V2 logic. Add new database schema. Remove rolling 7-day content. Make Today page dense.

@@ -599,6 +599,22 @@ function getDecisionCard(insight: DailyCoachInsight, context: CoachContext | nul
   return null;
 }
 
+function buildHeroCoachInsight(insight: DailyCoachInsight, context: CoachContext): string {
+  if (context.activePain) return "เลี่ยงกดหนักก่อน";
+  const rec = insight.workoutRec.toLowerCase();
+  const load = context.recoverySystem?.axes?.load?.score ?? 0;
+  const sleep = context.recoverySystem?.axes?.sleep?.score ?? 80;
+  const score = context.readinessV2?.score ?? insight.todayReadiness;
+  if (rec.includes("recovery") || rec.includes("ฟื้นตัว") || rec.includes("พัก") || rec.includes("rest")) {
+    return "วันนี้เหมาะกับ Recovery";
+  }
+  if (score <= 50) return "วันนี้เน้นฟื้นตัวก่อน";
+  if (load >= 75 || sleep < 45) return "ขยับได้ แต่ไม่ต้องกด pace";
+  if (score >= 80) return "พร้อมขยับตามแผน";
+  if (score >= 66) return "ขยับได้ ไม่ต้องจับ pace";
+  return "เน้นฟื้นตัวมากกว่าทำเวลา";
+}
+
 function PreWorkoutFocusContent({
   insight,
   hasPace,
@@ -631,8 +647,14 @@ function PreWorkoutFocusContent({
 
   return (
     <div className="space-y-3">
+      {/* Coach insight line */}
+      {context && (
+        <p className="text-sm font-bold text-[var(--primary)] leading-snug">
+          {buildHeroCoachInsight(insight, context)}
+        </p>
+      )}
       {/* 1. Headline first */}
-      <h2 className="line-clamp-2 text-2xl font-bold text-[#17201d]">{insight.workoutRec}</h2>
+      <h2 className="line-clamp-2 text-xl font-bold text-[#17201d]">{insight.workoutRec}</h2>
 
       {/* 2. Target plan line */}
       {hasPace && (
@@ -1409,8 +1431,8 @@ function RecoveryLoopCard({ coachCtx }: { coachCtx: CoachContext }) {
   const dayLoadContextLine = `${dayLoad.summary}${activitySuffix}`;
 
   return (
-    <section className="card p-4 space-y-2.5" data-testid="recovery-loop-card">
-      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">คืนนี้ควรฟื้นตัวยังไง</p>
+    <section className="card p-4 space-y-2.5 bg-gradient-to-b from-[#fdfcf8] to-[#f8fcf9]" data-testid="recovery-loop-card">
+      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#6f8fa6]">คืนนี้ควรฟื้นตัวยังไง</p>
 
       {/* 1. Sleep need — lead message */}
       <div className="flex items-center gap-2 text-xs text-slate-600">
@@ -1577,6 +1599,21 @@ function buildTodayOverviewReasonLine(
   return parts.slice(0, 3).join(" · ") || "พร้อมทำตามแผนวันนี้";
 }
 
+function buildTodaySnapshotCoachHeadline(
+  score: number,
+  coachCtx?: CoachContext | null
+): string {
+  if (coachCtx?.activePain) return "เลี่ยงกดหนักก่อน";
+  const load = coachCtx?.recoverySystem?.axes?.load?.score ?? 0;
+  const sleep = coachCtx?.recoverySystem?.axes?.sleep?.score ?? 80;
+  if (score <= 50) return "วันนี้เน้นพักฟื้นตัว";
+  if (load >= 75) return "คุมเบาไว้ก่อน";
+  if (sleep < 50) return "ควรพักและเน้นนอน";
+  if (score >= 80 && load < 55) return "พร้อมขยับตามแผน";
+  if (score >= 66) return "ขยับได้ ไม่ต้องกด pace";
+  return "ฟื้นตัวพอใช้ คุมเบาไว้ก่อน";
+}
+
 function TodaySnapshotCard({
   insight,
   readinessScore,
@@ -1616,8 +1653,8 @@ function TodaySnapshotCard({
   const axisSummaryLine = buildTodayOverviewReasonLine(recSys, coachCtx);
 
   return (
-    <section className="card px-4 py-3 space-y-2.5">
-      <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">ภาพรวมวันนี้</p>
+    <section className="health-score-card px-4 pt-4 pb-3 space-y-3">
+      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#6f8fa6]">ภาพรวมวันนี้</p>
 
       {/* Readiness chip */}
       <div className="flex flex-wrap gap-2">
@@ -1638,6 +1675,13 @@ function TodaySnapshotCard({
         )}
       </div>
 
+      {/* Coach headline */}
+      {!loading && readinessScore != null && insight && (
+        <p className="text-base font-bold text-[#17201d] leading-snug px-0.5">
+          {buildTodaySnapshotCoachHeadline(readinessScore, coachCtx)}
+        </p>
+      )}
+
       {/* One-line axis summary */}
       {!loading && (
         <p className="text-[11px] text-slate-400 leading-tight px-0.5" data-testid="today-overview-reason">{axisSummaryLine}</p>
@@ -1652,20 +1696,21 @@ function TodaySnapshotCard({
 
       {/* 4-axis ring grid — always visible, 2×2 on mobile */}
       {!loading && recSys && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-1.5">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {([
             { key: "recovery" as const, title: "ฟื้นตัว" },
             { key: "load" as const, title: "โหลดซ้อม" },
             { key: "sleep" as const, title: "การนอน" },
             { key: "fuel" as const, title: "พลังงาน" },
           ] as const).map(({ key, title }) => (
-            <RecoveryRing
-              key={key}
-              title={title}
-              score={recSys.axes[key].score}
-              label={getRecoveryAxisLabel(key, recSys.axes[key].score)}
-              tone={getAxisTone(key, recSys.axes[key].score)}
-            />
+            <div key={key} className="ring-panel">
+              <RecoveryRing
+                title={title}
+                score={recSys.axes[key].score}
+                label={getRecoveryAxisLabel(key, recSys.axes[key].score)}
+                tone={getAxisTone(key, recSys.axes[key].score)}
+              />
+            </div>
           ))}
         </div>
       )}

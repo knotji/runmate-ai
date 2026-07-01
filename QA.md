@@ -85,6 +85,11 @@
 - [ ] Overall readiness chip and visual color is softened dynamically (e.g., showing "Good" / Blue instead of "Excellent" / Green) when caution factors are present (e.g., high training load, low sleep, or low fuel).
 - [ ] Caution note banner ("ข้อแนะนำความพร้อม") is displayed with a clear Thai explanation when readiness is softened due to caution factors.
 - [ ] Today snapshot card expandable details contains a note explaining the safety/easy downgrading rule.
+- [ ] Today overview card uses the `.health-score-card` gradient style (soft sage gradient, warm border, layered shadow) instead of the generic `.card`.
+- [ ] Today overview card shows a short coaching directive headline (e.g., "พร้อมขยับตามแผน", "คุมเบาไว้ก่อน", "วันนี้เน้นพักฟื้นตัว") between the readiness chip and the axis summary line.
+- [ ] Today 4-axis factors (ฟื้นตัว / โหลดซ้อม / การนอน / พลังงาน) are each wrapped in a soft cream `.ring-panel` mini card.
+- [ ] Hero "วันนี้ควรทำอะไร" section shows a short Thai coach insight line (e.g., "วันนี้เหมาะกับ Recovery", "ขยับได้ แต่ไม่ต้องกด pace") above the main recommendation headline.
+- [ ] Recovery Loop card uses a subtle warm gradient tint and wider label tracking to match the overview card's section label style.
 
 
 ## 4. Coach

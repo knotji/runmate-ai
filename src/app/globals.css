@@ -267,3 +267,27 @@ textarea {
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
+
+/* ─── Soft Health UI v2 ─────────────────────────────────────────────────── */
+.health-score-card {
+  background:
+    linear-gradient(145deg,
+      rgba(95, 143, 122, 0.09) 0%,
+      rgba(255, 253, 248, 0.94) 40%,
+      rgba(234, 244, 247, 0.10) 100%);
+  border: 1px solid rgba(228, 216, 200, 0.58);
+  border-radius: var(--radius-card);
+  box-shadow:
+    0 10px 32px rgba(72, 82, 72, 0.08),
+    0 2px 8px rgba(95, 143, 122, 0.05);
+}
+
+.ring-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(255, 253, 248, 0.70);
+  border: 1px solid rgba(228, 216, 200, 0.38);
+  border-radius: 16px;
+  padding: 0.75rem 0.25rem 0.625rem;
+}
