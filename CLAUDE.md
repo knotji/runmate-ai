@@ -235,6 +235,8 @@ tests/
 
 **Report UI rule**: Calendar Week/Month is the primary Report view. Rolling 7-day insight is secondary and collapsed by default. Avoid showing calendar daily logs and legacy DayCard lists at the same time. `WeeklyReviewCard`/`WeeklyDashboard` live inside "Insight 7 วันล่าสุด"; filter pills and the legacy `DayCard` list live inside "รายการทั้งหมด".
 
+**Calendar transition rule**: Fast client-side calendar navigation should use subtle transitions, not loading copy. Reserve explicit loading text for real async actions such as export/download.
+
 **Export JSON v1**: `schemaVersion = "runmate_export_v1"`, `exportType = "report_period"`. Week export includes compact `days`; month export includes compact `weeks`. Never export raw uploaded images, base64, raw OCR, auth/session data, API keys, or hidden prompts. Metadata flags must stay `includesRawImages: false`, `includesRawOcr: false`, `includesAuthData: false`.
 
 **Do not**: Change Recovery System scoring. Change Recovery Loop scoring. Change Readiness V2 logic. Add new database schema. Remove rolling 7-day content. Make Today page dense.

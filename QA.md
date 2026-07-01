@@ -46,10 +46,14 @@
 - [ ] Report daily nutrition details are collapsed; DaySlot shows only compact meal/protein/carb summary.
 - [ ] Report month mode remains high-level with month summary and week blocks only.
 - [ ] Report does not show duplicate daily logs in the default view.
+- [ ] Report calendar navigation uses subtle transition feedback.
+- [ ] Report calendar prev/next does not show explicit "กำลังเปลี่ยนช่วง..." text.
+- [ ] Report calendar period title updates immediately after navigation.
 - [ ] Report Week export downloads a readable JSON file.
 - [ ] Report Month export downloads a readable JSON file.
 - [ ] Report JSON export filename includes the selected period date range.
 - [ ] Report JSON export metadata confirms no raw images/OCR/auth data.
+- [ ] Report JSON export still shows preparing/success feedback.
 - [ ] Report navigation still works after exporting JSON.
 - [ ] Report page "แนวโน้ม Recovery 7 วัน" displays Recovery avg (69/100), Load (86/100 · สูงมาก), Sleep (5.5 ชม. · 62/100), and Fuel (ดี · 82/100) format after opening rolling insight.
 - [ ] Resolved pain does not force a red/rest state.
@@ -180,4 +184,3 @@ On PowerShell, set both `$env:E2E_BASE_URL` and `$env:E2E_PRODUCTION_BASE_URL` t
 - [ ] Verify that when today's sleep is missing, the Sleep axis summary reads `"ยังไม่มีการนอนวันนี้ · ใช้ข้อมูลล่าสุด"` and the main card displays the fallback recommendation warning.
 - [ ] Verify that if active pain exists (pain level >= 5), the Recovery score is heavily penalized (at least `-40`) and the overall Readiness score is capped at `45`.
 - [ ] Verify that the Fuel score can reach 100/100 when meals >= 2, carbs are ok, and protein is ok, and displays `"ดีมาก"`.
-

@@ -127,7 +127,7 @@ export default function ReportPage() {
     calendarTransitionTimer.current = setTimeout(() => {
       setCalendarTransitioning(false);
       calendarTransitionTimer.current = null;
-    }, 260);
+    }, 180);
   }
 
   async function handleExportJson() {
@@ -304,15 +304,9 @@ export default function ReportPage() {
           {/* Calendar views */}
           <div
             aria-busy={calendarTransitioning}
-            className={`space-y-3 transition-opacity duration-200 ${calendarTransitioning ? "opacity-55" : "opacity-100"}`}
+            className={`space-y-3 transition-all duration-200 ${calendarTransitioning ? "translate-y-0.5 opacity-70" : "translate-y-0 opacity-100"}`}
             data-testid="calendar-content"
           >
-            {calendarTransitioning && (
-              <div className="rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface-muted)] px-4 py-2 text-center text-xs font-semibold text-[var(--color-text-muted)]" data-testid="calendar-transition-status">
-                กำลังเปลี่ยนช่วง...
-              </div>
-            )}
-
             {reportMode === "week" ? (
               <>
                 {weekSummary && (

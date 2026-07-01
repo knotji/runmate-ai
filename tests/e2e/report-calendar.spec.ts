@@ -108,7 +108,7 @@ test("Week navigation: going back and returning to current works", async ({ page
   await expect(page.getByTestId("nav-current-btn")).toHaveCount(0);
 });
 
-test("Calendar navigation shows transition feedback and disables controls", async ({ page }) => {
+test("Calendar navigation uses subtle transition without loading copy", async ({ page }) => {
   const state = await installMockBackend(page);
   state.history.push(makeSleep(bangkokDateKey(), "sleep-rc-transition"));
 
@@ -117,19 +117,20 @@ test("Calendar navigation shows transition feedback and disables controls", asyn
   const nav = page.getByTestId("calendar-nav");
   const content = page.getByTestId("calendar-content");
   const previous = nav.getByRole("button", { name: "สัปดาห์ก่อน" });
+  const initialLabel = (await nav.locator("div").filter({ hasText: /ม\.ค\.|ก\.พ\.|มี\.ค\.|เม\.ย\.|พ\.ค\.|มิ\.ย\.|ก\.ค\.|ส\.ค\.|ก\.ย\.|ต\.ค\.|พ\.ย\.|ธ\.ค\./ }).last().textContent()) ?? "";
 
   await previous.click();
-  await expect(page.getByTestId("calendar-transition-status")).toBeVisible();
+  await expect(page.getByText("กำลังเปลี่ยนช่วง...")).toHaveCount(0);
+  await expect(page.getByTestId("calendar-transition-status")).toHaveCount(0);
   await expect(content).toHaveAttribute("aria-busy", "true");
   await expect(previous).toBeDisabled();
   await expect(page.getByTestId("nav-current-btn")).toBeVisible();
+  await expect(nav.locator("div").filter({ hasText: /ม\.ค\.|ก\.พ\.|มี\.ค\.|เม\.ย\.|พ\.ค\.|มิ\.ย\.|ก\.ค\.|ส\.ค\.|ก\.ย\.|ต\.ค\.|พ\.ย\.|ธ\.ค\./ }).last()).not.toHaveText(initialLabel);
 
-  await expect(page.getByTestId("calendar-transition-status")).toHaveCount(0);
   await expect(content).toHaveAttribute("aria-busy", "false");
 
   await page.getByTestId("nav-current-btn").click();
-  await expect(page.getByTestId("calendar-transition-status")).toBeVisible();
-  await expect(page.getByTestId("calendar-transition-status")).toHaveCount(0);
+  await expect(page.getByText("กำลังเปลี่ยนช่วง...")).toHaveCount(0);
   await expect(page.getByTestId("nav-current-btn")).toHaveCount(0);
 });
 
