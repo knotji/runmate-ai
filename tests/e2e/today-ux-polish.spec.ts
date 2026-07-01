@@ -145,8 +145,9 @@ test("Coach chat helper text is updated", async ({ page }) => {
   await installMockBackend(page);
   await gotoApp(page, "/coach");
 
-  await expect(page.getByText("ใช้ข้อมูลจาก Report เป็นพื้นหลัง แต่คุยได้เหมือนโค้ชส่วนตัว")).toBeVisible();
-  // Old text must not appear
+  await expect(page.getByText(/ตอบทุกเรื่องซ้อม กิน นอน recovery/)).toBeVisible();
+  // Old texts must not appear
+  await expect(page.getByText("ใช้ข้อมูลจาก Report เป็นพื้นหลัง แต่คุยได้เหมือนโค้ชส่วนตัว")).toHaveCount(0);
   await expect(page.getByText("โค้ชใช้ Report เป็นบริบท แต่ตอบแบบคุยกันธรรมชาติ")).toHaveCount(0);
 });
 

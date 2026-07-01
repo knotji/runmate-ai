@@ -278,18 +278,18 @@ export function CoachChat() {
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-sm font-semibold text-[var(--foreground)]">ถามอะไรก็ได้</p>
-            <p className="text-xs text-[var(--muted-text)]">ใช้ข้อมูลจาก Report เป็นพื้นหลัง แต่คุยได้เหมือนโค้ชส่วนตัว</p>
+            <p className="text-sm font-bold text-[var(--foreground)]">ลองถามโค้ช</p>
+            <p className="text-xs text-[var(--muted-text)]">ตอบทุกเรื่องซ้อม กิน นอน recovery · ใช้ข้อมูล Report เป็นพื้นหลัง</p>
           </div>
           <button type="button" onClick={clearChat} className="shrink-0 text-xs font-semibold text-[var(--muted-text)]/80 hover:text-[var(--foreground)]">
             ล้างแชท
           </button>
         </div>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="flex flex-wrap gap-2">
           {buildQuickQuestions(raceQuickContext).map((item) => (
             <button
               key={item.label}
-              className="rounded-full border border-[var(--border-warm)] bg-[var(--surface-muted)] px-3 py-2 text-xs font-semibold text-[var(--foreground)] transition hover:bg-[var(--primary-soft)]"
+              className="whitespace-nowrap rounded-full border border-[var(--border-warm)] bg-[var(--surface-muted)] px-3 py-2 text-xs font-semibold text-[var(--foreground)] transition hover:bg-[var(--primary-soft)]"
               onClick={() => void ask(item.prompt)}
             >
               {item.label}

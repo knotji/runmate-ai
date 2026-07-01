@@ -9,33 +9,39 @@ export function RaceCountdownCard({ goal, phase }: { goal?: RaceGoal | null; pha
 
   return (
     <section className="card p-5">
-      <p className="text-xs font-bold uppercase tracking-[0.22em] text-[var(--label-color)]">Race Goal</p>
-      <div className="mt-3 flex items-end justify-between gap-3">
-        <div>
-          <h2 className="text-xl font-bold">{goal?.raceName || "ยังไม่มี Race Goal"}</h2>
-          <p className="mt-1 text-sm text-[var(--muted-text)]">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-2xl font-extrabold leading-tight text-[var(--foreground)]">
+            {goal?.raceName || "ยังไม่มี Race Goal"}
+          </h2>
+          <p className="mt-1.5 text-sm text-[var(--muted-text)]">
             {goal ? `${goal.raceDistance} · ${formatDate(goal.raceDate)}` : "สร้างเป้าหมายเพื่อให้โค้ชวางแผนยาวได้"}
           </p>
+          <div className="mt-3">
+            <span className="rounded-full bg-[var(--primary-soft)] px-3 py-1.5 text-xs font-bold text-[var(--primary-strong)]">
+              {racePassed ? "แข่งเสร็จแล้ว" : raceToday ? "วันแข่งวันนี้!" : `เฟส ${phase || "Base Phase"}`}
+            </span>
+          </div>
         </div>
-        <div className={`rounded-2xl px-4 py-3 text-center ${racePassed ? "bg-[var(--surface-muted)]" : raceToday ? "bg-amber-100" : "bg-[var(--primary-soft)]"}`}>
+        <div className={`shrink-0 rounded-2xl px-4 py-3 text-center min-w-[72px] ${racePassed ? "bg-[var(--surface-muted)]" : raceToday ? "bg-amber-100" : "bg-[var(--primary-soft)]"}`}>
           {racePassed ? (
-            <p className="text-sm font-bold text-[var(--color-text-soft)]">แข่งแล้ว</p>
+            <>
+              <p className="text-2xl">🏅</p>
+              <p className="mt-0.5 text-[10px] font-bold text-[var(--color-text-soft)]">แข่งแล้ว</p>
+            </>
           ) : raceToday ? (
             <>
-              <p className="text-lg font-bold text-amber-600">วันนี้!</p>
-              <p className="text-xs text-amber-600">แข่งเลย</p>
+              <p className="text-2xl font-bold text-amber-600">🏁</p>
+              <p className="mt-0.5 text-xs font-bold text-amber-600">วันนี้!</p>
             </>
           ) : (
             <>
-              <p className="text-2xl font-bold">{days != null && !isNaN(days) ? String(days) : "-"}</p>
+              <p className="text-3xl font-extrabold text-[var(--foreground)]">{days != null && !isNaN(days) ? String(days) : "-"}</p>
               <p className="text-xs text-[var(--muted-text)]">วัน</p>
             </>
           )}
         </div>
       </div>
-      <p className="mt-4 rounded-2xl bg-[var(--surface-muted)] px-4 py-3 text-sm text-[var(--foreground)]">
-        {racePassed ? "🏅 แข่งเสร็จแล้ว — สร้างเป้าหมายใหม่ได้เลย" : `เฟส: ${phase || "Base Phase"}`}
-      </p>
     </section>
   );
 }

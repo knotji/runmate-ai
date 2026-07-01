@@ -150,8 +150,8 @@ test("Polish consistency: Today recommendation decision, Coach readiness, Race s
   // Test 4: Race strength card hides pace/HR
   await gotoApp(page, "/race-goal");
   await expect(page.getByText("Strength").first()).toBeVisible();
-  // Each individual workout card has ring-1 ring-slate-100 (now <details> elements)
-  const strengthCard = page.locator(".ring-1").filter({ hasText: "Strength" }).first();
+  // Workout rows are <details> elements in the timeline card
+  const strengthCard = page.locator("details").filter({ hasText: "Strength" }).first();
   await expect(strengthCard).toBeVisible();
   // Strength card should NOT have Pace label
   await expect(strengthCard.getByText("Pace")).toHaveCount(0);
