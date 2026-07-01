@@ -319,9 +319,12 @@ export default function TodayPage() {
         coachCtx={coachCtx}
       />
 
-      {/* 2. วันนี้ควรทำอะไร — hero recommendation */}
-      <section className="card p-5 space-y-4">
-        <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
+      {/* 2. วันนี้ควรทำอะไร — coach prescription */}
+      <section className="rounded-3xl bg-[var(--surface)] border border-[var(--border-warm)]/60 shadow-sm overflow-hidden">
+        <div className="flex">
+          <div className="w-1.5 shrink-0 bg-gradient-to-b from-[var(--primary)] to-[var(--primary-strong)]" />
+          <div className="flex-1 px-4 pt-4 pb-4 space-y-4">
+        <p className="text-xs font-semibold uppercase tracking-widest text-[var(--label-color)]">
           {hasWorkoutToday ? (coachCtx?.todayWorkouts.some((w) => w.kind === "strength") ? "หลังเวทวันนี้ควรทำอะไรต่อ" : "หลังซ้อมวันนี้ควรทำอะไรต่อ") : "วันนี้ควรทำอะไร"}
         </p>
 
@@ -416,10 +419,30 @@ export default function TodayPage() {
             )}
           </div>
         )}
+          </div>
+        </div>
       </section>
 
       {/* 3. Recovery Loop — คืนนี้ควรฟื้นตัวยังไง */}
       {coachCtx && <RecoveryLoopCard coachCtx={coachCtx} />}
+
+      {/* Quick Actions Dock — compact, above strength card */}
+      <div className="rounded-2xl bg-[var(--surface-muted)] p-1.5">
+        <div className="flex gap-0.5">
+          {[
+            { href: "/upload?type=sleep", icon: "🌙", label: "นอน" },
+            { href: "/upload?type=meal", icon: "🍱", label: "อาหาร" },
+            { href: `/upload?type=workout&subtype=${getRecommendedSubtype(insight, coachCtx)}`, icon: "🏃", label: "ซ้อม" },
+            { href: "/pain", icon: "🩹", label: "เจ็บ" },
+            { href: "#end-of-day-summary", icon: "📋", label: "สรุปวัน" },
+          ].map(({ href, icon, label }) => (
+            <Link key={href} href={href} className="flex-1 flex flex-col items-center gap-0.5 py-2.5 px-1 rounded-xl hover:bg-[var(--surface)] active:scale-95 transition-colors">
+              <span className="text-[1.15rem] leading-none">{icon}</span>
+              <span className="text-[9px] font-bold text-[var(--color-text-soft)] mt-0.5">{label}</span>
+            </Link>
+          ))}
+        </div>
+      </div>
 
       {insight && coachCtx && shouldShowTodayStrengthCard(insight, coachCtx) ? (
         <TodayStrengthRoutineCard
@@ -428,22 +451,6 @@ export default function TodayPage() {
           onSaved={() => void generateInsight(true)}
         />
       ) : null}
-
-      {/* 3. Quick Actions */}
-      <div className="flex justify-around gap-0.5 px-1">
-        {[
-          { href: "/upload?type=sleep", icon: "🌙", label: "นอน" },
-          { href: "/upload?type=meal", icon: "🍱", label: "อาหาร" },
-          { href: `/upload?type=workout&subtype=${getRecommendedSubtype(insight, coachCtx)}`, icon: "🏃", label: "ซ้อม" },
-          { href: "/pain", icon: "🩹", label: "เจ็บ" },
-          { href: "#end-of-day-summary", icon: "📋", label: "สรุปวัน" },
-        ].map(({ href, icon, label }) => (
-          <Link key={href} href={href} className="flex flex-col items-center gap-1 min-w-[52px] py-1.5 px-1 rounded-xl transition-colors hover:bg-[var(--surface-muted)] active:scale-95">
-            <span className="text-xl">{icon}</span>
-            <span className="text-[10px] font-medium text-slate-500">{label}</span>
-          </Link>
-        ))}
-      </div>
 
       {/* F. Compact detail sections */}
       {(() => {
@@ -1388,15 +1395,6 @@ function getAxisBadgeClass(axisKey: "recovery" | "load" | "sleep" | "fuel", scor
   return "bg-slate-50 text-slate-600 border border-slate-100";
 }
 
-// Ring stroke colors keyed by tone
-const RING_STROKE: Record<string, string> = {
-  success: "#7aab8f",
-  warning: "#c9961d",
-  danger: "#e05050",
-  info: "#5082a0",
-  neutral: "#94a3b8",
-};
-
 function RecoveryLoopCard({ coachCtx }: { coachCtx: CoachContext }) {
   const [showDetail, setShowDetail] = useState(false);
   const loop = coachCtx.recoveryLoop;
@@ -1421,29 +1419,35 @@ function RecoveryLoopCard({ coachCtx }: { coachCtx: CoachContext }) {
   const dayLoadContextLine = `${dayLoad.summary}${activitySuffix}`;
 
   return (
-    <section className="card p-4 space-y-2.5 bg-gradient-to-b from-[#fdfcf8] to-[#f8fcf9]" data-testid="recovery-loop-card">
+    <section className="rounded-2xl bg-[var(--surface-muted)] px-3 py-3 space-y-2" data-testid="recovery-loop-card">
       <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--label-color)]">คืนนี้ควรฟื้นตัวยังไง</p>
 
-      {/* 1. Sleep need — lead message */}
-      <div className="flex items-center gap-2 text-xs text-slate-600">
-        <span className="text-base leading-none">🌙</span>
-        <span className="font-semibold text-slate-700">{sleepNeed.label}</span>
+      {/* 2-column strip: sleep | tomorrow */}
+      <div className="grid grid-cols-2 gap-x-3 divide-x divide-[var(--color-border-soft)]">
+        <div>
+          <p className="text-[9px] font-bold uppercase tracking-wide text-[var(--color-text-soft)] mb-0.5">คืนนี้</p>
+          <div className="flex items-center gap-1 text-xs">
+            <span className="leading-none">🌙</span>
+            <span className="font-semibold text-[var(--foreground)] leading-snug">{sleepNeed.label}</span>
+          </div>
+        </div>
+        <div className="pl-3">
+          <p className="text-[9px] font-bold uppercase tracking-wide text-[var(--color-text-soft)] mb-0.5">ถัดไป</p>
+          <div className="flex items-start gap-1 text-xs">
+            <span className="leading-none shrink-0">{icon}</span>
+            <span className="font-semibold text-[var(--foreground)] leading-snug">{tomorrowPreview.headline}</span>
+          </div>
+        </div>
       </div>
 
-      {/* 2. Tomorrow preview headline */}
-      <div className="flex items-start gap-2 text-xs text-slate-600 pt-0.5 border-t border-slate-100">
-        <span className="text-sm leading-none shrink-0">{icon}</span>
-        <span className="font-semibold text-slate-700 leading-snug">{tomorrowPreview.headline}</span>
-      </div>
-
-      {/* 3. Day Load — supporting context in natural coaching language */}
-      <p className="text-[11px] text-slate-400 leading-snug" data-testid="day-load-context">{dayLoadContextLine}</p>
+      {/* Day load context — full width, below sleep so Y ordering is preserved */}
+      <p className="text-[11px] text-[var(--color-text-soft)] leading-snug" data-testid="day-load-context">{dayLoadContextLine}</p>
 
       {/* Expandable detail */}
       <button
         type="button"
         onClick={() => setShowDetail((v) => !v)}
-        className="flex items-center gap-1 text-[11px] font-semibold text-slate-400 hover:text-slate-600 py-0.5"
+        className="flex items-center gap-1 text-[11px] font-semibold text-[var(--color-text-soft)] hover:text-[var(--foreground)] py-0.5"
       >
         <span>{showDetail ? "ซ่อนเหตุผล" : "ดูเหตุผล"}</span>
         <span className={`transition-transform duration-200 ${showDetail ? "rotate-180" : ""}`}>▾</span>
@@ -1485,60 +1489,34 @@ function RecoveryLoopCard({ coachCtx }: { coachCtx: CoachContext }) {
   );
 }
 
-const RING_LABEL_CLASS: Record<string, string> = {
-  success: "text-[#2a6e45]",
-  warning: "text-[#9b742c]",
-  danger: "text-[#c04040]",
-  info: "text-[var(--recovery-blue)]",
-  neutral: "text-[#64748b]",
+const FACTOR_BAR_COLOR: Record<string, string> = {
+  success: "#7aab8f",
+  warning: "#c9961d",
+  danger: "#e05050",
+  info: "#5082a0",
+  neutral: "#94a3b8",
 };
 
-function RecoveryRing({
-  title,
-  score,
-  label,
-  tone,
-}: {
-  title: string;
-  score: number;
-  label: string;
-  tone: string;
-}) {
-  const r = 22;
-  const cx = 28;
-  const cy = 28;
-  const circumference = 2 * Math.PI * r;
-  const pct = Math.max(0, Math.min(100, score)) / 100;
-  const offset = circumference * (1 - pct);
-  const stroke = RING_STROKE[tone] ?? RING_STROKE.neutral;
-  const labelClass = RING_LABEL_CLASS[tone] ?? RING_LABEL_CLASS.neutral;
+const FACTOR_BAR_TEXT_COLOR: Record<string, string> = {
+  success: "#2a6e45",
+  warning: "#9b742c",
+  danger: "#c04040",
+  info: "#5082a0",
+  neutral: "#64748b",
+};
 
+function FactorBar({ title, score, tone, label }: { title: string; score: number; tone: string; label: string }) {
+  const color = FACTOR_BAR_COLOR[tone] ?? FACTOR_BAR_COLOR.neutral;
+  const tColor = FACTOR_BAR_TEXT_COLOR[tone] ?? FACTOR_BAR_TEXT_COLOR.neutral;
+  const pct = Math.min(100, Math.max(0, score));
   return (
-    <div
-      className="flex flex-col items-center gap-0.5"
-      data-tone={tone}
-      aria-label={`${title} ${Math.round(score)} จาก 100 ระดับ${label}`}
-    >
-      <div className="relative w-14 h-14 sm:w-12 sm:h-12">
-        <svg width="100%" height="100%" viewBox="0 0 56 56" aria-hidden="true">
-          <circle cx={cx} cy={cy} r={r} fill="none" stroke="#e2e8f0" strokeWidth="4.5" />
-          <circle
-            cx={cx} cy={cy} r={r}
-            fill="none"
-            stroke={stroke}
-            strokeWidth="4.5"
-            strokeLinecap="round"
-            strokeDasharray={circumference}
-            strokeDashoffset={offset}
-            transform={`rotate(-90 ${cx} ${cy})`}
-          />
-        </svg>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-[13px] sm:text-[12px] font-black text-slate-800 leading-none">{Math.round(score)}</span>
-        </div>
+    <div className="flex items-center gap-2.5" data-tone={tone}>
+      <span className="w-[4.5rem] text-[10px] font-semibold text-[var(--color-text-soft)] shrink-0 leading-tight">{title}</span>
+      <div className="flex-1 h-1.5 rounded-full bg-slate-100/80 overflow-hidden">
+        <div className="h-full rounded-full transition-all duration-300" style={{ width: `${pct}%`, background: color }} />
       </div>
-      <p className="text-[10px] sm:text-[9px] font-semibold text-slate-500 leading-tight text-center mt-0.5">{title}</p>
-      <p className={`text-[9px] sm:text-[8px] font-bold leading-tight text-center ${labelClass}`}>{label}</p>
+      <span className="text-[11px] font-bold w-7 text-right shrink-0" style={{ color: tColor }}>{Math.round(score)}</span>
+      <span className="text-[9px] text-[var(--color-text-soft)] w-8 shrink-0">{label}</span>
     </div>
   );
 }
@@ -1646,61 +1624,69 @@ function TodaySnapshotCard({
     <section className="health-score-card px-4 pt-4 pb-3 space-y-3">
       <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--label-color)]">ภาพรวมวันนี้</p>
 
-      {/* Readiness chip */}
-      <div className="flex flex-wrap gap-2">
-        {loading && (
-          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-400">รอข้อมูลล่าสุด</span>
-        )}
-        {!loading && readinessScore != null && insight && (
-          <>
+      {/* Big score + readiness chip row */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          {loading && (
+            <div className="text-5xl font-black text-slate-100 leading-none tabular-nums select-none">--</div>
+          )}
+          {!loading && readinessScore != null && insight && (
+            <>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-5xl font-black text-[var(--foreground)] leading-none tabular-nums">{readinessScore}</span>
+                <span className="text-sm font-semibold text-[var(--color-text-soft)]">/ 100</span>
+              </div>
+              <p className="text-base font-bold text-[var(--foreground)] leading-snug mt-2">
+                {buildTodaySnapshotCoachHeadline(readinessScore, coachCtx)}
+              </p>
+            </>
+          )}
+        </div>
+        <div className="shrink-0 pt-0.5 flex flex-col items-end gap-1.5">
+          {loading && (
+            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-400">รอข้อมูลล่าสุด</span>
+          )}
+          {!loading && readinessScore != null && insight && (
             <span className={`rounded-full px-3 py-1 text-xs font-bold ${readinessChipClass(readinessScore, displayStatus.displayLabel)}`}>
               {readinessScore} Readiness {hasSleepToday ? displayStatus.displayLabel : `ล่าสุด · ${displayStatus.displayLabel}`}
             </span>
-            {isFallback && (
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-500 font-semibold">
-                ใช้ข้อมูลล่าสุด
-              </span>
-            )}
-          </>
-        )}
+          )}
+          {!loading && isFallback && (
+            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-500 font-semibold">
+              ใช้ข้อมูลล่าสุด
+            </span>
+          )}
+        </div>
       </div>
-
-      {/* Coach headline */}
-      {!loading && readinessScore != null && insight && (
-        <p className="text-base font-bold text-[var(--foreground)] leading-snug px-0.5">
-          {buildTodaySnapshotCoachHeadline(readinessScore, coachCtx)}
-        </p>
-      )}
 
       {/* One-line axis summary */}
       {!loading && (
-        <p className="text-[11px] text-slate-400 leading-tight px-0.5" data-testid="today-overview-reason">{axisSummaryLine}</p>
+        <p className="text-[11px] text-[var(--color-text-soft)] leading-tight" data-testid="today-overview-reason">{axisSummaryLine}</p>
       )}
 
       {/* Caution note */}
       {!loading && displayStatus?.note && (
-        <p className="text-[11px] text-slate-500 leading-relaxed px-0.5">
+        <p className="text-[11px] text-slate-500 leading-relaxed">
           {displayStatus.cautionLevel === "high" ? "⚠️" : "💡"} {displayStatus.note}
         </p>
       )}
 
-      {/* 4-axis ring grid — always visible, 2×2 on mobile */}
+      {/* Compact factor bars replacing 4-ring panel grid */}
       {!loading && recSys && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <div className="space-y-1.5 py-0.5">
           {([
             { key: "recovery" as const, title: "ฟื้นตัว" },
             { key: "load" as const, title: "โหลดซ้อม" },
             { key: "sleep" as const, title: "การนอน" },
             { key: "fuel" as const, title: "พลังงาน" },
           ] as const).map(({ key, title }) => (
-            <div key={key} className="ring-panel">
-              <RecoveryRing
-                title={title}
-                score={recSys.axes[key].score}
-                label={getRecoveryAxisLabel(key, recSys.axes[key].score)}
-                tone={getAxisTone(key, recSys.axes[key].score)}
-              />
-            </div>
+            <FactorBar
+              key={key}
+              title={title}
+              score={recSys.axes[key].score}
+              label={getRecoveryAxisLabel(key, recSys.axes[key].score)}
+              tone={getAxisTone(key, recSys.axes[key].score)}
+            />
           ))}
         </div>
       )}
