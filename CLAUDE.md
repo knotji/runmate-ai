@@ -199,5 +199,35 @@ tests/
   - Fried Fat high (`-5`), Sugar high (`-5`).
 - **Label Thresholds**: `>=80` ดีมาก · `>=66` ดี · `>=50` พอใช้ · `<50` ยังน้อย.
 
+## Report Calendar v1
 
+**Files**: `src/lib/reportPeriods.ts`, `src/lib/reportSummary.ts`, UI in `src/app/logs/page.tsx`.
 
+**Purpose**: Convert Report page from rolling-7-day-only view to calendar week/month views. Rolling 7d stays for recovery/coach logic. Calendar periods are for history display and reporting only.
+
+**Key types** (`reportPeriods.ts`):
+- `CalendarPeriod` — `{ startDateKey, endDateKey, label, shortLabel }` using Bangkok dateKeys
+- Week = Monday–Sunday. Month = 1st–last day. Date arithmetic uses `Date.UTC(y, m-1, d+N)` (timezone-safe).
+- `getMondayOfWeek(dateKey)` — offsets `dow===0 ? -6 : 1-dow` relative to Sunday=0 convention.
+- `getWeeksInMonth(monthRange)` — all Mon–Sun weeks that overlap the month.
+- `THAI_MONTHS_SHORT` — exported for use in label formatting.
+
+**Key types** (`reportSummary.ts`):
+- `DailyReportItem` — `ReportDaySummary` + `{ weekdayLabel, hasData, isToday }`
+- `WeeklyReportSummary` — 7-day week with `totals`, `averages`, `highlights`, `consistency`, `pain`
+- `MonthlyReportSummary` — month with `weeks[]`, month-level totals (clamped to days inside month only)
+- `buildCalendarWeekSummary(allItems, weekRange, todayDateKey)` — main weekly builder
+- `buildCalendarMonthSummary(allItems, monthRange, todayDateKey)` — monthly builder (uses clamped day ranges per week for accurate per-month totals)
+
+**UI** (in `src/app/logs/page.tsx`):
+- State: `reportMode ("week" | "month")`, `calendarWeek: CalendarPeriod`, `calendarMonth: CalendarPeriod`
+- Computed: `weekSummary`, `monthSummary`, `weeksInMonthList`
+- `CalendarNav` — segmented สัปดาห์|เดือน control + period label + prev/next/ปัจจุบัน buttons. `data-testid="calendar-nav"`. Next-button disabled at current period.
+- `PeriodMetrics` — 4-column grid: วิ่งรวม / วันซ้อม / นอนเฉลี่ย / Readiness. `data-testid="period-metrics"`.
+- `DaySlot` — compact daily card (7 per week view). Shows weekdayLabel, today badge, run km / sleep hours / readiness / strength mins. "ยังไม่มีข้อมูล" for empty days. `data-testid="day-slot"`.
+- `MonthWeekBlock` — compact week card in month view. Tapping switches to week mode for that week. `data-testid="month-week-block"`.
+- Week view rendered in `data-testid="week-day-list"`, month view in `data-testid="month-week-list"`.
+
+**Rolling 7d preserved**: `WeeklyReviewCard`, `WeeklyDashboard`, filter pills, and `DayCard` list remain visible below the calendar views — not in a collapsible. Do not hide them.
+
+**Do not**: Change Recovery System scoring. Change Recovery Loop scoring. Change Readiness V2 logic. Add new database schema. Remove rolling 7-day content. Make Today page dense.

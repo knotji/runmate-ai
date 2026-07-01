@@ -34,6 +34,20 @@ import { getMealSourceInfo, isQuickProteinMeal } from "@/lib/mealSource";
 import { buildWeeklyReview, type WeeklyReview } from "@/lib/weeklyReview";
 import { getRunMateReadinessLabel } from "@/lib/readinessV2";
 import { getRecoveryAxisLabel } from "@/lib/recoverySystem";
+import {
+  type CalendarPeriod,
+  getCurrentCalendarWeek,
+  getCurrentCalendarMonth,
+  getPreviousCalendarWeek,
+  getNextCalendarWeek,
+  getPreviousCalendarMonth,
+  getNextCalendarMonth,
+} from "@/lib/reportPeriods";
+import {
+  buildCalendarWeekSummary,
+  buildCalendarMonthSummary,
+  type WeeklyReportSummary,
+} from "@/lib/reportSummary";
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -48,6 +62,10 @@ export default function ReportPage() {
   const [deleteStatus, setDeleteStatus] = useState("");
   const [deletingKey, setDeletingKey] = useState<string | null>(null);
   const [editingMeal, setEditingMeal] = useState<LocalHistoryItem | null>(null);
+  // Report calendar mode — calendar periods for history display only
+  const [reportMode, setReportMode] = useState<"week" | "month">("week");
+  const [calendarWeek, setCalendarWeek] = useState<CalendarPeriod>(() => getCurrentCalendarWeek());
+  const [calendarMonth, setCalendarMonth] = useState<CalendarPeriod>(() => getCurrentCalendarMonth());
 
   useEffect(() => {
     let alive = true;
@@ -93,6 +111,10 @@ export default function ReportPage() {
   const todayDateKey = todayBangkokDateKey();
   const yesterdayDateKey = yesterdayBangkokDateKey();
   const weeklyReview = items.length > 0 ? buildWeeklyReview(items, todayDateKey) : null;
+
+  // Calendar summaries — display only, do not affect recovery/coach logic
+  const weekSummary = items.length > 0 ? buildCalendarWeekSummary(items, calendarWeek, todayDateKey) : null;
+  const monthSummary = items.length > 0 ? buildCalendarMonthSummary(items, calendarMonth, todayDateKey) : null;
 
   const filteredDays = days.filter((day) => {
     if (activeFilter === "all") return true;
@@ -181,13 +203,59 @@ export default function ReportPage() {
           <section className="rounded-3xl border border-[var(--color-border-soft)] bg-[var(--surface)]/70 px-4 py-3 text-xs leading-5 text-[var(--color-text-muted)] shadow-sm">
             Report คือข้อมูลจริงจาก Upload และการบันทึก ส่วนแชทกับโค้ชจะไม่ถูกเพิ่มเข้าหน้านี้อัตโนมัติ
           </section>
-          {weeklyReview && <WeeklyReviewCard review={weeklyReview} />}
-          <WeeklyDashboard dashboard={dashboard} proteinTarget={pTarget} items={items} cutoff={dashboardCutoff} />
+
+          {/* Calendar navigation */}
+          <CalendarNav
+            mode={reportMode}
+            onModeChange={setReportMode}
+            week={calendarWeek}
+            month={calendarMonth}
+            onWeekChange={setCalendarWeek}
+            onMonthChange={setCalendarMonth}
+            todayDateKey={todayDateKey}
+          />
+
           {deleteStatus ? (
             <section className={`rounded-2xl px-4 py-3 text-xs font-semibold ${deleteStatus.startsWith("ลบไม่สำเร็จ") ? "bg-red-50 text-red-600" : "bg-[#e7efea] text-[#2a5a39]"}`}>
               {deleteStatus}
             </section>
           ) : null}
+
+          {/* Calendar views */}
+          {reportMode === "week" ? (
+            <>
+              {weekSummary && (
+                <PeriodMetrics totals={weekSummary.totals} averages={weekSummary.averages} />
+              )}
+              <div className="space-y-2" data-testid="week-day-list">
+                {weekSummary?.days.map((day) => (
+                  <DaySlot key={day.dateKey} day={day} />
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              {monthSummary && (
+                <PeriodMetrics totals={monthSummary.totals} averages={monthSummary.averages} />
+              )}
+              <div className="space-y-2" data-testid="month-week-list">
+                {monthSummary?.weeks.map((week) => (
+                  <MonthWeekBlock
+                    key={week.startDateKey}
+                    week={week}
+                    onSelectWeek={(period) => {
+                      setCalendarWeek(period);
+                      setReportMode("week");
+                    }}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* Rolling 7-day review and full history log */}
+          {weeklyReview && <WeeklyReviewCard review={weeklyReview} />}
+          <WeeklyDashboard dashboard={dashboard} proteinTarget={pTarget} items={items} cutoff={dashboardCutoff} />
 
           {/* Filter Pills */}
           <div className="flex gap-2 overflow-x-auto pb-1 my-4 scrollbar-none">
@@ -264,6 +332,193 @@ export default function ReportPage() {
     </AppShell>
   );
 }
+
+// ─── Calendar UI components ───────────────────────────────────────────────────
+
+function CalendarNav({
+  mode, onModeChange, week, month, onWeekChange, onMonthChange, todayDateKey,
+}: {
+  mode: "week" | "month";
+  onModeChange: (m: "week" | "month") => void;
+  week: CalendarPeriod;
+  month: CalendarPeriod;
+  onWeekChange: (w: CalendarPeriod) => void;
+  onMonthChange: (m: CalendarPeriod) => void;
+  todayDateKey: string;
+}) {
+  const currentWeekStart = getCurrentCalendarWeek(todayDateKey).startDateKey;
+  const currentMonthStart = getCurrentCalendarMonth(todayDateKey).startDateKey;
+  const isCurrentWeek = week.startDateKey === currentWeekStart;
+  const isCurrentMonth = month.startDateKey === currentMonthStart;
+  const period = mode === "week" ? week : month;
+  const atCurrent = mode === "week" ? isCurrentWeek : isCurrentMonth;
+
+  return (
+    <div className="space-y-2" data-testid="calendar-nav">
+      <div className="flex rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface-muted)] p-1">
+        {(["week", "month"] as const).map((m) => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => onModeChange(m)}
+            className={`flex-1 rounded-xl py-2 text-xs font-bold transition-all ${mode === m ? "bg-white shadow-sm text-[var(--primary)]" : "text-[var(--color-text-muted)]"}`}
+          >
+            {m === "week" ? "สัปดาห์" : "เดือน"}
+          </button>
+        ))}
+      </div>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => {
+            if (mode === "week") onWeekChange(getPreviousCalendarWeek(week));
+            else onMonthChange(getPreviousCalendarMonth(month));
+          }}
+          className="rounded-xl border border-[var(--color-border-soft)] bg-[var(--surface)] px-3 py-2 text-sm font-bold text-[var(--color-text-muted)]"
+          aria-label={mode === "week" ? "สัปดาห์ก่อน" : "เดือนก่อน"}
+        >
+          ‹
+        </button>
+        <div className="flex-1 text-center text-xs font-bold text-[#17201d]">{period.label}</div>
+        <button
+          type="button"
+          onClick={() => {
+            if (mode === "week") {
+              const next = getNextCalendarWeek(week);
+              if (next.startDateKey <= todayDateKey) onWeekChange(next);
+            } else {
+              const next = getNextCalendarMonth(month);
+              if (next.startDateKey <= todayDateKey) onMonthChange(next);
+            }
+          }}
+          disabled={atCurrent}
+          className="rounded-xl border border-[var(--color-border-soft)] bg-[var(--surface)] px-3 py-2 text-sm font-bold text-[var(--color-text-muted)] disabled:opacity-40"
+          aria-label={mode === "week" ? "สัปดาห์ถัดไป" : "เดือนถัดไป"}
+        >
+          ›
+        </button>
+        {!atCurrent && (
+          <button
+            type="button"
+            onClick={() => {
+              if (mode === "week") onWeekChange(getCurrentCalendarWeek(todayDateKey));
+              else onMonthChange(getCurrentCalendarMonth(todayDateKey));
+            }}
+            className="rounded-xl border border-[var(--primary)]/20 bg-[var(--primary)]/5 px-3 py-2 text-xs font-bold text-[var(--primary)]"
+            data-testid="nav-current-btn"
+          >
+            ปัจจุบัน
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PeriodMetrics({
+  totals,
+  averages,
+}: {
+  totals: { runDistanceKm: number; workoutDays: number };
+  averages: { sleepHours?: number; readiness?: number };
+}) {
+  return (
+    <div className="grid grid-cols-4 gap-2" data-testid="period-metrics">
+      <div className="rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface)] p-3 text-center">
+        <p className="text-[10px] text-[var(--color-text-muted)]">วิ่งรวม</p>
+        <p className="mt-0.5 text-sm font-bold text-[#17201d]">{totals.runDistanceKm > 0 ? `${totals.runDistanceKm} กม.` : "—"}</p>
+      </div>
+      <div className="rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface)] p-3 text-center">
+        <p className="text-[10px] text-[var(--color-text-muted)]">วันซ้อม</p>
+        <p className="mt-0.5 text-sm font-bold text-[#17201d]">{totals.workoutDays > 0 ? `${totals.workoutDays} วัน` : "—"}</p>
+      </div>
+      <div className="rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface)] p-3 text-center">
+        <p className="text-[10px] text-[var(--color-text-muted)]">นอนเฉลี่ย</p>
+        <p className="mt-0.5 text-sm font-bold text-[#17201d]">{averages.sleepHours != null ? `${averages.sleepHours} ชม.` : "—"}</p>
+      </div>
+      <div className="rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface)] p-3 text-center">
+        <p className="text-[10px] text-[var(--color-text-muted)]">Readiness</p>
+        <p className="mt-0.5 text-sm font-bold text-[#17201d]">{averages.readiness != null ? `${averages.readiness}` : "—"}</p>
+      </div>
+    </div>
+  );
+}
+
+function DaySlot({ day }: { day: import("@/lib/reportSummary").DailyReportItem }) {
+  return (
+    <div
+      className={`rounded-2xl border p-3 ${day.isToday ? "border-[var(--primary)]/30 bg-[var(--primary)]/5" : "border-[var(--color-border-soft)] bg-[var(--surface)]"}`}
+      data-testid="day-slot"
+    >
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-bold text-[#17201d]">
+          {day.weekdayLabel}
+          {day.isToday && (
+            <span className="ml-2 rounded-full bg-[var(--primary)] px-2 py-0.5 text-[10px] text-white">วันนี้</span>
+          )}
+        </span>
+        {!day.hasData && <span className="text-[10px] text-[var(--color-text-muted)]">ยังไม่มีข้อมูล</span>}
+      </div>
+      {day.hasData && (
+        <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5">
+          {day.runKm != null && day.runKm > 0 && (
+            <span className="text-xs text-[var(--color-text-muted)]">🏃 {day.runKm} กม.</span>
+          )}
+          {day.sleepHours != null && (
+            <span className="text-xs text-[var(--color-text-muted)]">🌙 {day.sleepHours} ชม.</span>
+          )}
+          {day.readiness != null && (
+            <span className="text-xs text-[var(--color-text-muted)]">Readiness {day.readiness}</span>
+          )}
+          {day.strengthMins != null && day.strengthMins > 0 && (
+            <span className="text-xs text-[var(--color-text-muted)]">💪 {day.strengthMins} นาที</span>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MonthWeekBlock({
+  week,
+  onSelectWeek,
+}: {
+  week: WeeklyReportSummary;
+  onSelectWeek: (p: CalendarPeriod) => void;
+}) {
+  const hasData = week.days.some((d) => d.hasData);
+  return (
+    <button
+      type="button"
+      onClick={() =>
+        onSelectWeek({
+          startDateKey: week.startDateKey,
+          endDateKey: week.endDateKey,
+          label: week.label,
+          shortLabel: week.label,
+        })
+      }
+      className="w-full rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface)] p-3 text-left"
+      data-testid="month-week-block"
+    >
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-bold text-[#17201d]">{week.label}</span>
+        <span className="text-[10px] font-bold text-[var(--primary)]">ดูสัปดาห์ ›</span>
+      </div>
+      {hasData ? (
+        <div className="mt-1.5 flex flex-wrap gap-3 text-xs text-[var(--color-text-muted)]">
+          {week.totals.runDistanceKm > 0 && <span>🏃 {week.totals.runDistanceKm} กม.</span>}
+          {week.totals.workoutDays > 0 && <span>ซ้อม {week.totals.workoutDays} วัน</span>}
+          {week.averages.readiness != null && <span>Readiness {week.averages.readiness}</span>}
+        </div>
+      ) : (
+        <p className="mt-1 text-[10px] text-[var(--color-text-muted)]">ยังไม่มีข้อมูล</p>
+      )}
+    </button>
+  );
+}
+
+// ─── Rolling 7-day components ─────────────────────────────────────────────────
 
 function WeeklyDashboard({ dashboard, proteinTarget, items, cutoff }: { dashboard: Dashboard; proteinTarget: number; items: LocalHistoryItem[]; cutoff: string }) {
   const meals7d = items

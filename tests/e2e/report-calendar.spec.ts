@@ -1,0 +1,176 @@
+import { expect, test } from "@playwright/test";
+import { gotoApp, installMockBackend } from "./helpers/app";
+import { bangkokDateKey } from "./helpers/testData";
+
+function makeSleep(dateKey: string, id: string, hours = 7) {
+  return {
+    id,
+    user_id: "00000000-0000-4000-8000-000000000001",
+    type: "sleep",
+    created_at: `${dateKey}T08:00:00.000Z`,
+    data: {
+      extracted: {
+        date: dateKey,
+        actualSleepDurationMinutes: hours * 60,
+        sleepScore: 76,
+        restingHR: 50,
+        hrv: 55,
+      },
+      coach: { readinessScore: 74, readinessLabel: "Good", aiSummary: "นอนดี", todayRecommendation: "ซ้อมได้" },
+      confidence: "high",
+      unclearFields: [],
+    },
+  };
+}
+
+function makeRun(dateKey: string, id: string, distanceKm: number, durationMin = 40) {
+  return {
+    id,
+    user_id: "00000000-0000-4000-8000-000000000001",
+    type: "workout",
+    created_at: `${dateKey}T16:00:00.000Z`,
+    data: {
+      date: dateKey,
+      extracted: {
+        workoutKind: "outdoor_run",
+        distanceKm,
+        duration: `${String(Math.floor(durationMin / 60)).padStart(2, "0")}:${String(durationMin % 60).padStart(2, "0")}:00`,
+      },
+    },
+  };
+}
+
+// ─── Report defaults to Week mode ─────────────────────────────────────────────
+
+test("Report page defaults to week mode", async ({ page }) => {
+  const state = await installMockBackend(page);
+  state.history.push(makeSleep(bangkokDateKey(), "sleep-rc-1"));
+
+  await gotoApp(page, "/logs");
+
+  await expect(page.getByTestId("calendar-nav")).toBeVisible();
+  // Week mode active button is present (exact match to avoid matching aria-label variants)
+  await expect(page.getByRole("button", { name: "สัปดาห์", exact: true })).toBeVisible();
+  // 7 day slots rendered
+  await expect(page.getByTestId("day-slot")).toHaveCount(7);
+});
+
+// ─── Week header shows Mon–Sun range ──────────────────────────────────────────
+
+test("Week header shows a date range label", async ({ page }) => {
+  const state = await installMockBackend(page);
+  state.history.push(makeSleep(bangkokDateKey(), "sleep-rc-range"));
+
+  await gotoApp(page, "/logs");
+
+  const nav = page.getByTestId("calendar-nav");
+  // Label contains a Thai month abbreviation — one of the 12 short month names
+  await expect(nav).toContainText(/ม\.ค\.|ก\.พ\.|มี\.ค\.|เม\.ย\.|พ\.ค\.|มิ\.ย\.|ก\.ค\.|ส\.ค\.|ก\.ย\.|ต\.ค\.|พ\.ย\.|ธ\.ค\./);
+});
+
+// ─── Week navigation prev/current/next ────────────────────────────────────────
+
+test("Week navigation: going back and returning to current works", async ({ page }) => {
+  const state = await installMockBackend(page);
+  state.history.push(makeSleep(bangkokDateKey(), "sleep-rc-nav"));
+
+  await gotoApp(page, "/logs");
+
+  const nav = page.getByTestId("calendar-nav");
+
+  // Going back one week shows "ปัจจุบัน" button
+  await nav.getByRole("button", { name: "สัปดาห์ก่อน" }).click();
+  await expect(page.getByTestId("nav-current-btn")).toBeVisible();
+
+  // Clicking ปัจจุบัน goes back to current week — button disappears
+  await page.getByTestId("nav-current-btn").click();
+  await expect(page.getByTestId("nav-current-btn")).toHaveCount(0);
+});
+
+// ─── Daily logs show as DaySlot cards ─────────────────────────────────────────
+
+test("Daily slots are collapsed by default (no full DayCard details)", async ({ page }) => {
+  const state = await installMockBackend(page);
+  state.history.push(makeSleep(bangkokDateKey(), "sleep-rc-slot"));
+  state.history.push(makeRun(bangkokDateKey(), "run-rc-slot", 5));
+
+  await gotoApp(page, "/logs");
+
+  // 7 DaySlot cards visible
+  await expect(page.getByTestId("day-slot")).toHaveCount(7);
+  // Today's slot shows run distance
+  await expect(page.getByTestId("week-day-list").getByText(/5 กม\./)).toBeVisible();
+});
+
+// ─── Month mode shows monthly summary ─────────────────────────────────────────
+
+test("Switching to month mode shows month week blocks", async ({ page }) => {
+  const state = await installMockBackend(page);
+  state.history.push(makeSleep(bangkokDateKey(), "sleep-rc-month"));
+
+  await gotoApp(page, "/logs");
+
+  // Switch to month mode
+  await page.getByRole("button", { name: "เดือน", exact: true }).click();
+
+  await expect(page.getByTestId("month-week-list")).toBeVisible();
+  // At least one week block is rendered
+  await expect(page.getByTestId("month-week-block").first()).toBeVisible();
+  // Period metrics visible
+  await expect(page.getByTestId("period-metrics")).toBeVisible();
+});
+
+// ─── Month navigation ──────────────────────────────────────────────────────────
+
+test("Month navigation: going back a month and returning to current", async ({ page }) => {
+  const state = await installMockBackend(page);
+  state.history.push(makeSleep(bangkokDateKey(), "sleep-rc-monnav"));
+
+  await gotoApp(page, "/logs");
+
+  // Switch to month
+  await page.getByRole("button", { name: "เดือน", exact: true }).click();
+
+  const nav = page.getByTestId("calendar-nav");
+
+  // Go back one month
+  await nav.getByRole("button", { name: "เดือนก่อน" }).click();
+  await expect(page.getByTestId("nav-current-btn")).toBeVisible();
+
+  // Return to current
+  await page.getByTestId("nav-current-btn").click();
+  await expect(page.getByTestId("nav-current-btn")).toHaveCount(0);
+});
+
+// ─── Tapping month week block switches to week mode ───────────────────────────
+
+test("Tapping a month week block switches to week mode", async ({ page }) => {
+  const state = await installMockBackend(page);
+  state.history.push(makeSleep(bangkokDateKey(), "sleep-rc-tap"));
+
+  await gotoApp(page, "/logs");
+
+  await page.getByRole("button", { name: "เดือน", exact: true }).click();
+  await expect(page.getByTestId("month-week-block").first()).toBeVisible();
+
+  // Click first week block
+  await page.getByTestId("month-week-block").first().click();
+
+  // Should now be in week mode with 7 day slots
+  await expect(page.getByTestId("day-slot")).toHaveCount(7);
+  await expect(page.getByTestId("month-week-list")).toHaveCount(0);
+});
+
+// ─── No horizontal overflow ────────────────────────────────────────────────────
+
+test("Report page has no horizontal overflow on mobile viewport", async ({ page }) => {
+  const state = await installMockBackend(page);
+  state.history.push(makeSleep(bangkokDateKey(), "sleep-rc-overflow"));
+
+  await page.setViewportSize({ width: 375, height: 812 });
+  await gotoApp(page, "/logs");
+
+  const bodyWidth = await page.evaluate(() => document.body.scrollWidth);
+  const viewportWidth = await page.evaluate(() => window.innerWidth);
+  expect(bodyWidth).toBeLessThanOrEqual(viewportWidth);
+});
