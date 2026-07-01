@@ -20,7 +20,7 @@ test("Coach renders a mocked response without calling a real provider", async ({
   await installMockBackend(page);
   await gotoApp(page, "/coach");
 
-  const input = page.getByPlaceholder("ถามโค้ชเรื่องซ้อม กิน นอน หรืออะไรก็ได้...");
+  const input = page.getByPlaceholder("ถามโค้ชได้เลย...");
   await input.fill("เย็นกินอะไรดี");
   await page.getByRole("button", { name: "ส่ง" }).click();
 

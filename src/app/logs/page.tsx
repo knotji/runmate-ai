@@ -256,11 +256,11 @@ export default function ReportPage() {
   return (
     <AppShell title="บันทึกของเรา" subtitle="Report · ข้อมูลจาก Upload ที่โค้ชใช้เป็นบริบท">
       {loading ? (
-        <section className="card p-5 text-sm text-slate-500">กำลังโหลดข้อมูล...</section>
+        <section className="card p-5 text-sm text-[var(--color-text-soft)]">กำลังโหลดข้อมูล...</section>
       ) : error ? (
         <section className="card p-5 text-sm text-red-500">{error}</section>
       ) : days.length === 0 ? (
-        <section className="card space-y-3 p-5 text-sm text-slate-600">
+        <section className="card space-y-3 p-5 text-sm text-[var(--muted-text)]">
           <div>
             <p className="font-bold text-[var(--foreground)]">ยังไม่มีบันทึก</p>
             <p className="mt-1 leading-6">ลองเพิ่มมื้ออาหาร การนอน หรือผลวิ่งก่อนนะ</p>

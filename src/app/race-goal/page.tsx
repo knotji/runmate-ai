@@ -142,10 +142,10 @@ export default function RaceGoalPage() {
       ) : (
         <>
           <RaceCountdownCard goal={goal} phase={plan.currentPhase} />
-          <PlanAtGlance plan={plan} freshness={planFreshness} />
-          <RecoveryGuardrailsCard coachContext={coachContext} />
           {selectedTodayWorkout ? <TodayWorkoutCard workout={normalizeForDisplay(selectedTodayWorkout)} coachContext={coachContext} /> : null}
           {plan.weeklyPlan?.length ? <ActionableWeekCard workouts={plan.weeklyPlan.map(normalizeForDisplay)} coachContext={coachContext} /> : null}
+          <RecoveryGuardrailsCard coachContext={coachContext} />
+          <PlanAtGlance plan={plan} freshness={planFreshness} />
 
           <section className="card p-4">
             <details className="group cursor-pointer">
@@ -183,8 +183,8 @@ export default function RaceGoalPage() {
           </section>
 
           {!plan.weeklyPlan?.length && plan.weeks?.[0] ? <WeeklyPlanCard week={plan.weeks[0]} /> : null}
-          <button className="btn-secondary w-full" onClick={() => void resetAll()}>
-            สร้างแผนใหม่
+          <button className="w-full py-2 text-center text-xs text-[var(--muted-text)] hover:text-[var(--foreground)] transition-colors" onClick={() => void resetAll()}>
+            สร้างแผนใหม่ / รีเซ็ตเป้าหมาย
           </button>
         </>
       )}
@@ -323,11 +323,12 @@ function TodayWorkoutCard({ workout, coachContext }: { workout: WeekWorkout; coa
   const adaptiveNote = getAdaptiveLongRunNote(workout, coachContext);
   return (
     <section className="card border border-[#b7dcc4] bg-[#f4fbf6] p-5">
+      <div className="mb-3 flex items-center gap-2">
+        <p className="text-xs font-bold uppercase tracking-[0.22em] text-[var(--primary-strong)]">วันนี้แผนซ้อมปรับตามร่างกาย</p>
+        <span className="rounded-full bg-[var(--primary-soft)] px-2 py-0.5 text-[9px] font-bold text-[var(--primary-strong)]">ปรับแล้ว</span>
+      </div>
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.22em] text-[var(--primary-strong)]">วันนี้ซ้อมอะไร</p>
-          <h2 className="mt-2 text-2xl font-bold text-[var(--foreground)]">{workout.workoutType}</h2>
-        </div>
+        <h2 className="text-2xl font-bold text-[var(--foreground)]">{workout.workoutType}</h2>
         <span className="rounded-full bg-[var(--surface)] px-3 py-1 text-sm font-bold text-[var(--primary-strong)] shadow-sm">
           {formatWorkoutAmount(workout)}
         </span>
@@ -395,9 +396,11 @@ function isTodayWorkout(dayStr: string): boolean {
 function ActionableWeekCard({ workouts, coachContext }: { workouts: WeekWorkout[]; coachContext: CoachContext | null }) {
   return (
     <section className="card p-5">
-      <p className="text-xs font-bold uppercase tracking-[0.22em] text-[var(--label-color)]">แผนสัปดาห์นี้</p>
-      <h2 className="mt-2 text-xl font-bold text-[var(--foreground)]">แผน 7 วันแบบลงมือทำได้</h2>
-      <div className="mt-4 space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs font-bold uppercase tracking-[0.22em] text-[var(--label-color)]">แผน 7 วัน</p>
+        <p className="text-[10px] text-[var(--muted-text)]">แตะเพื่อดูรายละเอียด</p>
+      </div>
+      <div className="mt-3 space-y-2">
         {workouts.map((workout, index) => {
           const isStrength = isStrengthOrMobilityType(workout.workoutType);
           const adaptiveNote = getAdaptiveLongRunNote(workout, coachContext);
@@ -405,8 +408,7 @@ function ActionableWeekCard({ workouts, coachContext }: { workouts: WeekWorkout[
           return (
             <details
               key={`${workout.day}-${workout.workoutType}-${index}`}
-              className="group cursor-pointer card-soft p-4 shadow-sm ring-1 ring-slate-100"
-              open={isToday}
+              className="group cursor-pointer card-soft p-3.5 shadow-sm ring-1 ring-slate-100"
             >
               <summary className="list-none flex items-start justify-between gap-3 font-semibold">
                 <div className="flex flex-col gap-0.5">

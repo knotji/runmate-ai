@@ -289,7 +289,7 @@ export function CoachChat() {
           {buildQuickQuestions(raceQuickContext).map((item) => (
             <button
               key={item.label}
-              className="rounded-full border border-[var(--border-warm)] bg-[var(--surface)]/85 px-3 py-2.5 text-xs font-bold text-[var(--foreground)] shadow-sm transition hover:bg-[var(--primary-soft)]"
+              className="rounded-full border border-[var(--border-warm)] bg-[var(--surface-muted)] px-3 py-2 text-xs font-semibold text-[var(--foreground)] transition hover:bg-[var(--primary-soft)]"
               onClick={() => void ask(item.prompt)}
             >
               {item.label}
@@ -400,7 +400,7 @@ export function CoachChat() {
           className="min-w-0 flex-1 rounded-2xl border-0 bg-[var(--surface-muted)] px-4 py-3 text-sm text-[var(--foreground)] outline-none focus:ring-2 focus:ring-[var(--primary)]/20"
           value={input}
           onChange={(event) => setInput(event.target.value)}
-          placeholder={previewUrl ? `ถามต่อเกี่ยวกับรูปนี้ หรือกดส่งเพื่อให้โค้ชดูรูป...` : "ถามโค้ชเรื่องซ้อม กิน นอน หรืออะไรก็ได้..."}
+          placeholder={previewUrl ? "ถามต่อเกี่ยวกับรูปนี้ หรือกดส่ง..." : "ถามโค้ชได้เลย..."}
         />
         <LoadingButton
           className="rounded-2xl bg-[var(--primary)] px-5 py-3 text-sm font-bold text-white transition-opacity disabled:opacity-40"
