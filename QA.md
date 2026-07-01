@@ -38,7 +38,7 @@
 - [ ] Today 4-Axis Grid displays numeric scores (e.g. 78/100) and short status badges (ดี, พอใช้, สูงมาก, ยังน้อย) and one-line summaries.
 - [ ] Today details explanation panel warns: "สำหรับโหลดซ้อม คะแนนสูงหมายถึงโหลดสะสมสูง จึงควรคุมความหนัก ไม่ใช่คะแนนดีเสมอไป" and matches the text "แต่ละแกนให้คะแนน 0–100 เพื่อช่วยดูว่าร่างกายพร้อมแค่ไหน".
 - [ ] Recovery Loop card leads with sleep target ("ควรนอน X–Y ชม."), followed by tomorrow preview, then day load context in coaching language (e.g., "วันนี้ยังไม่มีโหลดซ้อมหลัก" / "วันนี้ใช้แรงสูงแล้ว · วิ่ง X km"). No debug-like labels such as "โหลดวันนี้ ต่ำ" or "ยังไม่มีกิจกรรม" visible in default state.
-- [ ] Hero reason line and overview axis summary use the same axis label wording as the 4-axis rings. Sleep score 40 shows "นอนต่ำ" in both places, not "Sleep พอใช้" in one and "ต่ำ" in another.
+- [ ] Hero reason line and overview axis summary use the same axis label wording as the 4-axis factor bars. Sleep score 40 shows "นอนต่ำ" in both places, not "Sleep พอใช้" in one and "ต่ำ" in another.
 - [ ] Today overview reason line shows only the top 2–3 notable factors, prioritized as pain, load, sleep, fuel, recovery, with fallback "พร้อมทำตามแผนวันนี้".
 - [ ] Coach ReadinessCard expanded view displays the same compact 4-axis grid format which updates reactively as sliders are adjusted.
 - [ ] Report default shows only calendar summary + calendar content at top level.
@@ -87,11 +87,16 @@
 - [ ] Today snapshot card expandable details contains a note explaining the safety/easy downgrading rule.
 - [ ] Today overview card uses the `.health-score-card` gradient style (soft sage gradient, warm border, layered shadow) instead of the generic `.card`.
 - [ ] Today overview card shows a short coaching directive headline (e.g., "พร้อมขยับตามแผน", "คุมเบาไว้ก่อน", "วันนี้เน้นพักฟื้นตัว") between the readiness chip and the axis summary line.
-- [ ] Today 4-axis factors (ฟื้นตัว / โหลดซ้อม / การนอน / พลังงาน) are each wrapped in a soft cream `.ring-panel` mini card.
+- [ ] Today 10/10 polish: score typography is clean, with `/ 100` intentionally secondary and baseline-aligned.
+- [ ] Today 10/10 polish: factor bars are aligned and compact; labels, tracks, scores, and state labels feel intentional.
+- [ ] Today 10/10 polish: coach prescription accent strip is balanced, CTA remains primary, and details toggle stays subtle.
+- [ ] Today 10/10 polish: Recovery Loop strip has balanced คืนนี้/ถัดไป columns with a subtle divider.
+- [ ] Today 10/10 polish: quick action dock remains touch-friendly while feeling quiet and intentional.
+- [ ] Today 10/10 polish: secondary cards are lighter/flatter and do not add page height or visual repetition.
 - [ ] Hero "วันนี้ควรทำอะไร" section shows a short Thai coach insight line (e.g., "วันนี้เหมาะกับ Recovery", "ขยับได้ แต่ไม่ต้องกด pace") above the main recommendation headline.
 - [ ] Recovery Loop card uses a subtle warm gradient tint and wider label tracking to match the overview card's section label style.
-- [ ] Today 4-axis factor panels are compact and readable; ring size is ~56px on mobile with legible center scores.
-- [ ] Success (e.g., Fuel 100/100) ring uses muted sage green, not bright green — it does not visually overpower caution factors.
+- [ ] Today 4-axis factor bars are compact and readable; factor rows do not show `/100`.
+- [ ] Success (e.g., Fuel 100) uses muted sage green, not bright green — it does not visually overpower caution factors.
 - [ ] Hero recommendation (pre-workout) has exactly one secondary details control visible by default: "ทำไมวันนี้แนะนำแบบนี้?" — "ดูเหตุผลและข้อแนะนำเพิ่มเติม" does not appear separately.
 - [ ] Clicking "ทำไมวันนี้แนะนำแบบนี้?" reveals the decision card (type badge, explanation body) and the reasons list in a single expandable section.
 - [ ] Post-workout hero shows "ดูสิ่งที่ควรทำต่อ" as its inner toggle; the outer "ทำไมวันนี้แนะนำแบบนี้?" does not appear in post-workout state.

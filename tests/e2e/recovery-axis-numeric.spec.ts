@@ -23,7 +23,7 @@ function makeSleepRecord(dateKey: string, id: string) {
   };
 }
 
-// ─── Phase 7A: Today 4-axis grid ─────────────────────────────────────────────
+// ─── Today factor bars + expanded axis details ───────────────────────────────
 
 test("Today axis grid shows four numeric /100 scores", async ({ page }) => {
   const state = await installMockBackend(page);
@@ -41,13 +41,13 @@ test("Today axis grid shows four numeric /100 scores", async ({ page }) => {
   expect(count).toBeGreaterThanOrEqual(4);
 });
 
-test("Today axis grid shows axis title labels ฟื้นตัว โหลดซ้อม การนอน พลังงาน", async ({ page }) => {
+test("Today factor bars show the four axis title labels", async ({ page }) => {
   const state = await installMockBackend(page);
   state.history.push(makeSleepRecord(bangkokDateKey(), "sleep-today-2"));
 
   await gotoApp(page, "/");
 
-  // Ring titles are always visible (no accordion needed)
+  await expect(page.getByTestId("today-factor-bar")).toHaveCount(4);
   await expect(page.getByText("ฟื้นตัว", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("โหลดซ้อม", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("การนอน", { exact: true }).first()).toBeVisible();
@@ -65,15 +65,15 @@ test("Today axis grid does not render old combined text-only format", async ({ p
   // Labels must not appear without a /100 score nearby — validated by presence of /100 texts above
 });
 
-// ─── Phase 7 Ring: Rings always visible, no Daily Check chip ─────────────────
+// ─── Factor bars always visible, no Daily Check chip ─────────────────────────
 
-test("Today recovery rings visible without expanding accordion", async ({ page }) => {
+test("Today recovery factor bars are visible without expanding accordion", async ({ page }) => {
   const state = await installMockBackend(page);
   state.history.push(makeSleepRecord(bangkokDateKey(), "sleep-ring-1"));
 
   await gotoApp(page, "/");
 
-  // All 4 ring titles visible without clicking anything
+  await expect(page.getByTestId("today-factor-bar")).toHaveCount(4);
   await expect(page.getByText("ฟื้นตัว", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("โหลดซ้อม", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("การนอน", { exact: true }).first()).toBeVisible();
@@ -83,7 +83,7 @@ test("Today recovery rings visible without expanding accordion", async ({ page }
   await expect(page.getByText(/Daily check/)).toHaveCount(0);
 });
 
-test("Today Load ring has data-tone warning when load is high", async ({ page }) => {
+test("Today Load factor bar has data-tone warning when load is high", async ({ page }) => {
   const state = await installMockBackend(page);
   // 4 past runs + 1 today = 60km total, freq 5 → load score ≥ 70 (สูง → warning)
   for (let i = 0; i <= 3; i++) {
@@ -101,9 +101,9 @@ test("Today Load ring has data-tone warning when load is high", async ({ page })
 
   await gotoApp(page, "/");
 
-  // The โหลดซ้อม ring container should have data-tone="warning" (amber, not success)
-  const loadRing = page.locator("[data-tone]").filter({ hasText: "โหลดซ้อม" });
-  await expect(loadRing).toHaveAttribute("data-tone", "warning");
+  // The โหลดซ้อม factor bar should have data-tone="warning" (amber, not success)
+  const loadBar = page.getByTestId("today-factor-bar").filter({ hasText: "โหลดซ้อม" });
+  await expect(loadBar).toHaveAttribute("data-tone", "warning");
 });
 
 // ─── Phase 7B: Coach page numeric axes ───────────────────────────────────────

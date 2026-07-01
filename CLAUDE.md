@@ -111,6 +111,7 @@ tests/
 - Use `.btn-danger-soft` for logout/injury report actions; `.soft-panel` for lightweight info cards
 - Use `.segmented-control` for tab/pill group container wrappers
 - Thai section headings > English uppercase labels in user-facing areas
+- After a successful layout redesign, final polish should refine hierarchy, alignment, tone, and rhythm without changing the composition again.
 - Keep emoji where it aids scanning; avoid emoji clusters in same card
 - Bottom nav uses inline SVG line icons, not emoji
 - Consistent emoji meanings: 🌙 sleep · 🍱/🍽️ food · 🏃 run/workout · 🏋️ strength · 🩹 pain · 📋 summary · 🎯 focus
@@ -119,7 +120,7 @@ tests/
 - **Soften overall readiness display**: To avoid contradiction with caution axes, the displayed label is softened dynamically using `getOverallDisplayStatus()` based on active caution factors. E.g., a score of 80 is labeled "Good · คุมเบา" (with Blue chip background `bg-[#e7f0fa]`) if Load is high and Sleep/Fuel is low. Today page renders a soft warning/amber banner ("ข้อแนะนำความพร้อม") with the caution details. The Coach page circular badge displays the compact base label (e.g., `"GOOD"` instead of `"EXCELLENT"`) to prevent visual overflow.
 - **Sleep Fallback Copy**: When today's sleep is missing but latest sleep exists, RunMate may provide a temporary recommendation, but UI must clearly label it as based on latest data, not today's sleep.
 - **Coach Caution Factors**: Identified by `getCoachCautionFactors(context)`. Gathers warning indicators (e.g. low sleep average, low daily sleep, high weekly run distance, elevated resting HR, resolved/active pain, low fuel carbs, completed workouts). Modifies summary description to "not a pace day" when readiness score is Good/Excellent but coaching level is yellow (ควรซ้อมเบา), adds conditional easy-run guidelines and carb suggestions to pre-workout/post-workout cards, and appends adaptive reduction notes on Race long run workouts.
-- **Today is recovery-first**: The Today page answers "ร่างกายวันนี้เป็นยังไง?" before "วันนี้ควรทำอะไร?". The `TodaySnapshotCard` (Recovery rings 2×2 on mobile, 4-col on sm+) is rendered first in the page JSX, above the hero recommendation card. The overview reason line should be short and prioritized: pain, load, sleep, fuel, recovery; show only the top 2–3 notable factors with fallback "พร้อมทำตามแผนวันนี้". Recovery details (coverage chips, /100 values, missing list, explanation) stay collapsed behind "ดูรายละเอียด Recovery". Daily Check chip is not shown in the overview card.
+- **Today is recovery-first**: The Today page answers "ร่างกายวันนี้เป็นยังไง?" before "วันนี้ควรทำอะไร?". The `TodaySnapshotCard` (large score + compact factor bars) is rendered first in the page JSX, above the hero recommendation card. The overview reason line should be short and prioritized: pain, load, sleep, fuel, recovery; show only the top 2–3 notable factors with fallback "พร้อมทำตามแผนวันนี้". Recovery details (coverage chips, /100 values, missing list, explanation) stay collapsed behind "ดูรายละเอียด Recovery". Daily Check chip is not shown in the overview card.
 
 ## RunMate Recovery Loop v1
 
@@ -254,29 +255,30 @@ RunMate's visual identity is warm beige/sage/cream — a soft recovery health ap
 **CSS classes** (defined in `globals.css`):
 
 - `.health-score-card` — soft sage gradient bg, warm border (`rgba(228,216,200,0.58)`), layered shadow. Used for `TodaySnapshotCard`.
-- `.ring-panel` — cream bg, rounded-16px mini card wrapping each `RecoveryRing`. Applied inside the 4-axis grid.
+- `FactorBar` rows (`data-testid="today-factor-bar"`) — compact aligned rows for the four Recovery axes. Keep label, track, score, and state label in a fixed grid so the numbers feel intentional.
 
 **Today overview card (`TodaySnapshotCard`)** layout order:
 
 1. Section label `"ภาพรวมวันนี้"` (10px, wide tracking, `text-[var(--label-color)]`)
-2. Readiness chip — must stay `.rounded-full` with text `"{score} Readiness {label}"` (tested by `readiness-consistency.spec.ts`)
-3. **Coach headline** — short action directive from `buildTodaySnapshotCoachHeadline()` e.g. "พร้อมขยับตามแผน", "คุมเบาไว้ก่อน", "วันนี้เน้นพักฟื้นตัว"
-4. Axis summary line (`data-testid="today-overview-reason"`)
-5. Caution note (if any)
-6. 4-axis ring grid (2×2 mobile, 1×4 sm+) — each ring wrapped in `.ring-panel`
-7. Expandable details `<details>`
+2. Large readiness score — score is dominant; `/ 100` is smaller, muted, and intentionally secondary.
+3. Readiness chip — must stay `.rounded-full` with text `"{score} Readiness {label}"` (tested by `readiness-consistency.spec.ts`)
+4. **Coach headline** — short action directive from `buildTodaySnapshotCoachHeadline()` e.g. "พร้อมขยับตามแผน", "คุมเบาไว้ก่อน", "วันนี้เน้นพักฟื้นตัว"
+5. Axis summary line (`data-testid="today-overview-reason"`)
+6. Caution note (if any)
+7. 4-axis factor bars — no `/100` per row; scores use tabular alignment; Load high remains amber/warning; Fuel success stays muted sage.
+8. Expandable details `<details>`
 
 **Hero card (`PreWorkoutFocusContent`)** layout:
 
-- Short coach insight line from `buildHeroCoachInsight()` appears ABOVE the main `workoutRec` h2, in `text-[var(--primary)]` color.
-- `workoutRec` headline uses `text-xl` (was `text-2xl`).
+- Short coach insight line from `buildHeroCoachInsight()` appears ABOVE the main `workoutRec` h2, as a soft compact pill.
+- `workoutRec` headline stays strong but not oversized.
 
-**`RecoveryLoopCard`** uses `bg-gradient-to-b from-[#fdfcf8] to-[#f8fcf9]` subtle tint and `text-[var(--label-color)]` label color for visual consistency with the overview card.
+**`RecoveryLoopCard`** uses a compact two-column strip for คืนนี้ / ถัดไป with a subtle divider. Keep no more than three default visible lines.
 
-**UI tone principle**: Soft Health UI should feel calm and premium. Positive states (success tone) use muted sage (`#7aab8f` ring stroke, `text-[#4a8a62]` label) — not bright green — so a perfect Fuel score does not visually overpower Load/Sleep caution. Caution (warning amber) and danger (red) must remain clear. Avoid letting any single perfect-score axis dominate the overview card.
+**UI tone principle**: Soft Health UI should feel calm and premium. Positive states (success tone) use muted sage (`#7aab8f`) — not bright green — so a perfect Fuel score does not visually overpower Load/Sleep caution. Caution (warning amber) and danger (red) must remain clear. Avoid letting any single perfect-score axis dominate the overview card.
 
 **Hero secondary details**: Pre-workout hero has exactly one secondary toggle: `"ทำไมวันนี้แนะนำแบบนี้?"`. The decision card (pain/caution/ok) and reasons list are both inside this single expandable. `"ดูเหตุผลและข้อแนะนำเพิ่มเติม"` no longer exists as a separate control. Post-workout shows `"ดูสิ่งที่ควรทำต่อ"` only (no outer reasons toggle).
 
-**Recovery ring panels**: `RecoveryRing` uses `w-14 h-14 sm:w-12 sm:h-12` container inside `.ring-panel`. Score font is `text-[13px] sm:text-[12px] font-black`. Grid uses `gap-2`. Do not enlarge these — compact sizing is intentional.
+**Final polish rule**: Once Today Dashboard v3 composition is set, polish only hierarchy, alignment, tone, and spacing rhythm. Do not return to large ring panels or add new top-level cards for polish.
 
 **Do not**: Change Recovery System scoring. Change Recovery Loop scoring. Change Readiness V2 logic. Add new database schema. Remove rolling 7-day content. Make Today page dense.

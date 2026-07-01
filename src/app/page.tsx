@@ -306,7 +306,7 @@ export default function TodayPage() {
   return (
     <AppShell title="โค้ชข้างทาง" subtitle={formatThaiDate()}>
 
-      {/* 1. Recovery rings first — ภาพรวมวันนี้ */}
+      {/* 1. Recovery overview first — ภาพรวมวันนี้ */}
       <TodaySnapshotCard
         insight={insight}
         readinessScore={readinessScore}
@@ -320,10 +320,10 @@ export default function TodayPage() {
       />
 
       {/* 2. วันนี้ควรทำอะไร — coach prescription */}
-      <section className="rounded-3xl bg-[var(--surface)] border border-[var(--border-warm)]/60 shadow-sm overflow-hidden">
+      <section className="rounded-3xl bg-[var(--surface)]/92 border border-[var(--border-warm)]/55 shadow-[0_12px_32px_rgba(72,82,72,0.055)] overflow-hidden">
         <div className="flex">
-          <div className="w-1.5 shrink-0 bg-gradient-to-b from-[var(--primary)] to-[var(--primary-strong)]" />
-          <div className="flex-1 px-4 pt-4 pb-4 space-y-4">
+          <div className="w-1 shrink-0 rounded-l-3xl bg-gradient-to-b from-[var(--primary)]/85 via-[var(--primary)]/55 to-[var(--recovery-blue)]/45" />
+          <div className="flex-1 px-4 pt-3.5 pb-4 space-y-3.5">
         <p className="text-xs font-semibold uppercase tracking-widest text-[var(--label-color)]">
           {hasWorkoutToday ? (coachCtx?.todayWorkouts.some((w) => w.kind === "strength") ? "หลังเวทวันนี้ควรทำอะไรต่อ" : "หลังซ้อมวันนี้ควรทำอะไรต่อ") : "วันนี้ควรทำอะไร"}
         </p>
@@ -369,7 +369,7 @@ export default function TodayPage() {
           </div>
         )}
 
-        <Link href="/upload" className="btn-primary block w-full py-3 text-center text-sm font-bold">
+        <Link href="/upload" className="btn-primary block w-full py-2.5 text-center text-sm font-bold shadow-[0_8px_20px_rgba(79,138,120,0.15)]">
           {hasWorkoutToday ? "อัปเดตข้อมูลวันนี้" : "บันทึกกิจกรรมวันนี้"}
         </Link>
 
@@ -378,10 +378,10 @@ export default function TodayPage() {
             <button
               type="button"
               onClick={() => setShowReasons((v) => !v)}
-              className="mt-1 flex w-full items-center justify-center gap-1 text-xs text-slate-400 hover:text-slate-600"
+              className="mt-0.5 flex w-full items-center justify-center gap-1 text-[11px] font-semibold text-[var(--color-text-soft)] transition-colors hover:text-[var(--foreground)]"
             >
               <span>{showReasons ? "ซ่อนเหตุผล" : "ทำไมวันนี้แนะนำแบบนี้?"}</span>
-              <span className={`transition-transform duration-200 ${showReasons ? "rotate-180" : ""}`}>▾</span>
+              <span className={`transition-transform duration-200 ${showReasons ? "rotate-180" : ""}`}>⌄</span>
             </button>
             {showReasons && (
               <div className="mt-3 rounded-2xl bg-slate-50 px-4 py-3 space-y-2">
@@ -427,8 +427,8 @@ export default function TodayPage() {
       {coachCtx && <RecoveryLoopCard coachCtx={coachCtx} />}
 
       {/* Quick Actions Dock — compact, above strength card */}
-      <div className="rounded-2xl bg-[var(--surface-muted)] p-1.5">
-        <div className="flex gap-0.5">
+      <div className="rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface-muted)]/85 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.45)]">
+        <div className="flex gap-1">
           {[
             { href: "/upload?type=sleep", icon: "🌙", label: "นอน" },
             { href: "/upload?type=meal", icon: "🍱", label: "อาหาร" },
@@ -436,9 +436,9 @@ export default function TodayPage() {
             { href: "/pain", icon: "🩹", label: "เจ็บ" },
             { href: "#end-of-day-summary", icon: "📋", label: "สรุปวัน" },
           ].map(({ href, icon, label }) => (
-            <Link key={href} href={href} className="flex-1 flex flex-col items-center gap-0.5 py-2.5 px-1 rounded-xl hover:bg-[var(--surface)] active:scale-95 transition-colors">
-              <span className="text-[1.15rem] leading-none">{icon}</span>
-              <span className="text-[9px] font-bold text-[var(--color-text-soft)] mt-0.5">{label}</span>
+            <Link key={href} href={href} className="flex-1 flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-2 text-center transition active:scale-[0.98] hover:bg-[var(--surface)]/80">
+              <span className="text-[1.05rem] leading-none grayscale-[20%] saturate-[0.85]">{icon}</span>
+              <span className="mt-0.5 text-[9px] font-black leading-none text-[var(--color-text-muted)]/80">{label}</span>
             </Link>
           ))}
         </div>
@@ -469,7 +469,7 @@ export default function TodayPage() {
           return (
             <>
               <p className="mt-1 px-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--color-text-soft)]">Recovery / อาการ</p>
-              <div className="flex items-center justify-between rounded-2xl border border-[var(--border-warm)] bg-[var(--surface)] px-4 py-2.5 shadow-sm text-xs text-[var(--foreground)] card">
+              <div className="flex items-center justify-between rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface)]/72 px-4 py-2.5 text-xs text-[var(--foreground)] shadow-[0_6px_18px_rgba(72,82,72,0.035)]">
                 <span className="font-semibold text-slate-700">🩹 อาการเจ็บ{latest.painLocation}ดีขึ้นแล้ว</span>
                 <Link href="/pain" className="text-[var(--primary)] font-bold hover:underline">
                   อัปเดตอาการ →
@@ -489,7 +489,7 @@ export default function TodayPage() {
         return (
           <>
             <p className="mt-1 px-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--color-text-soft)]">อาหารวันนี้</p>
-            <details className="group rounded-3xl border border-[var(--border-warm)] bg-[var(--surface)]/75 px-4 py-3 shadow-sm cursor-pointer">
+            <details className="group rounded-3xl border border-[var(--color-border-soft)] bg-[var(--surface)]/68 px-4 py-3 shadow-[0_6px_18px_rgba(72,82,72,0.035)] cursor-pointer">
               <summary className="flex list-none items-center justify-between gap-3 text-sm font-semibold text-[var(--foreground)]">
                 <div>
                   <p className="text-sm font-bold text-[var(--foreground)]">อาหารและพลังงานวันนี้</p>
@@ -503,7 +503,7 @@ export default function TodayPage() {
                   <span className="transition-transform group-open:rotate-180">▾</span>
                 </div>
               </summary>
-              <div className="mt-3 pt-3 border-t border-slate-100/60 space-y-3 cursor-default">
+              <div className="mt-3 pt-3 border-t border-slate-100/60 space-y-2.5 cursor-default">
                 {coachCtx.nutritionToday && (
                   <CompactNutritionCard nutrition={coachCtx.nutritionToday} profile={coachCtx.profile} />
                 )}
@@ -658,7 +658,7 @@ function PreWorkoutFocusContent({
   const hasLatestSleep = context ? context.sleep7d.length > 0 : false;
   const isUsingLatestSleepBecauseTodayMissing = !hasSleepToday && hasLatestSleep;
 
-  // Build a concise reason line — use getRecoveryAxisLabel for consistency with rings
+  // Build a concise reason line — use getRecoveryAxisLabel for consistency with factor bars.
   const reasonParts: string[] = [];
   if (context?.recoverySystem) {
     const { load, sleep, fuel } = context.recoverySystem.axes;
@@ -673,25 +673,25 @@ function PreWorkoutFocusContent({
   const reasonLine = reasonParts.join(" · ") || "ร่างกายอยู่ในเกณฑ์ดี";
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2.5">
       {/* Coach insight line */}
       {context && (
-        <p className="text-sm font-bold text-[var(--primary)] leading-snug">
+        <p className="inline-flex rounded-full bg-[var(--primary-soft)]/70 px-2.5 py-1 text-[11px] font-black text-[var(--primary-strong)] leading-snug">
           {buildHeroCoachInsight(insight, context)}
         </p>
       )}
       {/* 1. Headline first */}
-      <h2 className="line-clamp-2 text-xl font-bold text-[var(--foreground)]">{insight.workoutRec}</h2>
+      <h2 className="line-clamp-2 text-[1.18rem] font-black leading-snug tracking-[-0.015em] text-[var(--foreground)]">{insight.workoutRec}</h2>
 
       {/* 2. Target plan line */}
       {hasPace && (
-        <span className="inline-block rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+        <span className="inline-block rounded-full border border-[var(--color-border-soft)] bg-[var(--surface-muted)]/80 px-2.5 py-1 text-[11px] font-bold text-[var(--color-text-muted)]">
           {insight.workoutTarget}
         </span>
       )}
 
       {/* 3. Reason line */}
-      <p className="text-xs font-medium text-slate-400 mt-1">{reasonLine}</p>
+      <p className="text-[11px] font-medium text-[var(--color-text-soft)] leading-snug">{reasonLine}</p>
 
       {/* 4. Sleep Fallback note (if any) */}
       {isUsingLatestSleepBecauseTodayMissing && (
@@ -1419,23 +1419,23 @@ function RecoveryLoopCard({ coachCtx }: { coachCtx: CoachContext }) {
   const dayLoadContextLine = `${dayLoad.summary}${activitySuffix}`;
 
   return (
-    <section className="rounded-2xl bg-[var(--surface-muted)] px-3 py-3 space-y-2" data-testid="recovery-loop-card">
-      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--label-color)]">คืนนี้ควรฟื้นตัวยังไง</p>
+    <section className="rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface-muted)]/80 px-3 py-2.5 space-y-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.45)]" data-testid="recovery-loop-card">
+      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--label-color)]">คืนนี้ควรฟื้นตัวยังไง</p>
 
       {/* 2-column strip: sleep | tomorrow */}
-      <div className="grid grid-cols-2 gap-x-3 divide-x divide-[var(--color-border-soft)]">
-        <div>
-          <p className="text-[9px] font-bold uppercase tracking-wide text-[var(--color-text-soft)] mb-0.5">คืนนี้</p>
+      <div className="grid grid-cols-2 gap-x-3 divide-x divide-[var(--color-border-soft)]/80">
+        <div className="pr-2">
+          <p className="text-[9px] font-bold uppercase tracking-wide text-[var(--color-text-soft)] mb-1">คืนนี้</p>
           <div className="flex items-center gap-1 text-xs">
             <span className="leading-none">🌙</span>
-            <span className="font-semibold text-[var(--foreground)] leading-snug">{sleepNeed.label}</span>
+            <span className="font-bold text-[var(--foreground)] leading-snug">{sleepNeed.label}</span>
           </div>
         </div>
         <div className="pl-3">
-          <p className="text-[9px] font-bold uppercase tracking-wide text-[var(--color-text-soft)] mb-0.5">ถัดไป</p>
+          <p className="text-[9px] font-bold uppercase tracking-wide text-[var(--color-text-soft)] mb-1">ถัดไป</p>
           <div className="flex items-start gap-1 text-xs">
             <span className="leading-none shrink-0">{icon}</span>
-            <span className="font-semibold text-[var(--foreground)] leading-snug">{tomorrowPreview.headline}</span>
+            <span className="font-bold text-[var(--foreground)] leading-snug">{tomorrowPreview.headline}</span>
           </div>
         </div>
       </div>
@@ -1447,10 +1447,10 @@ function RecoveryLoopCard({ coachCtx }: { coachCtx: CoachContext }) {
       <button
         type="button"
         onClick={() => setShowDetail((v) => !v)}
-        className="flex items-center gap-1 text-[11px] font-semibold text-[var(--color-text-soft)] hover:text-[var(--foreground)] py-0.5"
+        className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--color-text-soft)] transition-colors hover:text-[var(--foreground)] py-0.5"
       >
         <span>{showDetail ? "ซ่อนเหตุผล" : "ดูเหตุผล"}</span>
-        <span className={`transition-transform duration-200 ${showDetail ? "rotate-180" : ""}`}>▾</span>
+        <span className={`transition-transform duration-200 ${showDetail ? "rotate-180" : ""}`}>⌄</span>
       </button>
       {showDetail && (
         <div className="rounded-2xl bg-slate-50/80 px-3 py-2.5 space-y-2">
@@ -1510,13 +1510,13 @@ function FactorBar({ title, score, tone, label }: { title: string; score: number
   const tColor = FACTOR_BAR_TEXT_COLOR[tone] ?? FACTOR_BAR_TEXT_COLOR.neutral;
   const pct = Math.min(100, Math.max(0, score));
   return (
-    <div className="flex items-center gap-2.5" data-tone={tone}>
-      <span className="w-[4.5rem] text-[10px] font-semibold text-[var(--color-text-soft)] shrink-0 leading-tight">{title}</span>
-      <div className="flex-1 h-1.5 rounded-full bg-slate-100/80 overflow-hidden">
-        <div className="h-full rounded-full transition-all duration-300" style={{ width: `${pct}%`, background: color }} />
+    <div className="grid grid-cols-[4.55rem_minmax(0,1fr)_2rem_2.65rem] items-center gap-2" data-tone={tone} data-testid="today-factor-bar">
+      <span className="text-[10px] font-semibold text-[var(--color-text-muted)]/80 shrink-0 leading-tight">{title}</span>
+      <div className="h-1.5 rounded-full bg-[#eee8dd]/75 overflow-hidden shadow-[inset_0_1px_1px_rgba(47,51,47,0.04)]">
+        <div className="h-full rounded-full transition-all duration-300 ease-out" style={{ width: `${pct}%`, background: color }} />
       </div>
-      <span className="text-[11px] font-bold w-7 text-right shrink-0" style={{ color: tColor }}>{Math.round(score)}</span>
-      <span className="text-[9px] text-[var(--color-text-soft)] w-8 shrink-0">{label}</span>
+      <span className="text-right text-[11px] font-black tabular-nums tracking-[-0.01em]" style={{ color: tColor }}>{Math.round(score)}</span>
+      <span className="text-[9px] font-semibold text-[var(--color-text-soft)] text-right leading-tight truncate">{label}</span>
     </div>
   );
 }
@@ -1621,7 +1621,7 @@ function TodaySnapshotCard({
   const axisSummaryLine = buildTodayOverviewReasonLine(recSys, coachCtx);
 
   return (
-    <section className="health-score-card px-4 pt-4 pb-3 space-y-3">
+    <section className="health-score-card px-4 pt-4 pb-3 space-y-2.5">
       <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--label-color)]">ภาพรวมวันนี้</p>
 
       {/* Big score + readiness chip row */}
@@ -1632,22 +1632,22 @@ function TodaySnapshotCard({
           )}
           {!loading && readinessScore != null && insight && (
             <>
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-5xl font-black text-[var(--foreground)] leading-none tabular-nums">{readinessScore}</span>
-                <span className="text-sm font-semibold text-[var(--color-text-soft)]">/ 100</span>
+              <div className="flex items-end gap-1.5">
+                <span className="text-5xl font-black text-[var(--foreground)] leading-[0.88] tabular-nums tracking-[-0.035em]">{readinessScore}</span>
+                <span className="pb-1 text-sm font-bold text-[var(--color-text-soft)] tracking-[-0.01em]">/ 100</span>
               </div>
-              <p className="text-base font-bold text-[var(--foreground)] leading-snug mt-2">
+              <p className="mt-2 text-[15px] font-black text-[var(--foreground)] leading-snug tracking-[-0.01em]">
                 {buildTodaySnapshotCoachHeadline(readinessScore, coachCtx)}
               </p>
             </>
           )}
         </div>
-        <div className="shrink-0 pt-0.5 flex flex-col items-end gap-1.5">
+        <div className="shrink-0 pt-1 flex flex-col items-end gap-1.5">
           {loading && (
             <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-400">รอข้อมูลล่าสุด</span>
           )}
           {!loading && readinessScore != null && insight && (
-            <span className={`rounded-full px-3 py-1 text-xs font-bold ${readinessChipClass(readinessScore, displayStatus.displayLabel)}`}>
+            <span className={`rounded-full px-2.5 py-1 text-[11px] font-black shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] ${readinessChipClass(readinessScore, displayStatus.displayLabel)}`}>
               {readinessScore} Readiness {hasSleepToday ? displayStatus.displayLabel : `ล่าสุด · ${displayStatus.displayLabel}`}
             </span>
           )}
@@ -1661,7 +1661,7 @@ function TodaySnapshotCard({
 
       {/* One-line axis summary */}
       {!loading && (
-        <p className="text-[11px] text-[var(--color-text-soft)] leading-tight" data-testid="today-overview-reason">{axisSummaryLine}</p>
+        <p className="text-[11px] font-medium text-[var(--color-text-soft)] leading-tight" data-testid="today-overview-reason">{axisSummaryLine}</p>
       )}
 
       {/* Caution note */}
@@ -1671,9 +1671,9 @@ function TodaySnapshotCard({
         </p>
       )}
 
-      {/* Compact factor bars replacing 4-ring panel grid */}
+      {/* Compact factor bars */}
       {!loading && recSys && (
-        <div className="space-y-1.5 py-0.5">
+        <div className="space-y-1.5 rounded-2xl bg-white/35 px-2.5 py-2">
           {([
             { key: "recovery" as const, title: "ฟื้นตัว" },
             { key: "load" as const, title: "โหลดซ้อม" },
@@ -1694,13 +1694,13 @@ function TodaySnapshotCard({
       {/* Details: full /100 values, coverage, missing, explanation */}
       {!loading && recSys && (
         <details className="group cursor-pointer">
-          <summary className="list-none flex items-center gap-1 text-[11px] font-bold text-[var(--primary)]">
+          <summary className="list-none inline-flex items-center gap-1 rounded-full px-1 py-0.5 text-[11px] font-bold text-[var(--color-text-soft)] transition-colors hover:text-[var(--primary)]">
             <span className="group-open:hidden">ดูรายละเอียด Recovery</span>
             <span className="hidden group-open:inline">ซ่อนรายละเอียด</span>
-            <span className="transition-transform group-open:rotate-180">▾</span>
+            <span className="transition-transform duration-200 group-open:rotate-180">⌄</span>
           </summary>
 
-          <div className="mt-2.5 space-y-3 cursor-default text-xs">
+          <div className="mt-2 space-y-3 cursor-default text-xs">
             {/* Axis rows with /100 */}
             <div className="space-y-1.5">
               {([
@@ -1956,7 +1956,7 @@ function CompactNutritionCard({ nutrition, profile }: { nutrition: NutritionDayS
     : "เกินเป้า";
 
   return (
-    <section className="card px-4 py-3">
+    <section className="rounded-2xl border border-[var(--color-border-soft)] bg-white/45 px-3 py-2.5">
       <div className="flex items-center justify-between gap-3">
         <span className="text-sm font-bold text-[var(--foreground)]">
           💪 Protein {actual ?? "-"} / {target} g
@@ -2013,7 +2013,7 @@ function EndOfDaySummaryCard({
   // Case 1: summary exists -> show compact done state
   if (hasSummary) {
     return (
-      <div id="end-of-day-summary" className="flex items-center justify-between rounded-2xl border border-[var(--border-warm)] bg-[var(--surface)] px-4 py-2.5 shadow-sm text-xs text-[var(--foreground)] card scroll-mt-6">
+      <div id="end-of-day-summary" className="flex items-center justify-between rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface)]/72 px-4 py-2.5 text-xs text-[var(--foreground)] shadow-[0_6px_18px_rgba(72,82,72,0.035)] scroll-mt-6">
         <span className="font-semibold text-slate-700">📋 สรุปท้ายวันของวันนี้บันทึกเรียบร้อยแล้ว</span>
         <details className="inline-block cursor-pointer">
           <summary className="list-none text-[var(--primary)] font-bold hover:underline">ดูบันทึก</summary>
@@ -2041,7 +2041,7 @@ function EndOfDaySummaryCard({
   // Case 2: summary missing & before evening -> show collapsed details card
   if (!isEvening) {
     return (
-      <details id="end-of-day-summary" className="group rounded-3xl border border-[var(--border-warm)] bg-[var(--surface)]/75 px-4 py-3 shadow-sm cursor-pointer scroll-mt-6">
+      <details id="end-of-day-summary" className="group rounded-3xl border border-[var(--color-border-soft)] bg-[var(--surface)]/68 px-4 py-3 shadow-[0_6px_18px_rgba(72,82,72,0.035)] cursor-pointer scroll-mt-6">
         <summary className="flex list-none items-center justify-between gap-3 text-sm font-semibold text-[var(--foreground)]">
           <div>
             <p className="text-sm font-bold text-[var(--foreground)]">สรุปท้ายวัน</p>
