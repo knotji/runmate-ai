@@ -108,6 +108,31 @@ test("Week navigation: going back and returning to current works", async ({ page
   await expect(page.getByTestId("nav-current-btn")).toHaveCount(0);
 });
 
+test("Calendar navigation shows transition feedback and disables controls", async ({ page }) => {
+  const state = await installMockBackend(page);
+  state.history.push(makeSleep(bangkokDateKey(), "sleep-rc-transition"));
+
+  await gotoApp(page, "/logs");
+
+  const nav = page.getByTestId("calendar-nav");
+  const content = page.getByTestId("calendar-content");
+  const previous = nav.getByRole("button", { name: "สัปดาห์ก่อน" });
+
+  await previous.click();
+  await expect(page.getByTestId("calendar-transition-status")).toBeVisible();
+  await expect(content).toHaveAttribute("aria-busy", "true");
+  await expect(previous).toBeDisabled();
+  await expect(page.getByTestId("nav-current-btn")).toBeVisible();
+
+  await expect(page.getByTestId("calendar-transition-status")).toHaveCount(0);
+  await expect(content).toHaveAttribute("aria-busy", "false");
+
+  await page.getByTestId("nav-current-btn").click();
+  await expect(page.getByTestId("calendar-transition-status")).toBeVisible();
+  await expect(page.getByTestId("calendar-transition-status")).toHaveCount(0);
+  await expect(page.getByTestId("nav-current-btn")).toHaveCount(0);
+});
+
 // ─── Daily logs show as DaySlot cards ─────────────────────────────────────────
 
 test("Daily slots are collapsed by default (no full DayCard details)", async ({ page }) => {

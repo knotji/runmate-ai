@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
 import { LoadingButton } from "@/components/LoadingButton";
@@ -68,6 +68,8 @@ export default function ReportPage() {
   const [reportMode, setReportMode] = useState<"week" | "month">("week");
   const [calendarWeek, setCalendarWeek] = useState<CalendarPeriod>(() => getCurrentCalendarWeek());
   const [calendarMonth, setCalendarMonth] = useState<CalendarPeriod>(() => getCurrentCalendarMonth());
+  const [calendarTransitioning, setCalendarTransitioning] = useState(false);
+  const calendarTransitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -104,6 +106,23 @@ export default function ReportPage() {
       window.removeEventListener("focus", onFocus);
     };
   }, []);
+
+  useEffect(() => {
+    return () => {
+      if (calendarTransitionTimer.current) clearTimeout(calendarTransitionTimer.current);
+    };
+  }, []);
+
+  function runCalendarTransition(action: () => void) {
+    if (calendarTransitioning) return;
+    if (calendarTransitionTimer.current) clearTimeout(calendarTransitionTimer.current);
+    setCalendarTransitioning(true);
+    action();
+    calendarTransitionTimer.current = setTimeout(() => {
+      setCalendarTransitioning(false);
+      calendarTransitionTimer.current = null;
+    }, 260);
+  }
 
   const raceResultsByDate = groupRaceResultsByDate(raceResults);
   const days = groupByDay(items);
@@ -209,12 +228,15 @@ export default function ReportPage() {
           {/* Calendar navigation */}
           <CalendarNav
             mode={reportMode}
-            onModeChange={setReportMode}
+            onModeChange={(mode) => {
+              if (mode !== reportMode) runCalendarTransition(() => setReportMode(mode));
+            }}
             week={calendarWeek}
             month={calendarMonth}
-            onWeekChange={setCalendarWeek}
-            onMonthChange={setCalendarMonth}
+            onWeekChange={(week) => runCalendarTransition(() => setCalendarWeek(week))}
+            onMonthChange={(month) => runCalendarTransition(() => setCalendarMonth(month))}
             todayDateKey={todayDateKey}
+            transitioning={calendarTransitioning}
           />
 
           {deleteStatus ? (
@@ -224,36 +246,51 @@ export default function ReportPage() {
           ) : null}
 
           {/* Calendar views */}
-          {reportMode === "week" ? (
-            <>
-              {weekSummary && (
-                <PeriodMetrics totals={weekSummary.totals} averages={weekSummary.averages} />
-              )}
-              <div className="space-y-2" data-testid="week-day-list">
-                {weekSummary?.days.map((day) => (
-                  <DaySlot key={day.dateKey} day={day} />
-                ))}
+          <div
+            aria-busy={calendarTransitioning}
+            className={`space-y-3 transition-opacity duration-200 ${calendarTransitioning ? "opacity-55" : "opacity-100"}`}
+            data-testid="calendar-content"
+          >
+            {calendarTransitioning && (
+              <div className="rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface-muted)] px-4 py-2 text-center text-xs font-semibold text-[var(--color-text-muted)]" data-testid="calendar-transition-status">
+                กำลังเปลี่ยนช่วง...
               </div>
-            </>
-          ) : (
-            <>
-              {monthSummary && (
-                <PeriodMetrics totals={monthSummary.totals} averages={monthSummary.averages} />
-              )}
-              <div className="space-y-2" data-testid="month-week-list">
-                {monthSummary?.weeks.map((week) => (
-                  <MonthWeekBlock
-                    key={week.startDateKey}
-                    week={week}
-                    onSelectWeek={(period) => {
-                      setCalendarWeek(period);
-                      setReportMode("week");
-                    }}
-                  />
-                ))}
-              </div>
-            </>
-          )}
+            )}
+
+            {reportMode === "week" ? (
+              <>
+                {weekSummary && (
+                  <PeriodMetrics totals={weekSummary.totals} averages={weekSummary.averages} />
+                )}
+                <div className="space-y-2" data-testid="week-day-list">
+                  {weekSummary?.days.map((day) => (
+                    <DaySlot key={day.dateKey} day={day} />
+                  ))}
+                </div>
+              </>
+            ) : (
+              <>
+                {monthSummary && (
+                  <PeriodMetrics totals={monthSummary.totals} averages={monthSummary.averages} />
+                )}
+                <div className="space-y-2" data-testid="month-week-list">
+                  {monthSummary?.weeks.map((week) => (
+                    <MonthWeekBlock
+                      key={week.startDateKey}
+                      week={week}
+                      disabled={calendarTransitioning}
+                      onSelectWeek={(period) => {
+                        runCalendarTransition(() => {
+                          setCalendarWeek(period);
+                          setReportMode("week");
+                        });
+                      }}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
 
           <RollingSevenDayInsight
             dashboard={dashboard}
@@ -303,7 +340,7 @@ export default function ReportPage() {
 // ─── Calendar UI components ───────────────────────────────────────────────────
 
 function CalendarNav({
-  mode, onModeChange, week, month, onWeekChange, onMonthChange, todayDateKey,
+  mode, onModeChange, week, month, onWeekChange, onMonthChange, todayDateKey, transitioning,
 }: {
   mode: "week" | "month";
   onModeChange: (m: "week" | "month") => void;
@@ -312,6 +349,7 @@ function CalendarNav({
   onWeekChange: (w: CalendarPeriod) => void;
   onMonthChange: (m: CalendarPeriod) => void;
   todayDateKey: string;
+  transitioning: boolean;
 }) {
   const currentWeekStart = getCurrentCalendarWeek(todayDateKey).startDateKey;
   const currentMonthStart = getCurrentCalendarMonth(todayDateKey).startDateKey;
@@ -327,8 +365,9 @@ function CalendarNav({
           <button
             key={m}
             type="button"
+            disabled={transitioning}
             onClick={() => onModeChange(m)}
-            className={`flex-1 rounded-xl py-2 text-xs font-bold transition-all ${mode === m ? "bg-white shadow-sm text-[var(--primary)]" : "text-[var(--color-text-muted)]"}`}
+            className={`flex-1 rounded-xl py-2 text-xs font-bold transition-all disabled:cursor-not-allowed disabled:opacity-55 ${mode === m ? "bg-white shadow-sm text-[var(--primary)]" : "text-[var(--color-text-muted)]"}`}
           >
             {m === "week" ? "สัปดาห์" : "เดือน"}
           </button>
@@ -337,11 +376,12 @@ function CalendarNav({
       <div className="flex items-center gap-2">
         <button
           type="button"
+          disabled={transitioning}
           onClick={() => {
             if (mode === "week") onWeekChange(getPreviousCalendarWeek(week));
             else onMonthChange(getPreviousCalendarMonth(month));
           }}
-          className="rounded-xl border border-[var(--color-border-soft)] bg-[var(--surface)] px-3 py-2 text-sm font-bold text-[var(--color-text-muted)]"
+          className="rounded-xl border border-[var(--color-border-soft)] bg-[var(--surface)] px-3 py-2 text-sm font-bold text-[var(--color-text-muted)] disabled:cursor-not-allowed disabled:opacity-40"
           aria-label={mode === "week" ? "สัปดาห์ก่อน" : "เดือนก่อน"}
         >
           ‹
@@ -358,7 +398,7 @@ function CalendarNav({
               if (next.startDateKey <= todayDateKey) onMonthChange(next);
             }
           }}
-          disabled={atCurrent}
+          disabled={atCurrent || transitioning}
           className="rounded-xl border border-[var(--color-border-soft)] bg-[var(--surface)] px-3 py-2 text-sm font-bold text-[var(--color-text-muted)] disabled:opacity-40"
           aria-label={mode === "week" ? "สัปดาห์ถัดไป" : "เดือนถัดไป"}
         >
@@ -367,11 +407,12 @@ function CalendarNav({
         {!atCurrent && (
           <button
             type="button"
+            disabled={transitioning}
             onClick={() => {
               if (mode === "week") onWeekChange(getCurrentCalendarWeek(todayDateKey));
               else onMonthChange(getCurrentCalendarMonth(todayDateKey));
             }}
-            className="rounded-xl border border-[var(--primary)]/20 bg-[var(--primary)]/5 px-3 py-2 text-xs font-bold text-[var(--primary)]"
+            className="rounded-xl border border-[var(--primary)]/20 bg-[var(--primary)]/5 px-3 py-2 text-xs font-bold text-[var(--primary)] disabled:cursor-not-allowed disabled:opacity-45"
             data-testid="nav-current-btn"
           >
             ปัจจุบัน
@@ -474,14 +515,17 @@ function formatDayNutritionSummary(day: import("@/lib/reportSummary").DailyRepor
 function MonthWeekBlock({
   week,
   onSelectWeek,
+  disabled = false,
 }: {
   week: WeeklyReportSummary;
   onSelectWeek: (p: CalendarPeriod) => void;
+  disabled?: boolean;
 }) {
   const hasData = week.days.some((d) => d.hasData);
   return (
     <button
       type="button"
+      disabled={disabled}
       onClick={() =>
         onSelectWeek({
           startDateKey: week.startDateKey,
@@ -490,7 +534,7 @@ function MonthWeekBlock({
           shortLabel: week.label,
         })
       }
-      className="w-full rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface)] p-3 text-left"
+      className="w-full rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface)] p-3 text-left disabled:cursor-not-allowed disabled:opacity-55"
       data-testid="month-week-block"
     >
       <div className="flex items-center justify-between">
