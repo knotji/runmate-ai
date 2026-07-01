@@ -80,8 +80,8 @@ export function PostRunAnalysisCard({ workout }: { workout: WorkoutAnalysis }) {
     <section className="card space-y-4 p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#6f8fa6]">Post-run Flow</p>
-          <h2 className="mt-2 text-xl font-bold text-[#17201d]">วิเคราะห์หลังซ้อม</h2>
+          <p className="text-xs font-bold uppercase tracking-[0.22em] text-[var(--label-color)]">Post-run Flow</p>
+          <h2 className="mt-2 text-xl font-bold text-[var(--foreground)]">วิเคราะห์หลังซ้อม</h2>
           <p className="mt-1 text-sm leading-6 text-slate-600">
             ใช้ workout นี้ + sleep/readiness + weekly load + race goal เพื่อสรุปว่าซ้อมนี้ส่งผลยังไง
           </p>

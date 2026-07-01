@@ -40,7 +40,7 @@ function formatThaiShortDate(dateStr: string): string {
 function SelectedDateBadge({ dateKey }: { dateKey: string }) {
   const isToday = dateKey === todayBangkokDateKey();
   return (
-    <div className="flex items-center gap-2 text-xs font-semibold text-slate-600 bg-slate-50 border border-slate-100 rounded-2xl px-3.5 py-2 my-2 w-fit">
+    <div className="flex items-center gap-2 text-xs font-semibold text-[var(--muted-text)] bg-[var(--surface-muted)] border border-[var(--color-border-soft)] rounded-2xl px-3.5 py-2 my-2 w-fit">
       <span>จะบันทึกเป็นวันที่: {formatThaiShortDate(dateKey)}</span>
       {!isToday && (
         <span className="rounded-full bg-amber-50 text-amber-700 px-2 py-0.5 text-[10px] font-bold">
@@ -686,7 +686,7 @@ export default function UploadPage() {
               className={`rounded-full px-4 py-2 text-xs font-semibold whitespace-nowrap transition-all ${
                 type === item
                   ? "bg-[var(--primary-soft)] text-[var(--primary-strong)] font-bold shadow-sm ring-1 ring-[var(--primary)]/10"
-                  : "bg-slate-100/80 text-slate-500 hover:bg-slate-200/50"
+                  : "bg-[var(--surface-muted)] text-[var(--muted-text)] hover:bg-[var(--primary-soft)]/60"
               }`}
               onClick={() => selectUploadType(item)}
             >
@@ -696,8 +696,8 @@ export default function UploadPage() {
         </div>
 
         {/* Shared Date Selector */}
-        <div className="space-y-2 pt-2 border-t border-slate-100/60">
-          <label className="text-xs font-bold uppercase tracking-wide text-slate-400">วันที่ของข้อมูลนี้</label>
+        <div className="space-y-2 pt-2 border-t border-[var(--color-border-soft)]">
+          <label className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-soft)]">วันที่ของข้อมูลนี้</label>
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex rounded-xl bg-[var(--surface-muted)] p-1 text-xs font-semibold">
               <button
@@ -871,7 +871,7 @@ export default function UploadPage() {
               }}
               onResult={handleAnalysisResult}
             />
-            {saveStatus === "saving" && <p className="text-xs font-semibold text-slate-500">กำลังบันทึก...</p>}
+            {saveStatus === "saving" && <p className="text-xs font-semibold text-[var(--color-text-soft)]">กำลังบันทึก...</p>}
             {saveStatus === "saved" && <p className="text-xs font-semibold text-[var(--status-ready)]">บันทึกเข้า Report แล้ว</p>}
             {saveStatus === "error" && <p className="text-xs font-semibold text-[var(--status-rest)]">บันทึกไม่สำเร็จ กรุณาลองใหม่</p>}
             {!result && saveStatus !== "saving" && <UploadEmptyGuide type={type} workoutSubtype={workoutSubtype === "strength" ? "strength" : undefined} />}
@@ -881,9 +881,9 @@ export default function UploadPage() {
 
       {/* ── AI-Suggested Date Confirmation ── */}
       {suggestedDateKey && (
-        <div className="card border border-amber-200 bg-amber-50/70 p-4 rounded-3xl space-y-2 mb-4">
+        <div className="card-warning p-4 space-y-2 mb-4">
           <div className="flex items-center justify-between gap-3">
-            <p className="text-sm text-slate-700 leading-relaxed font-semibold">
+            <p className="text-sm text-[var(--foreground)] leading-relaxed font-semibold">
               📅 วันที่ที่อ่านได้จากไฟล์: {formatDateKeyToThaiBE(suggestedDateKey)}
             </p>
             {selectedDateKey !== suggestedDateKey ? (
@@ -944,8 +944,8 @@ export default function UploadPage() {
           <ReportSavedNote saveStatus={saveStatus} />
           <SleepResultCard result={(result as { data: SleepAnalysis }).data} />
           {saveStatus === "idle" && (
-            <div className="card p-4 bg-slate-50 flex items-center justify-between gap-3 mt-4">
-              <p className="text-sm font-semibold text-slate-600">กดยืนยันเพื่อบันทึก Sleep</p>
+            <div className="card p-4 flex items-center justify-between gap-3 mt-4">
+              <p className="text-sm font-semibold text-[var(--muted-text)]">กดยืนยันเพื่อบันทึก Sleep</p>
               <button
                 type="button"
                 onClick={() => void store(result)}
@@ -987,13 +987,13 @@ export default function UploadPage() {
           {saveFeedback === "race_result" && (
             <div className="card flex items-center gap-3 px-5 py-4">
               <span className="text-[var(--status-ready)] text-lg">🏁</span>
-              <p className="text-sm font-bold text-[#17201d]">บันทึก Race Result แล้ว</p>
+              <p className="text-sm font-bold text-[var(--foreground)]">บันทึก Race Result แล้ว</p>
             </div>
           )}
           {saveFeedback === "workout" && (
             <div className="card flex items-center gap-3 px-5 py-4">
               <span className="text-[var(--primary-strong)] text-lg">✓</span>
-              <p className="text-sm font-bold text-[#17201d]">บันทึกเป็น Workout แล้ว</p>
+              <p className="text-sm font-bold text-[var(--foreground)]">บันทึกเป็น Workout แล้ว</p>
             </div>
           )}
           {raceMatch && !saveFeedback && !raceDuplicateConfirm ? (
@@ -1071,18 +1071,18 @@ function UploadEmptyGuide({
 }) {
   if (type === "meal") {
     return (
-      <div className="rounded-2xl bg-slate-50/80 px-4 py-3 text-sm text-slate-600">
-        <p className="font-bold text-[#17201d]">ลองอัปโหลดเพื่อสร้าง Report</p>
+      <div className="card-soft px-4 py-3 text-sm text-[var(--muted-text)]">
+        <p className="font-bold text-[var(--foreground)]">ลองอัปโหลดเพื่อสร้าง Report</p>
         <p className="mt-1 text-xs leading-5 text-slate-500">บันทึกอาหารเพื่อวิเคราะห์โภชนาการและพลังงาน</p>
         <details className="mt-2 text-xs group cursor-pointer">
           <summary className="list-none flex items-center justify-between font-bold text-[var(--primary)] text-[11px] hover:underline">
             <span>อ่านอะไรได้บ้าง?</span>
             <span className="transition-transform group-open:rotate-180">▾</span>
           </summary>
-          <div className="mt-2 space-y-1.5 leading-5 text-slate-500 cursor-default border-t border-slate-100/50 pt-2">
-            <p><span className="font-semibold text-slate-700">รูปอาหาร</span> — กินไปกี่อย่าง / คร่าว ๆ ได้ไหม</p>
-            <p><span className="font-semibold text-slate-700">ฉลากโภชนาการ</span> — kcal / โปรตีน / คาร์บ</p>
-            <p><span className="font-semibold text-slate-700">เมนูหรือใบเสร็จ</span> — ช่วยประเมินมื้ออาหาร</p>
+          <div className="mt-2 space-y-1.5 leading-5 text-[var(--color-text-soft)] cursor-default border-t border-[var(--color-border-soft)] pt-2">
+            <p><span className="font-semibold text-[var(--foreground)]">รูปอาหาร</span> — กินไปกี่อย่าง / คร่าว ๆ ได้ไหม</p>
+            <p><span className="font-semibold text-[var(--foreground)]">ฉลากโภชนาการ</span> — kcal / โปรตีน / คาร์บ</p>
+            <p><span className="font-semibold text-[var(--foreground)]">เมนูหรือใบเสร็จ</span> — ช่วยประเมินมื้ออาหาร</p>
           </div>
         </details>
       </div>
@@ -1091,8 +1091,8 @@ function UploadEmptyGuide({
   if (type === "workout") {
     if (workoutSubtype === "strength") {
       return (
-        <div className="rounded-2xl bg-slate-50/80 px-4 py-3 text-sm text-slate-600">
-          <p className="font-bold text-[#17201d]">🏋️ อัปโหลดรูปผลเวทเทรนนิ่ง</p>
+        <div className="card-soft px-4 py-3 text-sm text-[var(--muted-text)]">
+          <p className="font-bold text-[var(--foreground)]">🏋️ อัปโหลดรูปผลเวทเทรนนิ่ง</p>
           <p className="mt-1 text-xs leading-5 text-slate-500">
             AI จะอ่านข้อมูลจากรูป เช่น ระยะเวลา แคลอรี่ HR และท่าออกกำลังกาย (ถ้ามี)
           </p>
@@ -1101,10 +1101,10 @@ function UploadEmptyGuide({
               <span>อ่านอะไรได้บ้าง?</span>
               <span className="transition-transform group-open:rotate-180">▾</span>
             </summary>
-            <div className="mt-2 space-y-1.5 leading-5 text-slate-500 cursor-default border-t border-slate-100/50 pt-2">
-              <p><span className="font-semibold text-slate-700">รูปสรุป Strength session</span> — Garmin, Apple Watch, Polar</p>
-              <p><span className="font-semibold text-slate-700">รูป Gym app</span> — Strong, Hevy, Fitbod หรือแอปอื่น ๆ</p>
-              <p><span className="font-semibold text-slate-700">รูปสรุปทั่วไป</span> — ระยะเวลา / แคลอรี่ / HR ก็เพียงพอ</p>
+            <div className="mt-2 space-y-1.5 leading-5 text-[var(--color-text-soft)] cursor-default border-t border-[var(--color-border-soft)] pt-2">
+              <p><span className="font-semibold text-[var(--foreground)]">รูปสรุป Strength session</span> — Garmin, Apple Watch, Polar</p>
+              <p><span className="font-semibold text-[var(--foreground)]">รูป Gym app</span> — Strong, Hevy, Fitbod หรือแอปอื่น ๆ</p>
+              <p><span className="font-semibold text-[var(--foreground)]">รูปสรุปทั่วไป</span> — ระยะเวลา / แคลอรี่ / HR ก็เพียงพอ</p>
             </div>
           </details>
           <p className="mt-2 text-xs leading-5 text-slate-400">
@@ -1114,18 +1114,18 @@ function UploadEmptyGuide({
       );
     }
     return (
-      <div className="rounded-2xl bg-slate-50/80 px-4 py-3 text-sm text-slate-600">
-        <p className="font-bold text-[#17201d]">🏃 อัปโหลดรูปผลการออกกำลังกาย</p>
+      <div className="card-soft px-4 py-3 text-sm text-[var(--muted-text)]">
+        <p className="font-bold text-[var(--foreground)]">🏃 อัปโหลดรูปผลการออกกำลังกาย</p>
         <p className="mt-1 text-xs leading-5 text-slate-500"> AI จะอ่านข้อมูลจากรูปวิ่งหรือกิจกรรมอื่น ๆ และประเมินความหนักเพื่อช่วยโค้ชวางแผน</p>
         <details className="mt-2 text-xs group cursor-pointer">
           <summary className="list-none flex items-center justify-between font-bold text-[var(--primary)] text-[11px] hover:underline">
             <span>อ่านอะไรได้บ้าง?</span>
             <span className="transition-transform group-open:rotate-180">▾</span>
           </summary>
-          <div className="mt-2 space-y-1.5 leading-5 text-slate-500 cursor-default border-t border-slate-100/50 pt-2">
-            <p><span className="font-semibold text-slate-700">รูปผลวิ่ง</span> — ระยะ / เวลา / pace / HR</p>
-            <p><span className="font-semibold text-slate-700">รูปเวท</span> — ระยะเวลา / HR / calories / ท่าที่เล่น</p>
-            <p><span className="font-semibold text-slate-700">รูปกิจกรรมอื่น</span> — สรุปเป็นบันทึกการออกกำลังกาย</p>
+          <div className="mt-2 space-y-1.5 leading-5 text-[var(--color-text-soft)] cursor-default border-t border-[var(--color-border-soft)] pt-2">
+            <p><span className="font-semibold text-[var(--foreground)]">รูปผลวิ่ง</span> — ระยะ / เวลา / pace / HR</p>
+            <p><span className="font-semibold text-[var(--foreground)]">รูปเวท</span> — ระยะเวลา / HR / calories / ท่าที่เล่น</p>
+            <p><span className="font-semibold text-[var(--foreground)]">รูปกิจกรรมอื่น</span> — สรุปเป็นบันทึกการออกกำลังกาย</p>
           </div>
         </details>
       </div>
@@ -1133,17 +1133,17 @@ function UploadEmptyGuide({
   }
   if (type === "sleep") {
     return (
-      <div className="rounded-2xl bg-slate-50/80 px-4 py-3 text-sm text-slate-600">
-        <p className="font-bold text-[#17201d]">😴 อัปโหลดข้อมูลการนอนเพื่อประเมินความพร้อม</p>
+      <div className="card-soft px-4 py-3 text-sm text-[var(--muted-text)]">
+        <p className="font-bold text-[var(--foreground)]">😴 อัปโหลดข้อมูลการนอนเพื่อประเมินความพร้อม</p>
         <p className="mt-1 text-xs leading-5 text-slate-500"> AI จะอ่านข้อมูลสรุปการนอนและคะแนนฟื้นตัวเพื่อประเมินความพร้อมซ้อมวันนี้</p>
         <details className="mt-2 text-xs group cursor-pointer">
           <summary className="list-none flex items-center justify-between font-bold text-[var(--primary)] text-[11px] hover:underline">
             <span>อ่านอะไรได้บ้าง?</span>
             <span className="transition-transform group-open:rotate-180">▾</span>
           </summary>
-          <div className="mt-2 space-y-1.5 leading-5 text-slate-500 cursor-default border-t border-slate-100/50 pt-2">
-            <p><span className="font-semibold text-slate-700">รูปการนอน</span> — duration / sleep score / HRV</p>
-            <p><span className="font-semibold text-slate-700">รูป Energy score</span> — readiness / recovery</p>
+          <div className="mt-2 space-y-1.5 leading-5 text-[var(--color-text-soft)] cursor-default border-t border-[var(--color-border-soft)] pt-2">
+            <p><span className="font-semibold text-[var(--foreground)]">รูปการนอน</span> — duration / sleep score / HRV</p>
+            <p><span className="font-semibold text-[var(--foreground)]">รูป Energy score</span> — readiness / recovery</p>
           </div>
         </details>
       </div>
@@ -1151,21 +1151,21 @@ function UploadEmptyGuide({
   }
   if (type === "body") {
     return (
-      <div className="rounded-2xl bg-slate-50/80 px-4 py-3 text-sm text-slate-600">
-        <p className="font-bold text-[#17201d]">⚖️ อัปโหลดค่าร่างกายเพื่อสร้าง Report</p>
+      <div className="card-soft px-4 py-3 text-sm text-[var(--muted-text)]">
+        <p className="font-bold text-[var(--foreground)]">⚖️ อัปโหลดค่าร่างกายเพื่อสร้าง Report</p>
         <p className="mt-1 text-xs leading-5 text-slate-500">บันทึกแนวโน้มน้ำหนัก ไขมัน กล้ามเนื้อ เพื่อให้โค้ชวิเคราะห์ได้</p>
         <details className="mt-2 text-xs group cursor-pointer">
           <summary className="list-none flex items-center justify-between font-bold text-[var(--primary)] text-[11px] hover:underline">
             <span>อ่านอะไรได้บ้าง?</span>
             <span className="transition-transform group-open:rotate-180">▾</span>
           </summary>
-          <div className="mt-2 space-y-1.5 leading-5 text-slate-500 cursor-default border-t border-slate-100/50 pt-2">
-            <p><span className="font-semibold text-slate-700">รูปชั่งน้ำหนัก</span> — น้ำหนัก / ไขมัน / กล้ามเนื้อ</p>
+          <div className="mt-2 space-y-1.5 leading-5 text-[var(--color-text-soft)] cursor-default border-t border-[var(--color-border-soft)] pt-2">
+            <p><span className="font-semibold text-[var(--foreground)]">รูปชั่งน้ำหนัก</span> — น้ำหนัก / ไขมัน / กล้ามเนื้อ</p>
           </div>
         </details>
         <Link
           href="/pain"
-          className="mt-3 flex items-center gap-1.5 rounded-xl bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200 animate-pulse"
+          className="mt-3 flex items-center gap-1.5 rounded-xl bg-[var(--surface-muted)] px-3 py-2 text-xs font-semibold text-[var(--muted-text)] hover:bg-[var(--primary-soft)] animate-pulse"
         >
           <span>🩹</span>
           <span>มีอาการเจ็บ? บันทึกที่หน้า &ldquo;เจ็บ&rdquo;</span>
@@ -1175,8 +1175,8 @@ function UploadEmptyGuide({
   }
   if (type === "health_check") {
     return (
-      <div className="rounded-2xl bg-slate-50/80 px-4 py-3 text-sm text-slate-600">
-        <p className="font-bold text-[#17201d]">🩺 อัปโหลด PDF ผลตรวจสุขภาพ</p>
+      <div className="card-soft px-4 py-3 text-sm text-[var(--muted-text)]">
+        <p className="font-bold text-[var(--foreground)]">🩺 อัปโหลด PDF ผลตรวจสุขภาพ</p>
         <p className="mt-1 text-xs leading-5 text-slate-500">
           ระบบจะอ่านค่าเลือดที่เกี่ยวกับโภชนาการและ recovery และบันทึกเฉพาะค่าที่สรุปแล้ว
         </p>
@@ -1185,8 +1185,8 @@ function UploadEmptyGuide({
             <span>อ่านอะไรได้บ้าง?</span>
             <span className="transition-transform group-open:rotate-180">▾</span>
           </summary>
-          <div className="mt-2 space-y-1.5 leading-5 text-slate-500 cursor-default border-t border-slate-100/50 pt-2">
-            <p><span className="font-semibold text-slate-700">PDF/รูปผลตรวจ</span> — ใช้เป็นบริบทอาหารและไลฟ์สไตล์แบบระวัง</p>
+          <div className="mt-2 space-y-1.5 leading-5 text-[var(--color-text-soft)] cursor-default border-t border-[var(--color-border-soft)] pt-2">
+            <p><span className="font-semibold text-[var(--foreground)]">PDF/รูปผลตรวจ</span> — ใช้เป็นบริบทอาหารและไลฟ์สไตล์แบบระวัง</p>
           </div>
         </details>
         <p className="mt-1.5 text-xs leading-5 text-slate-400">
@@ -1201,11 +1201,11 @@ function UploadEmptyGuide({
 
 function ReportSavedNote({ saveStatus }: { saveStatus: "idle" | "saving" | "saved" | "error" }) {
   return (
-    <section className="rounded-3xl border border-slate-100 bg-white/75 px-4 py-3 text-xs leading-5 text-slate-500 shadow-sm">
+    <section className="soft-panel px-4 py-3 text-xs leading-5 text-[var(--muted-text)]">
       {saveStatus === "saved" ? (
-        <span className="font-bold text-green-700">บันทึกเข้า Report แล้ว</span>
+        <span className="font-bold text-[var(--color-success)]">บันทึกเข้า Report แล้ว</span>
       ) : (
-        <span className="font-bold text-slate-700">ผลวิเคราะห์</span>
+        <span className="font-bold text-[var(--foreground)]">ผลวิเคราะห์</span>
       )}
       <span> ระบบจะอ่านรูปเพื่อสรุปข้อมูลเท่านั้น และบันทึกเฉพาะผลลัพธ์เข้า Report รูปต้นฉบับไม่ถูกเก็บถาวร</span>
     </section>
@@ -1285,7 +1285,7 @@ function HealthCheckUploader({
   return (
     <div className="space-y-4 rounded-2xl bg-slate-50/80 p-4">
       <div>
-        <h3 className="text-base font-bold text-[#17201d]">Health Check PDF</h3>
+        <h3 className="text-base font-bold text-[var(--foreground)]">Health Check PDF</h3>
         <p className="mt-1 text-xs leading-5 text-slate-500">
           อัปโหลดผลตรวจสุขภาพประจำปีเพื่อให้โค้ชใช้ประกอบคำแนะนำอาหารและ recovery
         </p>
@@ -1425,7 +1425,7 @@ function HealthCheckReviewCard({
     <section className="card space-y-4 p-5">
       <div>
         <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#6f8fa6]">Health Check Review</p>
-        <h2 className="mt-2 text-xl font-bold text-[#17201d]">ตรวจทานก่อนบันทึก</h2>
+        <h2 className="mt-2 text-xl font-bold text-[var(--foreground)]">ตรวจทานก่อนบันทึก</h2>
         <p className="mt-1 text-xs leading-5 text-slate-500">
           ระบบบันทึกเฉพาะค่าที่สรุปแล้ว ไม่บันทึกไฟล์ PDF ต้นฉบับหรือข้อความดิบ
         </p>
@@ -1447,7 +1447,7 @@ function HealthCheckReviewCard({
           <div className="rounded-xl bg-white/70 p-3 ring-1 ring-slate-100">
             <p className="text-xs font-bold text-amber-800">⚠️ ควรระวัง</p>
             {warningLabs.length > 0 ? (
-              <ul className="mt-1.5 list-disc pl-4 space-y-1 text-sm text-[#17201d]">
+              <ul className="mt-1.5 list-disc pl-4 space-y-1 text-sm text-[var(--foreground)]">
                 {warningLabs.map(([key, lab]) => (
                   <li key={key}>{formatLabWarning(key, lab)}</li>
                 ))}
@@ -1559,7 +1559,7 @@ function HealthLabMetric({ lab }: { lab: LabValue }) {
     lab.status === "high" ? "text-amber-700" :
     lab.status === "low" ? "text-blue-700" :
     lab.status === "borderline" ? "text-amber-600" :
-    "text-[#17201d]";
+    "text-[var(--foreground)]";
   return (
     <div className="rounded-2xl bg-slate-50 p-3">
       <p className="text-xs text-slate-400">{lab.label}</p>
@@ -1591,7 +1591,7 @@ function RaceResultConfirmCard({
     <section className="card space-y-3 border border-[#d9e8df] bg-[#f5faf7] p-5">
       <div>
         <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#6f8fa6]">Race Result</p>
-        <h2 className="mt-2 text-xl font-bold text-[#17201d]">ผลวิ่งนี้ตรงกับวัน Race Goal</h2>
+        <h2 className="mt-2 text-xl font-bold text-[var(--foreground)]">ผลวิ่งนี้ตรงกับวัน Race Goal</h2>
         <p className="mt-1 text-sm leading-6 text-slate-600">
           {match.goal.raceName} · {match.goal.raceDistance} · {match.workoutDate}
         </p>
@@ -1638,7 +1638,7 @@ function RaceDuplicateWarnCard({
     <section className="card space-y-3 border border-amber-200 bg-amber-50 p-5">
       <div>
         <p className="text-xs font-bold uppercase tracking-[0.22em] text-amber-600">บันทึกซ้ำ?</p>
-        <h2 className="mt-2 text-xl font-bold text-[#17201d]">รายการนี้ดูเหมือนบันทึกแล้ว</h2>
+        <h2 className="mt-2 text-xl font-bold text-[var(--foreground)]">รายการนี้ดูเหมือนบันทึกแล้ว</h2>
         <p className="mt-1 text-sm leading-6 text-slate-600">
           มีผลแข่งระยะนี้ในวันเดียวกันอยู่แล้ว ต้องการบันทึกซ้ำอีกครั้งไหม?
         </p>
@@ -1687,7 +1687,7 @@ function ManualMealLogForm({
   return (
     <div className="space-y-4 rounded-2xl bg-slate-50/80 p-4">
       <div>
-        <h3 className="text-base font-bold text-[#17201d]">พิมพ์เมนูเอง</h3>
+        <h3 className="text-base font-bold text-[var(--foreground)]">พิมพ์เมนูเอง</h3>
         <p className="mt-1 text-xs leading-5 text-slate-500">ประเมินจากข้อความที่กรอก อาจคลาดเคลื่อนได้</p>
       </div>
 
@@ -1775,7 +1775,7 @@ function MealReviewCard({
     <section className="card space-y-4 p-5">
       <div>
         <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#6f8fa6]">Meal Review</p>
-        <h2 className="mt-2 text-xl font-bold text-[#17201d]">ตรวจโภชนาการก่อนบันทึก</h2>
+        <h2 className="mt-2 text-xl font-bold text-[var(--foreground)]">ตรวจโภชนาการก่อนบันทึก</h2>
         {isTextEstimate ? (
           <span className="mt-2 inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-600">
             กรอกจากข้อความ
@@ -1896,7 +1896,7 @@ function MealReviewSummary({ meal, profile, context }: { meal: MealAnalysis; pro
         <p className="text-xs font-semibold text-slate-400">
           {getMealSlotLabel(meal.mealSlot || normalizeMealSlot(meal.mealType, meal.createdAt))}
         </p>
-        <p className="text-lg font-bold text-[#17201d]">{foods}</p>
+        <p className="text-lg font-bold text-[var(--foreground)]">{foods}</p>
         {isTextEstimate && meal.originalMealText ? (
           <p className="mt-1 text-xs leading-5 text-slate-500">จากข้อความ: {meal.originalMealText}</p>
         ) : null}
@@ -1912,7 +1912,7 @@ function MealReviewSummary({ meal, profile, context }: { meal: MealAnalysis; pro
         <ReviewMetric label="Fat" value={formatMacro(meal.nutrition.fatG)} />
       </div>
       <div className="rounded-2xl bg-white p-3 text-xs leading-5 text-slate-600">
-        <p className="font-bold text-[#17201d]">Runner fuel check</p>
+        <p className="font-bold text-[var(--foreground)]">Runner fuel check</p>
         <p>Protein progress: {target.proteinProgressPct != null ? `${target.proteinProgressPct}%` : "-"}{target.proteinTargetG != null ? ` / target ${target.proteinTargetG} g` : ""}</p>
         <p>Carb adequacy ({target.dayType} day): {target.carbAdequacy}{target.carbTargetG != null ? ` / target ${target.carbTargetG} g` : ""}</p>
         <p>{target.recoveryFuelNote}</p>
@@ -1934,7 +1934,7 @@ function ReviewMetric({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl bg-white p-3">
       <p className="text-xs text-slate-400">{label}</p>
-      <p className="mt-1 font-bold text-[#17201d]">{value}</p>
+      <p className="mt-1 font-bold text-[var(--foreground)]">{value}</p>
     </div>
   );
 }
@@ -2141,12 +2141,12 @@ function MealSlotConflictCard({
     <section className="card space-y-4 p-5">
       <div>
         <p className="text-xs font-bold uppercase tracking-[0.22em] text-amber-500">มื้อซ้ำ</p>
-        <h2 className="mt-2 text-xl font-bold text-[#17201d]">วันนี้มีมื้อ{mealLabel}อยู่แล้ว</h2>
+        <h2 className="mt-2 text-xl font-bold text-[var(--foreground)]">วันนี้มีมื้อ{mealLabel}อยู่แล้ว</h2>
         <p className="mt-1 text-sm text-slate-500">ต้องการทำอะไรกับรูปนี้?</p>
       </div>
       <div className="rounded-xl bg-slate-50 px-3 py-2.5">
         <p className="text-[11px] text-slate-400 mb-0.5">ที่บันทึกไว้</p>
-        <p className="text-sm font-semibold text-[#17201d]">{existingFoods}</p>
+        <p className="text-sm font-semibold text-[var(--foreground)]">{existingFoods}</p>
       </div>
       <div className="space-y-2">
         <LoadingButton type="button" className="btn-primary w-full py-3 text-sm" onClick={onMerge} loading={saving} loadingText="กำลังบันทึก...">
@@ -2235,7 +2235,7 @@ function ManualWorkoutLogForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4 pt-2 card p-5 bg-white">
       <div>
-        <h3 className="text-lg font-bold text-[#17201d]">
+        <h3 className="text-lg font-bold text-[var(--foreground)]">
           {subtype === "walk" ? "บันทึกกิจกรรมเดิน" : "บันทึกกิจกรรมอื่น ๆ"}
         </h3>
         <p className="text-xs text-slate-500">กรอกข้อมูลการซ้อมและบันทึกตรงเข้า Supabase</p>

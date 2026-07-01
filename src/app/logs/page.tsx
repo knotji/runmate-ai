@@ -262,7 +262,7 @@ export default function ReportPage() {
       ) : days.length === 0 ? (
         <section className="card space-y-3 p-5 text-sm text-slate-600">
           <div>
-            <p className="font-bold text-[#17201d]">ยังไม่มีบันทึก</p>
+            <p className="font-bold text-[var(--foreground)]">ยังไม่มีบันทึก</p>
             <p className="mt-1 leading-6">ลองเพิ่มมื้ออาหาร การนอน หรือผลวิ่งก่อนนะ</p>
           </div>
           <Link href="/upload" className="btn-primary block py-3 text-center text-sm">
@@ -293,7 +293,7 @@ export default function ReportPage() {
           />
 
           {deleteStatus ? (
-            <section className={`rounded-2xl px-4 py-3 text-xs font-semibold ${deleteStatus.startsWith("ลบไม่สำเร็จ") ? "bg-red-50 text-red-600" : "bg-[#e7efea] text-[#2a5a39]"}`}>
+            <section className={`rounded-2xl px-4 py-3 text-xs font-semibold ${deleteStatus.startsWith("ลบไม่สำเร็จ") ? "bg-red-50 text-red-600" : "bg-[var(--primary-soft)] text-[var(--color-success)]"}`}>
               {deleteStatus}
             </section>
           ) : null}
@@ -437,7 +437,7 @@ function CalendarNav({
         >
           ‹
         </button>
-        <div className="flex-1 text-center text-xs font-bold text-[#17201d]">{period.label}</div>
+        <div className="flex-1 text-center text-xs font-bold text-[var(--foreground)]">{period.label}</div>
         <button
           type="button"
           onClick={() => {
@@ -473,7 +473,7 @@ function CalendarNav({
       {onExport !== undefined && (
         <div className="flex items-center justify-end gap-2 px-0.5" data-testid="report-export-control">
           {exportStatus && (
-            <p className={`text-[11px] font-semibold ${exportStatus.includes("ไม่สำเร็จ") ? "text-red-600" : "text-[#2a5a39]"}`} data-testid="report-export-status">
+            <p className={`text-[11px] font-semibold ${exportStatus.includes("ไม่สำเร็จ") ? "text-red-600" : "text-[var(--color-success)]"}`} data-testid="report-export-status">
               {exportStatus}
             </p>
           )}
@@ -503,19 +503,19 @@ function PeriodMetrics({
     <div className="grid grid-cols-4 gap-2" data-testid="period-metrics">
       <div className="rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface)] p-3 text-center">
         <p className="text-[10px] text-[var(--color-text-muted)]">วิ่งรวม</p>
-        <p className="mt-0.5 text-sm font-bold text-[#17201d]">{totals.runDistanceKm > 0 ? `${totals.runDistanceKm} กม.` : "—"}</p>
+        <p className="mt-0.5 text-sm font-bold text-[var(--foreground)]">{totals.runDistanceKm > 0 ? `${totals.runDistanceKm} กม.` : "—"}</p>
       </div>
       <div className="rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface)] p-3 text-center">
         <p className="text-[10px] text-[var(--color-text-muted)]">วันซ้อม</p>
-        <p className="mt-0.5 text-sm font-bold text-[#17201d]">{totals.workoutDays > 0 ? `${totals.workoutDays} วัน` : "—"}</p>
+        <p className="mt-0.5 text-sm font-bold text-[var(--foreground)]">{totals.workoutDays > 0 ? `${totals.workoutDays} วัน` : "—"}</p>
       </div>
       <div className="rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface)] p-3 text-center">
         <p className="text-[10px] text-[var(--color-text-muted)]">นอนเฉลี่ย</p>
-        <p className="mt-0.5 text-sm font-bold text-[#17201d]">{averages.sleepHours != null ? `${averages.sleepHours} ชม.` : "—"}</p>
+        <p className="mt-0.5 text-sm font-bold text-[var(--foreground)]">{averages.sleepHours != null ? `${averages.sleepHours} ชม.` : "—"}</p>
       </div>
       <div className="rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface)] p-3 text-center">
         <p className="text-[10px] text-[var(--color-text-muted)]">ความพร้อม</p>
-        <p className="mt-0.5 text-sm font-bold text-[#17201d]">{averages.readiness != null ? `${averages.readiness}` : "—"}</p>
+        <p className="mt-0.5 text-sm font-bold text-[var(--foreground)]">{averages.readiness != null ? `${averages.readiness}` : "—"}</p>
       </div>
     </div>
   );
@@ -530,7 +530,7 @@ function DaySlot({ day }: { day: import("@/lib/reportSummary").DailyReportItem }
     return (
       <div className={baseClass} data-testid="day-slot">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-bold text-[#17201d]">
+          <span className="text-xs font-bold text-[var(--foreground)]">
             {day.weekdayLabel}
             {day.isToday && (
               <span className="ml-2 rounded-full bg-[var(--primary)] px-2 py-0.5 text-[10px] text-white">วันนี้</span>
@@ -549,7 +549,7 @@ function DaySlot({ day }: { day: import("@/lib/reportSummary").DailyReportItem }
     >
       <summary className="list-none cursor-pointer">
         <div className="flex items-center justify-between gap-3">
-          <span className="text-xs font-bold text-[#17201d]">
+          <span className="text-xs font-bold text-[var(--foreground)]">
             {day.weekdayLabel}
             {day.isToday && (
               <span className="ml-2 rounded-full bg-[var(--primary)] px-2 py-0.5 text-[10px] text-white">วันนี้</span>
@@ -577,7 +577,7 @@ function DaySlot({ day }: { day: import("@/lib/reportSummary").DailyReportItem }
             <span className="rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-600">เจ็บ {day.painLevel}/10</span>
           )}
           {day.painStatus === "resolved" && (
-            <span className="rounded-full bg-[#e7efea] px-2 py-0.5 text-[10px] font-bold text-[#2a5a39]">หายเจ็บแล้ว</span>
+            <span className="rounded-full bg-[var(--primary-soft)] px-2 py-0.5 text-[10px] font-bold text-[var(--color-success)]">หายเจ็บแล้ว</span>
           )}
         </div>
       </summary>
@@ -602,7 +602,7 @@ function DaySlotDetail({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl bg-white/70 px-2.5 py-2">
       <p className="text-[10px] font-semibold text-[var(--color-text-muted)]">{label}</p>
-      <p className="mt-0.5 font-bold text-[#17201d]">{value}</p>
+      <p className="mt-0.5 font-bold text-[var(--foreground)]">{value}</p>
     </div>
   );
 }
@@ -649,7 +649,7 @@ function MonthWeekBlock({
       data-testid="month-week-block"
     >
       <div className="flex items-center justify-between">
-        <span className="text-xs font-bold text-[#17201d]">{week.label}</span>
+        <span className="text-xs font-bold text-[var(--foreground)]">{week.label}</span>
         <span className="text-[10px] font-bold text-[var(--primary)]">ดูสัปดาห์ ›</span>
       </div>
       {hasData ? (
@@ -689,7 +689,7 @@ function RollingSevenDayInsight({
       <summary className="list-none cursor-pointer">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#6f8fa6]">Insight 7 วันล่าสุด</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--label-color)]">Insight 7 วันล่าสุด</p>
             <p className="mt-1 text-xs leading-5 text-[var(--color-text-muted)]">{preview}</p>
           </div>
           <span className="shrink-0 rounded-full bg-[var(--surface-muted)] px-3 py-1.5 text-[10px] font-bold text-[var(--primary)]">
@@ -746,7 +746,7 @@ function FullHistoryDetails({
       <summary className="list-none cursor-pointer">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-sm font-bold text-[#17201d]">รายการทั้งหมด</p>
+            <p className="text-sm font-bold text-[var(--foreground)]">รายการทั้งหมด</p>
             <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">ดูบันทึกทั้งหมดแบบละเอียด</p>
           </div>
           <span className="rounded-full bg-[var(--surface-muted)] px-3 py-1.5 text-[10px] font-bold text-[var(--primary)]">
@@ -846,10 +846,10 @@ function WeeklyDashboard({ dashboard, proteinTarget, items, cutoff }: { dashboar
 
   return (
     <details className="group cursor-pointer rounded-3xl border border-slate-100 bg-white p-4 shadow-sm">
-      <summary className="list-none flex items-center justify-between font-bold text-[#17201d]">
+      <summary className="list-none flex items-center justify-between font-bold text-[var(--foreground)]">
         <div className="flex flex-col gap-0.5">
-          <span className="text-[10px] uppercase tracking-[0.15em] text-[#6f8fa6]">METRICS 7 วัน</span>
-          <span className="text-sm font-bold text-[#17201d]">ตัวเลขสรุป 7 วันล่าสุด</span>
+          <span className="text-[10px] uppercase tracking-[0.15em] text-[var(--label-color)]">METRICS 7 วัน</span>
+          <span className="text-sm font-bold text-[var(--foreground)]">ตัวเลขสรุป 7 วันล่าสุด</span>
         </div>
         <div className="flex items-center gap-1.5 text-xs text-[var(--primary)] font-bold shrink-0">
           <span className="group-open:hidden">ดูรายละเอียด</span>
@@ -885,7 +885,7 @@ function DashboardMetric({ label, value, sub, compact = false }: { label: string
   return (
     <div className="rounded-2xl bg-slate-50 p-3">
       <p className="text-xs text-slate-400">{label}</p>
-      <p className={`${compact ? "text-base" : "text-xl"} mt-1 font-bold text-[#17201d]`}>{value}</p>
+      <p className={`${compact ? "text-base" : "text-xl"} mt-1 font-bold text-[var(--foreground)]`}>{value}</p>
       {sub ? <p className="text-xs text-slate-400">{sub}</p> : null}
     </div>
   );
@@ -1071,7 +1071,7 @@ function DayCard({
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">{day.label}</p>
+            <p className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--label-color)]">{day.label}</p>
             <div className="mt-2">
               <div className="flex flex-wrap gap-1.5">
                 {(() => {
@@ -1111,14 +1111,14 @@ function DayCard({
             )}
             {readiness === null && totalKm !== null && (
               <div>
-                <p className="text-2xl font-bold text-[#42677f]">{formatDecimal(totalKm)}</p>
+                <p className="text-2xl font-bold text-[var(--recovery-blue)]">{formatDecimal(totalKm)}</p>
                 <p className="text-xs text-slate-400">km</p>
               </div>
             )}
             {readiness === null && totalKm === null && mealCount > 0 && (
               <p className="text-sm text-slate-500">{mealCount} มื้อ</p>
             )}
-            <p className="mt-1 text-[11px] font-semibold text-[#6f8fa6]">
+            <p className="mt-1 text-[11px] font-semibold text-[var(--label-color)]">
               {expanded ? "ย่อ" : "ดูรายละเอียด"}
             </p>
           </div>
@@ -1183,9 +1183,9 @@ function DayCard({
 
 function RaceResultDetail({ result, onDelete, deleting }: { result: RaceResult; onDelete: (result: RaceResult) => void; deleting: boolean }) {
   return (
-    <div className="rounded-2xl bg-[#e7efea] p-4">
-      <p className="mb-1 text-xs font-bold uppercase tracking-wide text-[#2a5a39]">🏁 Race Day</p>
-      <p className="font-bold text-[#17201d]">{result.raceName || "Race Result"}</p>
+    <div className="rounded-2xl bg-[var(--primary-soft)] p-4">
+      <p className="mb-1 text-xs font-bold uppercase tracking-wide text-[var(--color-success)]">🏁 Race Day</p>
+      <p className="font-bold text-[var(--foreground)]">{result.raceName || "Race Result"}</p>
       <div className="mt-3 grid grid-cols-3 gap-2">
         <Metric label="Time" value={result.actualTime ?? "-"} />
         <Metric label="Pace" value={result.actualPace ? `${result.actualPace}/km` : "-"} />
@@ -1206,8 +1206,8 @@ function SleepDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; onD
   const merged = item as { mergedFromDuplicates?: boolean; duplicateCount?: number };
 
   return (
-    <div className="rounded-2xl bg-[#e7efea] p-4">
-      <p className="text-xs font-bold uppercase tracking-wide text-[#42677f] mb-2">🌙 การนอน</p>
+    <div className="rounded-2xl bg-[var(--primary-soft)] p-4">
+      <p className="text-xs font-bold uppercase tracking-wide text-[var(--recovery-blue)] mb-2">🌙 การนอน</p>
       <div className="grid grid-cols-3 gap-2 mb-3">
         {coach.readinessScore != null && (
           <Metric label="Readiness" value={formatScore(coach.readinessScore)} sub={coach.readinessLabel} />
@@ -1219,7 +1219,7 @@ function SleepDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; onD
       </div>
       {coach.aiSummary && <p className="text-sm leading-6 text-slate-700">{polishSleepInsightText(coach.aiSummary)}</p>}
       {coach.todayRecommendation && (
-        <p className="mt-2 text-sm font-bold text-[#17201d]">→ {polishSleepInsightText(coach.todayRecommendation)}</p>
+        <p className="mt-2 text-sm font-bold text-[var(--foreground)]">→ {polishSleepInsightText(coach.todayRecommendation)}</p>
       )}
       {coach.readinessScore != null && (
         <p className="mt-2 text-[11px] text-slate-400 leading-normal">
@@ -1264,7 +1264,7 @@ function WorkoutDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; o
 
   return (
     <div data-testid="report-workout-card" className="rounded-2xl bg-slate-50 p-4">
-      <p className="text-xs font-bold uppercase tracking-wide text-[#42677f] mb-2">{icon} {kindLabel}</p>
+      <p className="text-xs font-bold uppercase tracking-wide text-[var(--recovery-blue)] mb-2">{icon} {kindLabel}</p>
       {hasAnyMetric && (
         <div className="grid grid-cols-3 gap-2 mb-3">
           {ext.distanceKm != null && <Metric label="ระยะทาง" value={formatDistanceKm(ext.distanceKm)} />}
@@ -1330,9 +1330,9 @@ function MealDetail({
         )}
       </div>
       {isQuickProtein ? (
-        <p className="text-sm font-bold text-[#17201d] mb-2">{sourceInfo.assessmentText}</p>
+        <p className="text-sm font-bold text-[var(--foreground)] mb-2">{sourceInfo.assessmentText}</p>
       ) : foodNames ? (
-        <p className="text-sm font-bold text-[#17201d] mb-2">{truncate(foodNames, 100)}</p>
+        <p className="text-sm font-bold text-[var(--foreground)] mb-2">{truncate(foodNames, 100)}</p>
       ) : null}
       {isQuickProtein ? (
         n.proteinG != null && (
@@ -1426,11 +1426,11 @@ function HealthCheckDetail({ item, onDelete, deleting }: { item: LocalHistoryIte
     <div className="rounded-2xl bg-blue-50 p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h3 className="font-bold text-[#17201d] text-base">ผลตรวจสุขภาพล่าสุด</h3>
-          <p className="mt-0.5 text-xs text-[#42677f] font-semibold">ใช้เพื่อช่วยปรับคำแนะนำอาหารและไลฟ์สไตล์</p>
+          <h3 className="font-bold text-[var(--foreground)] text-base">ผลตรวจสุขภาพล่าสุด</h3>
+          <p className="mt-0.5 text-xs text-[var(--recovery-blue)] font-semibold">ใช้เพื่อช่วยปรับคำแนะนำอาหารและไลฟ์สไตล์</p>
           <p className="mt-0.5 text-[11px] text-slate-500">{d.checkupDate ?? formatDayLabel(bangkokDateKey(item.createdAt))}</p>
         </div>
-        <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-[#42677f]">{d.confidence ?? "low"}</span>
+        <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-[var(--recovery-blue)]">{d.confidence ?? "low"}</span>
       </div>
 
       <div className="mt-4 space-y-3">
@@ -1438,7 +1438,7 @@ function HealthCheckDetail({ item, onDelete, deleting }: { item: LocalHistoryIte
         <div className="rounded-xl bg-white/70 p-3 ring-1 ring-slate-100">
           <p className="text-xs font-bold text-amber-800">⚠️ ควรระวัง</p>
           {warningLabs.length > 0 ? (
-            <ul className="mt-1.5 list-disc pl-4 space-y-1 text-sm text-[#17201d]">
+            <ul className="mt-1.5 list-disc pl-4 space-y-1 text-sm text-[var(--foreground)]">
               {warningLabs.map(([key, lab]) => (
                 <li key={key}>{formatLabWarning(key, lab)}</li>
               ))}
@@ -1479,7 +1479,7 @@ function HealthCheckDetail({ item, onDelete, deleting }: { item: LocalHistoryIte
 
         {/* โภชนาการที่เหมาะ */}
         <div className="rounded-xl bg-white/70 p-3 ring-1 ring-slate-100">
-          <p className="text-xs font-bold text-[#42677f]">🥗 โภชนาการที่เหมาะ</p>
+          <p className="text-xs font-bold text-[var(--recovery-blue)]">🥗 โภชนาการที่เหมาะ</p>
           {(d.foodGuidance?.prefer?.length || d.foodGuidance?.limit?.length) ? (
             <ul className="mt-1.5 list-disc pl-4 space-y-1 text-sm text-slate-700 font-medium">
               {d.foodGuidance.prefer?.map((item, idx) => (
@@ -1509,7 +1509,7 @@ function HealthCheckDetail({ item, onDelete, deleting }: { item: LocalHistoryIte
 
       {allLabs.length > 0 ? (
         <details className="mt-4 border-t border-slate-200/60 pt-3">
-          <summary className="cursor-pointer text-xs font-bold text-[#42677f] hover:underline focus:outline-none select-none">
+          <summary className="cursor-pointer text-xs font-bold text-[var(--recovery-blue)] hover:underline focus:outline-none select-none">
             ดูค่าตรวจทั้งหมด ({allLabs.length} รายการ)
           </summary>
           <div className="mt-3 grid grid-cols-2 gap-2">
@@ -1542,7 +1542,7 @@ function MealNutritionDaySummary({ summary, mealCount, proteinTarget, meals }: {
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-xs text-slate-400">💪 Protein</p>
-          <p className="text-xl font-bold leading-tight text-[#17201d]">
+          <p className="text-xl font-bold leading-tight text-[var(--foreground)]">
             {summary.proteinG != null ? `${summary.proteinG} / ${proteinTarget} g` : "-"}
           </p>
           {remaining != null && (
@@ -1564,7 +1564,7 @@ function MealNutritionDaySummary({ summary, mealCount, proteinTarget, meals }: {
       )}
 
       <p className="text-xs text-orange-700">{mealCount} มื้อ · {getDayMealsAssessmentText(meals)}</p>
-      {coachNote && <p className="text-sm font-semibold text-[#17201d]">{coachNote}</p>}
+      {coachNote && <p className="text-sm font-semibold text-[var(--foreground)]">{coachNote}</p>}
     </div>
   );
 }
@@ -1580,7 +1580,7 @@ function BodyDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; onDe
 
   return (
     <div className="rounded-2xl bg-slate-50 p-4">
-      <p className="text-xs font-bold uppercase tracking-wide text-[#42677f] mb-2">⚖️ ร่างกาย</p>
+      <p className="text-xs font-bold uppercase tracking-wide text-[var(--recovery-blue)] mb-2">⚖️ ร่างกาย</p>
       <div className="grid grid-cols-3 gap-2 mb-2">
         {ext.weightKg != null && <Metric label="น้ำหนัก" value={`${formatDecimal(ext.weightKg)} kg`} />}
         {ext.bodyFatPercent != null && <Metric label="ไขมัน" value={formatPercent(ext.bodyFatPercent)} />}
@@ -1602,7 +1602,7 @@ function SummaryDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; o
 
   return (
     <div className="rounded-2xl bg-slate-50 p-4">
-      <p className="text-xs font-bold uppercase tracking-wide text-[#6f8fa6] mb-1">💬 สรุปท้ายวัน</p>
+      <p className="text-xs font-bold uppercase tracking-wide text-[var(--label-color)] mb-1">💬 สรุปท้ายวัน</p>
       <p className="text-sm leading-6 text-slate-700 whitespace-pre-line">
         {truncate(d?.coachMessage ?? d?.overallSummary ?? "", 240)}
       </p>
@@ -1630,7 +1630,7 @@ function PainDetail({ item, meta, onDelete, deleting }: { item: LocalHistoryItem
   function riskBadgeClass(risk: string) {
     if (risk === "high")   return "bg-red-100 text-red-700";
     if (risk === "medium") return "bg-amber-100 text-amber-700";
-    return "bg-[#e7efea] text-[#2a5a39]";
+    return "bg-[var(--primary-soft)] text-[var(--color-success)]";
   }
   function cardClass(risk: string) {
     if (risk === "high")   return "border-red-200 bg-red-50";
@@ -1657,7 +1657,7 @@ function PainDetail({ item, meta, onDelete, deleting }: { item: LocalHistoryItem
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs font-bold uppercase tracking-wide text-slate-500">🩹 อาการเจ็บ</p>
-          <h4 className="mt-1 truncate text-base font-bold text-[#17201d]">
+          <h4 className="mt-1 truncate text-base font-bold text-[var(--foreground)]">
             {painLog.painLocation}
             {painLog.painSide && painLog.painSide !== "unknown" && (
               <span className="ml-1 text-xs font-normal text-slate-500">
@@ -1668,7 +1668,7 @@ function PainDetail({ item, meta, onDelete, deleting }: { item: LocalHistoryItem
           {metaLabel && <p className="mt-0.5 text-[11px] font-semibold text-slate-500">{metaLabel}</p>}
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1">
-          <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${isResolved ? "bg-[#e7efea] text-[#2a5a39]" : painLog.riskLevel === "high" ? "bg-red-100 text-red-700" : painLog.riskLevel === "medium" ? "bg-amber-100 text-amber-700" : "bg-[#e7efea] text-[#2a5a39]"}`}>
+          <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${isResolved ? "bg-[var(--primary-soft)] text-[var(--color-success)]" : painLog.riskLevel === "high" ? "bg-red-100 text-red-700" : painLog.riskLevel === "medium" ? "bg-amber-100 text-amber-700" : "bg-[var(--primary-soft)] text-[var(--color-success)]"}`}>
             {isResolved ? "หายแล้ว" : `${painLog.painLevel}/10`}
           </span>
           <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${riskBadgeClass(painLog.riskLevel)}`}>
@@ -1677,7 +1677,7 @@ function PainDetail({ item, meta, onDelete, deleting }: { item: LocalHistoryItem
         </div>
       </div>
 
-      <p className="rounded-xl bg-white/65 px-3 py-2 text-xs font-semibold leading-5 text-[#17201d]">
+      <p className="rounded-xl bg-white/65 px-3 py-2 text-xs font-semibold leading-5 text-[var(--foreground)]">
         {isResolved ? "ล่าสุดบันทึกว่าอาการหายแล้ว ค่อย ๆ เพิ่มโหลดกลับและหยุดถ้าอาการกลับมา" : impactLabel(painLog.trainingImpact)}
       </p>
 
@@ -1698,13 +1698,13 @@ function PainDetail({ item, meta, onDelete, deleting }: { item: LocalHistoryItem
       <div className="flex gap-2 pt-0.5">
         <Link
           href={`/pain/${encodeURIComponent(item.id)}`}
-          className="rounded-full bg-white/70 px-3 py-1.5 text-xs font-bold text-[#42677f] hover:bg-white"
+          className="rounded-full bg-white/70 px-3 py-1.5 text-xs font-bold text-[var(--recovery-blue)] hover:bg-white"
         >
           ดูรายละเอียด
         </Link>
         <Link
           href={`/pain?from=${encodeURIComponent(item.id)}`}
-          className="rounded-full bg-white/70 px-3 py-1.5 text-xs font-bold text-[#42677f] hover:bg-white"
+          className="rounded-full bg-white/70 px-3 py-1.5 text-xs font-bold text-[var(--recovery-blue)] hover:bg-white"
         >
           อัปเดตอาการ
         </Link>
@@ -1735,7 +1735,7 @@ function StrengthDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; 
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-xs font-bold uppercase tracking-wide text-blue-600">🏋️ เวทเทรนนิ่ง</p>
-          <h4 className="mt-1 text-sm font-bold text-[#17201d]">
+          <h4 className="mt-1 text-sm font-bold text-[var(--foreground)]">
             {log.routineName}
           </h4>
         </div>
@@ -1798,7 +1798,7 @@ function DeleteRecordButton({ onDelete, loading = false }: { onDelete: () => voi
 
 function Badge({ icon, label, color }: { icon?: string; label: string; color?: "green" | "blue" | "orange" | "red" }) {
   const bg =
-    color === "green" ? "bg-[#e7efea] text-[#2a5a39]"
+    color === "green" ? "bg-[var(--primary-soft)] text-[var(--color-success)]"
     : color === "blue" ? "bg-blue-50 text-blue-700"
     : color === "orange" ? "bg-orange-50 text-orange-700"
     : color === "red" ? "bg-red-50 text-red-700"
@@ -2116,7 +2116,7 @@ function parseDurationMins(duration: string | null | undefined): number | null {
 
 function readinessColor(score: number): string {
   if (score >= 80) return "text-green-600";
-  if (score >= 65) return "text-[#42677f]";
+  if (score >= 65) return "text-[var(--recovery-blue)]";
   if (score >= 50) return "text-amber-600";
   return "text-red-500";
 }
@@ -2300,7 +2300,7 @@ function PainHistoryCompactList({
   return (
     <section className="card p-5 space-y-4 bg-white">
       <div>
-        <h3 className="text-base font-bold text-[#17201d]">ประวัติอาการเจ็บ</h3>
+        <h3 className="text-base font-bold text-[var(--foreground)]">ประวัติอาการเจ็บ</h3>
         <p className="text-xs text-slate-500 mt-0.5">ประวัติและคำแนะนำผลกระทบการซ้อมสะสม</p>
       </div>
       <div className="overflow-x-auto -mx-5 px-5">
@@ -2475,7 +2475,7 @@ function EditMealModal({
         data-testid="meal-edit-modal"
         className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl border border-slate-100 flex flex-col max-h-[90vh] overflow-y-auto"
       >
-        <h3 className="text-lg font-bold text-[#17201d] mb-4">แก้ไขมื้ออาหาร</h3>
+        <h3 className="text-lg font-bold text-[var(--foreground)] mb-4">แก้ไขมื้ออาหาร</h3>
         
         {error && (
           <div className="mb-4 rounded-xl bg-red-50 p-3 text-xs font-semibold text-red-600">
@@ -2619,7 +2619,7 @@ function WeeklyReviewCard({ review }: { review: WeeklyReview }) {
       <div className="flex items-center gap-2 border-b border-[var(--border-warm)] pb-2.5">
         <span className="text-xl">📈</span>
         <div>
-          <h3 className="text-sm font-bold text-[#17201d]">แนวโน้ม Recovery 7 วัน</h3>
+          <h3 className="text-sm font-bold text-[var(--foreground)]">แนวโน้ม Recovery 7 วัน</h3>
           <p className="text-[10px] text-slate-400">ประเมินความพร้อมและแนวโน้มการฟื้นตัวสะสม</p>
         </div>
       </div>
@@ -2634,13 +2634,13 @@ function WeeklyReviewCard({ review }: { review: WeeklyReview }) {
         </div>
         <div className="flex justify-between border-b border-slate-100/80 pb-1">
           <span className="text-slate-400">โหลดสะสม:</span>
-          <span className={`font-bold ${review.loadLevel === "สูง" || review.loadLevel === "สูงมาก" ? "text-[#9b742c]" : "text-[#2a5a39]"}`}>
+          <span className={`font-bold ${review.loadLevel === "สูง" || review.loadLevel === "สูงมาก" ? "text-[#9b742c]" : "text-[var(--color-success)]"}`}>
             {review.avgLoadScore != null ? `${review.avgLoadScore}/100 · ` : ""}{review.loadLevel}
           </span>
         </div>
         <div className="flex justify-between border-b border-slate-100/80 pb-1">
           <span className="text-slate-400">การนอน:</span>
-          <span className={`font-bold ${review.sleepDebtLevel === "สูง" ? "text-[var(--status-rest)]" : review.sleepDebtLevel === "ปานกลาง" ? "text-[#9b742c]" : "text-[#2a5a39]"}`}>
+          <span className={`font-bold ${review.sleepDebtLevel === "สูง" ? "text-[var(--status-rest)]" : review.sleepDebtLevel === "ปานกลาง" ? "text-[#9b742c]" : "text-[var(--color-success)]"}`}>
             {review.avgSleepHours != null ? `${review.avgSleepHours} ชม.` : "–"}{review.avgSleepScore != null ? ` · ${review.avgSleepScore}/100` : ""}
           </span>
         </div>
@@ -2720,7 +2720,7 @@ function WeeklyReviewCard({ review }: { review: WeeklyReview }) {
         <div className="rounded-2xl bg-[#eef4f8] border border-[#ccdce8] p-4 space-y-2">
           <div className="flex items-center gap-2">
             <span className="text-base">🎯</span>
-            <p className="text-xs font-bold uppercase tracking-wide text-[#42677f]">โฟกัสถัดไป</p>
+            <p className="text-xs font-bold uppercase tracking-wide text-[var(--recovery-blue)]">โฟกัสถัดไป</p>
           </div>
           {review.nextFocus.map((f, i) => (
             <div key={i} className="flex items-start gap-2">

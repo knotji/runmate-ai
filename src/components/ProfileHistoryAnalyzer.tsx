@@ -399,7 +399,7 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
               {/* Section B: ระบบแนะนำ แต่ยังไม่ทับค่าที่คุณแก้เอง */}
               {manualItems.length > 0 && (
                 <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-3">
-                  <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">
+                  <p className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--label-color)]">
                     ระบบแนะนำ แต่ยังไม่ทับค่าที่คุณแก้เอง
                   </p>
                   <div className="divide-y divide-slate-100">
@@ -438,7 +438,7 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
                           {isEditing ? (
                             <div className="flex items-center gap-2 pt-1">
                               <input
-                                className="control min-w-0 flex-1 px-3 py-1.5 text-xs rounded-full border border-slate-200 focus:outline-none focus:ring-1 focus:ring-[#17201d]"
+                                className="control min-w-0 flex-1 px-3 py-1.5 text-xs rounded-full border border-slate-200 focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
                                 value={editVal}
                                 onChange={(e) => setEditVal(e.target.value)}
                                 placeholder="ใส่ค่าใหม่..."
@@ -446,7 +446,7 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
                               <button
                                 type="button"
                                 onClick={() => void saveInlineEdit(item.key)}
-                                className="rounded-full bg-[#17201d] px-3.5 py-1.5 text-[11px] font-bold text-white hover:bg-slate-800 transition-colors"
+                                className="rounded-full bg-[var(--foreground)] px-3.5 py-1.5 text-[11px] font-bold text-white hover:bg-slate-800 transition-colors"
                               >
                                 Save
                               </button>

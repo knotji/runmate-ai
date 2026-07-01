@@ -139,7 +139,7 @@ export default function SettingsPage() {
 
   return (
     <AppShell title="ตั้งค่า" subtitle="จัดการโปรไฟล์ โค้ช และข้อมูลของแอป">
-      <div className="mb-5 flex gap-1 rounded-2xl border-b border-slate-100 bg-white/40 p-1">
+      <div className="mb-5 segmented-control">
         <TabButton active={activeTab === "profile"} onClick={() => setActiveTab("profile")}>โปรไฟล์</TabButton>
         <TabButton active={activeTab === "data"} onClick={() => setActiveTab("data")}>ข้อมูล</TabButton>
         <TabButton active={activeTab === "account"} onClick={() => setActiveTab("account")}>บัญชี</TabButton>
@@ -149,9 +149,9 @@ export default function SettingsPage() {
         <div className="space-y-4">
           <section className="card space-y-3 p-5">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">วิเคราะห์โปรไฟล์</p>
-              <h2 className="mt-1 text-xl font-bold text-[#17201d]">วิเคราะห์โปรไฟล์จากประวัติ</h2>
-              <p className="mt-1 text-sm leading-6 text-slate-500">
+              <p className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--label-color)]">วิเคราะห์โปรไฟล์</p>
+              <h2 className="mt-1 text-xl font-bold text-[var(--foreground)]">วิเคราะห์โปรไฟล์จากประวัติ</h2>
+              <p className="mt-1 text-sm leading-6 text-[var(--muted-text)]">
                 ให้โค้ชอ่านประวัติการซ้อมและการนอนที่บันทึกไว้ แล้วแนะนำค่าโปรไฟล์ที่เหมาะกับคุณ
               </p>
             </div>
@@ -166,9 +166,9 @@ export default function SettingsPage() {
         <div className="space-y-4">
           <section className="card space-y-3 p-5">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">นำเข้าข้อมูล</p>
-              <h2 className="mt-1 text-xl font-bold text-[#17201d]">นำเข้า Samsung Health</h2>
-              <p className="mt-1 text-sm leading-6 text-slate-500">
+              <p className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--label-color)]">นำเข้าข้อมูล</p>
+              <h2 className="mt-1 text-xl font-bold text-[var(--foreground)]">นำเข้า Samsung Health</h2>
+              <p className="mt-1 text-sm leading-6 text-[var(--muted-text)]">
                 อัปโหลดไฟล์ ZIP เพื่อบันทึกข้อมูลการนอน การซ้อม และองค์ประกอบร่างกาย
               </p>
             </div>
@@ -178,18 +178,18 @@ export default function SettingsPage() {
           {!isStandalone && (
             <section className="card space-y-4 p-5">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">เพิ่ม RunMate ไว้หน้า Home</p>
-                <h2 className="mt-1 text-xl font-bold text-[#17201d]">เปิดจากมือถือเพื่อใช้เหมือนแอป</h2>
-                <p className="mt-2 text-sm leading-6 text-slate-500">
+                <p className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--label-color)]">เพิ่ม RunMate ไว้หน้า Home</p>
+                <h2 className="mt-1 text-xl font-bold text-[var(--foreground)]">เปิดจากมือถือเพื่อใช้เหมือนแอป</h2>
+                <p className="mt-2 text-sm leading-6 text-[var(--muted-text)]">
                   เพิ่ม RunMate ไว้ที่หน้าจอโฮมเพื่อเข้าใช้งานได้ง่าย รวดเร็ว และทำงานแบบออฟไลน์ได้
                 </p>
               </div>
-              <div className="rounded-2xl bg-slate-50/80 p-4 text-xs leading-relaxed text-slate-600">
+              <div className="rounded-2xl bg-[var(--surface-muted)] p-4 text-xs leading-relaxed text-[var(--muted-text)]">
                 {platform === "ios" ? (
                   <div className="flex items-start gap-3">
                     <span className="text-base select-none">📲</span>
                     <div>
-                      <p className="font-bold text-slate-700">คำแนะนำสำหรับ iOS / Safari</p>
+                      <p className="font-bold text-[var(--foreground)]">คำแนะนำสำหรับ iOS / Safari</p>
                       <p className="mt-1">กดปุ่ม Share (แชร์) แล้วเลือก &ldquo;Add to Home Screen&rdquo; (เพิ่มไปยังหน้าจอโฮม)</p>
                     </div>
                   </div>
@@ -198,7 +198,7 @@ export default function SettingsPage() {
                     <div className="flex items-start gap-3">
                       <span className="text-base select-none">📲</span>
                       <div>
-                        <p className="font-bold text-slate-700">คำแนะนำสำหรับ Android / Chrome</p>
+                        <p className="font-bold text-[var(--foreground)]">คำแนะนำสำหรับ Android / Chrome</p>
                         <p className="mt-1">กดเมนู ⋮ แล้วเลือก &ldquo;Install app&rdquo; (ติดตั้งแอป) หรือ &ldquo;Add to Home screen&rdquo; (เพิ่มไปยังหน้าจอโฮม)</p>
                       </div>
                     </div>
@@ -216,7 +216,7 @@ export default function SettingsPage() {
                   <div className="flex items-start gap-3">
                     <span className="text-base select-none">📲</span>
                     <div>
-                      <p className="font-bold text-slate-700">วิธีติดตั้งไว้หน้า Home</p>
+                      <p className="font-bold text-[var(--foreground)]">วิธีติดตั้งไว้หน้า Home</p>
                       <p className="mt-1">เปิดแอปบนบราวเซอร์มือถือของคุณ แล้วเลือกตัวเลือก &ldquo;เพิ่มลงในหน้าจอหลัก&rdquo; (Add to Home Screen)</p>
                     </div>
                   </div>
@@ -239,9 +239,9 @@ export default function SettingsPage() {
 
           <section className="card p-4">
             <details className="group cursor-pointer text-xs">
-              <summary className="list-none flex items-center justify-between font-bold text-[#17201d]">
+              <summary className="list-none flex items-center justify-between font-bold text-[var(--foreground)]">
                 <div className="flex flex-col gap-0.5">
-                  <p className="text-[10px] uppercase tracking-[0.15em] text-[#6f8fa6]">ข้อมูลและความเป็นส่วนตัว</p>
+                  <p className="text-[10px] uppercase tracking-[0.15em] text-[var(--label-color)]">ข้อมูลและความเป็นส่วนตัว</p>
                   <p className="text-sm">ดูสรุปความโปร่งใสและการเก็บรักษาข้อมูล</p>
                 </div>
                 <div className="flex items-center gap-1.5 text-xs text-[var(--primary)] font-bold shrink-0">
@@ -265,13 +265,13 @@ export default function SettingsPage() {
             <>
               <section className="card p-5 space-y-3">
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">Deployment Debug</p>
-                  <h2 className="mt-1 text-xl font-bold text-[#17201d]">ตรวจ Supabase Runtime</h2>
+                  <p className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--label-color)]">Deployment Debug</p>
+                  <h2 className="mt-1 text-xl font-bold text-[var(--foreground)]">ตรวจ Supabase Runtime</h2>
                   <p className="mt-1 text-sm leading-6 text-slate-500">
                     ใช้เช็คว่า Vercel อ่าน env ถูกชุดไหม โดยไม่แสดงค่า secret
                   </p>
                 </div>
-                <div className="space-y-2 rounded-2xl bg-slate-50 p-4 text-xs">
+                <div className="space-y-2 rounded-2xl bg-[var(--surface-muted)] p-4 text-xs">
                   <p className="font-semibold text-slate-600">
                     Runtime: {envDebug?.runtime.vercel ? `Vercel (${envDebug.runtime.vercelEnv ?? "unknown"})` : "Local browser"}
                   </p>
@@ -304,16 +304,16 @@ export default function SettingsPage() {
 
       {activeTab === "account" && (
         <div className="space-y-4">
-          <button type="button" onClick={logout} className="w-full rounded-full bg-[#fff0ee] px-6 py-3 text-center text-sm font-bold text-[var(--status-rest)] transition-colors hover:bg-[#ffe5e1]">
+          <button type="button" onClick={logout} className="btn-danger-soft w-full px-6 py-3 text-center text-sm">
             ออกจากระบบ
           </button>
         </div>
       )}
 
-      <section className="mt-5 rounded-3xl border border-[var(--border-warm)] bg-white/45 px-4 py-3 text-xs text-[var(--muted-text)]">
+      <section className="soft-panel mt-5 px-4 py-3 text-xs text-[var(--muted-text)]">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">เกี่ยวกับแอป</p>
+            <p className="font-bold uppercase tracking-[0.15em] text-[var(--label-color)]">เกี่ยวกับแอป</p>
             <p className="mt-1 font-semibold text-[var(--foreground)]">
               {buildMeta.version === "dev" ? "RunMate AI" : `RunMate AI v${buildMeta.version}`}
             </p>
@@ -400,7 +400,7 @@ function PrivacyItem({ icon, title, desc }: { icon: string; title: string; desc:
     <div className="flex gap-3 py-3 first:pt-0 last:pb-0">
       <span className="shrink-0 text-lg leading-none select-none">{icon}</span>
       <div className="space-y-0.5">
-        <h4 className="text-sm font-bold text-[#17201d]">{title}</h4>
+        <h4 className="text-sm font-bold text-[var(--foreground)]">{title}</h4>
         <p className="text-xs leading-5 text-slate-500">{desc}</p>
       </div>
     </div>
@@ -488,8 +488,8 @@ function DevCoachContextPanel() {
     <section className="card p-5 space-y-3">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">Dev QA</p>
-          <h2 className="mt-1 text-xl font-bold text-[#17201d]">Coach Context Inspector</h2>
+          <p className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--label-color)]">Dev QA</p>
+          <h2 className="mt-1 text-xl font-bold text-[var(--foreground)]">Coach Context Inspector</h2>
           <p className="mt-1 text-sm leading-6 text-slate-500">
             ข้อมูลที่ส่งไปให้ AI Coach — ใช้ QA ว่า context ถูกต้องไหม
           </p>
@@ -529,7 +529,7 @@ function DevCoachContextPanel() {
                   onClick={() => toggleSection(key)}
                   className="w-full flex items-center justify-between gap-2 px-4 py-3 text-left hover:bg-slate-100 transition-colors"
                 >
-                  <span className="flex items-center gap-2 text-xs font-bold text-[#17201d]">
+                  <span className="flex items-center gap-2 text-xs font-bold text-[var(--foreground)]">
                     <span>{emoji}</span>
                     <span>{label}</span>
                     {!hasData && (

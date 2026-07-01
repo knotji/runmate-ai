@@ -334,7 +334,7 @@ export default function TodayPage() {
 
         {insightError && !loading && (
           <div className="space-y-2 rounded-2xl bg-amber-50 px-3 py-2">
-            <p className="text-sm font-bold text-[#17201d]">{insight ? "ใช้คำแนะนำสำรองจากข้อมูลล่าสุด" : "ยังประเมินไม่สำเร็จ"}</p>
+            <p className="text-sm font-bold text-[var(--foreground)]">{insight ? "ใช้คำแนะนำสำรองจากข้อมูลล่าสุด" : "ยังประเมินไม่สำเร็จ"}</p>
             <p className="text-xs leading-5 text-amber-700">
               {insightErrorMessage || "ประเมินไม่สำเร็จ ลองใหม่อีกครั้ง"}
             </p>
@@ -352,7 +352,7 @@ export default function TodayPage() {
 
         {!insight && !loading && !insightError && !hasHistory && (
           <div className="py-1">
-            <p className="text-base font-semibold text-[#17201d]">วันนี้ยังไม่มีข้อมูลใหม่</p>
+            <p className="text-base font-semibold text-[var(--foreground)]">วันนี้ยังไม่มีข้อมูลใหม่</p>
             <p className="mt-1 text-sm text-slate-500">เพิ่มข้อมูลจากหน้า Upload เพื่อให้คำแนะนำแม่นขึ้น</p>
           </div>
         )}
@@ -388,7 +388,7 @@ export default function TodayPage() {
                     insightError ? "bg-amber-50/80 border-amber-200 text-amber-900" :
                     heroDecision.type === "pain" ? "bg-red-50/80 border-red-200 text-red-900" :
                     heroDecision.type === "caution" ? "bg-amber-50/80 border-amber-200 text-amber-900" :
-                    "bg-[#f5faf7] border-[#d9e8df] text-[#1c472a]"
+                    "bg-[#f5faf7] border-[var(--color-success-border)] text-[#1c472a]"
                   }`}>
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-bold uppercase tracking-wider">{heroDecision.title}</span>
@@ -396,7 +396,7 @@ export default function TodayPage() {
                         insightError ? "bg-amber-100 text-amber-700" :
                         heroDecision.type === "pain" ? "bg-red-100 text-red-700" :
                         heroDecision.type === "caution" ? "bg-amber-100 text-amber-700" :
-                        "bg-[#e7efea] text-[#2a5a39]"
+                        "bg-[var(--primary-soft)] text-[var(--color-success)]"
                       }`}>
                         {insightError ? "คำแนะนำสำรอง" : (heroDecision.type === "pain" ? "งดวิ่ง" : heroDecision.type === "caution" ? "ปรับลดโหลด" : "ตามแผน")}
                       </span>
@@ -674,7 +674,7 @@ function PreWorkoutFocusContent({
         </p>
       )}
       {/* 1. Headline first */}
-      <h2 className="line-clamp-2 text-xl font-bold text-[#17201d]">{insight.workoutRec}</h2>
+      <h2 className="line-clamp-2 text-xl font-bold text-[var(--foreground)]">{insight.workoutRec}</h2>
 
       {/* 2. Target plan line */}
       {hasPace && (
@@ -746,7 +746,7 @@ function PostWorkoutFocusContent({ insight, context }: { insight: DailyCoachInsi
   return (
     <div className="space-y-3">
       {/* 1. Headline first */}
-      <h2 className="text-2xl font-bold text-[#17201d]">{title}</h2>
+      <h2 className="text-2xl font-bold text-[var(--foreground)]">{title}</h2>
 
       {/* 2. Target plan line */}
       <span className="inline-block rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
@@ -829,7 +829,7 @@ function PostWorkoutFocusContent({ insight, context }: { insight: DailyCoachInsi
               ))}
             </ul>
             {injuryNote && (
-              <p className="mt-3 border-t border-[#d9e8df] pt-2 text-[11px] font-semibold leading-5 text-[#2a5a39]">
+              <p className="mt-3 border-t border-[var(--color-success-border)] pt-2 text-[11px] font-semibold leading-5 text-[var(--color-success)]">
                 {injuryNote}
               </p>
             )}
@@ -974,7 +974,7 @@ function TodayStrengthRoutineCard({
           <div className="flex items-center gap-2">
             <span className="rounded-full bg-[#eef7f0] px-2.5 py-0.5 text-[10px] font-bold text-[var(--status-ready)]">✓ วันนี้บันทึกเวทแล้ว</span>
           </div>
-          <h2 className="mt-1.5 text-xl font-bold text-[#17201d]">
+          <h2 className="mt-1.5 text-xl font-bold text-[var(--foreground)]">
             {prescription?.routineName ?? selected?.name ?? "Recovery Strength"} เสร็จแล้ว
           </h2>
           <p className="mt-1 text-sm leading-relaxed text-slate-500">
@@ -985,7 +985,7 @@ function TodayStrengthRoutineCard({
         {summaryParts.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-2">
             {summaryParts.map((part) => (
-              <span key={part} className="rounded-full bg-[#eef4ef] px-2.5 py-0.5 text-xs font-bold text-[#2a5a39]">
+              <span key={part} className="rounded-full bg-[var(--primary-soft)] px-2.5 py-0.5 text-xs font-bold text-[var(--color-success)]">
                 {part}
               </span>
             ))}
@@ -1114,20 +1114,20 @@ function TodayStrengthRoutineCard({
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#6f8fa6]">เวทวันนี้</p>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--label-color)]">เวทวันนี้</p>
             {strengthBadge && (
               <span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-bold ${badgeColorClass}`}>
                 {strengthBadge}
               </span>
             )}
           </div>
-          <h2 className="mt-1.5 text-xl font-bold text-[#17201d]">
+          <h2 className="mt-1.5 text-xl font-bold text-[var(--foreground)]">
             {prescription?.recommendedTitle ?? selected.name}
           </h2>
           <p className="mt-1 text-sm leading-6 text-slate-500">{prescription?.reason ?? reason}</p>
         </div>
         {durationMin ? (
-          <span className="shrink-0 rounded-full bg-[#eef4ef] px-3 py-1 text-xs font-bold text-[#2a5a39]">
+          <span className="shrink-0 rounded-full bg-[var(--primary-soft)] px-3 py-1 text-xs font-bold text-[var(--color-success)]">
             {durationMin} นาที
           </span>
         ) : null}
@@ -1384,7 +1384,7 @@ function getAxisBadgeClass(axisKey: "recovery" | "load" | "sleep" | "fuel", scor
   if (tone === "success") return "bg-[#eef7f0] text-[var(--status-ready)] border border-[#cfe4d5]";
   if (tone === "warning") return "bg-[#fff6df] text-[#9b742c] border border-[#ead9a9]";
   if (tone === "danger") return "bg-[#fff0ee] text-[var(--status-rest)] border border-[#e8c1bd]";
-  if (tone === "info") return "bg-[#eef4f8] text-[#42677f] border border-[#ccdce8]";
+  if (tone === "info") return "bg-[var(--recovery-soft)] text-[var(--recovery-blue)] border border-[var(--color-info-border)]";
   return "bg-slate-50 text-slate-600 border border-slate-100";
 }
 
@@ -1422,7 +1422,7 @@ function RecoveryLoopCard({ coachCtx }: { coachCtx: CoachContext }) {
 
   return (
     <section className="card p-4 space-y-2.5 bg-gradient-to-b from-[#fdfcf8] to-[#f8fcf9]" data-testid="recovery-loop-card">
-      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#6f8fa6]">คืนนี้ควรฟื้นตัวยังไง</p>
+      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--label-color)]">คืนนี้ควรฟื้นตัวยังไง</p>
 
       {/* 1. Sleep need — lead message */}
       <div className="flex items-center gap-2 text-xs text-slate-600">
@@ -1489,7 +1489,7 @@ const RING_LABEL_CLASS: Record<string, string> = {
   success: "text-[#2a6e45]",
   warning: "text-[#9b742c]",
   danger: "text-[#c04040]",
-  info: "text-[#42677f]",
+  info: "text-[var(--recovery-blue)]",
   neutral: "text-[#64748b]",
 };
 
@@ -1644,7 +1644,7 @@ function TodaySnapshotCard({
 
   return (
     <section className="health-score-card px-4 pt-4 pb-3 space-y-3">
-      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#6f8fa6]">ภาพรวมวันนี้</p>
+      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--label-color)]">ภาพรวมวันนี้</p>
 
       {/* Readiness chip */}
       <div className="flex flex-wrap gap-2">
@@ -1667,7 +1667,7 @@ function TodaySnapshotCard({
 
       {/* Coach headline */}
       {!loading && readinessScore != null && insight && (
-        <p className="text-base font-bold text-[#17201d] leading-snug px-0.5">
+        <p className="text-base font-bold text-[var(--foreground)] leading-snug px-0.5">
           {buildTodaySnapshotCoachHeadline(readinessScore, coachCtx)}
         </p>
       )}
@@ -1831,12 +1831,12 @@ function TodaySnapshotCard({
 function readinessChipClass(score: number, label?: string): string {
   if (label) {
     if (label.includes("Excellent")) return "bg-[#eef7f0] text-[var(--status-ready)]";
-    if (label.includes("Good")) return "bg-[#e7f0fa] text-[#42677f]";
+    if (label.includes("Good")) return "bg-[#e7f0fa] text-[var(--recovery-blue)]";
     if (label.includes("Fair")) return "bg-[#fff6df] text-[#9b742c]";
     if (label.includes("Low")) return "bg-red-50 text-[var(--status-rest)]";
   }
   if (score >= 80) return "bg-[#eef7f0] text-[var(--status-ready)]";
-  if (score >= 66) return "bg-[#e7f0fa] text-[#42677f]";
+  if (score >= 66) return "bg-[#e7f0fa] text-[var(--recovery-blue)]";
   if (score >= 50) return "bg-[#fff6df] text-[#9b742c]";
   return "bg-red-50 text-[var(--status-rest)]";
 }
@@ -1861,14 +1861,14 @@ function CompactPainCard({ pains }: { pains: PainSummary[] }) {
 
   const borderClass = isHighRisk ? "border-red-200 bg-red-50"
     : isMediumRisk ? "border-amber-200 bg-amber-50"
-    : "border-[#d9e8df] bg-[#f5faf7]";
+    : "border-[var(--color-success-border)] bg-[#f5faf7]";
   const badgeClass = isHighRisk ? "bg-red-100 text-red-700"
     : isMediumRisk ? "bg-amber-100 text-amber-700"
-    : "bg-[#e7efea] text-[#2a5a39]";
-  const textClass = isHighRisk ? "text-red-700" : isMediumRisk ? "text-amber-700" : "text-[#2a5a39]";
+    : "bg-[var(--primary-soft)] text-[var(--color-success)]";
+  const textClass = isHighRisk ? "text-red-700" : isMediumRisk ? "text-amber-700" : "text-[var(--color-success)]";
   const btnClass = isHighRisk ? "bg-red-100 text-red-700 hover:bg-red-200"
     : isMediumRisk ? "bg-amber-100 text-amber-700 hover:bg-amber-200"
-    : "bg-[#e7efea] text-[#2a5a39] hover:bg-[#d9e8df]";
+    : "bg-[var(--primary-soft)] text-[var(--color-success)] hover:bg-[#d9e8df]";
 
   async function markPainResolved() {
     if (savingResolved || isResolved) return;
@@ -1940,7 +1940,7 @@ function CompactPainCard({ pains }: { pains: PainSummary[] }) {
           loading={savingResolved}
           loadingText="กำลังบันทึก..."
           onClick={() => void markPainResolved()}
-          className="w-full rounded-full bg-white/80 py-2 text-center text-xs font-bold text-[#2a5a39] hover:bg-white"
+          className="w-full rounded-full bg-white/80 py-2 text-center text-xs font-bold text-[var(--color-success)] hover:bg-white"
         >
           หายแล้ว
         </LoadingButton>
@@ -1972,7 +1972,7 @@ function CompactNutritionCard({ nutrition, profile }: { nutrition: NutritionDayS
   return (
     <section className="card px-4 py-3">
       <div className="flex items-center justify-between gap-3">
-        <span className="text-sm font-bold text-[#17201d]">
+        <span className="text-sm font-bold text-[var(--foreground)]">
           💪 Protein {actual ?? "-"} / {target} g
         </span>
         {status && (
@@ -2083,7 +2083,7 @@ function EndOfDaySummaryCard({
   return (
     <section id="end-of-day-summary" className="card scroll-mt-6 px-4 py-3 space-y-3">
       <div>
-        <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">สรุปท้ายวัน</p>
+        <p className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--label-color)]">สรุปท้ายวัน</p>
         <p className="mt-1 text-sm leading-6 text-slate-500">กดก่อนนอนเพื่อสรุปวันนี้และวางแผนพรุ่งนี้จากข้อมูลใน Report</p>
         <p className="mt-1 text-[11px] text-slate-400">{newSummaryNote}</p>
       </div>

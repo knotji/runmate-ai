@@ -326,8 +326,8 @@ export function ProfileSetupForm({
     return (
       <form onSubmit={submit} className="card space-y-4 p-5">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">Runner Profile</p>
-          <h2 className="mt-1 text-xl font-bold text-[#17201d]">ตั้งค่าเริ่มต้น</h2>
+          <p className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--label-color)]">Runner Profile</p>
+          <h2 className="mt-1 text-xl font-bold text-[var(--foreground)]">ตั้งค่าเริ่มต้น</h2>
           <p className="mt-1 text-sm leading-6 text-slate-500">
             ข้อมูลนี้จะช่วยให้โค้ชวางแผนซ้อมได้เหมาะกับคุณ
           </p>
@@ -385,7 +385,7 @@ export function ProfileSetupForm({
                 key={t}
                 type="button"
                 onClick={() => update("coachingTone", t)}
-                className={`rounded-2xl border py-2 text-sm font-semibold ${profile.coachingTone === t ? "border-[#17201d] bg-[#17201d] text-white" : "border-slate-200 text-slate-600"}`}
+                className={`rounded-2xl border py-2 text-sm font-semibold ${profile.coachingTone === t ? "border-[var(--foreground)] bg-[var(--foreground)] text-white" : "border-slate-200 text-slate-600"}`}
               >
                 {toneLabel(t)}
               </button>
@@ -406,8 +406,8 @@ export function ProfileSetupForm({
   return (
     <form onSubmit={submit} className="card space-y-3 p-5">
       <div>
-        <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">Runner Profile</p>
-        <h2 className="mt-1 text-xl font-bold text-[#17201d]">โปรไฟล์นักวิ่ง</h2>
+        <p className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--label-color)]">Runner Profile</p>
+        <h2 className="mt-1 text-xl font-bold text-[var(--foreground)]">โปรไฟล์นักวิ่ง</h2>
         <p className="mt-1 text-sm leading-6 text-slate-500">
           ข้อมูลนี้ช่วยให้โค้ชวางแผนซ้อมได้เหมาะกับคุณ
         </p>
@@ -470,7 +470,7 @@ export function ProfileSetupForm({
           <div className="space-y-2">
             <div className="rounded-xl bg-slate-50 px-3 py-2.5">
               <p className="text-[11px] text-slate-400">เป้าหมายหลักตอนนี้</p>
-              <p className="text-sm font-semibold text-[#17201d] leading-relaxed whitespace-pre-wrap">{profile.mainGoal || "ยังไม่มีเป้าหมายระยะยาว"}</p>
+              <p className="text-sm font-semibold text-[var(--foreground)] leading-relaxed whitespace-pre-wrap">{profile.mainGoal || "ยังไม่มีเป้าหมายระยะยาว"}</p>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <StatCard label="ระยะทางเป้าหมาย" value={profile.targetDistance || "—"} />
@@ -495,7 +495,7 @@ export function ProfileSetupForm({
                     key={d}
                     type="button"
                     onClick={() => update("targetDistance", d)}
-                    className={`rounded-full border px-3 py-1 text-xs font-semibold ${profile.targetDistance === d ? "border-[#17201d] bg-[#17201d] text-white" : "border-slate-200 text-slate-600"}`}
+                    className={`rounded-full border px-3 py-1 text-xs font-semibold ${profile.targetDistance === d ? "border-[var(--foreground)] bg-[var(--foreground)] text-white" : "border-slate-200 text-slate-600"}`}
                   >
                     {d}
                   </button>
@@ -510,7 +510,7 @@ export function ProfileSetupForm({
                     key={g}
                     type="button"
                     onClick={() => update("goalPriority", g)}
-                    className={`rounded-2xl border py-2 text-xs font-semibold ${profile.goalPriority === g ? "border-[#17201d] bg-[#17201d] text-white" : "border-slate-200 text-slate-600"}`}
+                    className={`rounded-2xl border py-2 text-xs font-semibold ${profile.goalPriority === g ? "border-[var(--foreground)] bg-[var(--foreground)] text-white" : "border-slate-200 text-slate-600"}`}
                   >
                     {priorityLabel(g)}
                   </button>
@@ -536,7 +536,7 @@ export function ProfileSetupForm({
           <div className="space-y-2">
             <div className="rounded-xl bg-slate-50 px-3 py-2.5">
               <p className="text-[11px] text-slate-400">ระดับนักวิ่ง</p>
-              <p className="text-sm font-semibold text-[#17201d]">{profile.currentLevel || "ยังไม่ได้ระบุ"}</p>
+              <p className="text-sm font-semibold text-[var(--foreground)]">{profile.currentLevel || "ยังไม่ได้ระบุ"}</p>
             </div>
             <div className="grid grid-cols-3 gap-2">
               <StatCard label="วิ่งไกลสุด" value={profile.currentLongestRunKm != null ? `${profile.currentLongestRunKm} km` : "—"} />
@@ -545,7 +545,7 @@ export function ProfileSetupForm({
             </div>
             <div className="rounded-xl bg-slate-50 px-3 py-2.5">
               <p className="text-[11px] text-slate-400">Easy pace</p>
-              <p className="text-sm font-semibold text-[#17201d]">
+              <p className="text-sm font-semibold text-[var(--foreground)]">
                 {profile.easyPace
                   ? <>{profile.easyPace}<span className="ml-1 text-xs font-normal text-slate-400">นาที/กม.</span></>
                   : "ยังไม่ได้ระบุ"}
@@ -566,7 +566,7 @@ export function ProfileSetupForm({
               />
               <div className="rounded-xl bg-slate-50 px-3 py-2.5">
                 <p className="text-[11px] text-slate-400">Max HR</p>
-                <p className="text-sm font-semibold text-[#17201d]">
+                <p className="text-sm font-semibold text-[var(--foreground)]">
                   {profile.maxHr != null ? formatBpm(profile.maxHr) : "ยังไม่มีข้อมูล"}
                 </p>
                 {profile.maxHr != null && (
@@ -667,7 +667,7 @@ export function ProfileSetupForm({
                     key={t}
                     type="button"
                     onClick={() => update("preferredRunTime", t)}
-                    className={`rounded-full border px-3 py-1 text-xs font-semibold ${profile.preferredRunTime === t ? "border-[#17201d] bg-[#17201d] text-white" : "border-slate-200 text-slate-600"}`}
+                    className={`rounded-full border px-3 py-1 text-xs font-semibold ${profile.preferredRunTime === t ? "border-[var(--foreground)] bg-[var(--foreground)] text-white" : "border-slate-200 text-slate-600"}`}
                   >
                     {runTimeLabel(t)}
                   </button>
@@ -704,15 +704,15 @@ export function ProfileSetupForm({
           <div className="space-y-2">
             <div className="rounded-xl bg-slate-50 px-3 py-2.5">
               <p className="text-[11px] text-slate-400">ประวัติบาดเจ็บ</p>
-              <p className="text-sm font-semibold text-[#17201d] leading-relaxed whitespace-pre-wrap">{profile.injuryHistory || profile.injuryNotes || "—"}</p>
+              <p className="text-sm font-semibold text-[var(--foreground)] leading-relaxed whitespace-pre-wrap">{profile.injuryHistory || profile.injuryNotes || "—"}</p>
             </div>
             <div className="rounded-xl bg-slate-50 px-3 py-2.5">
               <p className="text-[11px] text-slate-400">อาการปัจจุบัน</p>
-              <p className="text-sm font-semibold text-[#17201d] leading-relaxed whitespace-pre-wrap">{profile.currentPainNotes || "—"}</p>
+              <p className="text-sm font-semibold text-[var(--foreground)] leading-relaxed whitespace-pre-wrap">{profile.currentPainNotes || "—"}</p>
             </div>
             <div className="rounded-xl bg-slate-50 px-3 py-2.5">
               <p className="text-[11px] text-slate-400">สิ่งที่ต้องระวัง</p>
-              <p className="text-sm font-semibold text-[#17201d] leading-relaxed whitespace-pre-wrap">{profile.riskNotes || "—"}</p>
+              <p className="text-sm font-semibold text-[var(--foreground)] leading-relaxed whitespace-pre-wrap">{profile.riskNotes || "—"}</p>
             </div>
           </div>
         )}
@@ -772,7 +772,7 @@ export function ProfileSetupForm({
             </div>
             <div className="rounded-xl bg-slate-50 px-3 py-2.5">
               <p className="text-[11px] text-slate-400">กฎ Recovery</p>
-              <p className="text-sm font-semibold text-[#17201d] leading-relaxed whitespace-pre-wrap">{profile.recoveryRules || profile.sleepNotes || "—"}</p>
+              <p className="text-sm font-semibold text-[var(--foreground)] leading-relaxed whitespace-pre-wrap">{profile.recoveryRules || profile.sleepNotes || "—"}</p>
             </div>
           </div>
         )}
@@ -831,7 +831,7 @@ export function ProfileSetupForm({
               {foodPrefs.avoids && (
                 <div className="rounded-xl bg-slate-50 px-3 py-2.5">
                   <p className="text-[11px] text-slate-400">ไม่กิน / เลี่ยงอาหาร</p>
-                  <p className="text-sm font-semibold text-[#17201d]">{foodPrefs.avoids}</p>
+                  <p className="text-sm font-semibold text-[var(--foreground)]">{foodPrefs.avoids}</p>
                 </div>
               )}
               {profile.allergiesOrRestrictions && (
@@ -843,7 +843,7 @@ export function ProfileSetupForm({
               {foodPrefs.likes && (
                 <div className="rounded-xl bg-slate-50 px-3 py-2.5">
                   <p className="text-[11px] text-slate-400">ชอบอาหารแบบไหน</p>
-                  <p className="text-sm font-semibold text-[#17201d]">{foodPrefs.likes}</p>
+                  <p className="text-sm font-semibold text-[var(--foreground)]">{foodPrefs.likes}</p>
                 </div>
               )}
               <div className="grid grid-cols-2 gap-2">
@@ -853,13 +853,13 @@ export function ProfileSetupForm({
               {foodPrefs.convenience && foodPrefs.convenience.length > 0 && (
                 <div className="rounded-xl bg-slate-50 px-3 py-2.5">
                   <p className="text-[11px] text-slate-400">ความสะดวกของมื้ออาหาร</p>
-                  <p className="text-sm font-semibold text-[#17201d]">{foodPrefs.convenience.join(", ")}</p>
+                  <p className="text-sm font-semibold text-[var(--foreground)]">{foodPrefs.convenience.join(", ")}</p>
                 </div>
               )}
               {foodPrefs.goals && foodPrefs.goals.length > 0 && (
                 <div className="rounded-xl bg-slate-50 px-3 py-2.5">
                   <p className="text-[11px] text-slate-400">เป้าหมายอาหาร</p>
-                  <p className="text-sm font-semibold text-[#17201d]">{foodPrefs.goals.join(", ")}</p>
+                  <p className="text-sm font-semibold text-[var(--foreground)]">{foodPrefs.goals.join(", ")}</p>
                 </div>
               )}
             </div>
@@ -926,7 +926,7 @@ export function ProfileSetupForm({
                       key={s}
                       type="button"
                       onClick={() => updateField("spicy", s)}
-                      className={`flex-1 rounded-2xl border py-2 text-sm font-semibold transition ${foodPrefs.spicy === s ? "border-[#17201d] bg-[#17201d] text-white" : "border-slate-200 text-slate-600 bg-white hover:bg-slate-50"}`}
+                      className={`flex-1 rounded-2xl border py-2 text-sm font-semibold transition ${foodPrefs.spicy === s ? "border-[var(--foreground)] bg-[var(--foreground)] text-white" : "border-slate-200 text-slate-600 bg-white hover:bg-slate-50"}`}
                     >
                       {s}
                     </button>
@@ -944,7 +944,7 @@ export function ProfileSetupForm({
                         key={item}
                         type="button"
                         onClick={() => handleCheckbox("convenience", item, !isChecked)}
-                        className={`rounded-full border px-4 py-1.5 text-xs font-semibold transition ${isChecked ? "border-[#17201d] bg-[#17201d] text-white" : "border-slate-200 text-slate-600 bg-white hover:bg-slate-50"}`}
+                        className={`rounded-full border px-4 py-1.5 text-xs font-semibold transition ${isChecked ? "border-[var(--foreground)] bg-[var(--foreground)] text-white" : "border-slate-200 text-slate-600 bg-white hover:bg-slate-50"}`}
                       >
                         {item}
                       </button>
@@ -961,7 +961,7 @@ export function ProfileSetupForm({
                       key={b}
                       type="button"
                       onClick={() => updateField("budget", b)}
-                      className={`flex-1 rounded-2xl border py-2 text-sm font-semibold transition ${foodPrefs.budget === b ? "border-[#17201d] bg-[#17201d] text-white" : "border-slate-200 text-slate-600 bg-white hover:bg-slate-50"}`}
+                      className={`flex-1 rounded-2xl border py-2 text-sm font-semibold transition ${foodPrefs.budget === b ? "border-[var(--foreground)] bg-[var(--foreground)] text-white" : "border-slate-200 text-slate-600 bg-white hover:bg-slate-50"}`}
                     >
                       {b}
                     </button>
@@ -979,7 +979,7 @@ export function ProfileSetupForm({
                         key={item}
                         type="button"
                         onClick={() => handleCheckbox("goals", item, !isChecked)}
-                        className={`rounded-full border px-4 py-1.5 text-xs font-semibold transition ${isChecked ? "border-[#17201d] bg-[#17201d] text-white" : "border-slate-200 text-slate-600 bg-white hover:bg-slate-50"}`}
+                        className={`rounded-full border px-4 py-1.5 text-xs font-semibold transition ${isChecked ? "border-[var(--foreground)] bg-[var(--foreground)] text-white" : "border-slate-200 text-slate-600 bg-white hover:bg-slate-50"}`}
                       >
                         {item}
                       </button>
@@ -1017,7 +1017,7 @@ export function ProfileSetupForm({
                 <StatCard label="ภาษา" value={profile.language ? langLabel(profile.language) : "—"} />
               </div>
               <div className="rounded-2xl border border-slate-100 bg-[#f8fafc] p-4">
-                <p className="text-xs font-bold uppercase tracking-wider text-[#6f8fa6]">ตัวอย่างโค้ชของคุณ</p>
+                <p className="text-xs font-bold uppercase tracking-wider text-[var(--label-color)]">ตัวอย่างโค้ชของคุณ</p>
                 <p className="mt-2 text-sm leading-relaxed text-slate-700 italic">“{previewText}”</p>
               </div>
             </div>
@@ -1040,7 +1040,7 @@ export function ProfileSetupForm({
                       key={t}
                       type="button"
                       onClick={() => update("coachingTone", t)}
-                      className={`rounded-2xl border py-2 text-sm font-semibold ${profile.coachingTone === t ? "border-[#17201d] bg-[#17201d] text-white" : "border-slate-200 text-slate-600"}`}
+                      className={`rounded-2xl border py-2 text-sm font-semibold ${profile.coachingTone === t ? "border-[var(--foreground)] bg-[var(--foreground)] text-white" : "border-slate-200 text-slate-600"}`}
                     >
                       {toneLabel(t)}
                     </button>
@@ -1055,7 +1055,7 @@ export function ProfileSetupForm({
                       key={d}
                       type="button"
                       onClick={() => update("responseDetail", d)}
-                      className={`flex-1 rounded-2xl border py-2 text-sm font-semibold ${profile.responseDetail === d ? "border-[#17201d] bg-[#17201d] text-white" : "border-slate-200 text-slate-600"}`}
+                      className={`flex-1 rounded-2xl border py-2 text-sm font-semibold ${profile.responseDetail === d ? "border-[var(--foreground)] bg-[var(--foreground)] text-white" : "border-slate-200 text-slate-600"}`}
                     >
                       {detailLabel(d)}
                     </button>
@@ -1070,7 +1070,7 @@ export function ProfileSetupForm({
                       key={l}
                       type="button"
                       onClick={() => update("language", l)}
-                      className={`flex-1 rounded-2xl border py-2 text-sm font-semibold ${profile.language === l ? "border-[#17201d] bg-[#17201d] text-white" : "border-slate-200 text-slate-600"}`}
+                      className={`flex-1 rounded-2xl border py-2 text-sm font-semibold ${profile.language === l ? "border-[var(--foreground)] bg-[var(--foreground)] text-white" : "border-slate-200 text-slate-600"}`}
                     >
                       {langLabel(l)}
                     </button>
@@ -1078,7 +1078,7 @@ export function ProfileSetupForm({
                 </div>
               </div>
               <div className="rounded-2xl border border-slate-100 bg-[#f8fafc] p-4">
-                <p className="text-xs font-bold uppercase tracking-wider text-[#6f8fa6]">ตัวอย่างโค้ชของคุณ</p>
+                <p className="text-xs font-bold uppercase tracking-wider text-[var(--label-color)]">ตัวอย่างโค้ชของคุณ</p>
                 <p className="mt-2 text-sm leading-relaxed text-slate-700 italic">“{previewText}”</p>
               </div>
             </>
@@ -1104,11 +1104,11 @@ export function ProfileSetupForm({
             </div>
             <div className="rounded-xl bg-slate-50 px-3 py-2.5">
               <p className="text-[11px] text-slate-400">ตารางงาน</p>
-              <p className="text-sm font-semibold text-[#17201d]">{profile.workSchedule || "—"}</p>
+              <p className="text-sm font-semibold text-[var(--foreground)]">{profile.workSchedule || "—"}</p>
             </div>
             <div className="rounded-xl bg-slate-50 px-3 py-2.5">
               <p className="text-[11px] text-slate-400">Timezone</p>
-              <p className="text-sm font-semibold text-[#17201d]">{profile.timezone || "—"}</p>
+              <p className="text-sm font-semibold text-[var(--foreground)]">{profile.timezone || "—"}</p>
             </div>
             <div className="grid grid-cols-3 gap-2">
               <StatCard label="LT HR" value={formatBpm(profile.lactateThresholdHr)} />
@@ -1117,7 +1117,7 @@ export function ProfileSetupForm({
             </div>
             <div className="rounded-xl bg-slate-50 px-3 py-2.5">
               <p className="text-[11px] text-slate-400">อุปกรณ์ที่มี</p>
-              <p className="text-sm font-semibold text-[#17201d]">
+              <p className="text-sm font-semibold text-[var(--foreground)]">
                 {Array.isArray(profile.availableEquipment)
                   ? profile.availableEquipment.join(", ")
                   : profile.availableEquipment || "—"}
@@ -1125,7 +1125,7 @@ export function ProfileSetupForm({
             </div>
             <div className="rounded-xl bg-slate-50 px-3 py-2.5">
               <p className="text-[11px] text-slate-400">เป้าหมายโภชนาการ</p>
-              <p className="text-sm font-semibold text-[#17201d] leading-relaxed whitespace-pre-wrap">{nutritionGoalLabel(profile.nutritionGoal) || "—"}</p>
+              <p className="text-sm font-semibold text-[var(--foreground)] leading-relaxed whitespace-pre-wrap">{nutritionGoalLabel(profile.nutritionGoal) || "—"}</p>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <StatCard label="Protein target" value={profile.proteinTargetG != null ? `${profile.proteinTargetG} g` : suggestedProtein != null ? `แนะนำ ${suggestedProtein} g` : "—"} />
@@ -1340,7 +1340,7 @@ function EditableSection({
           onClick={onToggle}
           className="flex flex-1 items-center justify-between px-4 py-3 text-left"
         >
-          <p className="text-sm font-bold text-[#17201d]">{title}</p>
+          <p className="text-sm font-bold text-[var(--foreground)]">{title}</p>
           <span className="text-slate-400 text-lg leading-none">{open ? "−" : "+"}</span>
         </button>
         {open && !isEditing && (
@@ -1436,7 +1436,7 @@ function StatCard({ label, value, note }: { label: string; value: string; note?:
   return (
     <div className="rounded-xl bg-slate-50 px-3 py-2.5">
       <p className="text-[11px] text-slate-400">{label}</p>
-      <p className="text-sm font-semibold text-[#17201d]">{value}</p>
+      <p className="text-sm font-semibold text-[var(--foreground)]">{value}</p>
       {note && <p className="mt-0.5 text-[10px] leading-tight text-slate-400">{note}</p>}
     </div>
   );

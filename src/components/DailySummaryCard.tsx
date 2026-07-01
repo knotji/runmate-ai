@@ -3,7 +3,7 @@ import type { DailySummary } from "@/types/logs";
 export function DailySummaryCard({ summary }: { summary: DailySummary }) {
   return (
     <section className="card space-y-3 p-5">
-      <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#6f8fa6]">Daily Summary</p>
+      <p className="text-xs font-bold uppercase tracking-[0.22em] text-[var(--label-color)]">Daily Summary</p>
       <h2 className="text-xl font-bold">{summary.overallSummary}</h2>
       {[
         ["ซ้อม", summary.trainingReview],

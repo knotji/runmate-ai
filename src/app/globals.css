@@ -56,6 +56,13 @@
   /* Spacing tokens */
   --space-card: 1.25rem;
   --space-card-sm: 1rem;
+
+  /* Danger action tokens */
+  --color-danger-tint: #fff0ee;
+  --color-danger-tint-hover: #ffe5e1;
+
+  /* Section label blue-gray */
+  --label-color: #6f8fa6;
 }
 
 @theme inline {
@@ -291,3 +298,32 @@ textarea {
   border-radius: 16px;
   padding: 0.5rem 0.25rem 0.5rem;
 }
+
+/* ─── Shared UI Components ──────────────────────────────────────────────── */
+
+/* Segmented control — for tab/pill group containers (Settings tabs, Upload type) */
+.segmented-control {
+  display: flex;
+  gap: 0.25rem;
+  border-radius: 16px;
+  border: 1px solid var(--color-border-soft);
+  background: color-mix(in srgb, var(--surface-muted) 85%, transparent);
+  padding: 0.25rem;
+}
+
+/* Soft panel — lighter card surface for info/about sections */
+.soft-panel {
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--surface) 75%, transparent);
+}
+
+/* Danger soft button — logout, injury report actions */
+.btn-danger-soft {
+  border-radius: var(--radius-pill);
+  background: var(--color-danger-tint);
+  color: var(--color-danger);
+  font-weight: 700;
+  transition: background 150ms ease;
+}
+.btn-danger-soft:hover { background: var(--color-danger-tint-hover); }

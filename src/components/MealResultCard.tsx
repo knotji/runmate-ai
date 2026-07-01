@@ -9,7 +9,7 @@ export function MealResultCard({ result }: { result: MealAnalysis }) {
 
   return (
     <section className="card p-5">
-      <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#6f8fa6]">ผลประเมินมื้ออาหาร</p>
+      <p className="text-xs font-bold uppercase tracking-[0.22em] text-[var(--label-color)]">ผลประเมินมื้ออาหาร</p>
       <h2 className="mt-2 text-xl font-bold">{foods || "มื้ออาหาร"}</h2>
       <MetricGrid
         items={[

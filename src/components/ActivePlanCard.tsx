@@ -13,8 +13,8 @@ export function ActivePlanCard({ goal, plan }: { goal: RaceGoal | null; plan: Ra
     <section className="card space-y-3 p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">Active Plan</p>
-          <h2 className="mt-1 text-lg font-bold text-[#17201d]">
+          <p className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--label-color)]">Active Plan</p>
+          <h2 className="mt-1 text-lg font-bold text-[var(--foreground)]">
             {goal ? goal.raceName : "ยังไม่มี Race Goal active"}
           </h2>
           <p className="mt-1 text-sm leading-6 text-slate-600">
@@ -45,7 +45,7 @@ function MiniStat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl bg-slate-50 p-3">
       <p className="text-xs text-slate-400">{label}</p>
-      <p className="mt-1 truncate text-sm font-bold text-[#17201d]">{value}</p>
+      <p className="mt-1 truncate text-sm font-bold text-[var(--foreground)]">{value}</p>
     </div>
   );
 }

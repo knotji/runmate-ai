@@ -120,7 +120,7 @@ export default function RaceGoalPage() {
   if (!mounted) {
     return (
       <AppShell title="แผนแข่ง" subtitle="วางแผนจากวันนี้ไปถึงวันแข่ง">
-        <section className="card p-5 text-sm text-slate-500">กำลังโหลดเป้าหมายและแผนซ้อม...</section>
+        <section className="card p-5 text-sm text-[var(--muted-text)]">กำลังโหลดเป้าหมายและแผนซ้อม...</section>
       </AppShell>
     );
   }
@@ -134,7 +134,7 @@ export default function RaceGoalPage() {
       {!goal || !plan ? (
         <>
           {raceResults.length > 0 ? <LatestRacePrompt result={raceResults[0]} /> : null}
-          <section className="rounded-3xl border border-slate-100 bg-white/70 px-4 py-3 text-sm leading-6 text-slate-500">
+          <section className="soft-panel px-4 py-3 text-sm leading-6 text-[var(--muted-text)]">
             ตั้งเป้าการแข่งก่อน แล้วระบบจะช่วยวางแผนซ้อมให้เหมาะกับข้อมูลล่าสุดของคุณ
           </section>
           <RaceGoalForm onCreated={(nextGoal, nextPlan) => { setGoal(nextGoal); setPlan(nextPlan); }} />
@@ -149,10 +149,10 @@ export default function RaceGoalPage() {
 
           <section className="card p-4">
             <details className="group cursor-pointer">
-              <summary className="list-none flex items-center justify-between font-bold text-[#17201d]">
+              <summary className="list-none flex items-center justify-between font-bold text-[var(--foreground)]">
                 <div className="flex flex-col gap-0.5">
-                  <span className="text-[10px] uppercase tracking-[0.15em] text-[#6f8fa6]">ภาพรวมแผน</span>
-                  <span className="text-sm font-bold text-[#17201d]">รายละเอียดแต่ละเฟสการซ้อม</span>
+                  <span className="text-[10px] uppercase tracking-[0.15em] text-[var(--label-color)]">ภาพรวมแผน</span>
+                  <span className="text-sm font-bold text-[var(--foreground)]">รายละเอียดแต่ละเฟสการซ้อม</span>
                 </div>
                 <div className="flex items-center gap-1.5 text-xs text-[var(--primary)] font-bold shrink-0">
                   <span className="group-open:hidden">ดูเฟสซ้อม</span>
@@ -160,21 +160,21 @@ export default function RaceGoalPage() {
                   <span className="transition-transform group-open:rotate-180">▾</span>
                 </div>
               </summary>
-              <div className="mt-3 pt-3 border-t border-slate-100/60 cursor-default space-y-3">
+              <div className="mt-3 pt-3 border-t border-[var(--color-border-soft)] cursor-default space-y-3">
                 <div className="flex justify-between items-center gap-3">
-                  <span className="text-xs text-slate-500 font-semibold">สรุปโครงสร้างแผนซ้อม</span>
+                  <span className="text-xs text-[var(--color-text-soft)] font-semibold">สรุปโครงสร้างแผนซ้อม</span>
                   <LoadingButton
                     type="button"
                     loading={refreshing}
                     loadingText="กำลังอัปเดตแผน..."
                     onClick={refreshPlan}
-                    className="flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold text-[#42677f] transition-colors hover:bg-slate-100 disabled:opacity-40"
+                    className="flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold text-[var(--recovery-blue)] transition-colors hover:bg-[var(--surface-muted)] disabled:opacity-40"
                   >
                     รีเฟรชแผน
                   </LoadingButton>
                 </div>
                 {refreshError ? <p className="text-xs text-red-500">อัปเดตแผนไม่สำเร็จ ลองใหม่อีกครั้ง</p> : null}
-                <p className="text-xs leading-relaxed text-slate-600 font-medium bg-slate-50 p-3 rounded-2xl border border-slate-100">{sanitizePaceInText(plan.planSummary)}</p>
+                <p className="card-soft text-xs leading-relaxed text-[var(--muted-text)] font-medium p-3">{sanitizePaceInText(plan.planSummary)}</p>
                 <div className="space-y-2 mt-2">
                   {plan.phases?.map((phase) => <TrainingPhaseCard key={phase.name} phase={phase} />)}
                 </div>
@@ -196,15 +196,15 @@ export default function RaceGoalPage() {
 function LatestRacePrompt({ result }: { result: RaceResult }) {
   return (
     <div className="card space-y-2 px-5 py-4">
-      <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">Race completed</p>
-      <p className="text-base font-bold text-[#17201d]">{result.raceName ?? "Race"} · {result.raceDistance}</p>
+      <p className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--label-color)]">Race completed</p>
+      <p className="text-base font-bold text-[var(--foreground)]">{result.raceName ?? "Race"} · {result.raceDistance}</p>
       {result.actualTime ? (
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-[var(--muted-text)]">
           {result.actualTime}{result.actualPace ? ` · ${result.actualPace}/km` : ""} ·{" "}
-          <span className="font-semibold text-[#2a5a39]">{resultBadge(result.goalResult)}</span>
+          <span className="font-semibold text-[var(--color-success)]">{resultBadge(result.goalResult)}</span>
         </p>
       ) : null}
-      <p className="text-sm text-slate-400">พร้อมตั้ง Race Goal ถัดไปหรือยัง?</p>
+      <p className="text-sm text-[var(--color-text-soft)]">พร้อมตั้ง Race Goal ถัดไปหรือยัง?</p>
     </div>
   );
 }
@@ -212,14 +212,14 @@ function LatestRacePrompt({ result }: { result: RaceResult }) {
 function PlanAtGlance({ plan, freshness }: { plan: RacePlan; freshness: PlanFreshness | null }) {
   return (
     <section className="card p-5">
-      <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#6f8fa6]">ภาพรวมแผน</p>
+      <p className="text-xs font-bold uppercase tracking-[0.22em] text-[var(--label-color)]">ภาพรวมแผน</p>
       <div className="mt-4 grid grid-cols-3 gap-2">
         <MiniMetric label="เหลือ" value={plan.weeksRemaining != null ? `${plan.weeksRemaining} wk` : `${plan.totalWeeks} wk`} />
         <MiniMetric label="เริ่มแผน" value={formatShortDate(plan.planStartDate)} />
         <MiniMetric label="เฟส" value={plan.currentPhase || "-"} />
       </div>
       <RacePlanFreshnessNote freshness={freshness} />
-      {plan.safetyNotes ? <p className="mt-4 text-xs leading-5 text-slate-500">{sanitizePaceInText(plan.safetyNotes)}</p> : null}
+      {plan.safetyNotes ? <p className="mt-4 text-xs leading-5 text-[var(--muted-text)]">{sanitizePaceInText(plan.safetyNotes)}</p> : null}
     </section>
   );
 }
@@ -284,8 +284,8 @@ function RecoveryGuardrailsCard({ coachContext }: { coachContext: CoachContext |
           </div>
         </summary>
         <div className="mt-3 pt-3 border-t border-blue-100/50 cursor-default">
-          <p className="text-xs font-extrabold text-slate-800 leading-snug">{recSys.headline}</p>
-          <ul className="list-disc pl-4 mt-2 space-y-1 text-xs font-semibold text-slate-600">
+          <p className="text-xs font-extrabold text-[var(--foreground)] leading-snug">{recSys.headline}</p>
+          <ul className="list-disc pl-4 mt-2 space-y-1 text-xs font-semibold text-[var(--muted-text)]">
             {recSys.guardrails.map((g, idx) => (
               <li key={idx}>{g}</li>
             ))}
@@ -325,14 +325,14 @@ function TodayWorkoutCard({ workout, coachContext }: { workout: WeekWorkout; coa
     <section className="card border border-[#b7dcc4] bg-[#f4fbf6] p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#2a5a39]">วันนี้ซ้อมอะไร</p>
-          <h2 className="mt-2 text-2xl font-bold text-[#14211c]">{workout.workoutType}</h2>
+          <p className="text-xs font-bold uppercase tracking-[0.22em] text-[var(--primary-strong)]">วันนี้ซ้อมอะไร</p>
+          <h2 className="mt-2 text-2xl font-bold text-[var(--foreground)]">{workout.workoutType}</h2>
         </div>
-        <span className="rounded-full bg-white px-3 py-1 text-sm font-bold text-[#2a5a39] shadow-sm">
+        <span className="rounded-full bg-[var(--surface)] px-3 py-1 text-sm font-bold text-[var(--primary-strong)] shadow-sm">
           {formatWorkoutAmount(workout)}
         </span>
       </div>
-      <p className="mt-4 text-sm leading-6 text-slate-700">{workout.description}</p>
+      <p className="mt-4 text-sm leading-6 text-[var(--foreground)]">{workout.description}</p>
       {renderWorkoutDetails(workout)}
       {isStrength ? (
         <>
@@ -395,8 +395,8 @@ function isTodayWorkout(dayStr: string): boolean {
 function ActionableWeekCard({ workouts, coachContext }: { workouts: WeekWorkout[]; coachContext: CoachContext | null }) {
   return (
     <section className="card p-5">
-      <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#6f8fa6]">แผนสัปดาห์นี้</p>
-      <h2 className="mt-2 text-xl font-bold text-[#17201d]">แผน 7 วันแบบลงมือทำได้</h2>
+      <p className="text-xs font-bold uppercase tracking-[0.22em] text-[var(--label-color)]">แผนสัปดาห์นี้</p>
+      <h2 className="mt-2 text-xl font-bold text-[var(--foreground)]">แผน 7 วันแบบลงมือทำได้</h2>
       <div className="mt-4 space-y-3">
         {workouts.map((workout, index) => {
           const isStrength = isStrengthOrMobilityType(workout.workoutType);
@@ -405,12 +405,12 @@ function ActionableWeekCard({ workouts, coachContext }: { workouts: WeekWorkout[
           return (
             <details
               key={`${workout.day}-${workout.workoutType}-${index}`}
-              className="group cursor-pointer rounded-2xl bg-white/80 p-4 shadow-sm ring-1 ring-slate-100"
+              className="group cursor-pointer card-soft p-4 shadow-sm ring-1 ring-slate-100"
               open={isToday}
             >
               <summary className="list-none flex items-start justify-between gap-3 font-semibold">
                 <div className="flex flex-col gap-0.5">
-                  <span className="text-xs font-bold text-[#6f8fa6] flex items-center gap-1.5">
+                  <span className="text-xs font-bold text-[var(--label-color)] flex items-center gap-1.5">
                     {workout.day}
                     {isToday && (
                       <span className="rounded bg-[var(--primary-soft)] px-1.5 py-0.5 text-[9px] font-bold text-[var(--primary-strong)]">
@@ -418,17 +418,17 @@ function ActionableWeekCard({ workouts, coachContext }: { workouts: WeekWorkout[
                       </span>
                     )}
                   </span>
-                  <span className="mt-1 font-bold text-[#17201d]">{workout.workoutType}</span>
+                  <span className="mt-1 font-bold text-[var(--foreground)]">{workout.workoutType}</span>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <span className="rounded-full bg-[#eef4ef] px-3 py-1 text-xs font-bold text-[#2a5a39]">
+                  <span className="rounded-full bg-[var(--primary-soft)] px-3 py-1 text-xs font-bold text-[var(--primary-strong)]">
                     {formatWorkoutAmount(workout)}
                   </span>
-                  <span className="text-xs text-slate-400 group-open:rotate-180 transition-transform">▾</span>
+                  <span className="text-xs text-[var(--color-text-soft)] group-open:rotate-180 transition-transform">▾</span>
                 </div>
               </summary>
-              <div className="mt-3 pt-3 border-t border-slate-50 cursor-default text-xs space-y-2">
-                <p className="text-sm leading-relaxed text-slate-600 font-medium">{workout.description}</p>
+              <div className="mt-3 pt-3 border-t border-[var(--color-border-soft)] cursor-default text-xs space-y-2">
+                <p className="text-sm leading-relaxed text-[var(--muted-text)] font-medium">{workout.description}</p>
                 {renderWorkoutDetails(workout)}
                 {isStrength ? (
                   <>
@@ -460,18 +460,18 @@ function CompletedRaceSection({ results }: { results: RaceResult[] }) {
   return (
     <section className="card space-y-3 p-5">
       <div>
-        <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#6f8fa6]">ประวัติการแข่ง</p>
-        <h2 className="mt-2 text-xl font-bold text-[#17201d]">รายการแข่งที่บันทึกแล้ว</h2>
+        <p className="text-xs font-bold uppercase tracking-[0.22em] text-[var(--label-color)]">ประวัติการแข่ง</p>
+        <h2 className="mt-2 text-xl font-bold text-[var(--foreground)]">รายการแข่งที่บันทึกแล้ว</h2>
       </div>
       <div className="space-y-3">
         {results.map((result) => (
-          <div key={result.id ?? `${result.raceDate}-${result.raceName}`} className="rounded-2xl bg-slate-50 p-4">
+          <div key={result.id ?? `${result.raceDate}-${result.raceName}`} className="card-soft p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="font-bold text-[#17201d]">{result.raceName || "Race"}</p>
-                <p className="text-xs text-slate-500">{result.raceDate} · {result.raceDistance}</p>
+                <p className="font-bold text-[var(--foreground)]">{result.raceName || "Race"}</p>
+                <p className="text-xs text-[var(--color-text-soft)]">{result.raceDate} · {result.raceDistance}</p>
               </div>
-              <span className="rounded-full bg-[#e7efea] px-3 py-1 text-xs font-bold text-[#2a5a39]">
+              <span className="rounded-full bg-[var(--primary-soft)] px-3 py-1 text-xs font-bold text-[var(--primary-strong)]">
                 {resultBadge(result.goalResult)}
               </span>
             </div>
@@ -479,7 +479,7 @@ function CompletedRaceSection({ results }: { results: RaceResult[] }) {
               <MiniMetric label="เวลา" value={result.actualTime ?? "-"} />
               <MiniMetric label="Pace" value={result.actualPace ? `${result.actualPace}/km` : "-"} />
             </div>
-            {result.coachSummary ? <p className="mt-3 text-sm leading-6 text-slate-700">{result.coachSummary}</p> : null}
+            {result.coachSummary ? <p className="mt-3 text-sm leading-6 text-[var(--foreground)]">{result.coachSummary}</p> : null}
           </div>
         ))}
       </div>
@@ -489,17 +489,17 @@ function CompletedRaceSection({ results }: { results: RaceResult[] }) {
 
 function MiniMetric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl bg-white/80 p-3">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">{label}</p>
-      <p className="mt-1 text-sm font-bold text-[#17201d]">{value}</p>
+    <div className="card-soft p-3">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-soft)]">{label}</p>
+      <p className="mt-1 text-sm font-bold text-[var(--foreground)]">{value}</p>
     </div>
   );
 }
 
 function InfoLine({ label, value }: { label: string; value: string }) {
   return (
-    <p className="mt-3 text-xs leading-5 text-slate-500">
-      <span className="font-bold text-slate-600">{label}: </span>
+    <p className="mt-3 text-xs leading-5 text-[var(--muted-text)]">
+      <span className="font-bold text-[var(--foreground)]">{label}: </span>
       {value}
     </p>
   );

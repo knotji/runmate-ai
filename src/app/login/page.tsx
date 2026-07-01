@@ -39,12 +39,12 @@ export default function LoginPage() {
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center">
           <p className="text-3xl">🏃</p>
-          <h1 className="mt-2 text-xl font-bold text-[#17201d]">RunMate AI</h1>
+          <h1 className="mt-2 text-xl font-bold text-[var(--foreground)]">RunMate AI</h1>
           <p className="text-sm text-slate-500">โค้ชวิ่งส่วนตัว</p>
         </div>
 
         <form onSubmit={submit} className="card space-y-4 p-6">
-          <h2 className="text-base font-bold text-[#17201d]">
+          <h2 className="text-base font-bold text-[var(--foreground)]">
             {mode === "signin" ? "เข้าสู่ระบบ" : "สร้างบัญชี"}
           </h2>
 

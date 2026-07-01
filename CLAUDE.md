@@ -92,11 +92,13 @@ tests/
 
 **CSS utilities** (prefer over Tailwind ad-hoc colors):
 
-- Cards: `.card`, `.card-soft`, `.card-warning`, `.card-success`, `.card-danger`, `.card-info`
-- Buttons: `.btn-primary`, `.btn-secondary`, `.btn-ghost`, `.btn-soft`
+- Cards: `.card`, `.card-soft`, `.card-warning`, `.card-success`, `.card-danger`, `.card-info`, `.soft-panel`
+- Buttons: `.btn-primary`, `.btn-secondary`, `.btn-ghost`, `.btn-soft`, `.btn-danger-soft`
 - Chips: `.chip`, `.chip-success`, `.chip-warning`, `.chip-danger`, `.chip-info`, `.chip-muted`, `.chip-primary`
+- Tab controls: `.segmented-control` (container), `TabButton` inner component handles active/inactive states
 - Labels: `.section-label`
 - Form: `.control`
+- Soft Health v2: `.health-score-card`, `.ring-panel`
 
 **Principles**:
 
@@ -104,6 +106,10 @@ tests/
 - Use `var(--color-text-muted)` for secondary text, not `text-slate-400`/`text-slate-500`
 - Use `var(--surface-muted)` for soft backgrounds, not `bg-slate-50`
 - Use `var(--border-warm)` for borders, not `border-slate-200`/`border-slate-100`
+- Use `var(--label-color)` (#6f8fa6) for UPPERCASE section heading labels — the blue-gray eyebrow text
+- Use `var(--foreground)` for strong heading text, not `#17201d`
+- Use `.btn-danger-soft` for logout/injury report actions; `.soft-panel` for lightweight info cards
+- Use `.segmented-control` for tab/pill group container wrappers
 - Thai section headings > English uppercase labels in user-facing areas
 - Keep emoji where it aids scanning; avoid emoji clusters in same card
 - Bottom nav uses inline SVG line icons, not emoji
@@ -252,7 +258,7 @@ RunMate's visual identity is warm beige/sage/cream — a soft recovery health ap
 
 **Today overview card (`TodaySnapshotCard`)** layout order:
 
-1. Section label `"ภาพรวมวันนี้"` (10px, wide tracking, `text-[#6f8fa6]`)
+1. Section label `"ภาพรวมวันนี้"` (10px, wide tracking, `text-[var(--label-color)]`)
 2. Readiness chip — must stay `.rounded-full` with text `"{score} Readiness {label}"` (tested by `readiness-consistency.spec.ts`)
 3. **Coach headline** — short action directive from `buildTodaySnapshotCoachHeadline()` e.g. "พร้อมขยับตามแผน", "คุมเบาไว้ก่อน", "วันนี้เน้นพักฟื้นตัว"
 4. Axis summary line (`data-testid="today-overview-reason"`)
@@ -265,7 +271,7 @@ RunMate's visual identity is warm beige/sage/cream — a soft recovery health ap
 - Short coach insight line from `buildHeroCoachInsight()` appears ABOVE the main `workoutRec` h2, in `text-[var(--primary)]` color.
 - `workoutRec` headline uses `text-xl` (was `text-2xl`).
 
-**`RecoveryLoopCard`** uses `bg-gradient-to-b from-[#fdfcf8] to-[#f8fcf9]` subtle tint and `text-[#6f8fa6]` label color for visual consistency with the overview card.
+**`RecoveryLoopCard`** uses `bg-gradient-to-b from-[#fdfcf8] to-[#f8fcf9]` subtle tint and `text-[var(--label-color)]` label color for visual consistency with the overview card.
 
 **UI tone principle**: Soft Health UI should feel calm and premium. Positive states (success tone) use muted sage (`#7aab8f` ring stroke, `text-[#4a8a62]` label) — not bright green — so a perfect Fuel score does not visually overpower Load/Sleep caution. Caution (warning amber) and danger (red) must remain clear. Avoid letting any single perfect-score axis dominate the overview card.
 

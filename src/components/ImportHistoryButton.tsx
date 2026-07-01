@@ -24,7 +24,7 @@ export function ImportHistoryButton() {
 
   return (
     <div className="rounded-2xl bg-slate-50 p-4">
-      <p className="text-sm font-bold text-[#17201d]">นำเข้า history จาก ChatGPT share</p>
+      <p className="text-sm font-bold text-[var(--foreground)]">นำเข้า history จาก ChatGPT share</p>
       <p className="mt-1 text-xs leading-5 text-slate-600">
         นำเข้าข้อมูลประวัติ {importedCoachHistory.length} รายการแบบแยก type :{" "}
         {Object.entries(typeBreakdown)

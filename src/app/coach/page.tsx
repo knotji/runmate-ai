@@ -7,7 +7,7 @@ import { CoachChat } from "@/components/CoachChat";
 export default function CoachPage() {
   return (
     <AppShell title="คุยกับโค้ช" subtitle="ถามเรื่องซ้อม กิน นอน recovery หรือแค่อยากระบายก็ได้">
-      <section className="rounded-3xl border border-[var(--border-warm)] bg-[var(--surface)]/75 px-4 py-3 shadow-sm">
+      <section className="card px-4 py-3">
         <p className="text-sm font-semibold text-[var(--foreground)]">
           คุยกับโค้ชได้อิสระ เรื่องซ้อม กิน นอน recovery หรือแค่อยากระบายก็ได้
         </p>
@@ -23,7 +23,7 @@ export default function CoachPage() {
           </a>
           <Link
             href="/pain"
-            className="flex-1 rounded-full bg-[#fff0ee] px-4 py-2.5 text-center text-xs font-semibold text-[var(--status-rest)] transition-colors hover:bg-[#ffe5e1]"
+            className="btn-danger-soft flex-1 px-4 py-2.5 text-center text-xs"
           >
             แจ้งอาการเจ็บ
           </Link>

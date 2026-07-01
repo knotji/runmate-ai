@@ -75,7 +75,7 @@ export function NutritionBalanceCard({ balance }: { balance: DailyNutritionBalan
     <section className="card p-4 space-y-3">
       <div className="flex items-center justify-between gap-2">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#6f8fa6]">สมดุลอาหารวันนี้</p>
+          <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--label-color)]">สมดุลอาหารวันนี้</p>
           <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">{balance.mealCount} มื้อที่บันทึกแล้ว</p>
         </div>
       </div>
