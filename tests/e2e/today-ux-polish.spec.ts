@@ -335,6 +335,12 @@ test("Today snapshot shows Readiness explanation details and correct coverage la
 
   await gotoApp(page, "/");
 
+  const overviewReason = page.getByTestId("today-overview-reason");
+  await expect(overviewReason).toBeVisible();
+  const reasonText = (await overviewReason.textContent())?.trim() ?? "";
+  expect(reasonText.length).toBeGreaterThan(0);
+  expect(reasonText.split(" · ").filter(Boolean).length).toBeLessThanOrEqual(3);
+
   // Coverage chips and explanation are inside the Recovery accordion — expand first
   await page.getByText("ดูรายละเอียด Recovery").click();
 
@@ -371,8 +377,8 @@ test("Report page shows updated readiness labels and disclaimers", async ({ page
   await expect(page.getByText("Readiness เฉลี่ย", { exact: true })).toBeVisible();
   await expect(page.getByText("จากวันที่มีข้อมูล")).toBeVisible();
 
-  // Collapsed Day card badge: Readiness casing
-  await expect(page.getByText("Readiness", { exact: true }).first()).toBeVisible();
+  // Collapsed Day card badge: Thai readiness label
+  await expect(page.getByText("ความพร้อม", { exact: true }).first()).toBeVisible();
 
   // Expanded Sleep Detail shows the warning disclaimer
   await page.getByTestId("full-history-details").evaluate((el) => {

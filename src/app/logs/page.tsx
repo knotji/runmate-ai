@@ -483,21 +483,18 @@ function ReportExportControl({
   onExport: () => void;
 }) {
   return (
-    <section className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface)]/80 px-3 py-2 shadow-sm" data-testid="report-export-control">
-      <p className="min-w-0 text-[11px] leading-5 text-[var(--color-text-muted)]">
-        ส่งออกข้อมูลช่วงนี้เป็นไฟล์ JSON
-      </p>
+    <section className="flex flex-wrap items-center justify-end gap-2 px-1" data-testid="report-export-control">
       <button
         type="button"
-        title="Export JSON"
+        title="ส่งออกข้อมูลช่วงนี้เป็นไฟล์ JSON"
         disabled={preparing}
         onClick={onExport}
-        className="rounded-full border border-[var(--color-border-soft)] bg-white px-3 py-1.5 text-[11px] font-bold text-[var(--primary)] transition hover:bg-[var(--surface-muted)] disabled:cursor-not-allowed disabled:opacity-50"
+        className="rounded-full border border-[var(--color-border-soft)] bg-white/80 px-3 py-1.5 text-[11px] font-bold text-[var(--primary)] transition hover:bg-[var(--surface-muted)] disabled:cursor-not-allowed disabled:opacity-50"
       >
         {preparing ? "กำลังเตรียมไฟล์..." : "ส่งออก JSON"}
       </button>
       {status && (
-        <p className={`basis-full text-[11px] font-semibold ${status.includes("ไม่สำเร็จ") ? "text-red-600" : "text-[#2a5a39]"}`} data-testid="report-export-status">
+        <p className={`text-[11px] font-semibold ${status.includes("ไม่สำเร็จ") ? "text-red-600" : "text-[#2a5a39]"}`} data-testid="report-export-status">
           {status}
         </p>
       )}
@@ -527,7 +524,7 @@ function PeriodMetrics({
         <p className="mt-0.5 text-sm font-bold text-[#17201d]">{averages.sleepHours != null ? `${averages.sleepHours} ชม.` : "—"}</p>
       </div>
       <div className="rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface)] p-3 text-center">
-        <p className="text-[10px] text-[var(--color-text-muted)]">Readiness</p>
+        <p className="text-[10px] text-[var(--color-text-muted)]">ความพร้อม</p>
         <p className="mt-0.5 text-sm font-bold text-[#17201d]">{averages.readiness != null ? `${averages.readiness}` : "—"}</p>
       </div>
     </div>
@@ -537,22 +534,42 @@ function PeriodMetrics({
 function DaySlot({ day }: { day: import("@/lib/reportSummary").DailyReportItem }) {
   const nutritionText = formatDayNutritionSummary(day);
   const activityText = formatDayActivitySummary(day);
+  const baseClass = `rounded-2xl border p-3 ${day.isToday ? "border-[var(--primary)]/30 bg-[var(--primary)]/5" : "border-[var(--color-border-soft)] bg-[var(--surface)]"}`;
+
+  if (!day.hasData) {
+    return (
+      <div className={baseClass} data-testid="day-slot">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-bold text-[#17201d]">
+            {day.weekdayLabel}
+            {day.isToday && (
+              <span className="ml-2 rounded-full bg-[var(--primary)] px-2 py-0.5 text-[10px] text-white">วันนี้</span>
+            )}
+          </span>
+          <span className="text-[10px] text-[var(--color-text-muted)]">ยังไม่มีข้อมูล</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div
-      className={`rounded-2xl border p-3 ${day.isToday ? "border-[var(--primary)]/30 bg-[var(--primary)]/5" : "border-[var(--color-border-soft)] bg-[var(--surface)]"}`}
+    <details
+      className={`${baseClass} group`}
       data-testid="day-slot"
     >
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-bold text-[#17201d]">
-          {day.weekdayLabel}
-          {day.isToday && (
-            <span className="ml-2 rounded-full bg-[var(--primary)] px-2 py-0.5 text-[10px] text-white">วันนี้</span>
-          )}
-        </span>
-        {!day.hasData && <span className="text-[10px] text-[var(--color-text-muted)]">ยังไม่มีข้อมูล</span>}
-      </div>
-      {day.hasData && (
+      <summary className="list-none cursor-pointer">
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-xs font-bold text-[#17201d]">
+            {day.weekdayLabel}
+            {day.isToday && (
+              <span className="ml-2 rounded-full bg-[var(--primary)] px-2 py-0.5 text-[10px] text-white">วันนี้</span>
+            )}
+          </span>
+          <span className="shrink-0 text-[10px] font-bold text-[var(--primary)]">
+            <span className="group-open:hidden">รายละเอียด ˅</span>
+            <span className="hidden group-open:inline">ซ่อนรายละเอียด ˄</span>
+          </span>
+        </div>
         <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5">
           {activityText && (
             <span className="text-xs text-[var(--color-text-muted)]">{activityText}</span>
@@ -561,7 +578,7 @@ function DaySlot({ day }: { day: import("@/lib/reportSummary").DailyReportItem }
             <span className="text-xs text-[var(--color-text-muted)]">🌙 {day.sleepHours} ชม.</span>
           )}
           {day.readiness != null && (
-            <span className="text-xs text-[var(--color-text-muted)]">Readiness {day.readiness}</span>
+            <span className="text-xs text-[var(--color-text-muted)]">ความพร้อม {day.readiness}</span>
           )}
           {nutritionText && (
             <span className="text-xs text-[var(--color-text-muted)]">{nutritionText}</span>
@@ -573,7 +590,29 @@ function DaySlot({ day }: { day: import("@/lib/reportSummary").DailyReportItem }
             <span className="rounded-full bg-[#e7efea] px-2 py-0.5 text-[10px] font-bold text-[#2a5a39]">หายเจ็บแล้ว</span>
           )}
         </div>
-      )}
+      </summary>
+      <div className="mt-2 grid grid-cols-2 gap-2 border-t border-[var(--color-border-soft)] pt-2 text-[11px] text-[var(--color-text-muted)]" data-testid="day-slot-details">
+        <DaySlotDetail label="กิจกรรม" value={activityText ?? "ยังไม่มี"} />
+        <DaySlotDetail label="นอน" value={day.sleepHours != null ? `${day.sleepHours} ชม.` : "ยังไม่มี"} />
+        <DaySlotDetail label="ความพร้อม" value={day.readiness != null ? `${day.readiness}` : "ยังไม่มี"} />
+        <DaySlotDetail label="อาหาร" value={nutritionText ?? (day.mealCount > 0 ? `${day.mealCount} มื้อ` : "ยังไม่มี")} />
+        {day.bodyWeightKg != null && <DaySlotDetail label="น้ำหนัก" value={`${day.bodyWeightKg} kg`} />}
+        {day.painStatus && (
+          <DaySlotDetail
+            label="อาการเจ็บ"
+            value={day.painStatus === "resolved" ? "หายเจ็บแล้ว" : day.painLevel != null ? `${day.painLevel}/10` : "มีบันทึก"}
+          />
+        )}
+      </div>
+    </details>
+  );
+}
+
+function DaySlotDetail({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl bg-white/70 px-2.5 py-2">
+      <p className="text-[10px] font-semibold text-[var(--color-text-muted)]">{label}</p>
+      <p className="mt-0.5 font-bold text-[#17201d]">{value}</p>
     </div>
   );
 }

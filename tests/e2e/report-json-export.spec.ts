@@ -123,6 +123,7 @@ test("Report week export downloads JSON with feedback", async ({ page }) => {
 
   await gotoApp(page, "/logs");
 
+  await expect(page.getByTestId("report-export-control").getByText("ส่งออกข้อมูลช่วงนี้เป็นไฟล์ JSON")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "ส่งออก JSON" })).toBeVisible();
   const downloadPromise = page.waitForEvent("download");
   await page.getByRole("button", { name: "ส่งออก JSON" }).click();

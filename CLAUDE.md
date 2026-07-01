@@ -113,7 +113,7 @@ tests/
 - **Soften overall readiness display**: To avoid contradiction with caution axes, the displayed label is softened dynamically using `getOverallDisplayStatus()` based on active caution factors. E.g., a score of 80 is labeled "Good · คุมเบา" (with Blue chip background `bg-[#e7f0fa]`) if Load is high and Sleep/Fuel is low. Today page renders a soft warning/amber banner ("ข้อแนะนำความพร้อม") with the caution details. The Coach page circular badge displays the compact base label (e.g., `"GOOD"` instead of `"EXCELLENT"`) to prevent visual overflow.
 - **Sleep Fallback Copy**: When today's sleep is missing but latest sleep exists, RunMate may provide a temporary recommendation, but UI must clearly label it as based on latest data, not today's sleep.
 - **Coach Caution Factors**: Identified by `getCoachCautionFactors(context)`. Gathers warning indicators (e.g. low sleep average, low daily sleep, high weekly run distance, elevated resting HR, resolved/active pain, low fuel carbs, completed workouts). Modifies summary description to "not a pace day" when readiness score is Good/Excellent but coaching level is yellow (ควรซ้อมเบา), adds conditional easy-run guidelines and carb suggestions to pre-workout/post-workout cards, and appends adaptive reduction notes on Race long run workouts.
-- **Today is recovery-first**: The Today page answers "ร่างกายวันนี้เป็นยังไง?" before "วันนี้ควรทำอะไร?". The `TodaySnapshotCard` (Recovery rings 2×2 on mobile, 4-col on sm+) is rendered first in the page JSX, above the hero recommendation card. The hero reason line should read as a consequence of the axis states ("Load สูง · Sleep พอใช้"). Recovery details (coverage chips, /100 values, missing list, explanation) stay collapsed behind "ดูรายละเอียด Recovery". Daily Check chip is not shown in the overview card.
+- **Today is recovery-first**: The Today page answers "ร่างกายวันนี้เป็นยังไง?" before "วันนี้ควรทำอะไร?". The `TodaySnapshotCard` (Recovery rings 2×2 on mobile, 4-col on sm+) is rendered first in the page JSX, above the hero recommendation card. The overview reason line should be short and prioritized: pain, load, sleep, fuel, recovery; show only the top 2–3 notable factors with fallback "พร้อมทำตามแผนวันนี้". Recovery details (coverage chips, /100 values, missing list, explanation) stay collapsed behind "ดูรายละเอียด Recovery". Daily Check chip is not shown in the overview card.
 
 ## RunMate Recovery Loop v1
 
@@ -130,7 +130,7 @@ tests/
 
 **Copy rule**: Recovery Loop UI must lead with the sleep target and tomorrow guidance. Day Load is supporting context, not the headline. Day Load copy uses coaching language (`dayLoad.summary`), not raw labels — no "โหลดวันนี้ ต่ำ · ยังไม่มีกิจกรรม" in default view. Day load `summary` strings: no activity → "วันนี้ยังไม่มีโหลดซ้อมหลัก", low → "วันนี้ใช้แรงยังน้อย", moderate → "วันนี้ใช้แรงพอประมาณ", high → "วันนี้ใช้แรงสูงแล้ว", very_high → "วันนี้โหลดสูงมาก ควรเน้นฟื้นตัว".
 
-**Axis label consistency**: The hero reason line and overview axis summary (`axisSummaryLine`) must use `getRecoveryAxisLabel(axisKey, score)` — never hardcoded labels. Sleep score 40 must show "นอนต่ำ" everywhere, not "Sleep พอใช้" in one place and "ต่ำ" in another. Format: `Load {label}` · `นอน{label}` · `พลังงาน{label}` · `ฟื้นตัว{label}`.
+**Axis label consistency**: The hero reason line and overview axis summary (`axisSummaryLine`) must use `getRecoveryAxisLabel(axisKey, score)` — never hardcoded labels. Sleep score 40 must show "นอนต่ำ" everywhere, not "Sleep พอใช้" in one place and "ต่ำ" in another. Format examples: `Load {label}` · `นอน{label}` · `พลังงาน{label}` · `ฟื้นตัว{label}`. Do not list every axis by default; keep the Today overview compact.
 
 **Prompt**: `buildUserPrompt` in `route.ts` appends Recovery Loop section with day load summary, sleep target, and tomorrow preview state for the AI coach.
 
@@ -227,13 +227,13 @@ tests/
 - State: `reportMode ("week" | "month")`, `calendarWeek: CalendarPeriod`, `calendarMonth: CalendarPeriod`
 - Computed: `weekSummary`, `monthSummary`, `weeksInMonthList`
 - `CalendarNav` — segmented สัปดาห์|เดือน control + period label + prev/next/ปัจจุบัน buttons. `data-testid="calendar-nav"`. Next-button disabled at current period.
-- `PeriodMetrics` — 4-column grid: วิ่งรวม / วันซ้อม / นอนเฉลี่ย / Readiness. `data-testid="period-metrics"`.
+- `PeriodMetrics` — 4-column grid: วิ่งรวม / วันซ้อม / นอนเฉลี่ย / ความพร้อม. `data-testid="period-metrics"`.
 - `DaySlot` — compact daily card (7 per week view). Shows weekdayLabel, today badge, main activity, sleep, readiness, compact nutrition, and pain/fuel badges only when relevant. "ยังไม่มีข้อมูล" for empty days. `data-testid="day-slot"`.
 - `MonthWeekBlock` — compact week card in month view. Tapping switches to week mode for that week. `data-testid="month-week-block"`.
 - Week view rendered in `data-testid="week-day-list"`, month view in `data-testid="month-week-list"`.
-- `ReportExportControl` — small secondary "ส่งออก JSON" action for the currently selected calendar week/month. Export is report-period scoped, JSON only, no import yet. Helper files: `src/lib/exportRunMateJson.ts`, `src/lib/downloadJson.ts`.
+- `ReportExportControl` — small secondary "ส่งออก JSON" action near the calendar controls. It should not become a full card or compete with the Report content. Export is report-period scoped, JSON only, no import yet. Helper files: `src/lib/exportRunMateJson.ts`, `src/lib/downloadJson.ts`.
 
-**Report UI rule**: Calendar Week/Month is the primary Report view. Rolling 7-day insight is secondary and collapsed by default. Avoid showing calendar daily logs and legacy DayCard lists at the same time. `WeeklyReviewCard`/`WeeklyDashboard` live inside "Insight 7 วันล่าสุด"; filter pills and the legacy `DayCard` list live inside "รายการทั้งหมด".
+**Report UI rule**: Calendar Week/Month is the primary Report view. Rolling 7-day insight is secondary and collapsed by default. Avoid showing calendar daily logs and legacy DayCard lists at the same time. `WeeklyReviewCard`/`WeeklyDashboard` live inside "Insight 7 วันล่าสุด"; filter pills and the legacy `DayCard` list live inside "รายการทั้งหมด". Day slots with data should have a subtle expand affordance ("รายละเอียด"); empty day slots stay simple.
 
 **Calendar transition rule**: Fast client-side calendar navigation should use subtle transitions, not loading copy. Reserve explicit loading text for real async actions such as export/download.
 

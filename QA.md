@@ -24,7 +24,7 @@
 - [ ] Quick protein log does not invent calories/carbs/fat; Report shows "กินโปรตีนแล้ว · Xg" with badge "บันทึกไว ๆ".
 - [ ] Older Report days (before yesterday) are collapsed by default; Today and Yesterday stay expanded.
 - [ ] Weekly Review shows visible "โฟกัสถัดไป" with 1–3 actionable items.
-- [ ] Report page shows capitalized "Readiness" label, average metrics are labeled "Readiness เฉลี่ย" with subtext "จากวันที่มีข้อมูล", and expanded sleep detail card displays disclaimer "* Readiness เป็นคะแนนความพร้อมจากข้อมูล recovery ของวันนั้น ไม่ใช่คะแนนสรุปทั้งวัน".
+- [ ] Report compact period metrics use Thai display labels such as "ความพร้อม"; expanded sleep detail card still displays disclaimer "* Readiness เป็นคะแนนความพร้อมจากข้อมูล recovery ของวันนั้น ไม่ใช่คะแนนสรุปทั้งวัน".
 
 ## 3. Today
 
@@ -38,12 +38,14 @@
 - [ ] Today details explanation panel warns: "สำหรับโหลดซ้อม คะแนนสูงหมายถึงโหลดสะสมสูง จึงควรคุมความหนัก ไม่ใช่คะแนนดีเสมอไป" and matches the text "แต่ละแกนให้คะแนน 0–100 เพื่อช่วยดูว่าร่างกายพร้อมแค่ไหน".
 - [ ] Recovery Loop card leads with sleep target ("ควรนอน X–Y ชม."), followed by tomorrow preview, then day load context in coaching language (e.g., "วันนี้ยังไม่มีโหลดซ้อมหลัก" / "วันนี้ใช้แรงสูงแล้ว · วิ่ง X km"). No debug-like labels such as "โหลดวันนี้ ต่ำ" or "ยังไม่มีกิจกรรม" visible in default state.
 - [ ] Hero reason line and overview axis summary use the same axis label wording as the 4-axis rings. Sleep score 40 shows "นอนต่ำ" in both places, not "Sleep พอใช้" in one and "ต่ำ" in another.
+- [ ] Today overview reason line shows only the top 2–3 notable factors, prioritized as pain, load, sleep, fuel, recovery, with fallback "พร้อมทำตามแผนวันนี้".
 - [ ] Coach ReadinessCard expanded view displays the same compact 4-axis grid format which updates reactively as sliders are adjusted.
 - [ ] Report default shows only calendar summary + calendar content at top level.
 - [ ] Report rolling 7d insight is collapsed by default and opens from "Insight 7 วันล่าสุด".
 - [ ] Report old filter pills are not visible at top level.
 - [ ] Report old DayCard list is hidden by default inside "รายการทั้งหมด".
 - [ ] Report daily nutrition details are collapsed; DaySlot shows only compact meal/protein/carb summary.
+- [ ] Report DaySlot cards with data show a subtle "รายละเอียด" affordance and expand inline; empty days do not look clickable.
 - [ ] Report month mode remains high-level with month summary and week blocks only.
 - [ ] Report does not show duplicate daily logs in the default view.
 - [ ] Report calendar navigation uses subtle transition feedback.
@@ -54,6 +56,7 @@
 - [ ] Report JSON export filename includes the selected period date range.
 - [ ] Report JSON export metadata confirms no raw images/OCR/auth data.
 - [ ] Report JSON export still shows preparing/success feedback.
+- [ ] Report JSON export is a small secondary action near the period controls, not a prominent standalone card.
 - [ ] Report navigation still works after exporting JSON.
 - [ ] Report page "แนวโน้ม Recovery 7 วัน" displays Recovery avg (69/100), Load (86/100 · สูงมาก), Sleep (5.5 ชม. · 62/100), and Fuel (ดี · 82/100) format after opening rolling insight.
 - [ ] Resolved pain does not force a red/rest state.

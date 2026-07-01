@@ -1525,6 +1525,50 @@ function RecoveryRing({
   );
 }
 
+function buildTodayOverviewReasonLine(
+  recSys: ReturnType<typeof buildRunMateRecoverySystem>,
+  coachCtx?: CoachContext | null
+): string {
+  const parts: string[] = [];
+  const latestPain = coachCtx?.latestPain ?? null;
+
+  if (latestPain?.hasActivePain && latestPain.painLevel > 0) {
+    parts.push(`เจ็บ${latestPain.painLocation} ${latestPain.painLevel}/10`);
+  } else if (coachCtx?.recentPainHistory || coachCtx?.painResolved) {
+    const recentMaxPain = coachCtx.recentMaxPain;
+    if (recentMaxPain?.painLevel && recentMaxPain.painLevel >= 3) {
+      parts.push(`เคยเจ็บ ${recentMaxPain.painLevel}/10 ล่าสุด`);
+    } else {
+      parts.push("มีประวัติเจ็บล่าสุด");
+    }
+  }
+
+  const factorCandidates = [
+    {
+      active: recSys.axes.load.score >= 55,
+      label: `Load ${getRecoveryAxisLabel("load", recSys.axes.load.score)}`,
+    },
+    {
+      active: recSys.axes.sleep.score < 66,
+      label: `นอน${getRecoveryAxisLabel("sleep", recSys.axes.sleep.score)}`,
+    },
+    {
+      active: recSys.axes.fuel.score < 66,
+      label: `พลังงาน${getRecoveryAxisLabel("fuel", recSys.axes.fuel.score)}`,
+    },
+    {
+      active: recSys.axes.recovery.score < 66,
+      label: `ฟื้นตัว${getRecoveryAxisLabel("recovery", recSys.axes.recovery.score)}`,
+    },
+  ];
+
+  for (const factor of factorCandidates) {
+    if (factor.active && parts.length < 3) parts.push(factor.label);
+  }
+
+  return parts.slice(0, 3).join(" · ") || "พร้อมทำตามแผนวันนี้";
+}
+
 function TodaySnapshotCard({
   insight,
   readinessScore,
@@ -1561,13 +1605,7 @@ function TodaySnapshotCard({
     !!(coachCtx?.painResolved || coachCtx?.recentPainHistory)
   );
 
-  // One-line axis summary: only surface notable states — match hero reason line format
-  const axisSummaryParts: string[] = [];
-  if (recSys.axes.load.score >= 55) axisSummaryParts.push(`Load ${getRecoveryAxisLabel("load", recSys.axes.load.score)}`);
-  if (recSys.axes.sleep.score < 66) axisSummaryParts.push(`นอน${getRecoveryAxisLabel("sleep", recSys.axes.sleep.score)}`);
-  if (recSys.axes.fuel.score < 66) axisSummaryParts.push(`พลังงาน${getRecoveryAxisLabel("fuel", recSys.axes.fuel.score)}`);
-  if (recSys.axes.recovery.score < 66) axisSummaryParts.push(`ฟื้นตัว${getRecoveryAxisLabel("recovery", recSys.axes.recovery.score)}`);
-  const axisSummaryLine = axisSummaryParts.join(" · ");
+  const axisSummaryLine = buildTodayOverviewReasonLine(recSys, coachCtx);
 
   return (
     <section className="card px-4 py-3 space-y-2.5">
@@ -1593,8 +1631,8 @@ function TodaySnapshotCard({
       </div>
 
       {/* One-line axis summary */}
-      {!loading && axisSummaryLine && (
-        <p className="text-[11px] text-slate-400 leading-tight px-0.5">{axisSummaryLine}</p>
+      {!loading && (
+        <p className="text-[11px] text-slate-400 leading-tight px-0.5" data-testid="today-overview-reason">{axisSummaryLine}</p>
       )}
 
       {/* Caution note */}

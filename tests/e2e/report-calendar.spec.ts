@@ -147,10 +147,20 @@ test("Daily slots are collapsed by default (no full DayCard details)", async ({ 
   // 7 DaySlot cards visible
   await expect(page.getByTestId("day-slot")).toHaveCount(7);
   // Today's slot shows run distance
-  await expect(page.getByTestId("week-day-list").getByText(/5 กม\./)).toBeVisible();
-  await expect(page.getByTestId("week-day-list").getByText(/อาหาร 1 มื้อ · โปรตีน 38g · คาร์บ 82g/)).toBeVisible();
+  await expect(page.getByTestId("week-day-list").locator("summary").getByText(/5 กม\./)).toBeVisible();
+  await expect(page.getByTestId("week-day-list").locator("summary").getByText(/อาหาร 1 มื้อ · โปรตีน 38g · คาร์บ 82g/)).toBeVisible();
   await expect(page.getByText("ข้าวไก่ย่าง")).not.toBeVisible();
   await expect(page.getByTestId("report-day").first()).not.toBeVisible();
+
+  const dataSlot = page.getByTestId("day-slot").filter({ hasText: /5/ }).first();
+  await expect(dataSlot.getByText("รายละเอียด ˅")).toBeVisible();
+  await expect(dataSlot.getByTestId("day-slot-details")).not.toBeVisible();
+  await dataSlot.locator("summary").click();
+  await expect(dataSlot.getByText("ซ่อนรายละเอียด ˄")).toBeVisible();
+  await expect(dataSlot.getByTestId("day-slot-details")).toBeVisible();
+
+  const emptySlot = page.getByTestId("day-slot").filter({ hasText: "ยังไม่มีข้อมูล" }).first();
+  await expect(emptySlot.getByText("รายละเอียด ˅")).toHaveCount(0);
 });
 
 test("Rolling 7d insight and full history are collapsed by default", async ({ page }) => {
