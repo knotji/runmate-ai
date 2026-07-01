@@ -114,16 +114,16 @@ test("Coach page Recovery card shows /100 for all axes after expanding", async (
 
   await gotoApp(page, "/coach");
 
-  // ReadinessCard starts collapsed — expand it first
-  await page.getByRole("button", { name: "ดูรายละเอียด" }).first().click();
+  // CoachContextDashboard uses "ดูบริบท" details toggle
+  await page.getByText("ดูบริบท").first().click();
 
-  // Axis grid under ReadinessCard should contain /100 texts
+  // Axis grid in "Recovery วันนี้" section should contain X/100 scores
   const axisScores = page.locator("text=/\\d{1,3}\\/100/");
   await expect(axisScores.first()).toBeVisible();
   const count = await axisScores.count();
   expect(count).toBeGreaterThanOrEqual(4);
 
-  // Axis title labels present
+  // Axis title labels present (matching ReadinessCard label convention)
   await expect(page.getByText("ฟื้นตัว", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("โหลดซ้อม", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("การนอน", { exact: true }).first()).toBeVisible();

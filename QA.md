@@ -125,9 +125,12 @@ Confirm:
 - [ ] Does not reuse stale sleep, meal, or pain values.
 - [ ] Does not diagnose or use alarming Health Check wording.
 - [ ] Respects food allergies/preferences and gives practical options.
-- [ ] Coach readiness matches Today readiness.
-- [ ] Coach context card and circular readiness card match on initial load, using the getTodayReadiness score.
-- [ ] Coach page circular badge and card header label display the display-safe softened readiness label (e.g. "Good" instead of "Excellent") to match the Today page softening logic and prevent contradiction with coaching guidance.
+- [ ] Coach page shows a single `CoachContextDashboard` card (label "โค้ชใช้ข้อมูลจาก Report") — not separate AIContextCard and ReadinessCard stacked.
+- [ ] CoachContextDashboard shows coaching stance (ร่างกายพร้อมลุยเต็มที่ / ทำตามแผนปกติวันนี้ / ควรซ้อมเบา / ควรพักฟื้น) + numeric score badge + 4-axis mini row.
+- [ ] Context chips (sleep, pain, race countdown, run days, load indicator) appear below the axis row.
+- [ ] "ดูบริบท" toggle expands source summary, recovery breakdown, sleep, race, pain, and run detail sections.
+- [ ] Hero card is compact (no "COACH" label, no separate safety note paragraph) with a "ลองถามโค้ช" CTA.
+- [ ] Coach readiness matches Today readiness (both derived from RunMate Recovery System).
 
 ## 5. Race
 
@@ -135,6 +138,9 @@ Confirm:
 - [ ] Freshness note appears when Report data is newer than the plan.
 - [ ] Today's workout matches the correct Bangkok date/weekday.
 - [ ] Race strength cards hide pace/HR if not applicable.
+- [ ] Long race names (>2 lines) are truncated with `…` and the full name is accessible via the title tooltip.
+- [ ] 7-day timeline rows are compact (py-3 padding); each row has a border-b divider inside ONE card with no border per row.
+- [ ] Training phases section label reads "หลักการซ้อม" (not "ภาพรวมแผน") to avoid duplicate labels with the PlanAtGlance card above.
 
 ## 6. Settings / Privacy
 

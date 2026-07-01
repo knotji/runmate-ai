@@ -129,14 +129,14 @@ test("Coach context compact summary does not show standalone Readiness label", a
 
   await gotoApp(page, "/coach");
 
-  // The compact summary badge (next to "ดูบริบท") should NOT start with "Good" or "Fair" standalone
-  // (readiness label has been removed; it now starts with "นอนล่าสุด")
+  // CoachContextDashboard has a "ดูบริบท" toggle inside a <details> <summary>
   const summaryBadge = page.locator("summary").filter({ hasText: "ดูบริบท" });
   await expect(summaryBadge).toBeVisible();
 
-  // Compact text should contain sleep info, not isolated "Good"/"Fair" readiness label
+  // Dashboard section renders (sleep info appears as chips outside the summary, not inside it)
+  await expect(page.locator('[data-testid="coach-context-dashboard"]')).toBeVisible();
+  // No isolated readiness label (Good/Fair/etc.) rendered as a standalone <p> inside summary
   await expect(page.locator("summary p").filter({ hasText: /^(Good|Fair|Excellent|Low)$/ })).toHaveCount(0);
-  await expect(page.locator("summary").filter({ hasText: /นอนล่าสุด/ })).toBeVisible();
 });
 
 // ─── Phase 4: Wording polish ──────────────────────────────────────────────────

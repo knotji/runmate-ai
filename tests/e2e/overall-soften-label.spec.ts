@@ -180,11 +180,14 @@ test.describe("Readiness Label Softening with Caution Axes", () => {
     await page.getByRole("link", { name: "Coach" }).click();
     await page.waitForURL("**/coach");
 
-    // The Coach page large circle badge should show the dynamic score 55 and label "Fair"
-    await expect(page.locator("div.rounded-full", { hasText: "55" }).getByText("Fair")).toBeVisible();
+    // CoachContextDashboard score badge (rounded-2xl) should show the recovery score and "Fair" label
+    const dashboard = page.locator('[data-testid="coach-context-dashboard"]');
+    await expect(dashboard).toBeVisible();
+    await expect(dashboard.locator(".rounded-2xl").getByText("55")).toBeVisible();
+    await expect(dashboard.locator(".rounded-2xl").getByText("Fair")).toBeVisible();
 
-    // Inside description should show "ทำตามแผนปกติ (Maintain)"
-    await expect(page.getByText("ทำตามแผนปกติ (Maintain)")).toBeVisible();
+    // Coaching stance for "maintain" state
+    await expect(page.getByText("ทำตามแผนปกติวันนี้")).toBeVisible();
   });
 
   test("2. Truly excellent day can show Excellent", async ({ page }) => {

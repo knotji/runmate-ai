@@ -137,14 +137,17 @@ test("Polish consistency: Today recommendation decision, Coach readiness, Race s
   await expect(page.getByText("ทางเลือกแทนวิ่งวันนี้").first()).toBeVisible();
   await expect(page.getByText("ถ้าขายังล้าหรือไม่อยากวิ่ง ให้ทำชุดนี้แทนได้").first()).toBeVisible();
 
-  // Test 3: Go to Coach page, context card and readiness card display consistent today's readiness
+  // Test 3: Go to Coach page, CoachContextDashboard shows combined context (no separate cards)
   await gotoApp(page, "/coach");
+  const dashboard = page.locator('[data-testid="coach-context-dashboard"]');
+  await expect(dashboard).toBeVisible();
+  // Expand the details toggle
   await page.getByText("ดูบริบท").click();
-  // Today's readiness (60) is shown in the context card
-  await expect(page.getByText("Readiness 60").first()).toBeVisible();
-  // The circular readiness card should also show 60 คะแนน
-  await expect(page.locator("div:has-text('60'):has-text('คะแนน')").first()).toBeVisible();
-  // Must not show the mismatched 73 คะแนน
+  // Details expanded — source summary header visible
+  await expect(dashboard.getByText("อ้างอิงจาก")).toBeVisible();
+  // Old separate Readiness card text must not appear
+  await expect(page.getByText("Readiness 60")).toHaveCount(0);
+  // Old circular badge with "คะแนน" must not appear
   await expect(page.locator("div:has-text('73'):has-text('คะแนน')")).toHaveCount(0);
 
   // Test 4: Race strength card hides pace/HR

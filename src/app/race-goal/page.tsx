@@ -202,8 +202,8 @@ export default function RaceGoalPage() {
             <details className="group cursor-pointer">
               <summary className="list-none flex items-center justify-between font-bold text-[var(--foreground)]">
                 <div className="flex flex-col gap-0.5">
-                  <span className="text-[10px] uppercase tracking-[0.15em] text-[var(--label-color)]">ภาพรวมแผน</span>
-                  <span className="text-sm font-bold text-[var(--foreground)]">รายละเอียดแต่ละเฟสการซ้อม</span>
+                  <span className="text-[10px] uppercase tracking-[0.15em] text-[var(--label-color)]">หลักการซ้อม</span>
+                  <span className="text-sm font-bold text-[var(--foreground)]">รายละเอียดการซ้อมแต่ละเฟส</span>
                 </div>
                 <div className="flex items-center gap-1.5 text-xs text-[var(--primary)] font-bold shrink-0">
                   <span className="group-open:hidden">ดูเฟสซ้อม</span>
@@ -549,7 +549,7 @@ function ActionableWeekCard({ workouts, coachContext }: { workouts: WeekWorkout[
               key={`${workout.day}-${workout.workoutType}-${index}`}
               className="group cursor-pointer border-b border-[var(--color-border-soft)] last:border-b-0 [&[open]]:bg-[var(--primary-soft)]/20"
             >
-              <summary className="list-none flex items-center justify-between gap-3 px-5 py-3.5 font-semibold">
+              <summary className="list-none flex items-center justify-between gap-3 px-5 py-3 font-semibold">
                 <div className="flex flex-col gap-0.5 min-w-0">
                   <span className="text-xs font-bold text-[var(--label-color)] flex items-center gap-1.5">
                     {workout.day}

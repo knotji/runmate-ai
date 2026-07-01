@@ -95,7 +95,8 @@ test.describe("Coach Intelligence UX & Guardrails Polish", () => {
     });
 
     await gotoApp(page, "/coach");
-    await page.getByRole("button", { name: "ดูรายละเอียด" }).click();
+    // CoachContextDashboard uses "ดูบริบท" details toggle
+    await page.getByText("ดูบริบท").click();
 
     await expect(page.getByText("วิ่งประคองตัวคุมความเข้มข้น ห้ามกด Pace")).toBeVisible();
   });
