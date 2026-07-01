@@ -90,7 +90,12 @@
 - [ ] Today 4-axis factors (ฟื้นตัว / โหลดซ้อม / การนอน / พลังงาน) are each wrapped in a soft cream `.ring-panel` mini card.
 - [ ] Hero "วันนี้ควรทำอะไร" section shows a short Thai coach insight line (e.g., "วันนี้เหมาะกับ Recovery", "ขยับได้ แต่ไม่ต้องกด pace") above the main recommendation headline.
 - [ ] Recovery Loop card uses a subtle warm gradient tint and wider label tracking to match the overview card's section label style.
-
+- [ ] Today 4-axis factor panels are compact and readable; ring size is ~56px on mobile with legible center scores.
+- [ ] Success (e.g., Fuel 100/100) ring uses muted sage green, not bright green — it does not visually overpower caution factors.
+- [ ] Hero recommendation (pre-workout) has exactly one secondary details control visible by default: "ทำไมวันนี้แนะนำแบบนี้?" — "ดูเหตุผลและข้อแนะนำเพิ่มเติม" does not appear separately.
+- [ ] Clicking "ทำไมวันนี้แนะนำแบบนี้?" reveals the decision card (type badge, explanation body) and the reasons list in a single expandable section.
+- [ ] Post-workout hero shows "ดูสิ่งที่ควรทำต่อ" as its inner toggle; the outer "ทำไมวันนี้แนะนำแบบนี้?" does not appear in post-workout state.
+- [ ] Section quick-action icon row (นอน / อาหาร / ซ้อม / เจ็บ / สรุปวัน) uses compact py-1.5 padding; tap targets remain accessible.
 
 ## 4. Coach
 
@@ -187,6 +192,7 @@ On PowerShell, set both `$env:E2E_BASE_URL` and `$env:E2E_PRODUCTION_BASE_URL` t
 - [ ] Collapsed daily logs render simplified gray/blue/green badges only and avoid busy orange/red clusters.
 
 ## 10. Recovery System Score Audit Validation
+
 - [ ] Verify that Today's `/100` numeric values match the `axis.score` fields exactly.
 - [ ] Verify that Load axis tone is warning (amber) for high values, and success (green) for low values, conveying accumulated strain instead of "goodness".
 - [ ] Verify that overall Readiness matches `readinessV2.score` (which uses a weighted formula with pain-safety caps) and is separate from the `recovery` axis score.

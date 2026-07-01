@@ -120,15 +120,15 @@ test("Polish consistency: Today recommendation decision, Coach readiness, Race s
   // Test 1: Today Page shows clear primary recommendation
   await gotoApp(page, "/");
 
-  // Decision card is inside "ดูเหตุผลและข้อแนะนำเพิ่มเติม" accordion — expand it
-  await page.getByText("ดูเหตุผลและข้อแนะนำเพิ่มเติม").click();
+  // Decision card is inside "ทำไมวันนี้แนะนำแบบนี้?" accordion — expand it
+  await page.getByText("ทำไมวันนี้แนะนำแบบนี้?").click();
   await expect(page.getByText("วันนี้เลือกอย่างใดอย่างหนึ่งก่อน")).toBeVisible();
   // With readiness 60, decision card explanation should contain "Fair", and MUST NOT contain "Good"
   await expect(page.getByText(/readiness ยัง Fair/)).toBeVisible();
   await expect(page.getByText(/readiness ยัง Good/)).toHaveCount(0);
 
-  // Race plan reason text appears in the readiness explanation area
-  await expect(page.getByText("แผน Race เดิมคือ")).toBeVisible();
+  // Race plan reason text appears in the readiness explanation area (may appear in both decision card and reasons list)
+  await expect(page.getByText("แผน Race เดิมคือ").first()).toBeVisible();
   
   // Test 2: Readiness Chip shows Readiness 60 matching Coach readiness
   await expect(page.getByText("60 Readiness Fair")).toBeVisible();

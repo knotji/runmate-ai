@@ -301,6 +301,8 @@ export default function TodayPage() {
   const todayChecklist = buildTodayChecklist(coachCtx, dailySummaryItem);
   const hasWorkoutToday = Boolean(coachCtx?.hasWorkoutToday);
 
+  const heroDecision = insight && coachCtx && !hasWorkoutToday ? getDecisionCard(insight, coachCtx) : null;
+
   return (
     <AppShell title="โค้ชข้างทาง" subtitle={formatThaiDate()}>
 
@@ -345,7 +347,7 @@ export default function TodayPage() {
         {insight && (
           hasWorkoutToday && coachCtx?.todayPrimaryWorkout
             ? <PostWorkoutFocusContent insight={insight} context={coachCtx} />
-            : <PreWorkoutFocusContent insight={insight} hasPace={hasPace} context={coachCtx} isFallback={insightError} />
+            : <PreWorkoutFocusContent insight={insight} hasPace={hasPace} context={coachCtx} />
         )}
 
         {!insight && !loading && !insightError && !hasHistory && (
@@ -368,7 +370,7 @@ export default function TodayPage() {
           {hasWorkoutToday ? "อัปเดตข้อมูลวันนี้" : "บันทึกกิจกรรมวันนี้"}
         </Link>
 
-        {insight && (
+        {insight && !hasWorkoutToday && (
           <div>
             <button
               type="button"
@@ -379,9 +381,30 @@ export default function TodayPage() {
               <span className={`transition-transform duration-200 ${showReasons ? "rotate-180" : ""}`}>▾</span>
             </button>
             {showReasons && (
-              <div className="mt-3 rounded-2xl bg-slate-50 px-4 py-3 space-y-1.5">
+              <div className="mt-3 rounded-2xl bg-slate-50 px-4 py-3 space-y-2">
                 <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">เหตุผลของคำแนะนำวันนี้</p>
-                <ul className="space-y-1 mt-1">
+                {heroDecision && (
+                  <div className={`rounded-2xl border p-3.5 space-y-1.5 ${
+                    insightError ? "bg-amber-50/80 border-amber-200 text-amber-900" :
+                    heroDecision.type === "pain" ? "bg-red-50/80 border-red-200 text-red-900" :
+                    heroDecision.type === "caution" ? "bg-amber-50/80 border-amber-200 text-amber-900" :
+                    "bg-[#f5faf7] border-[#d9e8df] text-[#1c472a]"
+                  }`}>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold uppercase tracking-wider">{heroDecision.title}</span>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                        insightError ? "bg-amber-100 text-amber-700" :
+                        heroDecision.type === "pain" ? "bg-red-100 text-red-700" :
+                        heroDecision.type === "caution" ? "bg-amber-100 text-amber-700" :
+                        "bg-[#e7efea] text-[#2a5a39]"
+                      }`}>
+                        {insightError ? "คำแนะนำสำรอง" : (heroDecision.type === "pain" ? "งดวิ่ง" : heroDecision.type === "caution" ? "ปรับลดโหลด" : "ตามแผน")}
+                      </span>
+                    </div>
+                    <p className="text-xs leading-relaxed">{heroDecision.body}</p>
+                  </div>
+                )}
+                <ul className="space-y-1">
                   {buildTodayRecommendationReasons(coachCtx, insight, coachCtx?.readinessV2 ?? null, readinessCoverage.hasSleepToday).map((r, i) => (
                     <li key={i} className="flex items-start gap-1.5 text-xs text-slate-600 leading-5">
                       <span className="mt-0.5 shrink-0 text-[var(--primary)]">·</span>
@@ -415,7 +438,7 @@ export default function TodayPage() {
           { href: "/pain", icon: "🩹", label: "เจ็บ" },
           { href: "#end-of-day-summary", icon: "📋", label: "สรุปวัน" },
         ].map(({ href, icon, label }) => (
-          <Link key={href} href={href} className="flex flex-col items-center gap-1 min-w-[52px] py-2 px-1 rounded-xl transition-colors hover:bg-[var(--surface-muted)] active:scale-95">
+          <Link key={href} href={href} className="flex flex-col items-center gap-1 min-w-[52px] py-1.5 px-1 rounded-xl transition-colors hover:bg-[var(--surface-muted)] active:scale-95">
             <span className="text-xl">{icon}</span>
             <span className="text-[10px] font-medium text-slate-500">{label}</span>
           </Link>
@@ -619,14 +642,11 @@ function PreWorkoutFocusContent({
   insight,
   hasPace,
   context,
-  isFallback,
 }: {
   insight: DailyCoachInsight;
   hasPace: boolean;
   context: CoachContext | null;
-  isFallback?: boolean;
 }) {
-  const decision = getDecisionCard(insight, context);
   const hasSleepToday = context ? context.sleep7d.some((s) => s.date === context.todayDate) : false;
   const hasLatestSleep = context ? context.sleep7d.length > 0 : false;
   const isUsingLatestSleepBecauseTodayMissing = !hasSleepToday && hasLatestSleep;
@@ -673,36 +693,6 @@ function PreWorkoutFocusContent({
         </div>
       )}
 
-      {/* 5. Detailed information inside accordion */}
-      <details className="mt-3 group border-t border-slate-100/60 pt-3 cursor-pointer">
-        <summary className="text-[11px] font-bold text-slate-400 hover:text-slate-500 list-none flex items-center justify-between">
-          <span>ดูเหตุผลและข้อแนะนำเพิ่มเติม</span>
-          <span className="transition-transform group-open:rotate-180">▾</span>
-        </summary>
-        <div className="mt-3 space-y-3 cursor-default">
-          {decision && (
-            <div className={`rounded-2xl border p-4 space-y-1.5 ${
-              isFallback ? "bg-amber-50/80 border-amber-200 text-amber-900" :
-              decision.type === "pain" ? "bg-red-50/80 border-red-200 text-red-900" :
-              decision.type === "caution" ? "bg-amber-50/80 border-amber-200 text-amber-900" :
-              "bg-[#f5faf7] border-[#d9e8df] text-[#1c472a]"
-            }`}>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-bold uppercase tracking-wider">{decision.title}</span>
-                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
-                  isFallback ? "bg-amber-100 text-amber-700" :
-                  decision.type === "pain" ? "bg-red-100 text-red-700" :
-                  decision.type === "caution" ? "bg-amber-100 text-amber-700" :
-                  "bg-[#e7efea] text-[#2a5a39]"
-                }`}>
-                  {isFallback ? "คำแนะนำสำรอง" : (decision.type === "pain" ? "งดวิ่ง" : decision.type === "caution" ? "ปรับลดโหลด" : "ตามแผน")}
-                </span>
-              </div>
-              <p className="text-xs leading-relaxed">{decision.body}</p>
-            </div>
-          )}
-        </div>
-      </details>
     </div>
   );
 }
@@ -1400,7 +1390,7 @@ function getAxisBadgeClass(axisKey: "recovery" | "load" | "sleep" | "fuel", scor
 
 // Ring stroke colors keyed by tone
 const RING_STROKE: Record<string, string> = {
-  success: "#4a9960",
+  success: "#7aab8f",
   warning: "#c9961d",
   danger: "#e05050",
   info: "#5082a0",
@@ -1525,11 +1515,11 @@ function RecoveryRing({
 
   return (
     <div
-      className="flex flex-col items-center gap-1"
+      className="flex flex-col items-center gap-0.5"
       data-tone={tone}
       aria-label={`${title} ${Math.round(score)} จาก 100 ระดับ${label}`}
     >
-      <div className="relative w-16 h-16 sm:w-14 sm:h-14">
+      <div className="relative w-14 h-14 sm:w-12 sm:h-12">
         <svg width="100%" height="100%" viewBox="0 0 56 56" aria-hidden="true">
           <circle cx={cx} cy={cy} r={r} fill="none" stroke="#e2e8f0" strokeWidth="4.5" />
           <circle
@@ -1544,7 +1534,7 @@ function RecoveryRing({
           />
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-[14px] sm:text-[13px] font-black text-slate-800 leading-none">{Math.round(score)}</span>
+          <span className="text-[13px] sm:text-[12px] font-black text-slate-800 leading-none">{Math.round(score)}</span>
         </div>
       </div>
       <p className="text-[10px] sm:text-[9px] font-semibold text-slate-500 leading-tight text-center mt-0.5">{title}</p>

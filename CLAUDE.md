@@ -267,4 +267,10 @@ RunMate's visual identity is warm beige/sage/cream — a soft recovery health ap
 
 **`RecoveryLoopCard`** uses `bg-gradient-to-b from-[#fdfcf8] to-[#f8fcf9]` subtle tint and `text-[#6f8fa6]` label color for visual consistency with the overview card.
 
+**UI tone principle**: Soft Health UI should feel calm and premium. Positive states (success tone) use muted sage (`#7aab8f` ring stroke, `text-[#4a8a62]` label) — not bright green — so a perfect Fuel score does not visually overpower Load/Sleep caution. Caution (warning amber) and danger (red) must remain clear. Avoid letting any single perfect-score axis dominate the overview card.
+
+**Hero secondary details**: Pre-workout hero has exactly one secondary toggle: `"ทำไมวันนี้แนะนำแบบนี้?"`. The decision card (pain/caution/ok) and reasons list are both inside this single expandable. `"ดูเหตุผลและข้อแนะนำเพิ่มเติม"` no longer exists as a separate control. Post-workout shows `"ดูสิ่งที่ควรทำต่อ"` only (no outer reasons toggle).
+
+**Recovery ring panels**: `RecoveryRing` uses `w-14 h-14 sm:w-12 sm:h-12` container inside `.ring-panel`. Score font is `text-[13px] sm:text-[12px] font-black`. Grid uses `gap-2`. Do not enlarge these — compact sizing is intentional.
+
 **Do not**: Change Recovery System scoring. Change Recovery Loop scoring. Change Readiness V2 logic. Add new database schema. Remove rolling 7-day content. Make Today page dense.

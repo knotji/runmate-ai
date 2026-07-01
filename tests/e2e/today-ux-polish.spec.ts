@@ -203,6 +203,46 @@ test("Explanation toggle shows ซ่อนเหตุผล when expanded and 
   await expect(page.getByText("ทำไมวันนี้แนะนำแบบนี้?")).toBeVisible();
 });
 
+test("Hero pre-workout has only one secondary details toggle visible", async ({ page }) => {
+  const state = await installMockBackend(page);
+  const today = bangkokDateKey();
+
+  state.history.push({
+    id: "sleep-single-toggle",
+    user_id: "00000000-0000-4000-8000-000000000001",
+    type: "sleep",
+    created_at: `${today}T08:00:00.000Z`,
+    data: {
+      extracted: { date: today, actualSleepDurationMinutes: 420, sleepScore: 72, restingHR: 53, hrv: 56 },
+      coach: { readinessScore: 72, readinessLabel: "Good" },
+      confidence: "high", unclearFields: [],
+    },
+  });
+
+  await page.route("**/api/coach-insight", async (route) => {
+    await route.fulfill({
+      status: 200, contentType: "application/json",
+      body: JSON.stringify({ ok: true, data: { todayReadiness: 72, readinessLabel: "Good", readinessNote: "นอน 7h", workoutRec: "Easy Run", workoutTarget: "-", weekSummary: "-", keyObservation: "-", coachMessage: "ซ้อมได้" } }),
+    });
+  });
+
+  await gotoApp(page, "/");
+
+  // Old "ดูเหตุผลและข้อแนะนำเพิ่มเติม" toggle must NOT appear (merged into outer toggle)
+  await expect(page.getByText("ดูเหตุผลและข้อแนะนำเพิ่มเติม")).toHaveCount(0);
+
+  // Single secondary control: "ทำไมวันนี้แนะนำแบบนี้?" visible and clickable
+  await expect(page.getByText("ทำไมวันนี้แนะนำแบบนี้?")).toBeVisible();
+
+  // CTA still prominent
+  await expect(page.getByRole("link", { name: "บันทึกกิจกรรมวันนี้" })).toBeVisible();
+
+  // Clicking the toggle opens the reasons section
+  await page.getByText("ทำไมวันนี้แนะนำแบบนี้?").click();
+  await expect(page.getByText("ซ่อนเหตุผล")).toBeVisible();
+  await expect(page.getByText("เหตุผลของคำแนะนำวันนี้")).toBeVisible();
+});
+
 // ─── Today UX and Readiness Polish (Phases 1-4) ─────────────────────────────
 
 test("Completed strength routine shows completed state on Today page", async ({ page }) => {
