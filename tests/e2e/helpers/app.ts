@@ -84,7 +84,7 @@ export async function installMockBackend(
 
 export async function saveManualBreakfast(page: Page, state: MockAppState): Promise<void> {
   await gotoApp(page, "/upload?type=meal");
-  await page.getByRole("button", { name: /อาหาร/ }).click();
+  await page.getByTestId("upload-type-selector").getByRole("button", { name: /อาหาร/ }).click();
   await page.getByRole("button", { name: "พิมพ์เอง" }).click();
   await page.getByRole("button", { name: "เช้า", exact: true }).click();
   await page.getByLabel("กินอะไร?").fill("ข้าวไข่ต้ม 2 ฟอง นมโปรตีน");

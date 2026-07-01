@@ -13,6 +13,7 @@ export function ImageUploader({
   extraFields,
   maxFiles = 1,
   ctaLabel = "วิเคราะห์",
+  noFileCtaLabel = "เลือกรูปก่อนวิเคราะห์",
   onResult,
 }: {
   kind: UploadKind;
@@ -20,6 +21,7 @@ export function ImageUploader({
   extraFields?: Record<string, unknown>;
   maxFiles?: number;
   ctaLabel?: string;
+  noFileCtaLabel?: string;
   onResult: (result: unknown) => void | Promise<void>;
 }) {
   const [files, setFiles] = useState<File[]>([]);
@@ -131,7 +133,7 @@ export function ImageUploader({
   return (
     <form onSubmit={submit} className="space-y-3" data-testid="upload-image-form">
       <label
-        className={`flex min-h-[112px] cursor-pointer flex-col items-center justify-center gap-2 rounded-[22px] border border-dashed px-4 py-5 text-center transition-colors ${
+        className={`flex min-h-[96px] cursor-pointer flex-col items-center justify-center gap-2 rounded-[22px] border border-dashed px-4 py-4 text-center transition-colors ${
           files.length > 0
             ? "border-[var(--primary)] bg-[var(--primary-soft)]"
             : "border-[var(--border-warm)] bg-white/70 hover:border-[var(--primary)]/60 hover:bg-[var(--surface)]"
@@ -161,9 +163,6 @@ export function ImageUploader({
           </>
         )}
       </label>
-      <p className="text-center text-[11px] leading-5 text-[var(--muted-text)]/80">
-        ระบบจะใช้รูปเพื่ออ่านข้อมูลเท่านั้น และบันทึกเฉพาะผลลัพธ์เข้า Report
-      </p>
       <LoadingButton
         className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-45"
         type="submit"
@@ -171,7 +170,7 @@ export function ImageUploader({
         loadingText="กำลังวิเคราะห์..."
         disabled={!files.length || loading}
       >
-        {files.length ? ctaLabel : "เลือกรูปก่อน"}
+        {files.length ? ctaLabel : noFileCtaLabel}
       </LoadingButton>
       {error ? <ErrorState message={error} /> : null}
     </form>

@@ -190,6 +190,7 @@ const UPLOAD_DASHBOARD_META: Record<UploadType, {
   title: string;
   copy: string;
   ctaLabel: string;
+  noFileCtaLabel: string;
   caution?: string;
 }> = {
   sleep: {
@@ -197,30 +198,35 @@ const UPLOAD_DASHBOARD_META: Record<UploadType, {
     title: "บันทึกการนอน",
     copy: "ใช้ประเมินความพร้อม การนอน และคำแนะนำคืนนี้",
     ctaLabel: "วิเคราะห์การนอน",
+    noFileCtaLabel: "เลือกรูปก่อนวิเคราะห์",
   },
   meal: {
     icon: "🍽️",
     title: "บันทึกอาหาร",
     copy: "ช่วยให้โค้ชประเมินพลังงาน โปรตีน และมื้อต่อไป",
     ctaLabel: "วิเคราะห์อาหาร",
+    noFileCtaLabel: "เลือกรูปมื้อก่อนวิเคราะห์",
   },
   workout: {
     icon: "🏃",
     title: "บันทึกการซ้อม",
     copy: "ใช้คำนวณโหลดวันนี้และปรับคำแนะนำตามแผน",
     ctaLabel: "วิเคราะห์การซ้อม",
+    noFileCtaLabel: "เลือกรูปกิจกรรมก่อนวิเคราะห์",
   },
   body: {
     icon: "⚖️",
     title: "บันทึกร่างกาย",
     copy: "น้ำหนัก ไขมัน กล้ามเนื้อ และอาการเจ็บ ใช้ดูแนวโน้มระยะยาว",
     ctaLabel: "วิเคราะห์ร่างกาย",
+    noFileCtaLabel: "เลือกรูปข้อมูลร่างกายก่อนวิเคราะห์",
   },
   health_check: {
     icon: "🩺",
     title: "Health Check PDF",
     copy: "อ่านเฉพาะค่าที่จำเป็นเพื่อประกอบคำแนะนำ recovery",
     ctaLabel: "วิเคราะห์ผลตรวจสุขภาพ",
+    noFileCtaLabel: "เลือก PDF ก่อนวิเคราะห์",
     caution: "ไม่ใช่การวินิจฉัยทางการแพทย์",
   },
 };
@@ -731,7 +737,7 @@ export default function UploadPage() {
     <AppShell title="เพิ่มข้อมูล" subtitle="บันทึกข้อมูลวันนี้ให้โค้ชประเมิน">
       <section className="space-y-3" data-testid="upload-dashboard">
         <div className="space-y-2">
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--label-color)]">Upload Dashboard</p>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--label-color)]">เลือกประเภทข้อมูล</p>
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-5" data-testid="upload-type-selector">
             {UPLOAD_ORDER.map((item) => (
               <button
@@ -739,7 +745,7 @@ export default function UploadPage() {
                 type="button"
                 className={`rounded-[18px] border px-3 py-2.5 text-center text-xs font-bold transition-all ${
                   type === item
-                    ? "border-[var(--primary)] bg-[var(--foreground)] text-white shadow-sm"
+                    ? "border-[var(--primary-strong)] bg-[var(--primary)] text-white shadow-sm"
                     : "border-[var(--border-warm)] bg-white/70 text-[var(--muted-text)] hover:bg-[var(--primary-soft)]/60"
                 }`}
                 onClick={() => selectUploadType(item)}
@@ -814,7 +820,7 @@ export default function UploadPage() {
           )}
         </div>
 
-        <div className="card space-y-4 p-4" data-testid="upload-input-panel">
+        <div className="card space-y-3 p-3.5" data-testid="upload-input-panel">
         {type === "meal" && (
           <div className="space-y-3">
             <div className="grid grid-cols-2 rounded-2xl bg-[var(--surface-muted)] p-1">
@@ -940,6 +946,7 @@ export default function UploadPage() {
               endpoint={endpoint}
               maxFiles={type === "meal" ? 1 : type === "sleep" ? 3 : 4}
               ctaLabel={selectedMeta.ctaLabel}
+              noFileCtaLabel={selectedMeta.noFileCtaLabel}
               extraFields={{
                 ...(type === "meal" ? { mealType } : {}),
                 ...(type === "workout" ? { workoutSubtype } : {}),
@@ -1333,7 +1340,7 @@ function HealthCheckUploader({
         onClick={() => void analyze()}
         disabled={saving || loading || !file}
       >
-        {file ? "วิเคราะห์ผลตรวจสุขภาพ" : "เลือกไฟล์ก่อน"}
+        {file ? "วิเคราะห์ผลตรวจสุขภาพ" : "เลือก PDF ก่อนวิเคราะห์"}
       </LoadingButton>
       <p className="text-xs leading-5 text-slate-400">
         คำแนะนำจากผลตรวจเป็นแนวทางทั่วไป ไม่ใช่การวินิจฉัยหรือการรักษา หากมีค่าผิดปกติควรปรึกษาแพทย์
