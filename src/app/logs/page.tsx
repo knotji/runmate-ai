@@ -48,6 +48,8 @@ import {
   buildCalendarMonthSummary,
   type WeeklyReportSummary,
 } from "@/lib/reportSummary";
+import { buildReportPeriodJsonExport } from "@/lib/exportRunMateJson";
+import { buildRunMateExportFilename, downloadJsonFile } from "@/lib/downloadJson";
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -69,7 +71,10 @@ export default function ReportPage() {
   const [calendarWeek, setCalendarWeek] = useState<CalendarPeriod>(() => getCurrentCalendarWeek());
   const [calendarMonth, setCalendarMonth] = useState<CalendarPeriod>(() => getCurrentCalendarMonth());
   const [calendarTransitioning, setCalendarTransitioning] = useState(false);
+  const [exportPreparing, setExportPreparing] = useState(false);
+  const [exportStatus, setExportStatus] = useState("");
   const calendarTransitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const exportStatusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -110,6 +115,7 @@ export default function ReportPage() {
   useEffect(() => {
     return () => {
       if (calendarTransitionTimer.current) clearTimeout(calendarTransitionTimer.current);
+      if (exportStatusTimer.current) clearTimeout(exportStatusTimer.current);
     };
   }, []);
 
@@ -122,6 +128,50 @@ export default function ReportPage() {
       setCalendarTransitioning(false);
       calendarTransitionTimer.current = null;
     }, 260);
+  }
+
+  async function handleExportJson() {
+    if (exportPreparing) return;
+    const activePeriod = reportMode === "week" ? calendarWeek : calendarMonth;
+    const activeSummary = reportMode === "week" ? weekSummary : monthSummary;
+    if (!activeSummary) {
+      setExportStatus("ส่งออกไฟล์ไม่สำเร็จ ลองใหม่อีกครั้ง");
+      return;
+    }
+
+    if (exportStatusTimer.current) clearTimeout(exportStatusTimer.current);
+    setExportPreparing(true);
+    setExportStatus("กำลังเตรียมไฟล์...");
+
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 220));
+      const data = buildReportPeriodJsonExport({
+        periodType: reportMode,
+        periodLabel: activePeriod.label,
+        startDateKey: activePeriod.startDateKey,
+        endDateKey: activePeriod.endDateKey,
+        weeklySummary: reportMode === "week" ? weekSummary : null,
+        monthlySummary: reportMode === "month" ? monthSummary : null,
+      });
+      const filename = buildRunMateExportFilename({
+        periodType: reportMode,
+        startDateKey: activePeriod.startDateKey,
+        endDateKey: activePeriod.endDateKey,
+      });
+      downloadJsonFile(data, filename);
+      setExportStatus("ดาวน์โหลด JSON แล้ว");
+    } catch (err) {
+      if (process.env.NODE_ENV === "development") {
+        console.error("[report-json-export-error]", err);
+      }
+      setExportStatus("ส่งออกไฟล์ไม่สำเร็จ ลองใหม่อีกครั้ง");
+    } finally {
+      setExportPreparing(false);
+      exportStatusTimer.current = setTimeout(() => {
+        setExportStatus("");
+        exportStatusTimer.current = null;
+      }, 2200);
+    }
   }
 
   const raceResultsByDate = groupRaceResultsByDate(raceResults);
@@ -237,6 +287,12 @@ export default function ReportPage() {
             onMonthChange={(month) => runCalendarTransition(() => setCalendarMonth(month))}
             todayDateKey={todayDateKey}
             transitioning={calendarTransitioning}
+          />
+
+          <ReportExportControl
+            preparing={exportPreparing}
+            status={exportStatus}
+            onExport={() => void handleExportJson()}
           />
 
           {deleteStatus ? (
@@ -420,6 +476,38 @@ function CalendarNav({
         )}
       </div>
     </div>
+  );
+}
+
+function ReportExportControl({
+  preparing,
+  status,
+  onExport,
+}: {
+  preparing: boolean;
+  status: string;
+  onExport: () => void;
+}) {
+  return (
+    <section className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface)]/80 px-3 py-2 shadow-sm" data-testid="report-export-control">
+      <p className="min-w-0 text-[11px] leading-5 text-[var(--color-text-muted)]">
+        ส่งออกข้อมูลช่วงนี้เป็นไฟล์ JSON
+      </p>
+      <button
+        type="button"
+        title="Export JSON"
+        disabled={preparing}
+        onClick={onExport}
+        className="rounded-full border border-[var(--color-border-soft)] bg-white px-3 py-1.5 text-[11px] font-bold text-[var(--primary)] transition hover:bg-[var(--surface-muted)] disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {preparing ? "กำลังเตรียมไฟล์..." : "ส่งออก JSON"}
+      </button>
+      {status && (
+        <p className={`basis-full text-[11px] font-semibold ${status.includes("ไม่สำเร็จ") ? "text-red-600" : "text-[#2a5a39]"}`} data-testid="report-export-status">
+          {status}
+        </p>
+      )}
+    </section>
   );
 }
 

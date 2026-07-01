@@ -231,7 +231,10 @@ tests/
 - `DaySlot` — compact daily card (7 per week view). Shows weekdayLabel, today badge, main activity, sleep, readiness, compact nutrition, and pain/fuel badges only when relevant. "ยังไม่มีข้อมูล" for empty days. `data-testid="day-slot"`.
 - `MonthWeekBlock` — compact week card in month view. Tapping switches to week mode for that week. `data-testid="month-week-block"`.
 - Week view rendered in `data-testid="week-day-list"`, month view in `data-testid="month-week-list"`.
+- `ReportExportControl` — small secondary "ส่งออก JSON" action for the currently selected calendar week/month. Export is report-period scoped, JSON only, no import yet. Helper files: `src/lib/exportRunMateJson.ts`, `src/lib/downloadJson.ts`.
 
 **Report UI rule**: Calendar Week/Month is the primary Report view. Rolling 7-day insight is secondary and collapsed by default. Avoid showing calendar daily logs and legacy DayCard lists at the same time. `WeeklyReviewCard`/`WeeklyDashboard` live inside "Insight 7 วันล่าสุด"; filter pills and the legacy `DayCard` list live inside "รายการทั้งหมด".
+
+**Export JSON v1**: `schemaVersion = "runmate_export_v1"`, `exportType = "report_period"`. Week export includes compact `days`; month export includes compact `weeks`. Never export raw uploaded images, base64, raw OCR, auth/session data, API keys, or hidden prompts. Metadata flags must stay `includesRawImages: false`, `includesRawOcr: false`, `includesAuthData: false`.
 
 **Do not**: Change Recovery System scoring. Change Recovery Loop scoring. Change Readiness V2 logic. Add new database schema. Remove rolling 7-day content. Make Today page dense.
