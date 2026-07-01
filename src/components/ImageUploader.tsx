@@ -12,12 +12,14 @@ export function ImageUploader({
   endpoint,
   extraFields,
   maxFiles = 1,
+  ctaLabel = "วิเคราะห์",
   onResult,
 }: {
   kind: UploadKind;
   endpoint: string;
   extraFields?: Record<string, unknown>;
   maxFiles?: number;
+  ctaLabel?: string;
   onResult: (result: unknown) => void | Promise<void>;
 }) {
   const [files, setFiles] = useState<File[]>([]);
@@ -127,12 +129,12 @@ export function ImageUploader({
   }
 
   return (
-    <form onSubmit={submit} className="space-y-3">
+    <form onSubmit={submit} className="space-y-3" data-testid="upload-image-form">
       <label
-        className={`flex min-h-[120px] cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed transition-colors ${
+        className={`flex min-h-[112px] cursor-pointer flex-col items-center justify-center gap-2 rounded-[22px] border border-dashed px-4 py-5 text-center transition-colors ${
           files.length > 0
             ? "border-[var(--primary)] bg-[var(--primary-soft)]"
-            : "border-[var(--border-warm)] bg-[var(--surface-muted)] hover:border-[var(--primary)]/60 hover:bg-[var(--surface)]"
+            : "border-[var(--border-warm)] bg-white/70 hover:border-[var(--primary)]/60 hover:bg-[var(--surface)]"
         }`}
       >
         <input
@@ -145,9 +147,9 @@ export function ImageUploader({
         />
         {files.length === 0 ? (
           <>
-            <span className="text-3xl">📷</span>
-            <p className="text-sm font-semibold text-[var(--foreground)]">กดเพื่อเลือกรูปภาพ</p>
-            <p className="text-xs text-[var(--muted-text)]">เลือกได้สูงสุด {maxFiles} รูป</p>
+            <span className="text-2xl">📷</span>
+            <p className="text-sm font-bold text-[var(--foreground)]">แตะเพื่อเลือกรูป</p>
+            <p className="text-xs text-[var(--muted-text)]">สูงสุด {maxFiles} รูป · ใช้เพื่อวิเคราะห์ครั้งนี้เท่านั้น</p>
           </>
         ) : (
           <>
@@ -162,8 +164,14 @@ export function ImageUploader({
       <p className="text-center text-[11px] leading-5 text-[var(--muted-text)]/80">
         ระบบจะใช้รูปเพื่ออ่านข้อมูลเท่านั้น และบันทึกเฉพาะผลลัพธ์เข้า Report
       </p>
-      <LoadingButton className="btn-primary w-full" type="submit" loading={loading} loadingText="กำลังวิเคราะห์...">
-        วิเคราะห์
+      <LoadingButton
+        className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-45"
+        type="submit"
+        loading={loading}
+        loadingText="กำลังวิเคราะห์..."
+        disabled={!files.length || loading}
+      >
+        {files.length ? ctaLabel : "เลือกรูปก่อน"}
       </LoadingButton>
       {error ? <ErrorState message={error} /> : null}
     </form>

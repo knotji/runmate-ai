@@ -2,6 +2,12 @@
 
 ## 1. Upload Review
 
+- [ ] Upload Dashboard v2 opens with a compact type chip grid (นอน / อาหาร / ซ้อม / ร่างกาย / สุขภาพ), a selected-type summary card, and a compact date selector.
+- [ ] Upload Dashboard v2 explains what the coach will use the selected data for before the file picker appears.
+- [ ] Upload Dashboard v2 keeps raw file/privacy details inside the collapsed "อ่านอะไรได้บ้าง?" help note.
+- [ ] Upload Dashboard v2 primary CTA changes by type (วิเคราะห์การนอน / วิเคราะห์อาหาร / วิเคราะห์การซ้อม / วิเคราะห์ร่างกาย / วิเคราะห์ผลตรวจสุขภาพ) and is clearly disabled until a file is selected.
+- [ ] Food upload keeps the review-before-save flow and shows compact "อัปโหลดรูป / พิมพ์เอง" plus meal-time chips.
+- [ ] Training upload shows compact subtype chips (วิ่ง / เวท / เดิน / อื่น ๆ) and the selected subtype helper.
 - [ ] Manual meal upload: review, edit, save, and date selection work.
 - [ ] Image meal upload: detected foods/macros can be reviewed before save.
 - [ ] Sleep, workout, body, and Health Check PDF uploads save structured results.

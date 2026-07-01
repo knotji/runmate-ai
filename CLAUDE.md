@@ -82,6 +82,8 @@ tests/
 
 **RunMate Visual Identity**: Warm Minimal Fitness Journal — beige/sage tones, soft cards, mobile-first, Thai-first.
 
+**Upload Dashboard principle**: Upload should feel like a soft health data entry flow, not a technical file uploader. The selected data type should explain what the coach will use it for, with raw file/privacy details behind compact help.
+
 **Token reference** (CSS vars in `globals.css`):
 
 - Colors: `--primary` (sage), `--background` (warm beige), `--surface` (cream), `--border-warm`

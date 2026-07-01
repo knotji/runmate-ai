@@ -14,7 +14,7 @@ test("suggested date is not applied until the user confirms it", async ({ page }
     mimeType: "image/png",
     buffer: Buffer.from("e2e-image"),
   });
-  await page.getByRole("button", { name: "วิเคราะห์", exact: true }).click();
+  await page.getByRole("button", { name: "วิเคราะห์การนอน", exact: true }).click();
 
   await expect(page.getByText(/วันที่ที่อ่านได้จากไฟล์/)).toContainText(formatThaiBuddhistDate(yesterday));
   await expect(page.getByText(`จะบันทึกเป็นวันที่: ${formatThaiBuddhistDate(today)}`)).toBeVisible();

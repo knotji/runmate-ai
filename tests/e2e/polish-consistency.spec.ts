@@ -178,7 +178,7 @@ test("Polish consistency: Today recommendation decision, Coach readiness, Race s
 
   // Test 6: Upload page helper copy matches tab context (texts inside "อ่านอะไรได้บ้าง?" accordion)
   await gotoApp(page, "/upload?type=meal");
-  await expect(page.getByText("ลองอัปโหลดเพื่อสร้าง Report")).toBeVisible();
+  await expect(page.getByText("บันทึกอาหาร")).toBeVisible();
   await page.getByText("อ่านอะไรได้บ้าง?").first().click();
   await expect(page.getByText("รูปอาหาร")).toBeVisible();
   await expect(page.getByText("ฉลากโภชนาการ")).toBeVisible();

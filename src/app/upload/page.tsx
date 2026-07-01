@@ -183,6 +183,55 @@ const UPLOAD_LABELS: Record<UploadType, string> = {
   health_check: "สุขภาพ",
 };
 
+const UPLOAD_ORDER: UploadType[] = ["sleep", "meal", "workout", "body", "health_check"];
+
+const UPLOAD_DASHBOARD_META: Record<UploadType, {
+  icon: string;
+  title: string;
+  copy: string;
+  ctaLabel: string;
+  caution?: string;
+}> = {
+  sleep: {
+    icon: "🌙",
+    title: "บันทึกการนอน",
+    copy: "ใช้ประเมินความพร้อม การนอน และคำแนะนำคืนนี้",
+    ctaLabel: "วิเคราะห์การนอน",
+  },
+  meal: {
+    icon: "🍽️",
+    title: "บันทึกอาหาร",
+    copy: "ช่วยให้โค้ชประเมินพลังงาน โปรตีน และมื้อต่อไป",
+    ctaLabel: "วิเคราะห์อาหาร",
+  },
+  workout: {
+    icon: "🏃",
+    title: "บันทึกการซ้อม",
+    copy: "ใช้คำนวณโหลดวันนี้และปรับคำแนะนำตามแผน",
+    ctaLabel: "วิเคราะห์การซ้อม",
+  },
+  body: {
+    icon: "⚖️",
+    title: "บันทึกร่างกาย",
+    copy: "น้ำหนัก ไขมัน กล้ามเนื้อ และอาการเจ็บ ใช้ดูแนวโน้มระยะยาว",
+    ctaLabel: "วิเคราะห์ร่างกาย",
+  },
+  health_check: {
+    icon: "🩺",
+    title: "Health Check PDF",
+    copy: "อ่านเฉพาะค่าที่จำเป็นเพื่อประกอบคำแนะนำ recovery",
+    ctaLabel: "วิเคราะห์ผลตรวจสุขภาพ",
+    caution: "ไม่ใช่การวินิจฉัยทางการแพทย์",
+  },
+};
+
+const WORKOUT_SUBTYPE_HELPER: Record<WorkoutSubtype, string> = {
+  run: "รูปวิ่งจะช่วยอ่านระยะ pace HR และโหลดซ้อม",
+  strength: "รูปเวทหรือบันทึกเองจะช่วยให้ Today/Report รู้โหลด strength",
+  walk: "บันทึกเดินหรือ active recovery แบบไม่ต้องมีรูป",
+  other: "เหมาะกับกิจกรรมเสริม เช่น ปั่นจักรยาน โยคะ หรือกีฬาอื่น",
+};
+
 const MEAL_TYPE_LABELS: Record<string, string> = {
   breakfast: "เช้า",
   lunch: "กลางวัน",
@@ -676,37 +725,61 @@ export default function UploadPage() {
     invalidateCoachCache({ clearChat: true });
   }
 
+  const selectedMeta = UPLOAD_DASHBOARD_META[type];
+
   return (
     <AppShell title="เพิ่มข้อมูล" subtitle="บันทึกข้อมูลวันนี้ให้โค้ชประเมิน">
-      <section className="card space-y-4 p-4">
-        <div className="flex gap-2 overflow-x-auto no-scrollbar scroll-smooth pb-1 -mx-4 px-4 select-none">
-          {(["sleep", "meal", "workout", "body", "health_check"] as UploadType[]).map((item) => (
-            <button
-              key={item}
-              className={`rounded-full px-4 py-2 text-xs font-semibold whitespace-nowrap transition-all ${
-                type === item
-                  ? "bg-[var(--primary-soft)] text-[var(--primary-strong)] font-bold shadow-sm ring-1 ring-[var(--primary)]/10"
-                  : "bg-[var(--surface-muted)] text-[var(--muted-text)] hover:bg-[var(--primary-soft)]/60"
-              }`}
-              onClick={() => selectUploadType(item)}
-            >
-              {UPLOAD_LABELS[item]}
-            </button>
-          ))}
+      <section className="space-y-3" data-testid="upload-dashboard">
+        <div className="space-y-2">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--label-color)]">Upload Dashboard</p>
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-5" data-testid="upload-type-selector">
+            {UPLOAD_ORDER.map((item) => (
+              <button
+                key={item}
+                type="button"
+                className={`rounded-[18px] border px-3 py-2.5 text-center text-xs font-bold transition-all ${
+                  type === item
+                    ? "border-[var(--primary)] bg-[var(--foreground)] text-white shadow-sm"
+                    : "border-[var(--border-warm)] bg-white/70 text-[var(--muted-text)] hover:bg-[var(--primary-soft)]/60"
+                }`}
+                onClick={() => selectUploadType(item)}
+              >
+                <span className="block text-base leading-none">{UPLOAD_DASHBOARD_META[item].icon}</span>
+                <span className="mt-1 block">{UPLOAD_LABELS[item]}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* Shared Date Selector */}
-        <div className="space-y-2 pt-2 border-t border-[var(--color-border-soft)]">
-          <label className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-soft)]">วันที่ของข้อมูลนี้</label>
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex rounded-xl bg-[var(--surface-muted)] p-1 text-xs font-semibold">
+        <div className="card-soft flex items-start gap-3 px-4 py-3" data-testid="upload-type-summary">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white text-xl shadow-sm">
+            {selectedMeta.icon}
+          </div>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-lg font-bold text-[var(--foreground)]">{selectedMeta.title}</h2>
+            <p className="mt-1 text-sm leading-6 text-[var(--muted-text)]">{selectedMeta.copy}</p>
+            {selectedMeta.caution ? (
+              <p className="mt-2 inline-flex rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-700">
+                {selectedMeta.caution}
+              </p>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="soft-panel px-3 py-3" data-testid="upload-date-selector">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--color-text-soft)]">วันที่ของข้อมูล</p>
+              <p className="mt-0.5 text-xs text-[var(--muted-text)]">{formatThaiShortDate(selectedDateKey)}</p>
+            </div>
+            <div className="flex shrink-0 rounded-2xl bg-white/80 p-1 text-xs font-bold shadow-sm">
               <button
                 type="button"
                 onClick={() => {
                   setDateSelectionMode("today");
                   setSelectedDateKey(todayBangkokDateKey());
                 }}
-                className={`rounded-lg px-3 py-1.5 transition-colors ${dateSelectionMode === "today" ? "bg-white text-[#17201d] shadow-sm" : "text-[var(--muted-text)]"}`}
+                className={`rounded-xl px-2.5 py-1.5 transition-colors ${dateSelectionMode === "today" ? "bg-[var(--foreground)] text-white" : "text-[var(--muted-text)]"}`}
               >
                 วันนี้
               </button>
@@ -716,33 +789,32 @@ export default function UploadPage() {
                   setDateSelectionMode("yesterday");
                   setSelectedDateKey(yesterdayBangkokDateKey());
                 }}
-                className={`rounded-lg px-3 py-1.5 transition-colors ${dateSelectionMode === "yesterday" ? "bg-white text-[#17201d] shadow-sm" : "text-[var(--muted-text)]"}`}
+                className={`rounded-xl px-2.5 py-1.5 transition-colors ${dateSelectionMode === "yesterday" ? "bg-[var(--foreground)] text-white" : "text-[var(--muted-text)]"}`}
               >
                 เมื่อวาน
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setDateSelectionMode("custom");
-                }}
-                className={`rounded-lg px-3 py-1.5 transition-colors ${dateSelectionMode === "custom" ? "bg-white text-[#17201d] shadow-sm" : "text-[var(--muted-text)]"}`}
+                onClick={() => setDateSelectionMode("custom")}
+                className={`rounded-xl px-2.5 py-1.5 transition-colors ${dateSelectionMode === "custom" ? "bg-[var(--foreground)] text-white" : "text-[var(--muted-text)]"}`}
               >
                 เลือกวันที่
               </button>
             </div>
-            {dateSelectionMode === "custom" && (
-              <input
-                type="date"
-                aria-label="เลือกวันที่"
-                className="control text-xs py-1.5 px-2.5 max-w-[140px]"
-                value={selectedDateKey}
-                onChange={(e) => setSelectedDateKey(e.target.value)}
-                required
-              />
-            )}
           </div>
-          <p className="text-[10px] text-slate-500">ถ้าอัปโหลดข้อมูลย้อนหลัง ให้เลือกวันที่จริงของข้อมูล</p>
+          {dateSelectionMode === "custom" && (
+            <input
+              type="date"
+              aria-label="เลือกวันที่"
+              className="control mt-3 w-full text-sm"
+              value={selectedDateKey}
+              onChange={(e) => setSelectedDateKey(e.target.value)}
+              required
+            />
+          )}
         </div>
+
+        <div className="card space-y-4 p-4" data-testid="upload-input-panel">
         {type === "meal" && (
           <div className="space-y-3">
             <div className="grid grid-cols-2 rounded-2xl bg-[var(--surface-muted)] p-1">
@@ -778,6 +850,9 @@ export default function UploadPage() {
                 </button>
               ))}
             </div>
+            <p className="text-[11px] leading-5 text-[var(--muted-text)]">
+              เลือกช่วงมื้อเพื่อให้ Report รวมพลังงานและคำแนะนำมื้อถัดไปได้ตรงขึ้น
+            </p>
           </div>
         )}
         {type === "workout" && (
@@ -800,6 +875,7 @@ export default function UploadPage() {
                 </button>
               ))}
             </div>
+            <p className="text-[11px] leading-5 text-[var(--muted-text)]">{WORKOUT_SUBTYPE_HELPER[workoutSubtype]}</p>
             {/* Strength: image upload vs manual routine tabs */}
             {workoutSubtype === "strength" && (
               <div className="grid grid-cols-2 rounded-2xl bg-[var(--surface-muted)] p-1">
@@ -863,6 +939,7 @@ export default function UploadPage() {
               kind={type}
               endpoint={endpoint}
               maxFiles={type === "meal" ? 1 : type === "sleep" ? 3 : 4}
+              ctaLabel={selectedMeta.ctaLabel}
               extraFields={{
                 ...(type === "meal" ? { mealType } : {}),
                 ...(type === "workout" ? { workoutSubtype } : {}),
@@ -877,6 +954,7 @@ export default function UploadPage() {
             {!result && saveStatus !== "saving" && <UploadEmptyGuide type={type} workoutSubtype={workoutSubtype === "strength" ? "strength" : undefined} />}
           </>
         ) : null}
+        </div>
       </section>
 
       {/* ── AI-Suggested Date Confirmation ── */}
@@ -1069,133 +1147,39 @@ function UploadEmptyGuide({
   type: UploadType;
   workoutSubtype?: string;
 }) {
-  if (type === "meal") {
-    return (
-      <div className="card-soft px-4 py-3 text-sm text-[var(--muted-text)]">
-        <p className="font-bold text-[var(--foreground)]">ลองอัปโหลดเพื่อสร้าง Report</p>
-        <p className="mt-1 text-xs leading-5 text-slate-500">บันทึกอาหารเพื่อวิเคราะห์โภชนาการและพลังงาน</p>
-        <details className="mt-2 text-xs group cursor-pointer">
-          <summary className="list-none flex items-center justify-between font-bold text-[var(--primary)] text-[11px] hover:underline">
-            <span>อ่านอะไรได้บ้าง?</span>
-            <span className="transition-transform group-open:rotate-180">▾</span>
-          </summary>
-          <div className="mt-2 space-y-1.5 leading-5 text-[var(--color-text-soft)] cursor-default border-t border-[var(--color-border-soft)] pt-2">
-            <p><span className="font-semibold text-[var(--foreground)]">รูปอาหาร</span> — กินไปกี่อย่าง / คร่าว ๆ ได้ไหม</p>
-            <p><span className="font-semibold text-[var(--foreground)]">ฉลากโภชนาการ</span> — kcal / โปรตีน / คาร์บ</p>
-            <p><span className="font-semibold text-[var(--foreground)]">เมนูหรือใบเสร็จ</span> — ช่วยประเมินมื้ออาหาร</p>
-          </div>
-        </details>
-      </div>
-    );
-  }
-  if (type === "workout") {
-    if (workoutSubtype === "strength") {
-      return (
-        <div className="card-soft px-4 py-3 text-sm text-[var(--muted-text)]">
-          <p className="font-bold text-[var(--foreground)]">🏋️ อัปโหลดรูปผลเวทเทรนนิ่ง</p>
-          <p className="mt-1 text-xs leading-5 text-slate-500">
-            AI จะอ่านข้อมูลจากรูป เช่น ระยะเวลา แคลอรี่ HR และท่าออกกำลังกาย (ถ้ามี)
+  const items: Record<UploadType, string[]> = {
+    sleep: ["รูปการนอน — duration / sleep score / HRV", "รูป Energy score — readiness / recovery"],
+    meal: ["รูปอาหาร — รายการอาหารและ portion คร่าว ๆ", "ฉลากโภชนาการ — kcal / โปรตีน / คาร์บ", "เมนูหรือใบเสร็จ — ช่วยประเมินมื้ออาหาร"],
+    workout: workoutSubtype === "strength"
+      ? ["รูปสรุป Strength session — Garmin, Apple Watch, Polar", "รูป Gym app — Strong, Hevy, Fitbod หรือแอปอื่น ๆ", "รูปสรุปทั่วไป — ระยะเวลา / แคลอรี่ / HR ก็เพียงพอ"]
+      : ["รูปผลวิ่ง — ระยะ / เวลา / pace / HR", "รูปเวท — ระยะเวลา / HR / calories / ท่าที่เล่น", "รูปกิจกรรมอื่น — สรุปเป็นบันทึกการออกกำลังกาย"],
+    body: ["รูปชั่งน้ำหนัก — น้ำหนัก / ไขมัน / กล้ามเนื้อ"],
+    health_check: ["PDF/รูปผลตรวจ — ใช้เป็นบริบทอาหารและไลฟ์สไตล์แบบระวัง"],
+  };
+
+  return (
+    <div className="rounded-2xl border border-[var(--border-warm)] bg-white/60 px-3 py-2.5 text-xs text-[var(--muted-text)]" data-testid="upload-help">
+      <details className="group">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 font-bold text-[var(--primary)]">
+          <span>อ่านอะไรได้บ้าง?</span>
+          <span className="transition-transform group-open:rotate-180">▾</span>
+        </summary>
+        <div className="mt-3 space-y-2 border-t border-[var(--color-border-soft)] pt-3 leading-5">
+          {items[type].map((item) => (
+            <p key={item}>{item}</p>
+          ))}
+          <p className="rounded-xl bg-[var(--surface-muted)] px-3 py-2 text-[11px] leading-5 text-[var(--color-text-soft)]">
+            ไฟล์ต้นฉบับใช้เพื่อวิเคราะห์ครั้งนี้เท่านั้น Report จะเก็บเฉพาะข้อมูลที่สรุปแล้ว และ Coach Chat ใช้ Report เป็นบริบท
           </p>
-          <details className="mt-2 text-xs group cursor-pointer">
-            <summary className="list-none flex items-center justify-between font-bold text-[var(--primary)] text-[11px] hover:underline">
-              <span>อ่านอะไรได้บ้าง?</span>
-              <span className="transition-transform group-open:rotate-180">▾</span>
-            </summary>
-            <div className="mt-2 space-y-1.5 leading-5 text-[var(--color-text-soft)] cursor-default border-t border-[var(--color-border-soft)] pt-2">
-              <p><span className="font-semibold text-[var(--foreground)]">รูปสรุป Strength session</span> — Garmin, Apple Watch, Polar</p>
-              <p><span className="font-semibold text-[var(--foreground)]">รูป Gym app</span> — Strong, Hevy, Fitbod หรือแอปอื่น ๆ</p>
-              <p><span className="font-semibold text-[var(--foreground)]">รูปสรุปทั่วไป</span> — ระยะเวลา / แคลอรี่ / HR ก็เพียงพอ</p>
-            </div>
-          </details>
-          <p className="mt-2 text-xs leading-5 text-slate-400">
-            🛡️ ไม่จำเป็นต้องมีระยะทางหรือ pace — บันทึกเฉพาะ structured data ไม่บันทึกรูปต้นฉบับ
-          </p>
+          {type === "body" ? (
+            <Link href="/pain" className="inline-flex rounded-full bg-white px-3 py-1.5 text-[11px] font-bold text-[var(--primary)] shadow-sm">
+              มีอาการเจ็บ? บันทึกที่หน้า “เจ็บ”
+            </Link>
+          ) : null}
         </div>
-      );
-    }
-    return (
-      <div className="card-soft px-4 py-3 text-sm text-[var(--muted-text)]">
-        <p className="font-bold text-[var(--foreground)]">🏃 อัปโหลดรูปผลการออกกำลังกาย</p>
-        <p className="mt-1 text-xs leading-5 text-slate-500"> AI จะอ่านข้อมูลจากรูปวิ่งหรือกิจกรรมอื่น ๆ และประเมินความหนักเพื่อช่วยโค้ชวางแผน</p>
-        <details className="mt-2 text-xs group cursor-pointer">
-          <summary className="list-none flex items-center justify-between font-bold text-[var(--primary)] text-[11px] hover:underline">
-            <span>อ่านอะไรได้บ้าง?</span>
-            <span className="transition-transform group-open:rotate-180">▾</span>
-          </summary>
-          <div className="mt-2 space-y-1.5 leading-5 text-[var(--color-text-soft)] cursor-default border-t border-[var(--color-border-soft)] pt-2">
-            <p><span className="font-semibold text-[var(--foreground)]">รูปผลวิ่ง</span> — ระยะ / เวลา / pace / HR</p>
-            <p><span className="font-semibold text-[var(--foreground)]">รูปเวท</span> — ระยะเวลา / HR / calories / ท่าที่เล่น</p>
-            <p><span className="font-semibold text-[var(--foreground)]">รูปกิจกรรมอื่น</span> — สรุปเป็นบันทึกการออกกำลังกาย</p>
-          </div>
-        </details>
-      </div>
-    );
-  }
-  if (type === "sleep") {
-    return (
-      <div className="card-soft px-4 py-3 text-sm text-[var(--muted-text)]">
-        <p className="font-bold text-[var(--foreground)]">😴 อัปโหลดข้อมูลการนอนเพื่อประเมินความพร้อม</p>
-        <p className="mt-1 text-xs leading-5 text-slate-500"> AI จะอ่านข้อมูลสรุปการนอนและคะแนนฟื้นตัวเพื่อประเมินความพร้อมซ้อมวันนี้</p>
-        <details className="mt-2 text-xs group cursor-pointer">
-          <summary className="list-none flex items-center justify-between font-bold text-[var(--primary)] text-[11px] hover:underline">
-            <span>อ่านอะไรได้บ้าง?</span>
-            <span className="transition-transform group-open:rotate-180">▾</span>
-          </summary>
-          <div className="mt-2 space-y-1.5 leading-5 text-[var(--color-text-soft)] cursor-default border-t border-[var(--color-border-soft)] pt-2">
-            <p><span className="font-semibold text-[var(--foreground)]">รูปการนอน</span> — duration / sleep score / HRV</p>
-            <p><span className="font-semibold text-[var(--foreground)]">รูป Energy score</span> — readiness / recovery</p>
-          </div>
-        </details>
-      </div>
-    );
-  }
-  if (type === "body") {
-    return (
-      <div className="card-soft px-4 py-3 text-sm text-[var(--muted-text)]">
-        <p className="font-bold text-[var(--foreground)]">⚖️ อัปโหลดค่าร่างกายเพื่อสร้าง Report</p>
-        <p className="mt-1 text-xs leading-5 text-slate-500">บันทึกแนวโน้มน้ำหนัก ไขมัน กล้ามเนื้อ เพื่อให้โค้ชวิเคราะห์ได้</p>
-        <details className="mt-2 text-xs group cursor-pointer">
-          <summary className="list-none flex items-center justify-between font-bold text-[var(--primary)] text-[11px] hover:underline">
-            <span>อ่านอะไรได้บ้าง?</span>
-            <span className="transition-transform group-open:rotate-180">▾</span>
-          </summary>
-          <div className="mt-2 space-y-1.5 leading-5 text-[var(--color-text-soft)] cursor-default border-t border-[var(--color-border-soft)] pt-2">
-            <p><span className="font-semibold text-[var(--foreground)]">รูปชั่งน้ำหนัก</span> — น้ำหนัก / ไขมัน / กล้ามเนื้อ</p>
-          </div>
-        </details>
-        <Link
-          href="/pain"
-          className="mt-3 flex items-center gap-1.5 rounded-xl bg-[var(--surface-muted)] px-3 py-2 text-xs font-semibold text-[var(--muted-text)] hover:bg-[var(--primary-soft)] animate-pulse"
-        >
-          <span>🩹</span>
-          <span>มีอาการเจ็บ? บันทึกที่หน้า &ldquo;เจ็บ&rdquo;</span>
-        </Link>
-      </div>
-    );
-  }
-  if (type === "health_check") {
-    return (
-      <div className="card-soft px-4 py-3 text-sm text-[var(--muted-text)]">
-        <p className="font-bold text-[var(--foreground)]">🩺 อัปโหลด PDF ผลตรวจสุขภาพ</p>
-        <p className="mt-1 text-xs leading-5 text-slate-500">
-          ระบบจะอ่านค่าเลือดที่เกี่ยวกับโภชนาการและ recovery และบันทึกเฉพาะค่าที่สรุปแล้ว
-        </p>
-        <details className="mt-2 text-xs group cursor-pointer">
-          <summary className="list-none flex items-center justify-between font-bold text-[var(--primary)] text-[11px] hover:underline">
-            <span>อ่านอะไรได้บ้าง?</span>
-            <span className="transition-transform group-open:rotate-180">▾</span>
-          </summary>
-          <div className="mt-2 space-y-1.5 leading-5 text-[var(--color-text-soft)] cursor-default border-t border-[var(--color-border-soft)] pt-2">
-            <p><span className="font-semibold text-[var(--foreground)]">PDF/รูปผลตรวจ</span> — ใช้เป็นบริบทอาหารและไลฟ์สไตล์แบบระวัง</p>
-          </div>
-        </details>
-        <p className="mt-1.5 text-xs leading-5 text-slate-400">
-          🛡️ ระบบบันทึกเฉพาะค่าที่สรุปแล้ว ไม่บันทึกไฟล์ PDF ต้นฉบับหรือข้อความดิบ
-        </p>
-      </div>
-    );
-  }
-  return null;
+      </details>
+    </div>
+  );
 }
 
 
@@ -1283,22 +1267,16 @@ function HealthCheckUploader({
   }
 
   return (
-    <div className="space-y-4 rounded-2xl bg-slate-50/80 p-4">
-      <div>
-        <h3 className="text-base font-bold text-[var(--foreground)]">Health Check PDF</h3>
-        <p className="mt-1 text-xs leading-5 text-slate-500">
-          อัปโหลดผลตรวจสุขภาพประจำปีเพื่อให้โค้ชใช้ประกอบคำแนะนำอาหารและ recovery
-        </p>
-        <p className="mt-2 rounded-2xl bg-white px-3 py-2 text-xs leading-5 text-slate-500">
-          ระบบจะอ่านเฉพาะค่าที่จำเป็น และบันทึกเฉพาะ structured summary
-        </p>
-      </div>
+    <div className="space-y-3 rounded-[22px] bg-[var(--surface-muted)]/70 p-3">
+      <p className="rounded-2xl bg-white/75 px-3 py-2 text-xs leading-5 text-slate-500">
+        ระบบจะอ่านเฉพาะค่าที่จำเป็น และบันทึกเฉพาะ structured summary
+      </p>
 
       <label
-        className={`flex min-h-[120px] cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed transition-colors ${
+        className={`flex min-h-[112px] cursor-pointer flex-col items-center justify-center gap-2 rounded-[22px] border border-dashed px-4 py-5 text-center transition-colors ${
           file
             ? "border-[var(--primary)] bg-[var(--primary-soft)]"
-            : "border-[var(--border-warm)] bg-[var(--surface-muted)] hover:border-[var(--primary)]/60 hover:bg-[var(--surface)]"
+            : "border-[var(--border-warm)] bg-white/70 hover:border-[var(--primary)]/60 hover:bg-[var(--surface)]"
         }`}
         aria-label="อัปโหลดไฟล์ผลตรวจสุขภาพ"
         tabIndex={0}
@@ -1332,7 +1310,7 @@ function HealthCheckUploader({
         />
         {!file ? (
           <>
-            <span className="text-3xl">📄</span>
+            <span className="text-2xl">📄</span>
             <p className="text-sm font-semibold text-[var(--foreground)]">กดเพื่อเลือกไฟล์ผลตรวจ</p>
             <p className="text-xs text-[var(--muted-text)]">รองรับ PDF ผลตรวจสุขภาพ</p>
           </>
@@ -1349,13 +1327,13 @@ function HealthCheckUploader({
       
       <LoadingButton
         type="button"
-        className="btn-primary w-full py-3 text-sm"
+        className="btn-primary w-full py-3 text-sm disabled:cursor-not-allowed disabled:opacity-45"
         loading={loading}
         loadingText="กำลังอ่าน PDF..."
         onClick={() => void analyze()}
-        disabled={saving}
+        disabled={saving || loading || !file}
       >
-        วิเคราะห์ผลตรวจสุขภาพ
+        {file ? "วิเคราะห์ผลตรวจสุขภาพ" : "เลือกไฟล์ก่อน"}
       </LoadingButton>
       <p className="text-xs leading-5 text-slate-400">
         คำแนะนำจากผลตรวจเป็นแนวทางทั่วไป ไม่ใช่การวินิจฉัยหรือการรักษา หากมีค่าผิดปกติควรปรึกษาแพทย์

@@ -69,7 +69,7 @@ test("Strength workout image upload, review, and save flow", async ({ page }) =>
   });
 
   // Trigger analysis
-  await page.getByRole("button", { name: "วิเคราะห์", exact: true }).click();
+  await page.getByRole("button", { name: "วิเคราะห์การซ้อม", exact: true }).click();
 
   // Verify strength card appears with correct metrics and no distance/pace
   await expect(page.getByText("🏋️ เวท / Strength")).toBeVisible();
