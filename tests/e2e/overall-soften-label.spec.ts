@@ -187,7 +187,7 @@ test.describe("Readiness Label Softening with Caution Axes", () => {
     await expect(dashboard.locator(".rounded-2xl").getByText("Fair")).toBeVisible();
 
     // Coaching stance for "maintain" state
-    await expect(page.getByText("ทำตามแผนปกติวันนี้")).toBeVisible();
+    await expect(page.getByText("วันนี้ยังไปตามแผนได้")).toBeVisible();
   });
 
   test("2. Truly excellent day can show Excellent", async ({ page }) => {

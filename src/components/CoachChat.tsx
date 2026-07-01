@@ -278,7 +278,7 @@ export function CoachChat() {
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-sm font-bold text-[var(--foreground)]">ลองถามโค้ช</p>
+            <p className="text-sm font-bold text-[var(--foreground)]">คำถามที่น่าลอง</p>
             <p className="text-xs text-[var(--muted-text)]">ตอบทุกเรื่องซ้อม กิน นอน recovery · ใช้ข้อมูล Report เป็นพื้นหลัง</p>
           </div>
           <button type="button" onClick={clearChat} className="shrink-0 text-xs font-semibold text-[var(--muted-text)]/80 hover:text-[var(--foreground)]">

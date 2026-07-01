@@ -49,9 +49,9 @@ export function CoachContextDashboard() {
 
   const stanceLabel = !coachingState ? "โค้ชพร้อมแนะนำวันนี้"
     : coachingState === "push" ? "ร่างกายพร้อมลุยเต็มที่"
-    : coachingState === "maintain" ? "ทำตามแผนปกติวันนี้"
-    : coachingState === "easy" ? "ควรซ้อมเบาประคองตัว"
-    : "ควรพักฟื้นฟูร่างกาย";
+    : coachingState === "maintain" ? "วันนี้ยังไปตามแผนได้"
+    : coachingState === "easy" ? "วันนี้โค้ชจะคุมเบาไว้ก่อน"
+    : "วันนี้เน้น recovery ก่อน";
 
   const stanceColor = !coachingState || coachingState === "push" || coachingState === "maintain"
     ? "text-[var(--status-ready)]"
@@ -93,7 +93,7 @@ export function CoachContextDashboard() {
 
       {/* Mini axis row */}
       {recSys && (
-        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] font-semibold text-slate-500/90">
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] font-semibold text-slate-500/90">
           <span>ฟื้นตัว {Math.round(recSys.axes.recovery.score)}</span>
           <span className="text-slate-300">·</span>
           <span>โหลด {Math.round(recSys.axes.load.score)}</span>
@@ -106,7 +106,7 @@ export function CoachContextDashboard() {
 
       {/* Context chips */}
       {chips.length > 0 ? (
-        <div className="mt-3 flex flex-wrap gap-1.5">
+        <div className="mt-2.5 flex flex-wrap gap-1.5">
           {chips.map((chip) => (
             <span
               key={chip.label}
@@ -121,11 +121,11 @@ export function CoachContextDashboard() {
           ))}
         </div>
       ) : !hasUsefulData ? (
-        <p className="mt-3 text-xs text-[var(--muted-text)]">ยังมีข้อมูลไม่มาก ลองอัปโหลด Report เพิ่ม</p>
+        <p className="mt-2.5 text-xs text-[var(--muted-text)]">ยังมีข้อมูลไม่มาก ลองอัปโหลด Report เพิ่ม</p>
       ) : null}
 
       {/* Details toggle */}
-      <details className="group mt-3 cursor-pointer">
+      <details className="group mt-2.5 cursor-pointer">
         <summary className="flex list-none items-center gap-1 text-xs font-bold text-[var(--primary)]">
           <span className="group-open:hidden">ดูบริบท</span>
           <span className="hidden group-open:inline">ซ่อน</span>

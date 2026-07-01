@@ -126,11 +126,14 @@ Confirm:
 - [ ] Does not diagnose or use alarming Health Check wording.
 - [ ] Respects food allergies/preferences and gives practical options.
 - [ ] Coach page shows a single `CoachContextDashboard` card (label "โค้ชใช้ข้อมูลจาก Report") — not separate AIContextCard and ReadinessCard stacked.
-- [ ] CoachContextDashboard shows coaching stance (ร่างกายพร้อมลุยเต็มที่ / ทำตามแผนปกติวันนี้ / ควรซ้อมเบา / ควรพักฟื้น) + numeric score badge + 4-axis mini row.
+- [ ] CoachContextDashboard shows a human coaching stance ("วันนี้ยังไปตามแผนได้" / "วันนี้โค้ชจะคุมเบาไว้ก่อน" / "วันนี้เน้น recovery ก่อน" / "ร่างกายพร้อมลุยเต็มที่") + numeric score badge + 4-axis mini row.
 - [ ] Context chips (sleep, pain, race countdown, run days, load indicator) appear below the axis row.
 - [ ] "ดูบริบท" toggle expands source summary, recovery breakdown, sleep, race, pain, and run detail sections.
-- [ ] Hero card is compact (no "COACH" label, no separate safety note paragraph) with a "ลองถามโค้ช" CTA.
+- [ ] Hero card is compact with "ลองถามโค้ช" as a single CTA — it does NOT appear again as a section heading.
+- [ ] Suggested prompt section heading is "คำถามที่น่าลอง" (not "ลองถามโค้ช").
 - [ ] Coach readiness matches Today readiness (both derived from RunMate Recovery System).
+- [ ] Hero is short: heading + one-line subcopy + safety line + CTA visible without scrolling.
+- [ ] Chat placeholder "ถามโค้ชได้เลย...", attach button, send button, and bottom disclaimer all visible.
 
 ## 5. Race
 
