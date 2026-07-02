@@ -5,7 +5,7 @@ import { CoachChat } from "@/components/CoachChat";
 
 export default function CoachPage() {
   return (
-    <AppShell title="คุยกับโค้ช" subtitle="ถามเรื่องซ้อม กิน นอน recovery หรือแค่อยากระบายก็ได้">
+    <AppShell title="คุยกับโค้ช" subtitle="โค้ชอ่าน Report ล่าสุดก่อนตอบ · ถามอะไรก็ได้เลย">
       <section className="card px-5 py-3.5">
         <div className="flex items-center justify-between gap-3">
           <div>

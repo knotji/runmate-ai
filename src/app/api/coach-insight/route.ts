@@ -73,7 +73,7 @@ export async function POST(request: Request) {
         ? (ctx.latestPain && ctx.latestPain.painLevel >= 5 ? "Rest / พักผ่อนร่างกาย" : "เวทฟื้นฟูร่างกาย / กายภาพ")
         : (recSys.coachingState === "easy" ? "Easy Run หรือจ็อกเบา" : "วิ่งซ้อมตามแผนปกติ"),
       workoutTarget: recSys.recommendedIntensity === "rest" ? "ไม่ต้องซ้อมเบิร์นคาร์บ" : "คุม HR โซน Easy / สังเกตความรู้สึก",
-      weekSummary: `วิ่งสะสมสัปดาห์นี้ ${ctx.totalRunKm} km / 7 วัน`,
+      weekSummary: `วิ่งสะสม ${Math.round(ctx.totalRunKm * 10) / 10} km ใน ${ctx.runDays7d > 0 ? ctx.runDays7d : 7} วัน`,
       keyObservation: recSys.axes.recovery.summary,
       coachMessage: recSys.guardrails.join(" · "),
     };
@@ -831,7 +831,7 @@ function buildSleepContextLine(ctx: CoachContext): string {
   const latestSleep = ctx.sleep7d.find((sleep) => sleep.date === ctx.todayDate) ?? ctx.sleep7d[0];
   const readiness = latestSleep?.readiness ?? ctx.avgReadiness;
   if (readiness == null) return "";
-  if (readiness < 50) return "การนอน/readiness ล่าสุดยังต่ำ";
+  if (readiness < 50) return "การนอนและ readiness ล่าสุดยังต่ำ";
   if (readiness < 65) return "การนอนล่าสุดและ readiness อยู่ระดับ Fair";
   if (readiness < 80) return "การนอนล่าสุดและ readiness อยู่ระดับ Good";
   return "การนอนล่าสุดและ readiness อยู่ระดับ Excellent";

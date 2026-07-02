@@ -68,6 +68,8 @@ const SHORT_LABEL: Partial<Record<keyof ProfileAnalysisSuggestions, string>> = {
 const SHORT_LABEL_ALL: Record<string, string> = {
   ...SHORT_LABEL,
   weightKg:             "น้ำหนัก",
+  bodyFatPercent:       "% ไขมัน",
+  muscleKg:             "กล้ามเนื้อ",
   proteinTargetG:       "Protein target",
   carbTargetRestDayG:   "Carb วันพัก",
   carbTargetEasyDayG:   "Carb easy day",

@@ -74,15 +74,13 @@ export function buildTodayRecommendationReasons(
     reasons.push(`อาหารวันนี้คาร์บยังต่ำ ควรเติมพลังงานเบา ๆ ก่อนซ้อม`);
   }
 
-  // 7. Resulting recommendation
+  // 7. Explain downgrade only when caution factors caused a change from the planned workout
   if (insight?.workoutRec) {
     const isRun = /(run|วิ่ง|ซ้อม|easy|tempo|long)/i.test(insight.workoutRec);
     const hasCaution = factors.length > 0;
     if (isRun && hasCaution) {
       reasons.push(`เลยแนะนำ Easy Run ไม่ใช่ tempo/interval`);
       reasons.push(`ถ้า HR ลอยหรือขาหนัก ให้ลดเป็น walk/jog 30–40 นาที`);
-    } else {
-      reasons.push(`เลยแนะนำให้: ${insight.workoutRec}`);
     }
   }
 
