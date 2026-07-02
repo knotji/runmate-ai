@@ -10,6 +10,11 @@ import {
   filterManualFields,
   buildSourceUpdates,
 } from "@/lib/profile/autoSaveHistorySuggestions";
+import {
+  addDismissedSuggestion,
+  clearDismissedSuggestion,
+  isSuggestionDismissed,
+} from "@/lib/profile/dismissedSuggestions";
 import { calculateNutritionTargetsFromWeight } from "@/lib/nutritionTargets";
 import type { ProfileAnalysisResult, ProfileAnalysisSuggestions } from "@/lib/analyzeHistory";
 import type { UserProfile } from "@/types/profile";
@@ -28,7 +33,6 @@ export function getSuggestedValueLabel(status: SuggestedValueStatus): string {
     default: return "ค่าแนะนำ";
   }
 }
-
 
 type State = "idle" | "loading" | "done" | "error";
 
@@ -74,40 +78,39 @@ function fieldLabel(key: keyof ProfileAnalysisSuggestions) {
   return SHORT_LABEL[key] ?? key;
 }
 
-
-
 function formatValueWithUnit(key: string, v: unknown): string {
   if (v == null || v === "") return "—";
   const strVal = Array.isArray(v) ? v.join(", ") : String(v);
   if (key === "proteinTargetG" || key === "carbTargetRestDayG" || key === "carbTargetEasyDayG" || key === "carbTargetHardDayG") {
     return `${strVal} g/day`;
   }
-  if (key === "weightKg") {
-    return `${strVal} kg`;
-  }
-  if (key === "heightCm") {
-    return `${strVal} cm`;
-  }
-  if (key === "weeklyMileageKm") {
-    return `${strVal} km/สัปดาห์`;
-  }
-  if (key === "currentLongestRunKm") {
-    return `${strVal} km`;
-  }
-  if (key === "averageSleepHours") {
-    return `${strVal} ชม.`;
-  }
-  if (key === "easyHrCap" || key === "maxHr" || key === "normalRestingHr") {
-    return formatBpm(strVal);
-  }
+  if (key === "weightKg") return `${strVal} kg`;
+  if (key === "heightCm") return `${strVal} cm`;
+  if (key === "weeklyMileageKm") return `${strVal} km/สัปดาห์`;
+  if (key === "currentLongestRunKm") return `${strVal} km`;
+  if (key === "averageSleepHours") return `${strVal} ชม.`;
+  if (key === "easyHrCap" || key === "maxHr" || key === "normalRestingHr") return formatBpm(strVal);
   return strVal;
+}
+
+function buildSyncSummaryMessage(autoUpdated: number, pendingCount: number): string {
+  if (autoUpdated > 0 && pendingCount > 0) {
+    return `อัปเดตอัตโนมัติ ${autoUpdated} ค่า · มี ${pendingCount} คำแนะนำรอให้ตรวจ`;
+  }
+  if (autoUpdated > 0 && pendingCount === 0) {
+    return `อัปเดตอัตโนมัติ ${autoUpdated} ค่า เรียบร้อยแล้ว`;
+  }
+  if (autoUpdated === 0 && pendingCount > 0) {
+    return `ไม่ทับ ${pendingCount} ค่าที่คุณแก้เอง · เพิ่มเป็นคำแนะนำแทน`;
+  }
+  return "โปรไฟล์ยังเหมาะสมอยู่ ยังไม่มีค่าที่ต้องปรับตอนนี้";
 }
 
 async function applyAndPersist(
   base: UserProfile,
   updates: Partial<UserProfile>,
-  sourceUpdates: Record<string, "history_analysis">,
-  onProfileUpdated?: (profile: UserProfile) => void
+  sourceUpdates: Record<string, "history_analysis" | "manual">,
+  onProfileUpdated?: (profile: UserProfile) => void,
 ) {
   const merged: UserProfile = {
     ...base,
@@ -116,22 +119,12 @@ async function applyAndPersist(
   };
   const result = await saveProfileToSupabase(merged);
   if (!result.ok) throw new Error("message" in result ? result.message : result.reason);
-  console.info("[profile-refresh]", {
-    event: "profile-saved",
-    savedKeys: Object.keys(updates),
-  });
+  console.info("[profile-refresh]", { event: "profile-saved", savedKeys: Object.keys(updates) });
   const freshResult = await loadProfileFromSupabase();
   if (!freshResult.ok) throw new Error("message" in freshResult ? freshResult.message : freshResult.reason);
   const freshProfile = freshResult.profile ?? merged;
-  console.info("[profile-refresh]", {
-    event: "fresh-profile-loaded",
-    updatedAt: freshProfile.updatedAt ?? null,
-  });
+  console.info("[profile-refresh]", { event: "fresh-profile-loaded", updatedAt: freshProfile.updatedAt ?? null });
   onProfileUpdated?.(freshProfile);
-  console.info("[profile-refresh]", {
-    event: "onProfileUpdated called",
-    updatedAt: freshProfile.updatedAt ?? null,
-  });
   invalidateCoachCache();
   return freshProfile;
 }
@@ -148,6 +141,7 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
   const [editVal, setEditVal] = useState<string>("");
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(false);
   const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
+  const [syncSummary, setSyncSummary] = useState<string | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem(LS_AUTO_SYNC_KEY);
@@ -173,6 +167,7 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
     setResult(null);
     setSavedKeys([]);
     setManualItems([]);
+    setSyncSummary(null);
 
     try {
       const [historyResult, profileResult] = await Promise.all([
@@ -199,12 +194,10 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
       const { confidence } = data.summary;
       const { suggestions } = data;
 
-      // Supplement maxHr from observed data if AI returned null
       if (suggestions.maxHr == null && stats.maxObservedHR != null) {
         suggestions.maxHr = stats.maxObservedHR;
       }
 
-      // Safe merge — validates & coerces AI suggestions, guards against null-overwrite
       const { toSave, manualSkipped } = buildAutoSaveDecisions({
         suggestions,
         confidence,
@@ -214,12 +207,20 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
 
       const updatedKeys = Object.keys(toSave);
 
-      // Track current profile in a local var so the nutrition block sees the latest
-      // version without waiting for React state to flush (setCurrentProfile is async).
       let latestSavedProfile: UserProfile = profile ?? ({ displayName: "นักวิ่ง" } as UserProfile);
+      let totalAutoSaved = 0;
 
-      // Apply & persist training stats
-       // Manual-skipped items from AI analysis (user had manually edited these, or they are protected; show override UI)
+      if (updatedKeys.length > 0) {
+        latestSavedProfile = await applyAndPersist(
+          latestSavedProfile,
+          toSave,
+          buildSourceUpdates(updatedKeys),
+          onProfileUpdated,
+        );
+        setCurrentProfile(latestSavedProfile);
+        totalAutoSaved += updatedKeys.length;
+      }
+
       const manualReview: ManualItem[] = manualSkipped
         .filter((k) => suggestions[k as keyof ProfileAnalysisSuggestions] != null)
         .map((k) => ({
@@ -229,7 +230,7 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
           suggestedValue: suggestions[k as keyof ProfileAnalysisSuggestions],
         }));
 
-      // ── Nutrition targets from body history (deterministic, no AI needed) ──
+      // ── Nutrition targets from body history ──────────────────────────────────
       if (stats.latestWeightKg != null) {
         const nutritionGoal = profile?.nutritionGoal ?? null;
         const weeklyMileageKm = stats.weeklyMileageEstimate;
@@ -262,20 +263,16 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
           existingProfile: profile ?? undefined,
         });
 
-        console.info("[nutrition-target-debug]", {
-          skippedManual: nutritionManualSkipped,
-        });
+        console.info("[nutrition-target-debug]", { skippedManual: nutritionManualSkipped });
 
         const nutritionKeys = Object.keys(nutritionToSave);
-        // Use latestSavedProfile (updated synchronously above) — not the stale React state
         if (nutritionKeys.length > 0) {
           const merged = await applyAndPersist(latestSavedProfile, nutritionToSave, buildSourceUpdates(nutritionKeys), onProfileUpdated);
           setCurrentProfile(merged);
           latestSavedProfile = merged;
-          setSavedKeys((prev) => [...new Set([...prev, ...nutritionKeys])]);
+          totalAutoSaved += nutritionKeys.length;
         }
 
-        // Build override items for nutrition fields the user had manually set
         const nutritionManualItems: ManualItem[] = nutritionManualSkipped.map((k) => ({
           key: k,
           label: SHORT_LABEL_ALL[k] ?? k,
@@ -285,14 +282,20 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
         manualReview.push(...nutritionManualItems);
       }
 
+      // Filter out dismissed suggestions (same field + same value)
+      const visibleManualReview = manualReview.filter(
+        (item) => !isSuggestionDismissed(item.key, item.suggestedValue),
+      );
+
       setResult(data);
       setSavedKeys((prev) => [...new Set([...prev, ...updatedKeys])]);
-      setManualItems(manualReview);  // includes both AI and nutrition manual items
+      setManualItems(visibleManualReview);
       const initStatuses: Record<string, SuggestedValueStatus> = {};
-      for (const item of manualReview) {
+      for (const item of visibleManualReview) {
         initStatuses[item.key] = "idle";
       }
       setStatusMap(initStatuses);
+      setSyncSummary(buildSyncSummaryMessage(totalAutoSaved, visibleManualReview.length));
       recordSyncTime();
       setState("done");
     } catch (e) {
@@ -304,13 +307,22 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
   async function overrideManual(key: string, suggestedValue: unknown) {
     const base = currentProfile ?? { displayName: "นักวิ่ง" };
     const updates = { [key]: suggestedValue } as Partial<UserProfile>;
-    const merged = await applyAndPersist(base as UserProfile, updates, buildSourceUpdates([key]), onProfileUpdated);
+    // Accepted suggestion: set source to "history_analysis" (auto) so future auto-sync can keep it updated
+    const merged = await applyAndPersist(base as UserProfile, updates, { [key]: "history_analysis" }, onProfileUpdated);
     setCurrentProfile(merged);
+    // Clear any dismissal for this field since the user is now accepting the suggestion
+    clearDismissedSuggestion(key);
     setStatusMap((prev) => ({ ...prev, [key]: "applied" }));
+    // Remove item from visible list
+    setManualItems((prev) => prev.filter((item) => item.key !== key));
   }
 
-  function keepCurrent(key: string) {
+  function keepCurrent(key: string, suggestedValue: unknown) {
+    // Persist dismissal so the same value is not shown again on the next sync
+    addDismissedSuggestion(key, suggestedValue);
     setStatusMap((prev) => ({ ...prev, [key]: "ignored" }));
+    // Remove from visible list immediately
+    setManualItems((prev) => prev.filter((item) => item.key !== key));
   }
 
   function startInlineEdit(key: string, currentVal: unknown) {
@@ -321,25 +333,12 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
   async function saveInlineEdit(key: string) {
     let parsed: string | number = editVal;
     const numericKeys = [
-      "maxHr",
-      "normalRestingHr",
-      "lactateThresholdHr",
-      "proteinTargetG",
-      "carbTargetRestDayG",
-      "carbTargetEasyDayG",
-      "carbTargetHardDayG",
-      "weightKg",
-      "heightCm",
-      "weeklyMileageKm",
-      "currentLongestRunKm",
-      "runningDaysPerWeek",
-      "weeklyTrainingDays",
-      "averageSleepHours",
-      "normalSleepScore",
-      "normalEnergyScore",
-      "normalHrv",
-      "vo2max",
-      "averageCadence",
+      "maxHr", "normalRestingHr", "lactateThresholdHr",
+      "proteinTargetG", "carbTargetRestDayG", "carbTargetEasyDayG", "carbTargetHardDayG",
+      "weightKg", "heightCm", "weeklyMileageKm", "currentLongestRunKm",
+      "runningDaysPerWeek", "weeklyTrainingDays",
+      "averageSleepHours", "normalSleepScore", "normalEnergyScore",
+      "normalHrv", "vo2max", "averageCadence",
     ];
     if (numericKeys.includes(key)) {
       const num = Number(editVal);
@@ -352,16 +351,20 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
 
     const base = currentProfile ?? { displayName: "นักวิ่ง" };
     const updates = { [key]: parsed } as Partial<UserProfile>;
-    const merged = await applyAndPersist(base as UserProfile, updates, buildSourceUpdates([key]), onProfileUpdated);
+    // User typed their own value → mark as "manual" so auto-sync won't overwrite it
+    const merged = await applyAndPersist(base as UserProfile, updates, { [key]: "manual" }, onProfileUpdated);
     setCurrentProfile(merged);
     setStatusMap((prev) => ({ ...prev, [key]: "edited" }));
     setEditingKey(null);
+    // Remove from suggestions list (user has now provided their own value)
+    setManualItems((prev) => prev.filter((item) => item.key !== key));
   }
 
   function reset() {
     setState("idle");
     setResult(null);
     setError("");
+    setSyncSummary(null);
   }
 
   /* ── Loading ─────────────────────────────────────────────── */
@@ -427,6 +430,17 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
 
       {state === "done" && result && (
         <div className="space-y-3">
+          {/* ── Sync result summary ───────────────────────────── */}
+          {syncSummary && (
+            <div
+              className="flex items-center gap-2 rounded-2xl bg-[var(--surface-muted)] px-3 py-2.5"
+              data-testid="sync-summary"
+            >
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--primary)]" />
+              <p className="text-xs font-semibold text-[var(--foreground)]">{syncSummary}</p>
+            </div>
+          )}
+
           {result.summary.confidence === "low" ? (
             <div className="rounded-2xl bg-amber-50 p-4 space-y-1">
               <p className="text-sm font-bold text-amber-700">ข้อมูลยังน้อยเกินไป</p>
@@ -457,7 +471,7 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
               </div>
 
               {/* Section B: คำแนะนำที่รอการตัดสินใจ */}
-              {manualItems.length > 0 && (
+              {manualItems.length > 0 ? (
                 <div className="rounded-2xl border border-[var(--border-warm)] bg-white p-4 space-y-3">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--label-color)]">
@@ -537,7 +551,7 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
                               </button>
                               <button
                                 type="button"
-                                onClick={() => keepCurrent(item.key)}
+                                onClick={() => keepCurrent(item.key, item.suggestedValue)}
                                 className="rounded-full bg-slate-50 border border-slate-200 px-3.5 py-1.5 text-[11px] font-bold text-slate-600"
                                 data-testid="keep-current-btn"
                               >
@@ -557,6 +571,14 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
                     })}
                   </div>
                 </div>
+              ) : (
+                /* Empty pending suggestion state — no heavy panel */
+                <p
+                  className="text-center text-xs text-[var(--muted-text)]"
+                  data-testid="no-pending-suggestions"
+                >
+                  ยังไม่มีคำแนะนำที่ต้องตัดสินใจ
+                </p>
               )}
 
               {/* Training preference summary */}
