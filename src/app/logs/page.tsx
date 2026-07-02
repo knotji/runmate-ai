@@ -267,7 +267,7 @@ export default function ReportPage() {
             onClick={() => window.location.reload()}
             className="rounded-full bg-[var(--surface-muted)] px-4 py-2 text-xs font-bold text-[var(--foreground)]"
           >
-            ลองใหม่อีกครั้ง
+            ลองใหม่
           </button>
         </section>
       ) : days.length === 0 ? (

@@ -256,7 +256,7 @@ function DraftModeHint({ currentGoal }: { currentGoal: RaceGoal }) {
       data-testid="draft-mode-hint"
     >
       <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--label-color)]">แผนปัจจุบัน</p>
-      <p className="mt-1 text-sm font-bold text-[var(--foreground)]">
+      <p className="mt-1 truncate text-sm font-bold text-[var(--foreground)]">
         {currentGoal.raceName} · {currentGoal.raceDistance}
       </p>
       {currentGoal.raceDate && (
@@ -328,7 +328,7 @@ function LatestRacePrompt({ result }: { result: RaceResult }) {
   return (
     <div className="card space-y-2 px-5 py-4">
       <p className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--label-color)]">Race completed</p>
-      <p className="text-base font-bold text-[var(--foreground)]">{result.raceName ?? "Race"} · {result.raceDistance}</p>
+      <p className="truncate text-base font-bold text-[var(--foreground)]">{result.raceName ?? "Race"} · {result.raceDistance}</p>
       {result.actualTime ? (
         <p className="text-sm text-[var(--muted-text)]">
           {result.actualTime}{result.actualPace ? ` · ${result.actualPace}/km` : ""} ·{" "}
@@ -623,7 +623,7 @@ function CompletedRaceSection({ results }: { results: RaceResult[] }) {
             <div key={result.id ?? `${result.raceDate}-${result.raceName}`} className="card-soft p-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="font-bold text-[var(--foreground)]">{result.raceName || "Race"}</p>
+                  <p className="truncate font-bold text-[var(--foreground)]">{result.raceName || "Race"}</p>
                   <p className="text-xs text-[var(--color-text-soft)]">{result.raceDate} · {result.raceDistance}</p>
                 </div>
                 <span className="rounded-full bg-[var(--primary-soft)] px-3 py-1 text-xs font-bold text-[var(--primary-strong)]">

@@ -77,7 +77,7 @@ test("Report error: shows retry button when load fails", async ({ page }) => {
   await gotoApp(page, "/logs");
 
   // Error state should show retry
-  const retryBtn = page.getByRole("button", { name: "ลองใหม่อีกครั้ง" });
+  const retryBtn = page.getByRole("button", { name: "ลองใหม่" });
   await expect(retryBtn).toBeVisible();
   await expect(page.getByText("โหลด Report ไม่สำเร็จ")).toBeVisible();
 });
