@@ -76,7 +76,7 @@ type ProfileRow = {
   normal_sleep_score: number | null;
   normal_energy_score: number | null;
   normal_resting_hr: number | null;
-  normal_hrv: number | null;
+  normal_hrv: number | null; // numeric in DB (migration 012)
   recovery_rules: string | null;
   sleep_notes: string | null;
 
@@ -170,8 +170,8 @@ function profileToRow(profile: UserProfile, userId: string): Partial<ProfileRow>
     id: userId,
     display_name: cleanText(profile.displayName),
     birth_date: cleanText(profile.birthDate),
-    birth_year: cleanNumber(profile.birthYear),
-    age: cleanNumber(profile.age),
+    birth_year: cleanInt(profile.birthYear),
+    age: cleanInt(profile.age),
     gender: cleanText(profile.gender),
     height_cm: cleanNumber(profile.heightCm),
     weight_kg: cleanNumber(profile.weightKg),
@@ -188,23 +188,23 @@ function profileToRow(profile: UserProfile, userId: string): Partial<ProfileRow>
     current_level: cleanText(profile.currentLevel),
     current_longest_run_km: cleanNumber(profile.currentLongestRunKm),
     weekly_mileage_km: cleanNumber(profile.weeklyMileageKm),
-    weekly_training_days: cleanNumber(profile.weeklyTrainingDays),
-    running_days_per_week: cleanNumber(profile.runningDaysPerWeek),
+    weekly_training_days: cleanIntClamped(profile.weeklyTrainingDays),
+    running_days_per_week: cleanIntClamped(profile.runningDaysPerWeek),
     easy_pace: cleanText(profile.easyPace),
     tempo_pace: cleanText(profile.tempoPace),
     race_pace: cleanText(profile.racePace),
     easy_hr_cap: cleanText(profile.easyHrCap),
-    max_hr: cleanNumber(profile.maxHr),
-    lactate_threshold_hr: cleanNumber(profile.lactateThresholdHr),
+    max_hr: cleanInt(profile.maxHr),
+    lactate_threshold_hr: cleanInt(profile.lactateThresholdHr),
     vo2max: cleanNumber(profile.vo2max),
-    average_cadence: cleanNumber(profile.averageCadence),
+    average_cadence: cleanInt(profile.averageCadence),
 
     preferred_training_days: cleanArray(profile.preferredTrainingDays),
     available_training_days: cleanText(profile.availableTrainingDays),
     preferred_long_run_day: cleanText(profile.preferredLongRunDay),
     preferred_run_time: cleanText(profile.preferredRunTime),
     usual_run_time: cleanText(profile.usualRunTime),
-    strength_training_days_per_week: cleanNumber(profile.strengthTrainingDaysPerWeek),
+    strength_training_days_per_week: cleanIntClamped(profile.strengthTrainingDaysPerWeek),
     available_equipment: cleanArray(profile.availableEquipment),
     gear_notes: cleanText(profile.gearNotes),
     shoe_rotation: cleanText(profile.shoeRotation),
@@ -229,9 +229,9 @@ function profileToRow(profile: UserProfile, userId: string): Partial<ProfileRow>
     nutrition_notes: cleanText(profile.nutritionNotes),
 
     average_sleep_hours: cleanNumber(profile.averageSleepHours),
-    normal_sleep_score: cleanNumber(profile.normalSleepScore),
-    normal_energy_score: cleanNumber(profile.normalEnergyScore),
-    normal_resting_hr: cleanNumber(profile.normalRestingHr),
+    normal_sleep_score: cleanInt(profile.normalSleepScore),
+    normal_energy_score: cleanInt(profile.normalEnergyScore),
+    normal_resting_hr: cleanInt(profile.normalRestingHr),
     normal_hrv: cleanNumber(profile.normalHrv),
     recovery_rules: cleanText(profile.recoveryRules),
     sleep_notes: cleanText(profile.sleepNotes),
@@ -333,8 +333,22 @@ function cleanText(value: unknown) {
   return trimmed ? trimmed : null;
 }
 
-function cleanNumber(value: number | undefined) {
-  return typeof value === "number" && Number.isFinite(value) ? value : null;
+function cleanNumber(value: unknown) {
+  if (value == null || value === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+// For DB columns typed as `integer` — rounds to nearest whole number.
+function cleanInt(value: unknown): number | null {
+  const n = cleanNumber(value);
+  return n != null ? Math.round(n) : null;
+}
+
+// For day-count columns — rounds and clamps to 0–7.
+function cleanIntClamped(value: unknown, min = 0, max = 7): number | null {
+  const n = cleanInt(value);
+  return n != null ? Math.min(max, Math.max(min, n)) : null;
 }
 
 function cleanArray(value: unknown): string[] | null {

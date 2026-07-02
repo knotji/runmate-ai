@@ -72,7 +72,7 @@ create table if not exists public.profiles (
   normal_sleep_score integer null,
   normal_energy_score integer null,
   normal_resting_hr integer null,
-  normal_hrv integer null,
+  normal_hrv numeric null,  -- 012: numeric because HRV can be a decimal measurement
   recovery_rules text null,
   coaching_tone text null,
   response_detail text null,
