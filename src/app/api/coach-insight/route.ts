@@ -97,7 +97,13 @@ export async function POST(request: Request) {
     );
 
     const result = await Promise.race([aiPromise, timeoutPromise]);
-    const guarded = applyCautionFactorsGuard(applyPostWorkoutRecoveryGuard(applyTodayPainGuard(normalizeInsight(result.data, ctx), ctx), ctx), ctx);
+    const guarded = applyCautionFactorsGuard(
+      applyLowRecoverySleepGuard(
+        applyPostWorkoutRecoveryGuard(applyTodayPainGuard(normalizeInsight(result.data, ctx), ctx), ctx),
+        ctx,
+      ),
+      ctx,
+    );
     if (process.env.NODE_ENV === "development") {
       console.info("[today-insight-ai-result]", {
         source: result.source,
@@ -511,6 +517,39 @@ function applyPostWorkoutRecoveryGuard(insight: DailyCoachInsight, ctx: CoachCon
     workoutTarget: "ไม่ต้องซ้อมเพิ่ม · เน้นฟื้นตัว",
     keyObservation,
     coachMessage,
+  };
+}
+
+const HARD_WORKOUT_PATTERN = /tempo|interval|race[\s-]?pace|progression\s+run|speed[\s-]?work|sprint|fartlek/i;
+
+function applyLowRecoverySleepGuard(insight: DailyCoachInsight, ctx: CoachContext): DailyCoachInsight {
+  // Pain and post-workout cases are already handled upstream — skip here
+  if (ctx.hasWorkoutToday) return insight;
+  if (ctx.latestPain && !ctx.latestPain.hasResolvedPain && ctx.latestPain.painLevel >= 3) return insight;
+
+  const recSys = ctx.recoverySystem;
+  const recoveryScore = recSys?.axes?.recovery?.score ?? 100;
+  const sleepScore = recSys?.axes?.sleep?.score ?? 100;
+
+  const isLowRecovery = recoveryScore < 45;
+  const isLowSleep = sleepScore < 40;
+  if (!isLowRecovery && !isLowSleep) return insight;
+
+  // If the recommendation is already safe (rest/walk/easy/recovery), leave it alone
+  const rec = insight.workoutRec ?? "";
+  if (!HARD_WORKOUT_PATTERN.test(rec)) return insight;
+
+  const reason = isLowRecovery && isLowSleep
+    ? "ฟื้นตัวต่ำและนอนน้อย"
+    : isLowSleep
+    ? "นอนน้อย"
+    : "ฟื้นตัวต่ำ";
+
+  return {
+    ...insight,
+    workoutRec: "Recovery Walk หรือ Easy Jog สั้น ๆ",
+    workoutTarget: "ไม่ต้องจับ pace · ฟังร่างกายเป็นหลัก · หยุดถ้า HR ลอย",
+    coachMessage: `${reason} — วันนี้ไม่ใช่วันซ้อมหนักครับ ถ้าอยากขยับตัวให้เลือก easy jog 15–20 นาที หรือเดินเบา ๆ แทน เก็บพลังไว้ซ้อมวันถัดไปดีกว่า`,
   };
 }
 

@@ -428,6 +428,11 @@ function RecoveryGuardrailsCard({ coachContext }: { coachContext: CoachContext |
               <li key={idx}>{g}</li>
             ))}
           </ul>
+          {(recSys.coachingState === "easy" || recSys.coachingState === "recover") && (
+            <p className="mt-2.5 text-[11px] text-[var(--color-text-soft)] leading-snug" data-testid="race-recovery-reassurance">
+              วันนี้เบาไม่ได้ทำให้ fitness หาย — การพักตามแผนช่วยให้ซ้อมต่อเนื่องได้ครับ
+            </p>
+          )}
         </div>
       </details>
     </section>

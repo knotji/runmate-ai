@@ -90,8 +90,7 @@ test("1. Low recovery/sleep without active pain uses warning/caution tones, not 
   await expect(page.getByTestId("today-factor-bar")).toHaveCount(4);
 
   // No factor bar should have data-tone="danger" when there is no active pain
-  const dangerBars = page.getByTestId("today-factor-bar").filter({ has: page.locator('[data-tone="danger"]') });
-  // Actually, data-tone is on the bar wrapper itself, so we check the count directly
+  // data-tone is on the bar wrapper itself
   const allBars = await page.getByTestId("today-factor-bar").all();
   for (const bar of allBars) {
     const tone = await bar.getAttribute("data-tone");

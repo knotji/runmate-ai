@@ -92,6 +92,24 @@ function buildClientTodayFallback(ctx: CoachContext | null): DailyCoachInsight {
     };
   }
 
+  // Low recovery or low sleep without active pain — guide toward safe options
+  const recSys = ctx?.recoverySystem;
+  const recoveryLow = (recSys?.axes?.recovery?.score ?? 100) < 45;
+  const sleepLow = (recSys?.axes?.sleep?.score ?? 100) < 40;
+  if (recoveryLow || sleepLow) {
+    const reason = recoveryLow && sleepLow ? "ฟื้นตัวต่ำและนอนน้อย" : recoveryLow ? "ฟื้นตัวต่ำ" : "นอนน้อย";
+    return {
+      todayReadiness: readiness,
+      readinessLabel: label,
+      readinessNote,
+      workoutRec: recoveryLow && sleepLow ? "Recovery / Walk + Mobility" : "Easy Recovery หรือเดินเบา ๆ",
+      workoutTarget: "ไม่ต้องจับ pace · ฟังร่างกายเป็นหลัก",
+      weekSummary: weekParts.length ? weekParts.join(" / ") : "ยังมีข้อมูลสัปดาห์นี้ไม่มาก",
+      keyObservation: reason,
+      coachMessage: "วันนี้ให้เน้นฟื้นตัวครับ ถ้าจะขยับตัวให้เลือก easy jog สั้น ๆ หรือเดินเบา ๆ แทนซ้อมหนัก",
+    };
+  }
+
   return {
     todayReadiness: readiness,
     readinessLabel: label,
