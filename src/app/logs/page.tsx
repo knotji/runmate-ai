@@ -259,15 +259,25 @@ export default function ReportPage() {
       {loading ? (
         <section className="card p-5 text-sm text-[var(--color-text-soft)]">กำลังโหลดข้อมูล...</section>
       ) : error ? (
-        <section className="card p-5 text-sm text-red-500">{error}</section>
+        <section className="card space-y-3 p-5 text-sm">
+          <p className="font-semibold text-[var(--foreground)]">โหลด Report ไม่สำเร็จ</p>
+          <p className="leading-5 text-[var(--muted-text)]">{error}</p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="rounded-full bg-[var(--surface-muted)] px-4 py-2 text-xs font-bold text-[var(--foreground)]"
+          >
+            ลองใหม่อีกครั้ง
+          </button>
+        </section>
       ) : days.length === 0 ? (
         <section className="card space-y-3 p-5 text-sm text-[var(--muted-text)]">
           <div>
-            <p className="font-bold text-[var(--foreground)]">ยังไม่มีบันทึก</p>
-            <p className="mt-1 leading-6">ลองเพิ่มมื้ออาหาร การนอน หรือผลวิ่งก่อนนะ</p>
+            <p className="font-bold text-[var(--foreground)]">ยังไม่มีบันทึกในสัปดาห์นี้</p>
+            <p className="mt-1 leading-6">ลองบันทึกการนอน อาหาร หรือการซ้อมวันนี้ก่อน — ข้อมูลจะเริ่มสะสมเป็น Report ให้โค้ชใช้ประเมิน</p>
           </div>
           <Link href="/upload" className="btn-primary block py-3 text-center text-sm">
-            เพิ่มข้อมูล
+            บันทึกข้อมูลวันนี้
           </Link>
         </section>
       ) : (

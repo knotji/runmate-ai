@@ -4,6 +4,7 @@ import "./globals.css";
 import { LocalCleanupInit } from "@/components/LocalCleanupInit";
 import { AuthGuard } from "@/components/AuthGuard";
 import { PWARegistration } from "@/components/PWARegistration";
+import { OfflineBanner } from "@/components/OfflineBanner";
 
 const notoThai = Noto_Sans_Thai({
   variable: "--font-noto-thai",
@@ -41,6 +42,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <AuthGuard />
         <LocalCleanupInit />
         <PWARegistration />
+        <OfflineBanner />
         {children}
       </body>
     </html>

@@ -117,7 +117,7 @@ export function getTodayTrainingGuardrail(
       allowedActivities: ["พัก", "นอนพักฟื้น", "เดินเบา ๆ (ถ้าไหว)"],
       blockedActivities: HARD_BLOCKED,
       reason: "ฟื้นตัวต่ำ + นอนน้อยมาก + load สูงสะสม",
-      shortThaiCopy: "สัญญาณเตือน: ฟื้นตัว นอน และ load รวมกันอยู่ในโซนเสี่ยง — วันนี้ต้องพักก่อน",
+      shortThaiCopy: "ฟื้นตัว นอน และ load สะสมรวมกันต่ำมาก — วันนี้เหมาะกับพักเต็มวันหรือเดินเบา ๆ",
       detailThaiCopy:
         "Recovery, Sleep และ Load รวมกันอยู่ในระดับวิกฤต ร่างกายต้องการพักฟื้นเต็มวัน ไม่ใช่วันออกกำลังกาย",
       shortEnglishCopy: "Full rest — critical fatigue",

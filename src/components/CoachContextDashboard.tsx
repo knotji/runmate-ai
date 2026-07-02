@@ -39,7 +39,19 @@ export function CoachContextDashboard() {
     );
   }
 
-  if (!context) return null;
+  if (!context) {
+    return (
+      <section className="card space-y-2 p-4" data-testid="coach-context-dashboard">
+        <p className="text-sm font-semibold text-[var(--foreground)]">โค้ชยังไม่มีบริบทวันนี้</p>
+        <p className="text-xs leading-5 text-[var(--muted-text)]">
+          อัปโหลดผลวิ่ง การนอน หรืออาหารเพื่อให้โค้ชเข้าใจสถานะร่างกายและแนะนำได้ดีขึ้น
+        </p>
+        <a href="/upload" className="btn-primary block py-2 text-center text-xs font-bold">
+          บันทึกข้อมูลแรก
+        </a>
+      </section>
+    );
+  }
 
   const recSys = context.recoverySystem as RunMateRecoverySystem | null;
   const score = recSys?.overallScore ?? null;

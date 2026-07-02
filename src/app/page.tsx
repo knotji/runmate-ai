@@ -373,9 +373,11 @@ export default function TodayPage() {
         )}
 
         {!insight && !loading && !insightError && !hasHistory && (
-          <div className="py-1">
-            <p className="text-base font-semibold text-[var(--foreground)]">วันนี้ยังไม่มีข้อมูลใหม่</p>
-            <p className="mt-1 text-sm text-slate-500">เพิ่มข้อมูลจากหน้า Upload เพื่อให้คำแนะนำแม่นขึ้น</p>
+          <div className="space-y-2 py-1">
+            <p className="text-base font-semibold text-[var(--foreground)]">ยังไม่มีข้อมูลวันนี้</p>
+            <p className="text-sm leading-6 text-slate-500">
+              เริ่มจากเพิ่มข้อมูลการนอนหรือซ้อมล่าสุด เพื่อให้โค้ชประเมินได้แม่นขึ้น
+            </p>
           </div>
         )}
 

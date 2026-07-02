@@ -184,8 +184,9 @@ export default function RaceGoalPage() {
         /* ── Empty state: first-time create (no confirmation needed) ── */
         <>
           {raceResults.length > 0 ? <LatestRacePrompt result={raceResults[0]} /> : null}
-          <section className="soft-panel px-4 py-3 text-sm leading-6 text-[var(--muted-text)]">
-            ตั้งเป้าการแข่งก่อน แล้วระบบจะช่วยวางแผนซ้อมให้เหมาะกับข้อมูลล่าสุดของคุณ
+          <section className="soft-panel space-y-1.5 px-4 py-3 text-sm leading-6 text-[var(--muted-text)]">
+            <p className="font-semibold text-[var(--foreground)]">ยังไม่มีเป้าหมายแข่ง</p>
+            <p>สร้างเป้าหมาย 10K / 21K / 42K เพื่อให้ RunMate ช่วยวางแผนซ้อมให้เหมาะกับ recovery และ load ของคุณโดยเฉพาะ</p>
           </section>
           <RaceGoalForm onCreated={(nextGoal, nextPlan) => { setGoal(nextGoal); setPlan(nextPlan); }} />
         </>

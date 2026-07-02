@@ -311,6 +311,16 @@ export default function SettingsPage() {
       )}
 
       <section className="soft-panel mt-5 px-4 py-3 text-xs text-[var(--muted-text)]">
+        <p className="font-bold uppercase tracking-[0.15em] text-[var(--label-color)]">มีอะไรใหม่</p>
+        <ul className="mt-2 space-y-1.5 leading-5">
+          <li>· ปรับคำแนะนำ recovery ให้นุ่มขึ้น — ไม่ตื่นตระหนกเมื่อนอนน้อยหรือฟื้นตัวต่ำ</li>
+          <li>· เพิ่ม coach guardrail ให้ Today / Coach / Race ใช้คำพูดตรงกัน</li>
+          <li>· เพิ่ม insight รายสัปดาห์ใน Report วิเคราะห์ trend นอน วิ่ง และฟื้นตัว</li>
+          <li>· ปรับ Upload guide มีคำอธิบายรายประเภทชัดขึ้น</li>
+        </ul>
+      </section>
+
+      <section className="soft-panel mt-3 px-4 py-3 text-xs text-[var(--muted-text)]">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="font-bold uppercase tracking-[0.15em] text-[var(--label-color)]">เกี่ยวกับแอป</p>
