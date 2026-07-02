@@ -11,7 +11,7 @@ import { buildTodayRecommendationReasons } from "@/lib/todayReasons";
 import { formatThaiDate, getHistoryItemDateKey, todayBangkokDateKey } from "@/lib/date";
 import { buildCoachContextFromSupabase, type CoachContext, type NutritionDaySummary, type PainSummary, type TodayCompletedWorkoutSummary } from "@/lib/buildCoachContext";
 import { getTodayReadiness, getTodayPlannedWorkout, getReadinessCategoryLabel, checkPlannedWorkoutMatching } from "@/lib/todayPlanning";
-import { buildRunMateRecoverySystem, getAxisTone, formatAxisScore, getRecoveryAxisLabel, getOverallDisplayStatus } from "@/lib/recoverySystem";
+import { buildRunMateRecoverySystem, getAxisTone, getRecoveryAxisCoachingTone, formatAxisScore, getRecoveryAxisLabel, getOverallDisplayStatus } from "@/lib/recoverySystem";
 import { createHistoryItem, loadHistoryItems, saveHistoryItems } from "@/lib/cloudHistory";
 import { loadActiveRaceGoalAndPlan } from "@/lib/raceStorage";
 import { loadRoutinesFromSupabase, logCompletedStrength } from "@/lib/strength";
@@ -1492,16 +1492,16 @@ function RecoveryLoopCard({ coachCtx }: { coachCtx: CoachContext }) {
 const FACTOR_BAR_COLOR: Record<string, string> = {
   success: "#7aab8f",
   warning: "#c9961d",
-  danger: "#e05050",
-  info: "#5082a0",
+  danger: "#c06050",  // muted coral — reserved for active pain / true high-risk
+  info: "#7a96b0",
   neutral: "#94a3b8",
 };
 
 const FACTOR_BAR_TEXT_COLOR: Record<string, string> = {
   success: "#2a6e45",
   warning: "#9b742c",
-  danger: "#c04040",
-  info: "#5082a0",
+  danger: "#a04030",  // muted coral text
+  info: "#4a6880",
   neutral: "#64748b",
 };
 
@@ -1685,11 +1685,56 @@ function TodaySnapshotCard({
               title={title}
               score={recSys.axes[key].score}
               label={getRecoveryAxisLabel(key, recSys.axes[key].score)}
-              tone={getAxisTone(key, recSys.axes[key].score)}
+              tone={getRecoveryAxisCoachingTone(key, recSys.axes[key].score, {
+                hasActivePain: !!(coachCtx?.activePain),
+                recoveryScore: recSys.axes.recovery.score,
+                sleepScore: recSys.axes.sleep.score,
+                loadScore: recSys.axes.load.score,
+              })}
             />
           ))}
         </div>
       )}
+
+      {/* Coaching interpretation line for low recovery/sleep */}
+      {!loading && recSys && (() => {
+        const hasActivePain = !!(coachCtx?.activePain);
+        const sleepLow = recSys.axes.sleep.score < 40;
+        const recoveryLow = recSys.axes.recovery.score < 45;
+        const loadHigh = recSys.axes.load.score >= 70;
+        if (hasActivePain) {
+          return (
+            <p className="text-[11px] font-semibold text-[var(--status-rest)] leading-snug" data-testid="coaching-interpretation-line">
+              ยังมีอาการเจ็บ — ควรเลี่ยงวิ่งและเลือก recovery แทน
+            </p>
+          );
+        }
+        if (sleepLow && recoveryLow) {
+          return (
+            <div className="rounded-2xl bg-[#fff8ed]/80 px-3 py-2 space-y-1.5" data-testid="coaching-interpretation-line">
+              <p className="text-[11px] font-semibold text-[#9b742c] leading-snug">
+                นอนน้อยและฟื้นตัวต่ำ — ไม่ใช่วันกด pace วันนี้เหมาะกับ recovery
+              </p>
+              <p className="text-[10px] text-[#9b742c]/80 leading-snug">เลือกได้: พักเต็มวัน · เดินเบา ๆ 20–40 นาที · ยืดเหยียด/mobility{loadHigh ? " · หลีกเลี่ยงวิ่งหนัก" : ""}</p>
+            </div>
+          );
+        }
+        if (sleepLow) {
+          return (
+            <p className="text-[11px] font-semibold text-[#9b742c] leading-snug" data-testid="coaching-interpretation-line">
+              นอนน้อยมาก — ให้ลดความหนักและฟังร่างกายเป็นหลัก ถ้า HR ลอยให้หยุด
+            </p>
+          );
+        }
+        if (recoveryLow) {
+          return (
+            <p className="text-[11px] font-semibold text-[#9b742c] leading-snug" data-testid="coaching-interpretation-line">
+              ฟื้นตัวต่ำ — วันนี้เน้น recovery เดินเบา ๆ หรือ mobility แทนวิ่งหนัก
+            </p>
+          );
+        }
+        return null;
+      })()}
 
       {/* Details: full /100 values, coverage, missing, explanation */}
       {!loading && recSys && (

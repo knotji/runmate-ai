@@ -865,26 +865,59 @@ export function getRecoveryAxisLabel(axisKey: "recovery" | "load" | "sleep" | "f
 export function getAxisTone(axisKey: "recovery" | "load" | "sleep" | "fuel", score: number): "success" | "warning" | "danger" | "info" | "neutral" {
   const rounded = Math.round(score);
   if (axisKey === "load") {
-    if (rounded >= 80) return "warning";
+    // Load is strain — high = caution, low = neutral
     if (rounded >= 66) return "warning";
     if (rounded >= 40) return "info";
-    return "success";
+    return "neutral";
   }
   if (axisKey === "recovery") {
-    if (rounded >= 80) return "success";
-    if (rounded >= 66) return "info";
-    if (rounded >= 50) return "warning";
-    return "danger";
+    if (rounded >= 75) return "success";
+    if (rounded >= 55) return "info";
+    if (rounded >= 35) return "warning";
+    return "warning"; // low alone is never danger — use getRecoveryAxisCoachingTone for context-aware danger
   }
   if (axisKey === "sleep") {
-    if (rounded >= 80) return "success";
-    if (rounded >= 60) return "info";
-    if (rounded >= 40) return "warning";
-    return "danger";
+    if (rounded >= 75) return "success";
+    if (rounded >= 55) return "info";
+    if (rounded >= 30) return "warning";
+    return "warning"; // low alone is never danger
   }
   // fuel
-  if (rounded >= 80) return "success";
-  if (rounded >= 60) return "info";
-  if (rounded >= 40) return "warning";
-  return "danger";
+  if (rounded >= 75) return "success";
+  if (rounded >= 55) return "info";
+  if (rounded >= 35) return "warning";
+  return "warning"; // low alone is never danger
+}
+
+export type AxisCoachingToneContext = {
+  hasActivePain?: boolean;
+  recoveryScore?: number;
+  sleepScore?: number;
+  loadScore?: number;
+};
+
+/**
+ * Context-aware coaching tone for factor bars.
+ * Danger is reserved for active pain or a severe combined fatigue state.
+ * Keeps "danger" meaningful so users learn to trust it.
+ */
+export function getRecoveryAxisCoachingTone(
+  axisKey: "recovery" | "load" | "sleep" | "fuel",
+  score: number,
+  ctx?: AxisCoachingToneContext
+): "success" | "info" | "warning" | "danger" | "neutral" {
+  const baseTone = getAxisTone(axisKey, score);
+
+  const hasActivePain = ctx?.hasActivePain ?? false;
+  const recScore = ctx?.recoveryScore ?? 100;
+  const sleepScore = ctx?.sleepScore ?? 100;
+  const loadScore = ctx?.loadScore ?? 0;
+
+  // Danger only when: active pain, OR severe combined (all three below critical + high load)
+  const isSevereCombined = recScore < 30 && sleepScore < 25 && loadScore > 75;
+  if (hasActivePain || isSevereCombined) {
+    if (axisKey === "recovery" || axisKey === "sleep") return "danger";
+  }
+
+  return baseTone;
 }

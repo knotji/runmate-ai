@@ -283,7 +283,9 @@ RunMate's visual identity is warm beige/sage/cream — a soft recovery health ap
 
 **`RecoveryLoopCard`** uses a compact two-column strip for คืนนี้ / ถัดไป with a subtle divider. Keep no more than three default visible lines.
 
-**UI tone principle**: Soft Health UI should feel calm and premium. Positive states (success tone) use muted sage (`#7aab8f`) — not bright green — so a perfect Fuel score does not visually overpower Load/Sleep caution. Caution (warning amber) and danger (red) must remain clear. Avoid letting any single perfect-score axis dominate the overview card.
+**UI tone principle**: Soft Health UI should feel calm and premium. Positive states (success tone) use muted sage (`#7aab8f`) — not bright green — so a perfect Fuel score does not visually overpower Load/Sleep caution. Caution (warning amber) and danger (muted coral) must remain clear. Avoid letting any single perfect-score axis dominate the overview card.
+
+**Recovery axis visual tone is coaching severity, not raw score severity.** A low Recovery or Sleep score alone should NOT automatically use the danger/red tone. Use `getRecoveryAxisCoachingTone()` (not `getAxisTone()`) for FactorBar rendering in Today — it gates "danger" behind active pain or a severe combined state (low recovery + low sleep + high load). This keeps "red" meaningful so users learn to trust it. Implement coaching interpretation lines (`data-testid="coaching-interpretation-line"`) when recovery < 45 or sleep < 40 to guide behavior without triggering alarm. Copy should use coaching language: "คุมเบา", "ลดความหนัก", "ฟังร่างกาย", "ถ้า HR ลอยให้หยุด" — never alarming or medically certain.
 
 **Hero secondary details**: Pre-workout hero has exactly one secondary toggle: `"ทำไมวันนี้แนะนำแบบนี้?"`. The decision card (pain/caution/ok) and reasons list are both inside this single expandable. `"ดูเหตุผลและข้อแนะนำเพิ่มเติม"` no longer exists as a separate control. Post-workout shows `"ดูสิ่งที่ควรทำต่อ"` only (no outer reasons toggle).
 

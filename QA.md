@@ -230,3 +230,18 @@ On PowerShell, set both `$env:E2E_BASE_URL` and `$env:E2E_PRODUCTION_BASE_URL` t
 - [ ] Clicking "ยืนยันสร้างแผนใหม่" saves the new goal/plan and then deletes the old one — page exits draft mode and shows the view mode.
 - [ ] First-time create (no existing goal) shows the form directly with no replacement warning and no cancel button.
 - [ ] Report / history data is never affected by replacing an active race goal.
+
+## 12. Recovery Tone Checklist
+
+- [ ] Low recovery/sleep **without** active pain uses caution/warning tone, NOT danger/red on factor bars.
+- [ ] Recovery 37 + Sleep 15 + Load 60 + no active pain: all factor bars show amber/warning or neutral — no red bar.
+- [ ] Red/danger factor bar tone is reserved for: active pain present, OR severe combined state (recovery < 30 + sleep < 25 + load > 75).
+- [ ] `data-tone` attribute on `[data-testid="today-factor-bar"]` is never "danger" in normal low-fatigue states without pain.
+- [ ] Today shows a coaching interpretation line (`data-testid="coaching-interpretation-line"`) when sleep < 40 or recovery < 45.
+- [ ] Coaching line uses calm language: "คุมเบา", "ลดความหนัก", "ฟังร่างกาย", "เดินเบา ๆ", "ถ้า HR ลอยให้หยุด".
+- [ ] Coaching line does NOT use fear-based or alarming copy.
+- [ ] Active pain shows coaching line mentioning เลี่ยงวิ่ง / recovery.
+- [ ] Today recommendation copy for low recovery/sleep does not encourage hard running.
+- [ ] Coach page (CoachContextDashboard) mini-axis row does not show red for low recovery/sleep (it uses plain numeric text — no color tone risk).
+- [ ] Race guardrails remain visible and intact regardless of recovery tone changes.
+- [ ] `getRecoveryAxisCoachingTone()` exported from `src/lib/recoverySystem.ts` is used for FactorBar tones in Today (not raw `getAxisTone()`).
