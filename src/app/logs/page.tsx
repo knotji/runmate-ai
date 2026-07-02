@@ -13,6 +13,7 @@ import type { RaceResult } from "@/types/race";
 import type { UserProfile } from "@/types/profile";
 import type { PainLog } from "@/types/pain";
 import type { StrengthLog } from "@/types/strength";
+import { safeStrengthMins } from "@/lib/reportDaySummary";
 import {
   formatDistanceKm,
   formatDuration,
@@ -1122,7 +1123,7 @@ function DayCard({
                     const firstStrength = strengths[0];
                     const strengthWorkout = workouts.find((w) => !isRun(w) && !isWalk(w) && (w.data as WorkoutAnalysis)?.extracted?.workoutKind === "strength");
                     const durationMins = firstStrength
-                      ? ((firstStrength.data as StrengthLog)?.durationMin ?? null)
+                      ? safeStrengthMins((firstStrength.data as StrengthLog)?.durationMin)
                       : parseDurationMins((strengthWorkout?.data as WorkoutAnalysis)?.extracted?.duration);
                     badgeElements.push(<Badge icon="🏋️" label={durationMins ? `เวท ${durationMins} นาที` : "เวท"} color="blue" key="strength" />);
                   }
@@ -1773,7 +1774,7 @@ function StrengthDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; 
           </h4>
         </div>
         <div className="shrink-0 text-right">
-          <p className="text-sm font-bold text-slate-700">{log.durationMin} นาที</p>
+          <p className="text-sm font-bold text-slate-700">{safeStrengthMins(log.durationMin)} นาที</p>
           <span className="text-[10px] text-slate-500">{SOURCE_LABELS[log.source] ?? log.source}</span>
         </div>
       </div>

@@ -16,6 +16,7 @@ import { getTodayTrainingGuardrail } from "@/lib/trainingGuardrails";
 import { createHistoryItem, loadHistoryItems, saveHistoryItems } from "@/lib/cloudHistory";
 import { loadActiveRaceGoalAndPlan } from "@/lib/raceStorage";
 import { loadRoutinesFromSupabase, logCompletedStrength } from "@/lib/strength";
+import { safeStrengthMins } from "@/lib/reportDaySummary";
 import type { LocalHistoryItem } from "@/lib/localHistory";
 import type { DailySummary } from "@/types/logs";
 import type { PainLog, PainSide } from "@/types/pain";
@@ -989,7 +990,7 @@ function TodayStrengthRoutineCard({
 
   if (alreadyCompleted) {
     const loggedWorkout = context.todayWorkouts.find((workout) => workout.kind === "strength");
-    const loggedDuration = loggedWorkout?.durationMin ? `${loggedWorkout.durationMin} นาที` : durationMin ? `${durationMin} นาที` : "";
+    const loggedDuration = loggedWorkout?.durationMin ? `${safeStrengthMins(loggedWorkout.durationMin)} นาที` : durationMin ? `${durationMin} นาที` : "";
     const loggedLabel = loggedWorkout?.label ?? prescription?.routineName ?? selected?.name ?? "เวท";
     const loggedHR = loggedWorkout?.avgHR ? `Avg HR ${Math.round(loggedWorkout.avgHR)} bpm` : "";
     const loggedCalories = loggedWorkout?.calories ? `${loggedWorkout.calories} kcal` : "";
@@ -1435,7 +1436,7 @@ function RecoveryLoopCard({ coachCtx }: { coachCtx: CoachContext }) {
   const activitySuffix = dayLoad.primaryActivity?.distanceKm != null
     ? ` · วิ่ง ${Math.round(dayLoad.primaryActivity.distanceKm * 10) / 10} km`
     : dayLoad.primaryActivity?.durationMin != null && dayLoad.primaryActivity.type === "strength"
-    ? ` · เวท ${dayLoad.primaryActivity.durationMin} นาที`
+    ? ` · เวท ${safeStrengthMins(dayLoad.primaryActivity.durationMin)} นาที`
     : "";
   const dayLoadContextLine = `${dayLoad.summary}${activitySuffix}`;
 

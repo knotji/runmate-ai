@@ -9,6 +9,15 @@ import type { PainLog } from "@/types/pain";
 import type { StrengthLog } from "@/types/strength";
 import { extractMealData, normalizeMealNutrition } from "@/lib/mealMerge";
 
+/**
+ * StrengthLog.durationMin is named "min" but some code paths store raw seconds.
+ * Values > 300 are impossible as strength-session minutes — treat as seconds.
+ */
+export function safeStrengthMins(value: number | null | undefined): number | null {
+  if (value == null || !Number.isFinite(value) || value <= 0) return null;
+  return value > 300 ? Math.round(value / 60) : Math.round(value);
+}
+
 export type ReportDaySummary = {
   dateKey: string;
   readiness: number | null;
@@ -123,7 +132,7 @@ export function buildReportDaySummary(items: LocalHistoryItem[], dateKey: string
   let strengthMins: number | null = null;
   if (strengths.length > 0) {
     const log = strengths[0].data as StrengthLog;
-    strengthMins = log?.durationMin ?? null;
+    strengthMins = safeStrengthMins(log?.durationMin);
   } else {
     const sw = workouts.find(isStrength);
     if (sw) strengthMins = parseDurationMins((sw.data as WorkoutAnalysis)?.extracted?.duration);
