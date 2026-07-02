@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { buildRunnerHistoryStats } from "@/lib/analyzeHistory";
 import { loadProfileFromSupabase, saveProfileToSupabase } from "@/lib/profileStorage";
 import { loadHistoryItems } from "@/lib/cloudHistory";
@@ -14,6 +14,9 @@ import { calculateNutritionTargetsFromWeight } from "@/lib/nutritionTargets";
 import type { ProfileAnalysisResult, ProfileAnalysisSuggestions } from "@/lib/analyzeHistory";
 import type { UserProfile } from "@/types/profile";
 import { formatBpm } from "@/lib/format";
+
+const LS_AUTO_SYNC_KEY = "runmate:autoProfileSyncEnabled";
+const LS_LAST_SYNC_KEY = "runmate:lastAutoProfileSyncAt";
 
 export type SuggestedValueStatus = "idle" | "applied" | "ignored" | "edited";
 
@@ -143,6 +146,26 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
   const [statusMap, setStatusMap] = useState<Record<string, SuggestedValueStatus>>({});
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editVal, setEditVal] = useState<string>("");
+  const [autoSyncEnabled, setAutoSyncEnabled] = useState(false);
+  const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
+
+  useEffect(() => {
+    const saved = localStorage.getItem(LS_AUTO_SYNC_KEY);
+    setAutoSyncEnabled(saved === "true");
+    setLastSyncAt(localStorage.getItem(LS_LAST_SYNC_KEY));
+  }, []);
+
+  function toggleAutoSync() {
+    const next = !autoSyncEnabled;
+    setAutoSyncEnabled(next);
+    localStorage.setItem(LS_AUTO_SYNC_KEY, next ? "true" : "false");
+  }
+
+  function recordSyncTime() {
+    const now = new Date().toISOString();
+    localStorage.setItem(LS_LAST_SYNC_KEY, now);
+    setLastSyncAt(now);
+  }
 
   async function analyze() {
     setState("loading");
@@ -270,6 +293,7 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
         initStatuses[item.key] = "idle";
       }
       setStatusMap(initStatuses);
+      recordSyncTime();
       setState("done");
     } catch (e) {
       setError(e instanceof Error ? e.message : "เกิดข้อผิดพลาด");
@@ -363,8 +387,44 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
   }
 
   /* ── Idle + Done ─────────────────────────────────────────── */
+  const pendingCount = Object.values(statusMap).filter((s) => s === "idle").length;
+
   return (
     <div className="space-y-3">
+      {/* ── Auto Sync toggle ─────────────────────────────────── */}
+      <div
+        className="flex items-center justify-between gap-3 rounded-2xl bg-[var(--surface-muted)] px-4 py-3"
+        data-testid="auto-sync-panel"
+      >
+        <div className="min-w-0">
+          <p className="text-xs font-bold text-[var(--foreground)]">Auto Sync โปรไฟล์</p>
+          <p className="mt-0.5 text-[11px] leading-4 text-[var(--muted-text)]">
+            {autoSyncEnabled
+              ? lastSyncAt
+                ? `เปิดอยู่ · อัปเดตล่าสุด ${new Date(lastSyncAt).toLocaleDateString("th-TH", { day: "numeric", month: "short" })}`
+                : "เปิดอยู่ · ยังไม่เคยซิงก์"
+              : "ปิดอยู่ — กดวิเคราะห์เองได้ตลอดเวลา"}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={toggleAutoSync}
+          data-testid="auto-sync-toggle"
+          className={`shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold transition-colors ${
+            autoSyncEnabled
+              ? "bg-[var(--primary)] text-white"
+              : "bg-[var(--surface)] border border-[var(--border-warm)] text-[var(--foreground)]"
+          }`}
+        >
+          {autoSyncEnabled ? "ปิด Auto Sync" : "เปิด Auto Sync"}
+        </button>
+      </div>
+
+      {/* ── Description ──────────────────────────────────────── */}
+      <p className="text-xs leading-5 text-[var(--muted-text)]">
+        RunMate จะอัปเดตเฉพาะค่าที่คุณยังไม่ได้ตั้งเอง — ถ้าคุณเคยแก้ค่าเอง ระบบจะแค่เสนอค่าใหม่ให้เลือก ไม่ทับอัตโนมัติ
+      </p>
+
       {state === "done" && result && (
         <div className="space-y-3">
           {result.summary.confidence === "low" ? (
@@ -396,44 +456,51 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
                 )}
               </div>
 
-              {/* Section B: ระบบแนะนำ แต่ยังไม่ทับค่าที่คุณแก้เอง */}
+              {/* Section B: คำแนะนำที่รอการตัดสินใจ */}
               {manualItems.length > 0 && (
-                <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-3">
-                  <p className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--label-color)]">
-                    ระบบแนะนำ แต่ยังไม่ทับค่าที่คุณแก้เอง
+                <div className="rounded-2xl border border-[var(--border-warm)] bg-white p-4 space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--label-color)]">
+                      คำแนะนำที่รอการตัดสินใจ
+                    </p>
+                    {pendingCount > 0 && (
+                      <span
+                        className="rounded-full bg-[var(--primary-soft)] px-2 py-0.5 text-[10px] font-bold text-[var(--primary-strong)]"
+                        data-testid="pending-suggestion-count"
+                      >
+                        {pendingCount} รายการ
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-[var(--muted-text)]">
+                    ค่าด้านล่างนี้คุณเคยแก้เอง ระบบจึงไม่ทับอัตโนมัติ — เลือกว่าจะใช้ค่าที่แนะนำหรือคงค่าเดิมไว้
                   </p>
                   <div className="divide-y divide-slate-100">
                     {manualItems.map((item) => {
                       const status = statusMap[item.key] ?? "idle";
                       const isEditing = editingKey === item.key;
                       return (
-                        <div key={item.key} className="py-3 first:pt-0 last:pb-0 space-y-2">
+                        <div key={item.key} className="py-3 first:pt-0 last:pb-0 space-y-2" data-testid="suggestion-item">
                           <div className="flex items-center justify-between">
-                            <p className="text-xs font-bold text-slate-800">
-                              Suggested {item.label}
-                            </p>
+                            <p className="text-xs font-bold text-slate-800">{item.label}</p>
                             <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
                               status === "applied" ? "bg-green-100 text-green-700" :
                               status === "ignored" ? "bg-slate-100 text-slate-600" :
                               status === "edited" ? "bg-amber-100 text-amber-700" :
-                              "bg-blue-100 text-blue-700"
+                              "bg-[var(--primary-soft)] text-[var(--primary-strong)]"
                             }`}>
                               {getSuggestedValueLabel(status)}
                             </span>
                           </div>
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="text-xs space-y-0.5">
-                              <p className="text-slate-500">
-                                ค่าที่ใช้อยู่: <span className="font-semibold text-slate-700">{formatValueWithUnit(item.key, currentProfile?.[item.key as keyof UserProfile] ?? item.currentValue)}</span>
-                                <span className="ml-1.5 rounded bg-slate-100 px-1 py-0.5 text-[10px] font-medium text-slate-500">แก้เอง</span>
-                              </p>
-                              <p className="text-slate-500">
-                                ค่าแนะนำ: <span className="font-semibold text-[#42677f]">{formatValueWithUnit(item.key, item.suggestedValue)}</span>
-                              </p>
-                              <p className="text-[10px] text-slate-400 italic">
-                                อิงจากประวัติการวิ่งล่าสุด ยังสามารถแก้เองได้
-                              </p>
-                            </div>
+                          <div className="text-xs space-y-0.5">
+                            <p className="text-slate-500">
+                              ค่าที่ใช้อยู่: <span className="font-semibold text-slate-700">{formatValueWithUnit(item.key, currentProfile?.[item.key as keyof UserProfile] ?? item.currentValue)}</span>
+                              <span className="ml-1.5 rounded bg-slate-100 px-1 py-0.5 text-[10px] font-medium text-slate-500">แก้เอง</span>
+                            </p>
+                            <p className="text-slate-500">
+                              ค่าที่แนะนำ: <span className="font-semibold text-[#42677f]" data-testid="suggested-value">{formatValueWithUnit(item.key, item.suggestedValue)}</span>
+                            </p>
+                            <p className="text-[10px] text-slate-400">อิงจากประวัติการวิ่งล่าสุด</p>
                           </div>
                           {isEditing ? (
                             <div className="flex items-center gap-2 pt-1">
@@ -446,16 +513,16 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
                               <button
                                 type="button"
                                 onClick={() => void saveInlineEdit(item.key)}
-                                className="rounded-full bg-[var(--foreground)] px-3.5 py-1.5 text-[11px] font-bold text-white hover:bg-slate-800 transition-colors"
+                                className="rounded-full bg-[var(--foreground)] px-3.5 py-1.5 text-[11px] font-bold text-white"
                               >
-                                Save
+                                บันทึก
                               </button>
                               <button
                                 type="button"
                                 onClick={() => setEditingKey(null)}
-                                className="rounded-full bg-slate-100 px-3.5 py-1.5 text-[11px] font-bold text-slate-500 hover:bg-slate-200 transition-colors"
+                                className="rounded-full bg-slate-100 px-3.5 py-1.5 text-[11px] font-bold text-slate-500"
                               >
-                                Cancel
+                                ยกเลิก
                               </button>
                             </div>
                           ) : (
@@ -463,23 +530,25 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
                               <button
                                 type="button"
                                 onClick={() => void overrideManual(item.key, item.suggestedValue)}
-                                className="rounded-full bg-[#e7efea] px-3.5 py-1.5 text-[11px] font-bold text-[#2a5a39] hover:bg-[#d4e8db] transition-colors"
+                                className="rounded-full bg-[#e7efea] px-3.5 py-1.5 text-[11px] font-bold text-[#2a5a39]"
+                                data-testid="accept-suggestion-btn"
                               >
-                                Apply suggested
+                                ใช้ค่าที่แนะนำ
                               </button>
                               <button
                                 type="button"
                                 onClick={() => keepCurrent(item.key)}
-                                className="rounded-full bg-slate-50 border border-slate-200 px-3.5 py-1.5 text-[11px] font-bold text-slate-600 hover:bg-slate-100 transition-colors"
+                                className="rounded-full bg-slate-50 border border-slate-200 px-3.5 py-1.5 text-[11px] font-bold text-slate-600"
+                                data-testid="keep-current-btn"
                               >
-                                Keep current
+                                คงค่าเดิม
                               </button>
                               <button
                                 type="button"
                                 onClick={() => startInlineEdit(item.key, currentProfile?.[item.key as keyof UserProfile] ?? item.currentValue)}
-                                className="rounded-full bg-slate-50 border border-slate-200 px-3.5 py-1.5 text-[11px] font-bold text-slate-600 hover:bg-slate-100 transition-colors"
+                                className="rounded-full bg-slate-50 border border-slate-200 px-3.5 py-1.5 text-[11px] font-bold text-slate-600"
                               >
-                                Edit manually
+                                แก้ค่าเอง
                               </button>
                             </div>
                           )}
@@ -493,12 +562,8 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
               {/* Training preference summary */}
               {result.suggestions.trainingPreferenceSummary && (
                 <div className="rounded-2xl bg-slate-50 p-3">
-                  <p className="text-xs font-bold uppercase tracking-wide text-slate-500 mb-1">
-                    สรุปรูปแบบการซ้อม
-                  </p>
-                  <p className="text-sm text-slate-700">
-                    {result.suggestions.trainingPreferenceSummary}
-                  </p>
+                  <p className="text-xs font-bold uppercase tracking-wide text-slate-500 mb-1">สรุปรูปแบบการซ้อม</p>
+                  <p className="text-sm text-slate-700">{result.suggestions.trainingPreferenceSummary}</p>
                 </div>
               )}
 
@@ -514,11 +579,16 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
         </div>
       )}
 
-      <button type="button" onClick={analyze} className="btn-primary w-full py-3 text-sm">
-        วิเคราะห์และอัปเดตค่าที่ปลอดภัย
+      <button
+        type="button"
+        onClick={() => void analyze()}
+        className="btn-primary w-full py-3 text-sm"
+        data-testid="analyze-btn"
+      >
+        {autoSyncEnabled ? "ซิงก์โปรไฟล์ตอนนี้" : "วิเคราะห์ตอนนี้"}
       </button>
       <p className="text-center text-xs text-slate-400">
-        ระบบจะอัปเดตเฉพาะค่าที่มั่นใจ และจะไม่ทับค่าที่คุณแก้เอง
+        ระบบจะไม่ทับค่าที่คุณแก้เอง
       </p>
     </div>
   );

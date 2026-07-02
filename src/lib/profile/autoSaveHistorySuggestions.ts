@@ -1,5 +1,27 @@
 import type { ProfileAnalysisSuggestions } from "@/lib/analyzeHistory";
-import type { UserProfile } from "@/types/profile";
+import type { UserProfile, ProfileFieldSource } from "@/types/profile";
+
+/**
+ * Normalise the raw stored source value (which may be the legacy "history_analysis"
+ * string) into the canonical ProfileFieldSource enum.
+ */
+export function getFieldSource(
+  raw: string | undefined,
+): ProfileFieldSource {
+  if (raw === "manual") return "manual";
+  if (raw === "history_analysis" || raw === "auto") return "auto";
+  return "default";
+}
+
+/**
+ * Returns true when an analysis result is allowed to overwrite this field.
+ * Manual edits are always protected.
+ */
+export function canAutoUpdateField(
+  raw: string | undefined,
+): boolean {
+  return getFieldSource(raw) !== "manual";
+}
 
 type Confidence = "high" | "medium" | "low";
 

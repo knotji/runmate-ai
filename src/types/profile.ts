@@ -1,6 +1,14 @@
 export type RunningLevel = "beginner" | "can_run_5k" | "can_run_10k" | "half_marathon_ready" | "returning";
 export type NutritionGoal = "recovery" | "lean_muscle" | "race_fuel" | "weight_control";
 
+/**
+ * Source of a profile field value.
+ * "default"  — never touched; could be safely overwritten by analysis
+ * "auto"     — set by profile history analysis (stored as "history_analysis" in DB)
+ * "manual"   — explicitly edited by the user; analysis must NOT overwrite this
+ */
+export type ProfileFieldSource = "default" | "auto" | "manual";
+
 export type UserProfile = {
   id?: string;
   updatedAt?: string;
