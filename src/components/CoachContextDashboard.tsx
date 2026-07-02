@@ -5,6 +5,7 @@ import { buildCoachContextFromSupabase, type CoachContext } from "@/lib/buildCoa
 import { getRunMateReadinessLabel } from "@/lib/readinessV2";
 import { formatAxisScore, getRecoveryAxisLabel } from "@/lib/recoverySystem";
 import type { RunMateRecoverySystem } from "@/lib/recoverySystem";
+import { getTodayTrainingGuardrail, getGuardrailSuggestedChips } from "@/lib/trainingGuardrails";
 
 export function CoachContextDashboard() {
   const [context, setContext] = useState<CoachContext | null>(null);
@@ -71,9 +72,23 @@ export function CoachContextDashboard() {
     ? "text-[#9b742c]"
     : "text-[var(--status-rest)]";
 
-  const chips = buildContextChips(context, recSys);
+  const guardrail = getTodayTrainingGuardrail(recSys, context.activePain);
+  const suggestedChips = getGuardrailSuggestedChips(guardrail);
+  const contextChips = buildContextChips(context, recSys);
   const hasUsefulData = context.sleep7d.length > 0 || context.workouts7d.length > 0 ||
     context.recentPainLogs.length > 0 || Boolean(context.raceGoal);
+
+  const guardrailMsgBg = guardrail.tone === "danger" ? "bg-[#fff0ee]"
+    : guardrail.tone === "warning" ? "bg-[#fff8ed]/80"
+    : guardrail.tone === "caution" ? "bg-[var(--surface-muted)]"
+    : guardrail.tone === "success" ? "bg-[var(--primary-soft)]"
+    : "bg-[var(--surface-muted)]";
+
+  const guardrailMsgColor = guardrail.tone === "danger" ? "text-[var(--status-rest)]"
+    : guardrail.tone === "warning" ? "text-[#9b742c]"
+    : guardrail.tone === "caution" ? "text-[var(--muted-text)]"
+    : guardrail.tone === "success" ? "text-[var(--primary-strong)]"
+    : "text-[var(--muted-text)]";
 
   return (
     <section className="card p-4" data-testid="coach-context-dashboard">
@@ -91,6 +106,15 @@ export function CoachContextDashboard() {
         )}
       </div>
 
+      {/* Contextual guardrail message */}
+      {recSys && guardrail.tone !== "neutral" && (
+        <div className={`mt-2 rounded-2xl px-3 py-2 ${guardrailMsgBg}`} data-testid="coach-guardrail-message">
+          <p className={`text-[11px] font-semibold leading-snug ${guardrailMsgColor}`}>
+            {guardrail.shortThaiCopy}
+          </p>
+        </div>
+      )}
+
       {/* Mini axis row */}
       {recSys && (
         <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] font-semibold text-slate-500/90">
@@ -105,9 +129,9 @@ export function CoachContextDashboard() {
       )}
 
       {/* Context chips */}
-      {chips.length > 0 ? (
+      {contextChips.length > 0 ? (
         <div className="mt-2.5 flex flex-wrap gap-1.5">
-          {chips.map((chip) => (
+          {contextChips.map((chip) => (
             <span
               key={chip.label}
               className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
@@ -123,6 +147,24 @@ export function CoachContextDashboard() {
       ) : !hasUsefulData ? (
         <p className="mt-2.5 text-xs text-[var(--muted-text)]">ยังมีข้อมูลไม่มาก ลองอัปโหลด Report เพิ่ม</p>
       ) : null}
+
+      {/* Suggested question chips */}
+      {hasUsefulData && (
+        <div className="mt-2.5">
+          <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--label-color)]">คำถามที่เหมาะกับวันนี้</p>
+          <div className="flex flex-wrap gap-1.5">
+            {suggestedChips.map((chip) => (
+              <span
+                key={chip.label}
+                className="rounded-full border border-[var(--border-warm)] bg-white/70 px-2.5 py-1 text-xs font-semibold text-[var(--foreground)] cursor-default"
+                data-testid="coach-suggested-chip"
+              >
+                {chip.label}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Details toggle */}
       <details className="group mt-2.5 cursor-pointer">

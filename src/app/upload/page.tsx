@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
@@ -1147,6 +1147,14 @@ export default function UploadPage() {
   );
 }
 
+const UPLOAD_TYPE_HELPER_COPY: Record<UploadType, string> = {
+  sleep: "อ่านได้จาก Samsung Health sleep screen, sleep score, HRV และ sleep duration",
+  meal: "อ่านได้จากรูปจานอาหาร ฉลากโภชนาการ เมนู หรือข้อความที่พิมพ์เอง",
+  workout: "อ่านได้จากสรุปการวิ่ง/เวท เช่น ระยะ เวลา pace HR หรือ calories",
+  body: "อ่านได้จากรูปเครื่องชั่ง, Samsung Health body composition หรือพิมพ์ค่าน้ำหนักเอง",
+  health_check: "บันทึกค่าผลตรวจสุขภาพเพื่อใช้ประกอบคำแนะนำ recovery และโภชนาการ",
+};
+
 function UploadEmptyGuide({
   type,
   workoutSubtype,
@@ -1155,17 +1163,42 @@ function UploadEmptyGuide({
   workoutSubtype?: string;
 }) {
   const items: Record<UploadType, string[]> = {
-    sleep: ["รูปการนอน — duration / sleep score / HRV", "รูป Energy score — readiness / recovery"],
-    meal: ["รูปอาหาร — รายการอาหารและ portion คร่าว ๆ", "ฉลากโภชนาการ — kcal / โปรตีน / คาร์บ", "เมนูหรือใบเสร็จ — ช่วยประเมินมื้ออาหาร"],
+    sleep: [
+      "รูปหน้าสรุปการนอน Samsung Health — duration / sleep score / HRV",
+      "รูป Energy score — readiness / recovery signal",
+      "รูปสรุปการนอนจากแอปอื่น เช่น Garmin, Polar หรือ Apple Health",
+    ],
+    meal: [
+      "รูปจานอาหาร — ระบุรายการและ portion คร่าว ๆ ได้",
+      "ฉลากโภชนาการ — อ่าน kcal / โปรตีน / คาร์บ / ไขมัน",
+      "เมนูหรือใบเสร็จ — ช่วยประเมินแคลอรี่มื้ออาหาร",
+      "พิมพ์เองได้ เช่น: ข้าวต้มปลา 1 ชาม + ไข่ 2 ฟอง",
+    ],
     workout: workoutSubtype === "strength"
-      ? ["รูปสรุป Strength session — Garmin, Apple Watch, Polar", "รูป Gym app — Strong, Hevy, Fitbod หรือแอปอื่น ๆ", "รูปสรุปทั่วไป — ระยะเวลา / แคลอรี่ / HR ก็เพียงพอ"]
-      : ["รูปผลวิ่ง — ระยะ / เวลา / pace / HR", "รูปเวท — ระยะเวลา / HR / calories / ท่าที่เล่น", "รูปกิจกรรมอื่น — สรุปเป็นบันทึกการออกกำลังกาย"],
-    body: ["รูปชั่งน้ำหนัก — น้ำหนัก / ไขมัน / กล้ามเนื้อ"],
-    health_check: ["PDF/รูปผลตรวจ — ใช้เป็นบริบทอาหารและไลฟ์สไตล์แบบระวัง"],
+      ? [
+          "รูปสรุป Strength session — Garmin, Apple Watch, Polar",
+          "รูป Gym app — Strong, Hevy, Fitbod หรือแอปอื่น ๆ",
+          "รูปสรุปทั่วไป — ระยะเวลา / แคลอรี่ / HR ก็เพียงพอ",
+        ]
+      : [
+          "รูปผลวิ่ง — ระยะ / เวลา / pace / HR (Strava, Garmin, Nike Run)",
+          "รูปสรุปกิจกรรมจาก Samsung Health, Apple Watch, Polar",
+          "รูปหน้าสรุปการแข่ง — ผล race, split time, pace",
+        ],
+    body: [
+      "รูปหน้าชั่งน้ำหนัก Samsung Health — น้ำหนัก / ไขมัน / กล้ามเนื้อ",
+      "รูปเครื่องชั่งอัจฉริยะ — อ่าน body composition ได้",
+      "พิมพ์ค่าน้ำหนักเองได้ เช่น \"62.5 kg, ไขมัน 18%\"",
+    ],
+    health_check: [
+      "PDF ผลตรวจสุขภาพประจำปี — อ่านค่าสำคัญเป็นบริบท",
+      "รูปผลเจาะเลือด / ผลตรวจจากโรงพยาบาล",
+    ],
   };
 
   return (
     <div className="rounded-2xl border border-[var(--border-warm)] bg-white/60 px-3 py-2.5 text-xs text-[var(--muted-text)]" data-testid="upload-help">
+      <p className="mb-2 text-[11px] leading-5 text-[var(--color-text-soft)]">{UPLOAD_TYPE_HELPER_COPY[type]}</p>
       <details className="group">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-3 font-bold text-[var(--primary)]">
           <span>อ่านอะไรได้บ้าง?</span>
@@ -1173,14 +1206,14 @@ function UploadEmptyGuide({
         </summary>
         <div className="mt-3 space-y-2 border-t border-[var(--color-border-soft)] pt-3 leading-5">
           {items[type].map((item) => (
-            <p key={item}>{item}</p>
+            <p key={item}>· {item}</p>
           ))}
           <p className="rounded-xl bg-[var(--surface-muted)] px-3 py-2 text-[11px] leading-5 text-[var(--color-text-soft)]">
             ไฟล์ต้นฉบับใช้เพื่อวิเคราะห์ครั้งนี้เท่านั้น Report จะเก็บเฉพาะข้อมูลที่สรุปแล้ว และ Coach Chat ใช้ Report เป็นบริบท
           </p>
           {type === "body" ? (
             <Link href="/pain" className="inline-flex rounded-full bg-white px-3 py-1.5 text-[11px] font-bold text-[var(--primary)] shadow-sm">
-              มีอาการเจ็บ? บันทึกที่หน้า “เจ็บ”
+              มีอาการเจ็บ? บันทึกที่หน้า "เจ็บ"
             </Link>
           ) : null}
         </div>

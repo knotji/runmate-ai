@@ -12,6 +12,7 @@ import { formatThaiDate, getHistoryItemDateKey, todayBangkokDateKey } from "@/li
 import { buildCoachContextFromSupabase, type CoachContext, type NutritionDaySummary, type PainSummary, type TodayCompletedWorkoutSummary } from "@/lib/buildCoachContext";
 import { getTodayReadiness, getTodayPlannedWorkout, getReadinessCategoryLabel, checkPlannedWorkoutMatching } from "@/lib/todayPlanning";
 import { buildRunMateRecoverySystem, getAxisTone, getRecoveryAxisCoachingTone, formatAxisScore, getRecoveryAxisLabel, getOverallDisplayStatus } from "@/lib/recoverySystem";
+import { getTodayTrainingGuardrail } from "@/lib/trainingGuardrails";
 import { createHistoryItem, loadHistoryItems, saveHistoryItems } from "@/lib/cloudHistory";
 import { loadActiveRaceGoalAndPlan } from "@/lib/raceStorage";
 import { loadRoutinesFromSupabase, logCompletedStrength } from "@/lib/strength";
@@ -1714,44 +1715,34 @@ function TodaySnapshotCard({
         </div>
       )}
 
-      {/* Coaching interpretation line for low recovery/sleep */}
+      {/* Coaching interpretation line — driven by shared guardrail */}
       {!loading && recSys && (() => {
-        const hasActivePain = !!(coachCtx?.activePain);
-        const sleepLow = recSys.axes.sleep.score < 40;
-        const recoveryLow = recSys.axes.recovery.score < 45;
-        const loadHigh = recSys.axes.load.score >= 70;
-        if (hasActivePain) {
+        const guardrail = getTodayTrainingGuardrail(recSys, !!(coachCtx?.activePain));
+        if (guardrail.tone === "neutral" || guardrail.tone === "success") return null;
+
+        const bgColor = guardrail.tone === "danger" ? "" : "rounded-2xl bg-[#fff8ed]/80 px-3 py-2 space-y-1.5";
+        const textColor = guardrail.tone === "danger" ? "text-[var(--status-rest)]" : "text-[#9b742c]";
+
+        if (guardrail.tone === "danger") {
           return (
-            <p className="text-[11px] font-semibold text-[var(--status-rest)] leading-snug" data-testid="coaching-interpretation-line">
-              ยังมีอาการเจ็บ — ควรเลี่ยงวิ่งและเลือก recovery แทน
+            <p className={`text-[11px] font-semibold leading-snug ${textColor}`} data-testid="coaching-interpretation-line">
+              {guardrail.shortThaiCopy}
             </p>
           );
         }
-        if (sleepLow && recoveryLow) {
-          return (
-            <div className="rounded-2xl bg-[#fff8ed]/80 px-3 py-2 space-y-1.5" data-testid="coaching-interpretation-line">
-              <p className="text-[11px] font-semibold text-[#9b742c] leading-snug">
-                นอนน้อยและฟื้นตัวต่ำ — ไม่ใช่วันกด pace วันนี้เหมาะกับ recovery
+        return (
+          <div className={bgColor} data-testid="coaching-interpretation-line">
+            <p className={`text-[11px] font-semibold leading-snug ${textColor}`}>
+              {guardrail.shortThaiCopy}
+            </p>
+            {(guardrail.tone === "warning" || guardrail.recommendedIntensity === "recovery") && (
+              <p className="text-[10px] text-[#9b742c]/80 leading-snug">
+                เลือกได้: พักเต็มวัน · เดินเบา ๆ 20–40 นาที · mobility
+                {recSys.axes.load.score >= 70 ? " · หลีกเลี่ยงวิ่งหนัก" : ""}
               </p>
-              <p className="text-[10px] text-[#9b742c]/80 leading-snug">เลือกได้: พักเต็มวัน · เดินเบา ๆ 20–40 นาที · ยืดเหยียด/mobility{loadHigh ? " · หลีกเลี่ยงวิ่งหนัก" : ""}</p>
-            </div>
-          );
-        }
-        if (sleepLow) {
-          return (
-            <p className="text-[11px] font-semibold text-[#9b742c] leading-snug" data-testid="coaching-interpretation-line">
-              นอนน้อยมาก — ให้ลดความหนักและฟังร่างกายเป็นหลัก ถ้า HR ลอยให้หยุด
-            </p>
-          );
-        }
-        if (recoveryLow) {
-          return (
-            <p className="text-[11px] font-semibold text-[#9b742c] leading-snug" data-testid="coaching-interpretation-line">
-              ฟื้นตัวต่ำ — วันนี้เน้น recovery เดินเบา ๆ หรือ mobility แทนวิ่งหนัก
-            </p>
-          );
-        }
-        return null;
+            )}
+          </div>
+        );
       })()}
 
       {/* Details: full /100 values, coverage, missing, explanation */}

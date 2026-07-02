@@ -149,10 +149,10 @@ export default function SettingsPage() {
         <div className="space-y-4">
           <section className="card space-y-3 p-5">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--label-color)]">วิเคราะห์โปรไฟล์</p>
+              <p className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--label-color)]">วิเคราะห์โปรไฟล์อัตโนมัติ</p>
               <h2 className="mt-1 text-xl font-bold text-[var(--foreground)]">วิเคราะห์โปรไฟล์จากประวัติ</h2>
               <p className="mt-1 text-sm leading-6 text-[var(--muted-text)]">
-                ให้โค้ชอ่านประวัติการซ้อมและการนอนที่บันทึกไว้ แล้วแนะนำค่าโปรไฟล์ที่เหมาะกับคุณ
+                ระบบจะดู pace, HR, sleep, pain และ workout ที่บันทึกไว้ เพื่อแนะนำค่า easy pace / HR zone / recovery routine ที่เหมาะกับคุณโดยเฉพาะ
               </p>
             </div>
             <ProfileHistoryAnalyzer onProfileUpdated={handleProfileUpdated} />

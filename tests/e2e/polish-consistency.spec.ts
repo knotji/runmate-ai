@@ -183,26 +183,26 @@ test("Polish consistency: Today recommendation decision, Coach readiness, Race s
   await gotoApp(page, "/upload?type=meal");
   await expect(page.getByText("บันทึกอาหาร")).toBeVisible();
   await page.getByText("อ่านอะไรได้บ้าง?").first().click();
-  await expect(page.getByText("รูปอาหาร")).toBeVisible();
-  await expect(page.getByText("ฉลากโภชนาการ")).toBeVisible();
-  await expect(page.getByText("เมนูหรือใบเสร็จ")).toBeVisible();
+  await expect(page.getByText("· รูปจานอาหาร")).toBeVisible();
+  await expect(page.getByText("· ฉลากโภชนาการ")).toBeVisible();
+  await expect(page.getByText("· เมนูหรือใบเสร็จ")).toBeVisible();
 
   await gotoApp(page, "/upload?type=workout");
   await page.getByText("อ่านอะไรได้บ้าง?").first().click();
-  await expect(page.getByText("รูปผลวิ่ง")).toBeVisible();
-  await expect(page.getByText("รูปเวท")).toBeVisible();
-  await expect(page.getByText("รูปกิจกรรมอื่น")).toBeVisible();
+  await expect(page.getByText("· รูปผลวิ่ง")).toBeVisible();
+  await expect(page.getByText("· รูปสรุปกิจกรรม")).toBeVisible();
+  await expect(page.getByText("· รูปหน้าสรุปการแข่ง")).toBeVisible();
 
   await gotoApp(page, "/upload?type=sleep");
   await page.getByText("อ่านอะไรได้บ้าง?").first().click();
-  await expect(page.getByText("รูปการนอน")).toBeVisible();
-  await expect(page.getByText("รูป Energy score")).toBeVisible();
+  await expect(page.getByText("· รูปหน้าสรุปการนอน")).toBeVisible();
+  await expect(page.getByText("· รูป Energy score")).toBeVisible();
 
   await gotoApp(page, "/upload?type=body");
   await page.getByText("อ่านอะไรได้บ้าง?").first().click();
-  await expect(page.getByText("รูปชั่งน้ำหนัก")).toBeVisible();
+  await expect(page.getByText("· รูปหน้าชั่งน้ำหนัก")).toBeVisible();
 
   await gotoApp(page, "/upload?type=health_check");
   await page.getByText("อ่านอะไรได้บ้าง?").first().click();
-  await expect(page.getByText("PDF/รูปผลตรวจ")).toBeVisible();
+  await expect(page.getByText("· PDF ผลตรวจสุขภาพ")).toBeVisible();
 });

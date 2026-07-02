@@ -17,7 +17,7 @@ test.describe("Upload Dashboard v2", () => {
     await expect(help.getByText("อ่านอะไรได้บ้าง?")).toBeVisible();
     await expect(help.getByText("ไฟล์ต้นฉบับใช้เพื่อวิเคราะห์ครั้งนี้เท่านั้น")).toBeHidden();
     await help.getByText("อ่านอะไรได้บ้าง?").click();
-    await expect(help.getByText("รูปการนอน")).toBeVisible();
+    await expect(help.getByText("รูปหน้าสรุปการนอน")).toBeVisible();
     await expect(help.getByText("ไฟล์ต้นฉบับใช้เพื่อวิเคราะห์ครั้งนี้เท่านั้น")).toBeVisible();
   });
 

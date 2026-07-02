@@ -32,6 +32,7 @@ import { getHistoryItemDateKey, dateKeyToRecordedAt, todayBangkokDateKey, yester
 import { normalizeMealSlot, getMealSlotLabel, getMealSlotIcon, getMealSlotOrder } from "@/lib/mealSlots";
 import { getMealSourceInfo, isQuickProteinMeal } from "@/lib/mealSource";
 import { buildWeeklyReview, type WeeklyReview } from "@/lib/weeklyReview";
+import { buildWeeklyCoachTrendInsight } from "@/lib/trainingGuardrails";
 import { getRunMateReadinessLabel } from "@/lib/readinessV2";
 import { getRecoveryAxisLabel } from "@/lib/recoverySystem";
 import {
@@ -700,6 +701,28 @@ function RollingSevenDayInsight({
       </summary>
 
       <div className="mt-4 space-y-3 border-t border-[var(--color-border-soft)] pt-4">
+        {/* Weekly coach trend insight */}
+        {review && (() => {
+          const insight = buildWeeklyCoachTrendInsight({
+            avgRecoveryScore: review.avgRecoveryScore,
+            avgSleepScore: review.avgSleepScore,
+            avgSleepHours: review.avgSleepHours,
+            avgLoadScore: review.avgLoadScore,
+            loadLevel: review.loadLevel,
+            sleepDebtLevel: review.sleepDebtLevel,
+            activePainDays: review.activePainDays,
+            runningKmTotal: review.runningKmTotal,
+            runCount: review.runCount,
+            sleepNights: review.sleepNights,
+          });
+          if (!insight) return null;
+          return (
+            <div className="rounded-2xl border border-[var(--border-warm)] bg-[var(--primary-soft)] px-4 py-3" data-testid="weekly-coach-insight">
+              <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--primary-strong)]">โค้ชวิเคราะห์สัปดาห์นี้</p>
+              <p className="mt-1 text-xs font-semibold leading-relaxed text-[var(--foreground)]">{insight}</p>
+            </div>
+          );
+        })()}
         {review && <WeeklyReviewCard review={review} />}
         <WeeklyDashboard dashboard={dashboard} proteinTarget={proteinTarget} items={items} cutoff={cutoff} />
       </div>
