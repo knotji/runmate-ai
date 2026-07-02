@@ -621,7 +621,7 @@ function DaySlotDetail({ label, value }: { label: string; value: string }) {
 
 function formatDayActivitySummary(day: import("@/lib/reportSummary").DailyReportItem): string | null {
   if (day.runKm != null && day.runKm > 0) return `🏃 ${day.runKm} กม.`;
-  if (day.strengthMins != null && day.strengthMins > 0) return `💪 เวท ${day.strengthMins} นาที`;
+  if (day.strengthMins != null && day.strengthMins > 0) return `💪 เวท ${safeStrengthMins(day.strengthMins)} นาที`;
   if (day.walkMins != null && day.walkMins > 0) return `เดิน ${day.walkMins} นาที`;
   if (day.hasRestWorkout) return "Recovery";
   return null;
