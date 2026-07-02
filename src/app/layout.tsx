@@ -5,6 +5,7 @@ import { LocalCleanupInit } from "@/components/LocalCleanupInit";
 import { AuthGuard } from "@/components/AuthGuard";
 import { PWARegistration } from "@/components/PWARegistration";
 import { OfflineBanner } from "@/components/OfflineBanner";
+import { Analytics } from "@vercel/analytics/next";
 
 const notoThai = Noto_Sans_Thai({
   variable: "--font-noto-thai",
@@ -44,6 +45,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <PWARegistration />
         <OfflineBanner />
         {children}
+        <Analytics />
       </body>
     </html>
   );
