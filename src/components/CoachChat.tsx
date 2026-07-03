@@ -3,17 +3,13 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { ErrorState } from "@/components/ErrorState";
 import { LoadingButton } from "@/components/LoadingButton";
-import { LoadingState } from "@/components/LoadingState";
 import { buildCoachContextFromSupabase } from "@/lib/buildCoachContext";
 import { compressImage } from "@/lib/imageCompression";
 import { fileToDataUrl } from "@/lib/storage";
+import { ensureSupabaseProfileSession } from "@/lib/profileStorage";
+import { fetchRecentCoachMessages, clearCoachMessages } from "@/lib/coachMessages";
 
 type ChatMessage = { role: "user" | "assistant"; content: string; imageUrl?: string };
-
-const INITIAL_MESSAGE: ChatMessage = {
-  role: "assistant",
-  content: "เล่าให้โค้ชฟังได้เลย วันนี้อยากคุยเรื่องซ้อม กิน นอน recovery หรืออะไรก็ได้",
-};
 
 type RaceQuickContext = { raceName: string | null; raceDistance: string | null; daysUntilRace: number | null };
 
@@ -93,7 +89,8 @@ const intentDefaultQuestions: Record<ImageIntentType, string> = {
 };
 
 export function CoachChat() {
-  const [messages, setMessages] = useState<ChatMessage[]>([INITIAL_MESSAGE]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [hasLoadedHistory, setHasLoadedHistory] = useState(false);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -119,6 +116,31 @@ export function CoachChat() {
       objectUrls.forEach((url) => URL.revokeObjectURL(url));
       objectUrls.clear();
     };
+  }, []);
+
+  useEffect(() => {
+    async function loadHistory() {
+      try {
+        const session = await ensureSupabaseProfileSession();
+        if (session.ok) {
+          const history = await fetchRecentCoachMessages(session.supabase, { userId: session.userId, limit: 20 });
+          if (history && history.length > 0) {
+            const mapped = history.map((m) => ({
+              role: m.role,
+              content: m.content,
+            }));
+            setMessages(mapped);
+          } else {
+            setMessages([]);
+          }
+        }
+      } catch (err) {
+        console.warn("[coach-chat] failed to load history:", err);
+      } finally {
+        setHasLoadedHistory(true);
+      }
+    }
+    void loadHistory();
   }, []);
 
   useEffect(() => {
@@ -152,11 +174,28 @@ export function CoachChat() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
-  function clearChat() {
-    messages.forEach((message) => revokeObjectUrl(message.imageUrl));
-    setMessages([INITIAL_MESSAGE]);
-    setError("");
-    clearImage();
+  async function handleClearChat() {
+    const confirmClear = window.confirm("ล้างบทสนทนากับโค้ชทั้งหมดไหม?");
+    if (!confirmClear) return;
+
+    try {
+      const session = await ensureSupabaseProfileSession();
+      if (session.ok) {
+        const success = await clearCoachMessages(session.supabase, { userId: session.userId });
+        if (success) {
+          messages.forEach((message) => revokeObjectUrl(message.imageUrl));
+          setMessages([]);
+          setError("");
+          clearImage();
+          showClearToast();
+        } else {
+          setError("ล้างบทสนทนาไม่สำเร็จ กรุณาลองใหม่");
+        }
+      }
+    } catch (err) {
+      console.warn("[coach-chat] failed to clear messages:", err);
+      setError("ล้างบทสนทนาไม่สำเร็จ กรุณาลองใหม่");
+    }
   }
 
   function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
@@ -281,9 +320,6 @@ export function CoachChat() {
             <p className="text-sm font-bold text-[var(--foreground)]">คำถามที่น่าลอง</p>
             <p className="text-xs text-[var(--muted-text)]">ตอบทุกเรื่องซ้อม กิน นอน recovery · ใช้ข้อมูล Report เป็นพื้นหลัง</p>
           </div>
-          <button type="button" onClick={clearChat} className="shrink-0 text-xs font-semibold text-[var(--muted-text)]/80 hover:text-[var(--foreground)]">
-            ล้างแชท
-          </button>
         </div>
         <div className="flex flex-wrap gap-2">
           {buildQuickQuestions(raceQuickContext).map((item) => (
@@ -319,26 +355,77 @@ export function CoachChat() {
         ) : null}
       </div>
 
-      <div className="flex flex-1 flex-col gap-3 rounded-3xl border border-[var(--border-warm)] bg-[var(--surface)]/70 p-3 shadow-sm">
-        {messages.map((message, index) => (
-          <div
-            key={`${message.role}-${index}`}
-            className={`max-w-[88%] rounded-3xl px-4 py-3 text-sm leading-6 ${
-              message.role === "user" ? "ml-auto bg-[var(--primary)] text-white" : "bg-[var(--surface-muted)]/90 text-[var(--foreground)]"
-            }`}
-          >
-            {message.imageUrl ? (
-              /* eslint-disable-next-line @next/next/no-img-element */
-              <img
-                src={message.imageUrl}
-                alt="Attachment"
-                className="mb-2 max-h-60 max-w-full rounded-2xl border border-slate-200 object-contain"
-              />
-            ) : null}
-            <FormattedCoachText text={message.content} />
+      <div className="mt-4 flex flex-col gap-1">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-extrabold text-[var(--foreground)]">บทสนทนาล่าสุด</h3>
+          {messages.length > 0 && (
+            <button
+              type="button"
+              onClick={handleClearChat}
+              className="text-xs font-bold text-[var(--status-rest)] hover:underline"
+            >
+              ล้างแชท
+            </button>
+          )}
+        </div>
+        <p className="text-[11px] text-[var(--muted-text)]">
+          Coach จะจำเฉพาะบทสนทนาล่าสุดเพื่อให้คำแนะนำต่อเนื่องขึ้น คุณล้างได้ทุกเมื่อ
+        </p>
+      </div>
+
+      <div
+        data-testid="coach-chat-history"
+        className="flex max-h-[55vh] min-h-[300px] flex-1 flex-col gap-4 overflow-y-auto rounded-3xl border border-[var(--border-warm)] bg-[var(--surface)]/70 p-4 shadow-sm"
+      >
+        {hasLoadedHistory && messages.length === 0 ? (
+          <div className="my-auto flex flex-col items-center justify-center text-center p-6" data-testid="chat-empty-state">
+            <span className="text-3xl">💬</span>
+            <p className="mt-2 text-sm font-bold text-[var(--foreground)]">ยังไม่มีบทสนทนากับโค้ชวันนี้</p>
+            <p className="mt-1 text-xs text-[var(--muted-text)]">ลองถามว่า วันนี้ควรซ้อมยังไงดี</p>
           </div>
-        ))}
-        {loading ? <LoadingState label="โค้ชกำลังตอบ..." /> : null}
+        ) : (
+          messages.map((message, index) => {
+            const isUser = message.role === "user";
+            return (
+              <div
+                key={`${message.role}-${index}`}
+                className={`flex flex-col gap-1 ${isUser ? "items-end" : "items-start"}`}
+                data-testid={isUser ? "chat-message-user" : "chat-message-assistant"}
+              >
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-text)]/70 px-1">
+                  {isUser ? "คุณ" : "Coach"}
+                </span>
+                <div
+                  className={`rounded-3xl px-4 py-3 text-sm leading-6 shadow-xs ${
+                    isUser
+                      ? "bg-[var(--primary)] text-white max-w-[85%]"
+                      : "bg-[var(--surface-muted)]/90 text-[var(--foreground)] max-w-[90%]"
+                  }`}
+                >
+                  {message.imageUrl ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={message.imageUrl}
+                      alt="Attachment"
+                      className="mb-2 max-h-60 max-w-full rounded-2xl border border-slate-200 object-contain"
+                    />
+                  ) : null}
+                  <FormattedCoachText text={message.content} />
+                </div>
+              </div>
+            );
+          })
+        )}
+        {loading ? (
+          <div className="flex flex-col gap-1 items-start" data-testid="chat-loading-bubble">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-text)]/70 px-1">
+              Coach
+            </span>
+            <div className="rounded-3xl bg-[var(--surface-muted)]/90 text-[var(--muted-text)] px-4 py-3 text-sm max-w-[90%] shadow-xs flex items-center gap-2">
+              <span className="animate-pulse">Coach กำลังดูข้อมูลล่าสุด...</span>
+            </div>
+          </div>
+        ) : null}
         <div ref={bottomRef} />
       </div>
 
@@ -413,7 +500,7 @@ export function CoachChat() {
         </LoadingButton>
       </form>
       <p className="mt-1.5 text-center text-[10px] font-medium text-[var(--muted-text)]/80">
-        แชทนี้ใช้ถามชั่วคราว ไม่บันทึกเข้า Report อัตโนมัติ รูปที่แนบไม่ถูกเก็บถาวร
+        แชทนี้จะบันทึกประวัติการสนทนาล่าสุดไว้เพื่อการแนะนำที่ต่อเนื่องขึ้น คุณล้างแชทได้ทุกเมื่อ รูปที่แนบไม่ถูกเก็บถาวร
       </p>
       {error ? <ErrorState message={error} /> : null}
     </section>
@@ -444,4 +531,51 @@ function FormattedCoachText({ text }: { text: string }) {
       })}
     </div>
   );
+}
+
+function showClearToast() {
+  if (typeof window === "undefined") return;
+  let container = document.getElementById("clear-chat-toast-container");
+  if (!container) {
+    container = document.createElement("div");
+    container.id = "clear-chat-toast-container";
+    container.style.position = "fixed";
+    container.style.bottom = "80px";
+    container.style.left = "50%";
+    container.style.transform = "translateX(-50%)";
+    container.style.zIndex = "9999";
+    container.style.width = "90%";
+    container.style.maxWidth = "380px";
+    container.style.pointerEvents = "none";
+    document.body.appendChild(container);
+  }
+  const toast = document.createElement("div");
+  toast.style.pointerEvents = "auto";
+  toast.style.background = "var(--primary-strong, #4f8a78)";
+  toast.style.color = "#ffffff";
+  toast.style.padding = "10px 16px";
+  toast.style.borderRadius = "14px";
+  toast.style.fontSize = "12px";
+  toast.style.fontWeight = "600";
+  toast.style.boxShadow = "var(--shadow-floating)";
+  toast.style.textAlign = "center";
+  toast.style.opacity = "0";
+  toast.style.transform = "translateY(12px)";
+  toast.style.transition = "all 0.4s cubic-bezier(0.16, 1, 0.3, 1)";
+  toast.textContent = "ล้างแชทโค้ชแล้ว";
+  container.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.opacity = "1";
+    toast.style.transform = "translateY(0)";
+  }, 10);
+
+  setTimeout(() => {
+    toast.style.opacity = "0";
+    toast.style.transform = "translateY(-8px)";
+    setTimeout(() => {
+      toast.remove();
+      if (container && container.childNodes.length === 0) container.remove();
+    }, 400);
+  }, 3000);
 }

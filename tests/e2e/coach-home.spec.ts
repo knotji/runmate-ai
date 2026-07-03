@@ -87,7 +87,7 @@ test.describe("Coach home 10/10 polish", () => {
     await expect(page.getByPlaceholder("ถามโค้ชได้เลย...")).toBeVisible();
     await expect(page.getByRole("button", { name: "แนบรูปเพื่อถามโค้ช" })).toBeVisible();
     await expect(page.getByRole("button", { name: "ส่ง" })).toBeVisible();
-    await expect(page.getByText(/แชทนี้ใช้ถามชั่วคราว/)).toBeVisible();
+    await expect(page.getByText(/แชทนี้จะบันทึกประวัติ/)).toBeVisible();
   });
 
   test("6. Context dashboard source label reads 'โค้ชใช้ข้อมูลจาก Report'", async ({ page }) => {

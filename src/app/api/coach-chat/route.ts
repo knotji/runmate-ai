@@ -3,6 +3,8 @@ import { textFromAI } from "@/lib/ai";
 import { buildRunnerProfileContext } from "@/lib/buildRunnerProfileContext";
 import { buildCoachResponseFormatInstruction } from "@/lib/coachPrompt";
 import { coachChatPrompt } from "@/lib/prompts/coachChat";
+import { createClient } from "@/lib/supabase/server";
+import { saveCoachMessage, fetchPromptCoachMessages } from "@/lib/coachMessages";
 import type { UserProfile } from "@/types/profile";
 
 type ChatMessage = { role?: "user" | "assistant"; content?: string };
@@ -46,6 +48,50 @@ export async function POST(request: Request) {
     const imageDataUrl = body.imageDataUrl as string | undefined;
     const imageIntent = body.imageIntent as string | undefined;
 
+    // Retrieve server-side Supabase client and user session
+    const supabase = await createClient();
+    let userId: string | undefined;
+    if (supabase) {
+      const { data: { user } } = await supabase.auth.getUser();
+      userId = user?.id;
+    }
+
+    // Save incoming user message to database in the background
+    if (supabase && userId && latest) {
+      void saveCoachMessage(supabase, {
+        userId,
+        role: "user",
+        content: latest,
+        metadata: {
+          source: "coach_chat",
+          dateKey: context.todayDate,
+          painRecoveryStatus: context.painRecoveryStatus,
+          readiness: context.overallScore,
+          route: "coach",
+          hasImage: !!imageDataUrl,
+        },
+      });
+    }
+
+    // Fetch prompt messages from database for context
+    let recentChatPromptSection = "";
+    if (supabase && userId) {
+      const promptHistory = await fetchPromptCoachMessages(supabase, { userId, limit: 8 });
+      if (promptHistory && promptHistory.length > 0) {
+        const formattedMsgs = promptHistory.map((m) => {
+          const roleLabel = m.role === "user" ? "User" : "Coach";
+          return `${roleLabel}: ${m.content}`;
+        }).join("\n");
+
+        recentChatPromptSection = `
+Recent Coach conversation:
+${formattedMsgs}
+
+Use recent chat only for continuity. Do not let chat history override today's recovery, pain, race, or safety guardrails.
+`;
+      }
+    }
+
     let chatInstructions = buildCoachResponseFormatInstruction(profile?.language, responseDetail, Boolean(imageDataUrl), imageIntent);
     chatInstructions += buildToneInstruction(coachingTone);
 
@@ -67,14 +113,36 @@ IMAGE INTENT HINT: "${imageIntent}".
       contextGuidance,
       `Context from Report/Profile/Race Goal:\n${JSON.stringify(context)}`,
       imageIntentInstruction,
+      recentChatPromptSection,
     ].filter(Boolean).join("\n\n");
+
+    // Slice to the last message to avoid duplication since history is injected in systemExtra
+    const userMessage = messages.at(-1);
+    const messagesForAI = userMessage ? [userMessage] : [];
 
     const result = await textFromAI({
       system: `${coachChatPrompt}\n\n${chatInstructions}\n\n${systemExtra}`,
-      messages,
+      messages: messagesForAI as { role: "user" | "assistant"; content: string }[],
       imageDataUrl,
       fallback: fallbackCoachReply(latest),
     });
+
+    // Save assistant reply to database in the background
+    const assistantMessage = result.message;
+    if (supabase && userId && assistantMessage) {
+      void saveCoachMessage(supabase, {
+        userId,
+        role: "assistant",
+        content: assistantMessage,
+        metadata: {
+          source: "coach_chat",
+          model: result.source || "gemini",
+          dateKey: context.todayDate,
+          guardrailTone: context.guardrailTone,
+          painRecoveryStatus: context.painRecoveryStatus,
+        },
+      });
+    }
 
     return NextResponse.json(result);
   } catch (error) {
@@ -85,12 +153,15 @@ IMAGE INTENT HINT: "${imageIntent}".
   }
 }
 
-function buildLatestReportContextOverride(context: unknown): string {
+export function buildLatestReportContextOverride(context: unknown): string {
   const ctx = context as Record<string, unknown>;
   const lines = [
     "LATEST REPORT CONTEXT OVERRIDES CHAT HISTORY:",
     "- Treat the current Report/Profile/Race context below as the source of truth.",
     "- Ignore older sleep averages or health metrics mentioned in prior chat messages when they conflict with this context.",
+    "- Recent chat history is lower priority than today's safety and recovery context. Never use chat history to override pain recovery, recovery score, sleep, load, race guardrails, or active injury guidance.",
+    "- If recent chat says user wanted tempo but current painRecoveryStatus is active_pain/recent_pain/cleared_light, Coach must not recommend tempo.",
+    "- If current recovery/sleep is low, Coach must not recommend hard workout just because prior chat discussed it.",
   ];
   const sleepAvg = stringValue(ctx.sleepAvg7dText);
   const sleepCount = numberValue(ctx.sleepNightCount7d);
@@ -162,7 +233,7 @@ function raceEveGuard(question: string, context: unknown, dateTimeStr: string) {
   ].join("\n");
 }
 
-function buildContextGuidance(question: string, context: unknown) {
+export function buildContextGuidance(question: string, context: unknown) {
   const ctx = context as Record<string, unknown>;
   const latestPain = readRecord(ctx.latestPain);
   const recentMaxPain = readRecord(ctx.recentMaxPain);
