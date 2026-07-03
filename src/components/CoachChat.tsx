@@ -369,13 +369,13 @@ export function CoachChat() {
           )}
         </div>
         <p className="text-[11px] text-[var(--muted-text)]">
-          Coach จะจำเฉพาะบทสนทนาล่าสุดเพื่อให้คำแนะนำต่อเนื่องขึ้น คุณล้างได้ทุกเมื่อ
+          Coach จะจำบทสนทนาล่าสุดไว้ตอบต่อเนื่อง คุณล้างได้ทุกเมื่อ
         </p>
       </div>
 
       <div
         data-testid="coach-chat-history"
-        className="flex max-h-[55vh] min-h-[300px] flex-1 flex-col gap-4 overflow-y-auto rounded-3xl border border-[var(--border-warm)] bg-[var(--surface)]/70 p-4 shadow-sm"
+        className="flex max-h-[55vh] min-h-[300px] flex-1 flex-col gap-4 overflow-y-auto rounded-3xl border border-[var(--border-warm)] bg-[var(--surface)]/70 p-4 pb-6 shadow-sm"
       >
         {hasLoadedHistory && messages.length === 0 ? (
           <div className="my-auto flex flex-col items-center justify-center text-center p-6" data-testid="chat-empty-state">
@@ -426,7 +426,7 @@ export function CoachChat() {
             </div>
           </div>
         ) : null}
-        <div ref={bottomRef} />
+        <div ref={bottomRef} className="h-4 shrink-0" />
       </div>
 
       {previewUrl ? (
@@ -490,7 +490,7 @@ export function CoachChat() {
           placeholder={previewUrl ? "ถามต่อเกี่ยวกับรูปนี้ หรือกดส่ง..." : "ถามโค้ชได้เลย..."}
         />
         <LoadingButton
-          className="rounded-2xl bg-[var(--primary)] px-5 py-3 text-sm font-bold text-white transition-opacity disabled:opacity-40"
+          className="rounded-2xl bg-[var(--primary)] px-5 py-3 text-sm font-bold text-white transition-all disabled:bg-[var(--surface-muted)] disabled:text-[var(--muted-text)] disabled:cursor-not-allowed disabled:opacity-60"
           type="submit"
           loading={loading}
           loadingText="กำลังตอบ..."

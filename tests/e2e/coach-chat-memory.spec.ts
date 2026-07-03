@@ -215,7 +215,7 @@ test.describe("E2E Coach Chat and Memory Interface", () => {
 
     // Verify header and privacy text are visible
     await expect(page.getByRole("heading", { name: "บทสนทนาล่าสุด" })).toBeVisible();
-    await expect(page.getByText("Coach จะจำเฉพาะบทสนทนาล่าสุด")).toBeVisible();
+    await expect(page.getByText("Coach จะจำบทสนทนาล่าสุดไว้ตอบต่อเนื่อง")).toBeVisible();
   });
 
   test("2) Sending a message appends user bubble and assistant bubble", async ({ page }) => {

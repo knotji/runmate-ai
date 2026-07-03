@@ -10,6 +10,12 @@ export function buildCoachResponseFormatInstruction(
     ? "Keep most answers to 2-4 short Thai lines unless the user asks for detail."
     : "Keep most answers to 3-6 short Thai lines unless the user asks for detail.";
 
+  const commonFormatting = `
+FORMATTING INSTRUCTIONS:
+- Reply in short, readable blocks (2-3 sentences max per block) separated by single line breaks. NEVER group your response into a single, long paragraph.
+- Use bullet-like Thai sections (e.g., using list items or emojis/symbols like -, •, or *) for food options, menu choices, and workout summaries.
+`;
+
   if (hasImage) {
     return `
 IMAGE RESPONSE GUIDANCE:
@@ -21,6 +27,7 @@ IMAGE RESPONSE GUIDANCE:
 - If the image is pain/injury-related, do not diagnose; give conservative guidance and red flags.
 - Images in Coach Chat are temporary and must not be described as saved to Report.
 - Never duplicate units like "bpm bpm".
+${commonFormatting}
 ${responseLength}
 `;
   }
@@ -34,6 +41,7 @@ RESPONSE STYLE GUIDANCE:
 - Casual/emotional questions should feel supportive, not like a workout template.
 - Training questions still need practical targets and safety adjustments.
 - Injury safety still overrides training advice.
+${commonFormatting}
 ${responseLength}
 `;
 }
