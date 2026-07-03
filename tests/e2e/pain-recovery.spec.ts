@@ -286,3 +286,189 @@ test("recent_pain: race-goal page shows pain recovery banner and suppresses hard
     page.getByTestId("pain-recovery-race-banner"),
   ).toContainText("เพิ่งมีอาการเจ็บมา");
 });
+
+// ── Pain UI Polish & Validation Tests ──────────────────────────────────────────
+
+test.describe("Pain UI Polish and resolved copy validations", () => {
+  test("resolved checkbox shows helper copy and button text is updated", async ({ page }) => {
+    await installMockBackend(page);
+    await gotoApp(page, "/pain");
+
+    // Click "เข่า" from common locations to populate pain location
+    await page.getByRole("button", { name: "เข่า", exact: true }).first().click();
+
+    // Verify submit button text and helper copy
+    const submitBtn = page.getByRole("button", { name: "บันทึกและปรับคำแนะนำวันนี้" });
+    await expect(submitBtn).toBeVisible();
+    await expect(page.getByTestId("submit-helper-copy")).toContainText("ข้อมูลนี้จะใช้ปรับ Today, Coach และ Race plan วันนี้");
+
+    // Change severity to 0 to show resolved checkbox
+    await page.fill('input[type="range"]', "0");
+    await page.dispatchEvent('input[type="range"]', "change");
+
+    // The resolved checkbox is shown. Click it.
+    const checkbox = page.locator('input[type="checkbox"]');
+    await checkbox.check();
+
+    // Assert helper copy appears
+    const helperCopy = page.getByTestId("resolved-helper-copy");
+    await expect(helperCopy).toBeVisible();
+    await expect(helperCopy).toContainText("ถึงไม่มีอาการแล้ว RunMate จะยังให้กลับมาเบา ๆ ก่อน");
+  });
+
+  test("duplicate resolved note is not shown and cleans robotic notes", async ({ page }) => {
+    const state = await installMockBackend(page);
+    await gotoApp(page, "/pain");
+
+    // Intercept LLM API for pain analysis
+    await page.route("**/api/analyze-pain", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          ok: true,
+          data: {
+            riskLevel: "low",
+            trainingImpact: "run_ok_easy",
+            coachAdvice: "ค่อย ๆ เพิ่มโหลดกลับแบบคุมความรู้สึก",
+            redFlags: [],
+          },
+        }),
+      });
+    });
+
+    // Populate form
+    await page.getByRole("button", { name: "เข่า", exact: true }).first().click();
+    
+    // Fill notes with duplicate/robotic note patterns
+    const notesInput = page.locator('textarea[placeholder*="เช่น เริ่มเจ็บหลังวิ่ง"]');
+    await notesInput.fill("เจ็บจี๊ด ๆ · ผู้ใช้บันทึกว่าอาการหายแล้ว · ผู้ใช้บันทึกว่าอาการหายแล้วจากหน้า Today");
+
+    // Change severity to 0 to show resolved checkbox and check it
+    await page.fill('input[type="range"]', "0");
+    await page.dispatchEvent('input[type="range"]', "change");
+    await page.locator('input[type="checkbox"]').check();
+
+    // Click submit
+    await page.getByRole("button", { name: "บันทึกและปรับคำแนะนำวันนี้" }).click();
+
+    // Wait for saved state (e.g. success badge)
+    await expect(page.getByText("บันทึกอาการเจ็บแล้ว")).toBeVisible({ timeout: 10000 });
+
+    // Verify history state has clean, non-duplicate note text
+    const painItems = state.history.filter((item) => item.type === "pain");
+    expect(painItems.length).toBe(1);
+    const painLog = painItems[0].data as Record<string, unknown>;
+    expect(painLog.notes).toBe("เจ็บจี๊ด ๆ · ผู้ใช้บันทึกว่าอาการดีขึ้นแล้ว และตอนนี้ไม่มีอาการขณะเดินหรือวิ่งเบา ๆ");
+  });
+
+  test("resolved today does not directly clear to normal training", async ({ page }) => {
+    const CORS_HEADERS = {
+      "access-control-allow-origin": "*",
+      "access-control-allow-headers": "authorization, apikey, content-type, prefer, x-client-info",
+      "access-control-allow-methods": "GET, POST, PATCH, DELETE, OPTIONS",
+    };
+
+    const state = await installMockBackend(page);
+
+    // Add yesterday's active pain to state
+    const yesterday = bangkokDateKey(-1);
+    state.history.push(painItem("pain-yesterday", yesterday, { painLevel: 4, status: "active" }));
+
+    // Intercept single item get REST call to return single item object correctly
+    await page.route("**/e2e-supabase/rest/v1/history_items**", async (route) => {
+      const url = new URL(route.request().url());
+      const method = route.request().method();
+      if (method === "OPTIONS") {
+        await route.fulfill({ status: 204, headers: CORS_HEADERS });
+        return;
+      }
+      if (method === "GET") {
+        const idFilter = url.searchParams.get("id");
+        if (idFilter === "eq.pain-yesterday") {
+          const item = state.history.find((row) => row.id === "pain-yesterday");
+          await route.fulfill({
+            status: 200,
+            contentType: "application/vnd.pgrst.object+json",
+            headers: CORS_HEADERS,
+            body: JSON.stringify(item),
+          });
+          return;
+        }
+        const typeFilter = url.searchParams.get("type");
+        const rows = typeFilter?.startsWith("eq.")
+          ? state.history.filter((row) => row.type === typeFilter.slice(3))
+          : state.history;
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          headers: CORS_HEADERS,
+          body: JSON.stringify(rows),
+        });
+        return;
+      }
+      if (method === "POST" || method === "PATCH") {
+        const raw = route.request().postDataJSON();
+        const rows = Array.isArray(raw) ? raw : [raw];
+        for (const row of rows) {
+          const index = state.history.findIndex((item) => item.id === row.id);
+          if (index >= 0) state.history[index] = { ...state.history[index], ...row };
+          else state.history.push(row);
+        }
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          headers: CORS_HEADERS,
+          body: JSON.stringify(rows),
+        });
+        return;
+      }
+      if (method === "DELETE") {
+        const id = url.searchParams.get("id")?.replace(/^eq\./, "");
+        state.history = state.history.filter((row) => row.id !== id);
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          headers: CORS_HEADERS,
+          body: JSON.stringify([]),
+        });
+        return;
+      }
+    });
+
+    await gotoApp(page, "/pain?from=pain-yesterday");
+
+    // Intercept LLM API for pain analysis
+    await page.route("**/api/analyze-pain", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          ok: true,
+          data: {
+            riskLevel: "low",
+            trainingImpact: "run_ok_easy",
+            coachAdvice: "ดีขึ้นแล้วครับ",
+            redFlags: [],
+          },
+        }),
+      });
+    });
+
+    // Set severity to 0, check resolved, and save today
+    await page.fill('input[type="range"]', "0");
+    await page.dispatchEvent('input[type="range"]', "change");
+    await page.locator('input[type="checkbox"]').check();
+    await page.getByRole("button", { name: "บันทึกและปรับคำแนะนำวันนี้" }).click();
+
+    // Wait for save
+    await expect(page.getByText("บันทึกอาการเจ็บแล้ว")).toBeVisible();
+
+    // Go to Today (Home) page
+    await gotoApp(page, "/");
+
+    // Because it was resolved today (painFreeDays = 0), status is recent_pain, NOT cleared_normal.
+    // It must show recent_pain warning on home page ("เพิ่งมีอาการเจ็บมา").
+    await expect(page.getByTestId("coaching-interpretation-line")).toContainText("เพิ่งมีอาการเจ็บมา", { timeout: 10000 });
+  });
+});

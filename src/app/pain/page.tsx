@@ -78,6 +78,20 @@ function impactLabel(impact: PainTrainingImpact) {
   return "Easy run ได้ถ้าอาการไม่แย่ลง";
 }
 
+function cleanRoboticNotes(rawNotes: string): string {
+  const parts = rawNotes.split(/\s*·\s*/);
+  const cleanParts = parts.filter(p => {
+    const trimmed = p.trim();
+    if (!trimmed) return false;
+    if (trimmed.includes("อาการหายแล้วจากหน้า Today")) return false;
+    if (trimmed.includes("อาการหายแล้ว")) return false;
+    if (trimmed.includes("ไม่มีอาการขณะเดินหรือวิ่งเบา")) return false;
+    if (trimmed.includes("ไม่มีอาการตอนเดินหรือวิ่งเบา")) return false;
+    return true;
+  });
+  return cleanParts.join(" · ").trim();
+}
+
 // ── component ────────────────────────────────────────────────────────────────
 
 function PainPageContent() {
@@ -219,8 +233,13 @@ function PainPageContent() {
         swellingOrRedness,
         canBearWeight,
         notes: canSaveResolved
-          ? [notes.trim(), "ผู้ใช้บันทึกว่าอาการหายแล้ว"].filter(Boolean).join(" · ")
-          : notes.trim() || undefined,
+          ? (() => {
+              const cleaned = cleanRoboticNotes(notes);
+              return cleaned
+                ? `${cleaned} · ผู้ใช้บันทึกว่าอาการดีขึ้นแล้ว และตอนนี้ไม่มีอาการขณะเดินหรือวิ่งเบา ๆ`
+                : "วันนี้ไม่มีอาการตอนเดินหรือวิ่งเบา ๆ";
+            })()
+          : (cleanRoboticNotes(notes) || undefined),
         riskLevel: savedAnalysis.riskLevel,
         trainingImpact: savedAnalysis.trainingImpact,
         coachAdvice: savedAnalysis.coachAdvice,
@@ -399,20 +418,27 @@ function PainPageContent() {
           </div>
 
           {painLevel === 0 && (
-            <label className="flex items-start gap-3 rounded-2xl bg-[#f5faf7] p-3 text-sm text-[#17201d]">
-              <input
-                type="checkbox"
-                checked={markResolved}
-                onChange={(e) => setMarkResolved(e.target.checked)}
-                className="mt-1 h-4 w-4 rounded border-slate-300 accent-[#42677f]"
-              />
-              <span>
-                <span className="font-bold">ตอนนี้หายแล้ว / ไม่มีอาการตอนเดินหรือวิ่งเบา ๆ</span>
-                <span className="mt-1 block text-xs leading-5 text-slate-500">
-                  ระบบจะบันทึกเป็นสถานะหายแล้ว และใช้เป็นอาการล่าสุดในการแนะนำซ้อม
+            <div className="space-y-2">
+              <label className="flex items-start gap-3 rounded-2xl bg-[#f5faf7] p-3 text-sm text-[#17201d]">
+                <input
+                  type="checkbox"
+                  checked={markResolved}
+                  onChange={(e) => setMarkResolved(e.target.checked)}
+                  className="mt-1 h-4 w-4 rounded border-slate-300 accent-[#42677f]"
+                />
+                <span>
+                  <span className="font-bold">ตอนนี้หายแล้ว / ไม่มีอาการตอนเดินหรือวิ่งเบา ๆ</span>
+                  <span className="mt-1 block text-xs leading-5 text-slate-500">
+                    ระบบจะบันทึกเป็นสถานะหายแล้ว และใช้เป็นอาการล่าสุดในการแนะนำซ้อม
+                  </span>
                 </span>
-              </span>
-            </label>
+              </label>
+              {markResolved && (
+                <p className="px-3 text-xs leading-5 text-[#2e7d32] font-semibold animate-fadeIn" data-testid="resolved-helper-copy">
+                  ถึงไม่มีอาการแล้ว RunMate จะยังให้กลับมาเบา ๆ ก่อน จนกว่าอาการจะนิ่งต่อเนื่อง
+                </p>
+              )}
+            </div>
           )}
 
           {/* Pain type + started when */}
@@ -505,10 +531,15 @@ function PainPageContent() {
             loadingText="กำลังวิเคราะห์..."
             className="btn-primary w-full py-3 text-sm"
           >
-            วิเคราะห์และบันทึก
+            บันทึกและปรับคำแนะนำวันนี้
           </LoadingButton>
+          {!submitting && (
+            <p className="mt-2 text-center text-xs text-slate-500 font-medium animate-fadeIn" data-testid="submit-helper-copy">
+              ข้อมูลนี้จะใช้ปรับ Today, Coach และ Race plan วันนี้
+            </p>
+          )}
           {submitting && (
-            <p className="text-center text-xs text-slate-400">AI กำลังประเมินอาการ กรุณารอสักครู่…</p>
+            <p className="text-center text-xs text-slate-400 mt-2">AI กำลังประเมินอาการ กรุณารอสักครู่…</p>
           )}
         </form>
       )}

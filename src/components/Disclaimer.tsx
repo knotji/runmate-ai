@@ -15,9 +15,9 @@ export function Disclaimer({ compact = true }: { compact?: boolean }) {
   return (
     <details className="rounded-2xl border border-[#ead9a9] bg-[#fff6df]/70 px-4 py-3 text-xs leading-6 text-[#7b5d25]">
       <summary className="cursor-pointer list-none font-semibold">
-        คำแนะนำเป็นแนวทางทั่วไป ไม่ใช่คำแนะนำทางการแพทย์ <span className="font-bold underline">อ่านเพิ่มเติม</span>
+        คำแนะนำนี้ใช้เพื่อปรับแผนซ้อมทั่วไป ไม่ใช่การวินิจฉัย <span className="font-bold underline">อ่านเพิ่มเติม</span>
       </summary>
-      <p className="mt-2 text-[#8a6729]">{safetyDisclaimer}</p>
+      <p className="mt-2 text-[#8a6729]">หากปวดมาก บวม แดง หรือรับน้ำหนักไม่ได้ ควรปรึกษาแพทย์</p>
     </details>
   );
 }
