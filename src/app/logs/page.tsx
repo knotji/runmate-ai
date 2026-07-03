@@ -1092,7 +1092,7 @@ function buildRollingInsightCoachNote(dashboard: Dashboard, review: WeeklyReview
 
 function buildRollingInsightPreview(dashboard: Dashboard, review: WeeklyReview | null): string {
   const parts = [
-    dashboard.runKm > 0 ? `Load ${formatDistanceKm(dashboard.runKm)}` : null,
+    dashboard.runKm > 0 ? `วิ่ง 7 วัน ${formatDistanceKm(dashboard.runKm)}` : null,
     review?.avgRecoveryScore != null ? `Recovery เฉลี่ย ${review.avgRecoveryScore}` : null,
     dashboard.avgSleepHours != null ? `นอนเฉลี่ย ${formatSleepAverageHours(dashboard.avgSleepHours)}` : null,
   ].filter(Boolean);
