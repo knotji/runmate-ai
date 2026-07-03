@@ -1,5 +1,5 @@
 /**
- * Profile auto-sync — UX reliability tests for ProfileHistoryAnalyzer.
+ * Profile Auto Sync persistence and manual-field quiet-skip tests.
  *
  * Covers:
  * a) Dismissing a suggestion removes it from the visible list immediately
@@ -8,13 +8,13 @@
  * d) Manual edits via the profile form and inline-edit mark source as "manual"
  * e) Sync result summary appears after analyze/sync
  * f) When no pending suggestions, shows subtle empty state (not heavy empty panel)
- * + toggle, button copy, and localStorage persistence from previous sprint
+ * + Auto Sync Supabase persistence: defaults, toggle, silent-skip, sync summary
  */
 
 import { expect, test } from "@playwright/test";
 import { installMockBackend } from "./helpers/app";
 
-// ── Shared helpers ──────────────────────────────────────────────────────────
+// ── Shared constants ────────────────────────────────────────────────────────
 
 const HIGH_CONFIDENCE_ANALYSIS = {
   ok: true,
@@ -51,22 +51,33 @@ const HIGH_CONFIDENCE_ANALYSIS = {
   },
 };
 
-/** Profile with one manually-set field (weeklyMileageKm) */
-const PROFILE_WITH_MANUAL_MILEAGE = [{
+/**
+ * Legacy profile: field has a value but NO source tag.
+ * These are still shown as pending suggestions (user has to decide).
+ */
+const PROFILE_WITH_LEGACY_MILEAGE = {
   id: "test-profile",
   display_name: "นักวิ่งทดสอบ",
   weekly_mileage_km: 30,
-  field_sources: { weeklyMileageKm: "manual" },
-}];
+  field_sources: {},
+};
 
-/** Profile with two manually-set fields */
-const PROFILE_WITH_TWO_MANUAL = [{
+/** Two legacy (no-source) fields → two pending suggestions */
+const PROFILE_WITH_TWO_LEGACY = {
   id: "test-profile",
   display_name: "นักวิ่งทดสอบ",
   weekly_mileage_km: 30,
   running_days_per_week: 3,
-  field_sources: { weeklyMileageKm: "manual", runningDaysPerWeek: "manual" },
-}];
+  field_sources: {},
+};
+
+/** Explicitly manual field → silently skipped (NOT shown as pending suggestion) */
+const PROFILE_WITH_MANUAL_MILEAGE = {
+  id: "test-profile",
+  display_name: "นักวิ่งทดสอบ",
+  weekly_mileage_km: 30,
+  field_sources: { weeklyMileageKm: "manual" },
+};
 
 const CORS_HEADERS = {
   "access-control-allow-origin": "*",
@@ -74,10 +85,12 @@ const CORS_HEADERS = {
   "access-control-allow-methods": "GET, POST, PATCH, DELETE, OPTIONS",
 };
 
+// ── Shared helpers ──────────────────────────────────────────────────────────
+
 /**
- * Mock the `profiles` table (note: NOT `user_profiles` — the Supabase table is `profiles`).
- * `loadProfileFromSupabase` uses `.maybeSingle()` which sends an Accept header requesting
- * a single JSON object (not an array) from PostgREST. We return the row directly.
+ * Mock the `profiles` table.
+ * loadProfileFromSupabase uses .maybeSingle() — respond with single JSON object.
+ * onSave is called for every POST (upsert) with the request body.
  */
 async function mockProfilesTable(
   page: import("@playwright/test").Page,
@@ -91,7 +104,6 @@ async function mockProfilesTable(
       return;
     }
     if (method === "GET") {
-      // maybeSingle() sends Accept: application/vnd.pgrst.object+json — return single object
       await route.fulfill({
         status: 200,
         contentType: "application/vnd.pgrst.object+json",
@@ -100,7 +112,6 @@ async function mockProfilesTable(
       });
       return;
     }
-    // POST = upsert
     if (method === "POST") {
       try {
         const body = route.request().postDataJSON();
@@ -121,6 +132,7 @@ async function mockProfilesTable(
 async function setupSettingsPage(
   page: import("@playwright/test").Page,
   profileRow: Record<string, unknown> = { id: "test-profile", display_name: "นักวิ่งทดสอบ", field_sources: null },
+  onSave?: (body: unknown) => void,
 ) {
   await installMockBackend(page);
 
@@ -132,7 +144,7 @@ async function setupSettingsPage(
     });
   });
 
-  await mockProfilesTable(page, profileRow);
+  await mockProfilesTable(page, profileRow, onSave);
 
   await page.goto("/settings");
   await page.waitForFunction(() => {
@@ -147,61 +159,75 @@ async function runAnalysis(page: import("@playwright/test").Page) {
   await expect(page.getByText("อัปเดตแล้ว")).toBeVisible({ timeout: 10000 });
 }
 
-// ── Toggle UI ───────────────────────────────────────────────────────────────
+// ── Toggle & persistence ────────────────────────────────────────────────────
 
-test("Auto-sync toggle: renders with correct initial off-state", async ({ page }) => {
-  await setupSettingsPage(page);
-  await expect(page.getByTestId("auto-sync-toggle")).toContainText("เปิด Auto Sync");
+test("Auto-sync toggle: defaults to enabled (ON) when DB column is null", async ({ page }) => {
+  // Supabase returns null for auto_profile_sync_enabled → defaults to true
+  await setupSettingsPage(page, { id: "test-profile", display_name: "นักวิ่งทดสอบ", field_sources: null, auto_profile_sync_enabled: null });
+  // Enabled → button says "ปิด Auto Sync"
+  await expect(page.getByTestId("auto-sync-toggle")).toContainText("ปิด Auto Sync", { timeout: 10000 });
+  await expect(page.getByTestId("auto-sync-panel")).toContainText("เปิดอยู่", { timeout: 5000 });
 });
 
-test("Auto-sync toggle: clicking updates button copy and persists to localStorage", async ({ page }) => {
-  await setupSettingsPage(page);
-  const btn = page.getByTestId("auto-sync-toggle");
+test("Auto-sync toggle: disabled when DB has auto_profile_sync_enabled: false", async ({ page }) => {
+  await setupSettingsPage(page, { id: "test-profile", display_name: "นักวิ่งทดสอบ", field_sources: null, auto_profile_sync_enabled: false });
+  await expect(page.getByTestId("auto-sync-toggle")).toContainText("เปิด Auto Sync", { timeout: 10000 });
+  await expect(page.getByTestId("auto-sync-panel")).toContainText("ปิดอยู่", { timeout: 5000 });
+});
 
-  await btn.click();
-  await expect(btn).toContainText("ปิด Auto Sync");
-  expect(await page.evaluate(() => localStorage.getItem("runmate:autoProfileSyncEnabled"))).toBe("true");
+test("Auto-sync toggle: clicking persists auto_profile_sync_enabled to Supabase", async ({ page }) => {
+  const upserts: Record<string, unknown>[] = [];
+  await setupSettingsPage(
+    page,
+    { id: "test-profile", display_name: "นักวิ่งทดสอบ", field_sources: null, auto_profile_sync_enabled: true },
+    (body) => upserts.push(body as Record<string, unknown>),
+  );
+  await expect(page.getByTestId("auto-sync-toggle")).toContainText("ปิด Auto Sync", { timeout: 10000 });
 
-  await btn.click();
-  await expect(btn).toContainText("เปิด Auto Sync");
-  expect(await page.evaluate(() => localStorage.getItem("runmate:autoProfileSyncEnabled"))).toBe("false");
+  await page.getByTestId("auto-sync-toggle").click();
+  await expect(page.getByTestId("auto-sync-toggle")).toContainText("เปิด Auto Sync", { timeout: 5000 });
+
+  // Supabase should have received an upsert with auto_profile_sync_enabled: false
+  await expect.poll(
+    () => upserts.some((b) => b.auto_profile_sync_enabled === false),
+    { timeout: 5000 },
+  ).toBe(true);
 });
 
 test("Analyze button copy adapts to auto-sync state", async ({ page }) => {
-  await setupSettingsPage(page);
-  await expect(page.getByTestId("analyze-btn")).toContainText("วิเคราะห์ตอนนี้");
+  // Start enabled → button says "ซิงก์โปรไฟล์ตอนนี้"
+  await setupSettingsPage(page, { id: "test-profile", display_name: "นักวิ่งทดสอบ", field_sources: null, auto_profile_sync_enabled: true });
+  await expect(page.getByTestId("analyze-btn")).toContainText("ซิงก์โปรไฟล์ตอนนี้", { timeout: 10000 });
 
+  // Toggle off → button says "วิเคราะห์ตอนนี้"
   await page.getByTestId("auto-sync-toggle").click();
-  await expect(page.getByTestId("analyze-btn")).toContainText("ซิงก์โปรไฟล์ตอนนี้");
+  await expect(page.getByTestId("analyze-btn")).toContainText("วิเคราะห์ตอนนี้");
 });
 
 // ── e) Sync result summary ──────────────────────────────────────────────────
 
-test("e) Sync summary: shows calm message after analysis with no pending suggestions", async ({ page }) => {
-  await setupSettingsPage(page);
+test("e) Sync summary: shows auto-updated count after analysis", async ({ page }) => {
+  // Profile with no existing values → safe fields will be auto-saved
+  await setupSettingsPage(page, { id: "test-profile", display_name: "นักวิ่งทดสอบ", field_sources: null });
   await runAnalysis(page);
 
   const summary = page.getByTestId("sync-summary");
   await expect(summary).toBeVisible();
-  // No manual items → "โปรไฟล์ยังเหมาะสมอยู่" OR "อัปเดตอัตโนมัติ N ค่า"
   const text = await summary.textContent();
-  const isCalm = text?.includes("โปรไฟล์ยังเหมาะสมอยู่") || text?.includes("อัปเดตอัตโนมัติ");
-  expect(isCalm).toBe(true);
+  const isInformative =
+    text?.includes("อัปเดตอัตโนมัติ") ||
+    text?.includes("โปรไฟล์ยังเหมาะสมอยู่");
+  expect(isInformative).toBe(true);
 });
 
-test("e) Sync summary: shows pending count when manual fields exist", async ({ page }) => {
-  await setupSettingsPage(page, PROFILE_WITH_MANUAL_MILEAGE[0] as Record<string, unknown>);
+test("e) Sync summary: shows 'ข้าม N ค่าที่คุณแก้เอง' for silent manual skips", async ({ page }) => {
+  // weeklyMileageKm tagged "manual" → silently skipped → appears in summary
+  await setupSettingsPage(page, PROFILE_WITH_MANUAL_MILEAGE as Record<string, unknown>);
   await runAnalysis(page);
 
-  const summary = page.getByTestId("sync-summary");
-  await expect(summary).toBeVisible();
-  const text = await summary.textContent();
-  // Should mention pending or not-overwritten
-  const isInformative =
-    text?.includes("คำแนะนำรอให้ตรวจ") ||
-    text?.includes("ไม่ทับ") ||
-    text?.includes("อัปเดตอัตโนมัติ");
-  expect(isInformative).toBe(true);
+  await expect(
+    page.getByTestId("sync-summary"),
+  ).toContainText("ข้าม 1 ค่าที่คุณแก้เอง", { timeout: 10000 });
 });
 
 // ── f) Empty pending state ──────────────────────────────────────────────────
@@ -221,24 +247,24 @@ test("f) Empty pending: shows subtle line when no pending suggestions", async ({
 // ── a) Dismissal removes suggestion immediately ─────────────────────────────
 
 test("a) Dismiss: clicking 'คงค่าเดิม' removes suggestion from visible list", async ({ page }) => {
-  await setupSettingsPage(page, PROFILE_WITH_MANUAL_MILEAGE[0] as Record<string, unknown>);
+  // Legacy no-source field → shows as pending suggestion
+  await setupSettingsPage(page, PROFILE_WITH_LEGACY_MILEAGE as Record<string, unknown>);
   await runAnalysis(page);
 
-  // Should see the suggestion panel
   await expect(page.getByText("คำแนะนำที่รอการตัดสินใจ")).toBeVisible();
 
   const keepBtn = page.getByTestId("keep-current-btn").first();
   await expect(keepBtn).toBeVisible();
   await keepBtn.click();
 
-  // Suggestion is removed immediately — panel should be gone or empty
+  // Suggestion removed immediately
   await expect(page.getByTestId("keep-current-btn")).toHaveCount(0);
 });
 
 // ── b) Dismissed suggestion does not return on re-sync ──────────────────────
 
 test("b) Dismissed suggestion does not return after re-sync with same value", async ({ page }) => {
-  await setupSettingsPage(page, PROFILE_WITH_MANUAL_MILEAGE[0] as Record<string, unknown>);
+  await setupSettingsPage(page, PROFILE_WITH_LEGACY_MILEAGE as Record<string, unknown>);
 
   // First analysis
   await runAnalysis(page);
@@ -266,7 +292,7 @@ test("b) Dismissed suggestion does not return after re-sync with same value", as
 // ── c) Accepting suggestion removes it from pending list ─────────────────────
 
 test("c) Accept: clicking 'ใช้ค่าที่แนะนำ' removes suggestion from pending list", async ({ page }) => {
-  await setupSettingsPage(page, PROFILE_WITH_MANUAL_MILEAGE[0] as Record<string, unknown>);
+  await setupSettingsPage(page, PROFILE_WITH_LEGACY_MILEAGE as Record<string, unknown>);
   await runAnalysis(page);
 
   await expect(page.getByText("คำแนะนำที่รอการตัดสินใจ")).toBeVisible();
@@ -280,10 +306,8 @@ test("c) Accept: clicking 'ใช้ค่าที่แนะนำ' removes s
   await expect(page.getByTestId("pending-suggestion-count")).toHaveCount(0);
 });
 
-// ── c) Pending count badge ───────────────────────────────────────────────────
-
-test("c) Pending badge: shows correct count with multiple manual fields", async ({ page }) => {
-  await setupSettingsPage(page, PROFILE_WITH_TWO_MANUAL[0] as Record<string, unknown>);
+test("c) Pending badge: shows correct count with multiple legacy (no-source) fields", async ({ page }) => {
+  await setupSettingsPage(page, PROFILE_WITH_TWO_LEGACY as Record<string, unknown>);
   await runAnalysis(page);
 
   await expect(page.getByText("คำแนะนำที่รอการตัดสินใจ")).toBeVisible();
@@ -293,13 +317,72 @@ test("c) Pending badge: shows correct count with multiple manual fields", async 
   expect(badgeText).toMatch(/\d+ รายการ/);
 });
 
-// ── d) Manual edit protection via form ──────────────────────────────────────
+// ── Manual field quiet-skip ─────────────────────────────────────────────────
+
+test("Manual field (source:'manual') is silently skipped — NOT shown as pending suggestion", async ({ page }) => {
+  // weeklyMileageKm has source "manual" → silently skipped
+  await setupSettingsPage(page, PROFILE_WITH_MANUAL_MILEAGE as Record<string, unknown>);
+  await runAnalysis(page);
+
+  // No pending suggestion should appear for weeklyMileageKm
+  await expect(page.getByTestId("no-pending-suggestions")).toBeVisible({ timeout: 10000 });
+  await expect(page.getByTestId("suggestion-item")).toHaveCount(0, { timeout: 5000 });
+});
+
+test("Legacy (no-source) field IS shown as pending suggestion — not silently skipped", async ({ page }) => {
+  // weeklyMileageKm has a value but NO source tag → legacy behavior → pending suggestion
+  await setupSettingsPage(page, PROFILE_WITH_LEGACY_MILEAGE as Record<string, unknown>);
+  await runAnalysis(page);
+
+  await expect(page.getByTestId("suggestion-item")).toBeVisible({ timeout: 10000 });
+  await expect(page.getByText("คำแนะนำที่รอการตัดสินใจ")).toBeVisible();
+});
+
+test("Combined sync summary: auto-updated + silent-skipped shows both counts", async ({ page }) => {
+  // averageCadence: no value, no source → auto-saved
+  // weeklyMileageKm: value + source "manual" → silently skipped
+  const profile = {
+    id: "test-profile",
+    display_name: "นักวิ่งทดสอบ",
+    average_cadence: null,
+    weekly_mileage_km: 50,
+    field_sources: { weeklyMileageKm: "manual" },
+  };
+  await setupSettingsPage(page, profile);
+  await runAnalysis(page);
+
+  const summary = page.getByTestId("sync-summary");
+  await expect(summary).toContainText("อัปเดตอัตโนมัติ", { timeout: 10000 });
+  await expect(summary).toContainText("ข้าม 1 ค่าที่คุณแก้เอง");
+});
+
+// ── last_auto_profile_sync_at persistence ───────────────────────────────────
+
+test("last_auto_profile_sync_at is saved to Supabase after sync completes", async ({ page }) => {
+  const upserts: Record<string, unknown>[] = [];
+  await setupSettingsPage(
+    page,
+    { id: "test-profile", display_name: "นักวิ่งทดสอบ", field_sources: null },
+    (body) => upserts.push(body as Record<string, unknown>),
+  );
+  await runAnalysis(page);
+
+  // sync-summary appears when done
+  await expect(page.getByTestId("sync-summary")).toBeVisible({ timeout: 10000 });
+
+  // At least one upsert should contain last_auto_profile_sync_at
+  await expect.poll(
+    () => upserts.some((b) => typeof b.last_auto_profile_sync_at === "string" && b.last_auto_profile_sync_at.length > 0),
+    { timeout: 5000 },
+  ).toBe(true);
+});
+
+// ── d) Manual edits via profile form ────────────────────────────────────────
 
 test("d) Profile form: saving a section sends field_sources with 'manual' for changed fields", async ({ page }) => {
   const saveBodies: unknown[] = [];
 
   await installMockBackend(page);
-  // The app saves to the `profiles` table via e2e-supabase (upsert = POST)
   await mockProfilesTable(
     page,
     { id: "test-profile", display_name: "นักวิ่งทดสอบ", weekly_mileage_km: 30, field_sources: {} },
@@ -323,12 +406,12 @@ test("d) Profile form: saving a section sends field_sources with 'manual' for ch
   await expect(editBtn).toBeVisible();
   await editBtn.click();
 
-  // Fill the first number input in the section (e.g. วิ่งไกลสุด)
+  // Fill the first number input in the section
   const numInput = page.locator("input[type='number']").first();
   await expect(numInput).toBeVisible({ timeout: 3000 });
   await numInput.fill("20");
 
-  // Save section → marks changed key(s) as "manual" in local React state
+  // Save section
   await page.getByRole("button", { name: "บันทึก" }).first().click();
 
   // Submit the full form to persist to Supabase
@@ -346,23 +429,19 @@ test("d) Profile form: saving a section sends field_sources with 'manual' for ch
   expect(hasManualSource).toBe(true);
 });
 
-// ── d) Inline edit in analyzer marks source as "manual" ─────────────────────
-
 test("d) Inline edit: 'แก้ค่าเอง' saves value with manual source (not history_analysis)", async ({ page }) => {
   const saveBodies: unknown[] = [];
 
   await installMockBackend(page);
-
   await page.route("**/api/analyze-profile-history", async (route) => {
     await route.fulfill({
       status: 200, contentType: "application/json",
       body: JSON.stringify(HIGH_CONFIDENCE_ANALYSIS),
     });
   });
-
   await mockProfilesTable(
     page,
-    PROFILE_WITH_MANUAL_MILEAGE[0] as Record<string, unknown>,
+    PROFILE_WITH_LEGACY_MILEAGE as Record<string, unknown>,
     (body) => saveBodies.push(body),
   );
 

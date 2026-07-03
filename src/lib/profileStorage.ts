@@ -85,6 +85,8 @@ type ProfileRow = {
   response_detail: string | null;
   language: string | null;
   field_sources: Record<string, string | undefined> | null;
+  auto_profile_sync_enabled: boolean | null;
+  last_auto_profile_sync_at: string | null;
 };
 
 export async function ensureSupabaseProfileSession() {
@@ -241,6 +243,8 @@ function profileToRow(profile: UserProfile, userId: string): Partial<ProfileRow>
     response_detail: cleanText(profile.responseDetail),
     language: cleanText(profile.language) ?? "th",
     field_sources: profile.fieldSources ?? null,
+    auto_profile_sync_enabled: profile.autoProfileSyncEnabled ?? true,
+    last_auto_profile_sync_at: profile.lastAutoProfileSyncAt ?? null,
 
     updated_at: new Date().toISOString(),
   };
@@ -323,6 +327,8 @@ function rowToProfile(row: ProfileRow): UserProfile {
     responseDetail: (row.response_detail as UserProfile["responseDetail"]) ?? undefined,
     language: (row.language as UserProfile["language"]) ?? "th",
     fieldSources: (row.field_sources as UserProfile["fieldSources"]) ?? undefined,
+    autoProfileSyncEnabled: row.auto_profile_sync_enabled ?? true,
+    lastAutoProfileSyncAt: row.last_auto_profile_sync_at ?? undefined,
   };
 }
 

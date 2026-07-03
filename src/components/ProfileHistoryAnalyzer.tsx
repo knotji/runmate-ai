@@ -20,8 +20,6 @@ import type { ProfileAnalysisResult, ProfileAnalysisSuggestions } from "@/lib/an
 import type { UserProfile } from "@/types/profile";
 import { formatBpm } from "@/lib/format";
 
-const LS_AUTO_SYNC_KEY = "runmate:autoProfileSyncEnabled";
-const LS_LAST_SYNC_KEY = "runmate:lastAutoProfileSyncAt";
 
 export type SuggestedValueStatus = "idle" | "applied" | "ignored" | "edited";
 
@@ -95,17 +93,13 @@ function formatValueWithUnit(key: string, v: unknown): string {
   return strVal;
 }
 
-function buildSyncSummaryMessage(autoUpdated: number, pendingCount: number): string {
-  if (autoUpdated > 0 && pendingCount > 0) {
-    return `อัปเดตอัตโนมัติ ${autoUpdated} ค่า · มี ${pendingCount} คำแนะนำรอให้ตรวจ`;
-  }
-  if (autoUpdated > 0 && pendingCount === 0) {
-    return `อัปเดตอัตโนมัติ ${autoUpdated} ค่า เรียบร้อยแล้ว`;
-  }
-  if (autoUpdated === 0 && pendingCount > 0) {
-    return `ไม่ทับ ${pendingCount} ค่าที่คุณแก้เอง · เพิ่มเป็นคำแนะนำแทน`;
-  }
-  return "โปรไฟล์ยังเหมาะสมอยู่ ยังไม่มีค่าที่ต้องปรับตอนนี้";
+function buildSyncSummaryMessage(autoUpdated: number, pendingCount: number, skippedManual: number): string {
+  const parts: string[] = [];
+  if (autoUpdated > 0) parts.push(`อัปเดตอัตโนมัติ ${autoUpdated} ค่า`);
+  if (skippedManual > 0) parts.push(`ข้าม ${skippedManual} ค่าที่คุณแก้เอง`);
+  if (pendingCount > 0) parts.push(`มี ${pendingCount} คำแนะนำรอให้ตรวจ`);
+  if (parts.length === 0) return "โปรไฟล์ยังเหมาะสมอยู่ ยังไม่มีค่าที่ต้องปรับตอนนี้";
+  return parts.join(" · ");
 }
 
 async function applyAndPersist(
@@ -146,21 +140,41 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
   const [syncSummary, setSyncSummary] = useState<string | null>(null);
 
   useEffect(() => {
-    const saved = localStorage.getItem(LS_AUTO_SYNC_KEY);
-    setAutoSyncEnabled(saved === "true");
-    setLastSyncAt(localStorage.getItem(LS_LAST_SYNC_KEY));
+    loadProfileFromSupabase().then((result) => {
+      if (result.ok && result.profile) {
+        setCurrentProfile(result.profile);
+        setAutoSyncEnabled(result.profile.autoProfileSyncEnabled ?? true);
+        setLastSyncAt(result.profile.lastAutoProfileSyncAt ?? null);
+      } else {
+        setAutoSyncEnabled(true);
+      }
+    }).catch(() => {
+      setAutoSyncEnabled(true);
+    });
   }, []);
 
-  function toggleAutoSync() {
+  async function toggleAutoSync() {
     const next = !autoSyncEnabled;
     setAutoSyncEnabled(next);
-    localStorage.setItem(LS_AUTO_SYNC_KEY, next ? "true" : "false");
+    const base = currentProfile ?? ({ displayName: "นักวิ่ง" } as UserProfile);
+    try {
+      const updated = { ...base, autoProfileSyncEnabled: next };
+      await saveProfileToSupabase(updated);
+      setCurrentProfile(updated);
+    } catch {
+      setAutoSyncEnabled(!next);
+    }
   }
 
-  function recordSyncTime() {
+  async function recordSyncTime(savedProfile: UserProfile) {
     const now = new Date().toISOString();
-    localStorage.setItem(LS_LAST_SYNC_KEY, now);
     setLastSyncAt(now);
+    try {
+      await saveProfileToSupabase({ ...savedProfile, lastAutoProfileSyncAt: now });
+      setCurrentProfile((prev) => (prev ? { ...prev, lastAutoProfileSyncAt: now } : prev));
+    } catch {
+      // Sync time is best-effort — don't fail the whole analyze flow
+    }
   }
 
   async function analyze() {
@@ -200,12 +214,13 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
         suggestions.maxHr = stats.maxObservedHR;
       }
 
-      const { toSave, manualSkipped } = buildAutoSaveDecisions({
+      const { toSave, manualSkipped, manualSilentSkipped } = buildAutoSaveDecisions({
         suggestions,
         confidence,
         existingProfile: profile ?? undefined,
         existingSources: profile?.fieldSources ?? {},
       });
+      let totalSilentSkipped = manualSilentSkipped.length;
 
       const updatedKeys = Object.keys(toSave);
 
@@ -259,13 +274,14 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
           carbTargetHardDayG: targets.carbTargetHardDayG,
         };
 
-        const { toSave: nutritionToSave, manualSkipped: nutritionManualSkipped } = filterManualFields({
+        const { toSave: nutritionToSave, manualSkipped: nutritionManualSkipped, manualSilentSkipped: nutritionSilentSkipped } = filterManualFields({
           updates: nutritionFieldUpdates,
           existingSources: profile?.fieldSources ?? {},
           existingProfile: profile ?? undefined,
         });
 
-        console.info("[nutrition-target-debug]", { skippedManual: nutritionManualSkipped });
+        console.info("[nutrition-target-debug]", { skippedManual: nutritionManualSkipped, silentSkipped: nutritionSilentSkipped });
+        totalSilentSkipped += nutritionSilentSkipped.length;
 
         const nutritionKeys = Object.keys(nutritionToSave);
         if (nutritionKeys.length > 0) {
@@ -297,8 +313,8 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
         initStatuses[item.key] = "idle";
       }
       setStatusMap(initStatuses);
-      setSyncSummary(buildSyncSummaryMessage(totalAutoSaved, visibleManualReview.length));
-      recordSyncTime();
+      setSyncSummary(buildSyncSummaryMessage(totalAutoSaved, visibleManualReview.length, totalSilentSkipped));
+      await recordSyncTime(latestSavedProfile);
       setState("done");
     } catch (e) {
       setError(e instanceof Error ? e.message : "เกิดข้อผิดพลาด");
@@ -413,7 +429,7 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
         </div>
         <button
           type="button"
-          onClick={toggleAutoSync}
+          onClick={() => void toggleAutoSync()}
           data-testid="auto-sync-toggle"
           className={`shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold transition-colors ${
             autoSyncEnabled

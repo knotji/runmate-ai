@@ -80,7 +80,10 @@ create table if not exists public.profiles (
   -- 006
   birth_date date null,
   -- 008
-  field_sources jsonb null
+  field_sources jsonb null,
+  -- 013
+  auto_profile_sync_enabled boolean not null default true,
+  last_auto_profile_sync_at timestamptz null
 );
 
 create table if not exists public.race_goals (

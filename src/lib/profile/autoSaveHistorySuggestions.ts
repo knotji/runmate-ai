@@ -134,10 +134,12 @@ export function buildAutoSaveDecisions({
 }): {
   toSave: Partial<UserProfile>;
   manualSkipped: string[];
+  manualSilentSkipped: string[];
   decisions: SafeMergeDecision[];
 } {
   const toSave: Partial<Record<string, unknown>> = {};
   const manualSkipped: string[] = [];
+  const manualSilentSkipped: string[] = [];
   const decisions: SafeMergeDecision[] = [];
   const finalConfidence = confidence || "low";
 
@@ -145,8 +147,13 @@ export function buildAutoSaveDecisions({
     const normalized = normalizeSuggestion(key as keyof ProfileAnalysisSuggestions, rawSuggested);
     const existing = existingProfile?.[key as keyof UserProfile];
 
-    const isManual = existingSources?.[key] === "manual" ||
-      (existing !== undefined && existing !== null && existing !== "" && existingSources?.[key] !== "history_analysis");
+    // Truly manual: user explicitly edited this field → skip silently, never show as pending
+    const isTrulyManual = existingSources?.[key] === "manual";
+    // Legacy: field has a value but no source tag → show as pending suggestion for user to review
+    const isLegacyNoSource =
+      !isTrulyManual &&
+      existing !== undefined && existing !== null && existing !== "" &&
+      existingSources?.[key] !== "history_analysis";
 
     // 4. Never overwrite with invalid values
     if (!isValidSuggestionValue(normalized)) {
@@ -169,8 +176,8 @@ export function buildAutoSaveDecisions({
       continue;
     }
 
-    if (isManual) {
-      manualSkipped.push(key);
+    if (isTrulyManual) {
+      manualSilentSkipped.push(key);
       decisions.push({
         key,
         existingValue: existing,
@@ -184,6 +191,27 @@ export function buildAutoSaveDecisions({
           currentValue: existing,
           suggestedValue: normalized,
           fieldSource: "manual",
+          action: "skipped_manual"
+        });
+      }
+      continue;
+    }
+
+    if (isLegacyNoSource) {
+      manualSkipped.push(key);
+      decisions.push({
+        key,
+        existingValue: existing,
+        suggestedValue: normalized,
+        confidence: finalConfidence,
+        action: "skipped_manual"
+      });
+      if (process.env.NODE_ENV === "development") {
+        console.info(`[profile-safe-sync]`, {
+          fieldName: key,
+          currentValue: existing,
+          suggestedValue: normalized,
+          fieldSource: "none (legacy value)",
           action: "skipped_manual"
         });
       }
@@ -256,7 +284,7 @@ export function buildAutoSaveDecisions({
     console.info(`[profile-safe-sync] final update payload keys:`, Object.keys(toSave));
   }
 
-  return { toSave: toSave as Partial<UserProfile>, manualSkipped, decisions };
+  return { toSave: toSave as Partial<UserProfile>, manualSkipped, manualSilentSkipped, decisions };
 }
 
 /** Legacy wrapper kept for any callers that still use it */
@@ -271,7 +299,10 @@ export function getAutoSavableProfileUpdates({
   return toSave;
 }
 
-/** Remove fields the user has manually edited — returns rest + list of skipped keys */
+/** Remove fields the user has manually edited — returns rest + list of skipped keys.
+ *  manualSilentSkipped: explicitly tagged "manual" — don't show as pending suggestion.
+ *  manualSkipped: legacy value (no source tag) — show as pending suggestion for user to review.
+ */
 export function filterManualFields({
   updates,
   existingSources,
@@ -280,14 +311,18 @@ export function filterManualFields({
   updates: Partial<UserProfile>;
   existingSources: UserProfile["fieldSources"];
   existingProfile?: Partial<UserProfile>;
-}): { toSave: Partial<UserProfile>; manualSkipped: string[] } {
+}): { toSave: Partial<UserProfile>; manualSkipped: string[]; manualSilentSkipped: string[] } {
   const toSave: Partial<Record<string, unknown>> = {};
   const manualSkipped: string[] = [];
+  const manualSilentSkipped: string[] = [];
 
   for (const [key, val] of Object.entries(updates)) {
     const existing = existingProfile?.[key as keyof UserProfile];
-    const isManual = existingSources?.[key] === "manual" ||
-      (existing !== undefined && existing !== null && existing !== "" && existingSources?.[key] !== "history_analysis");
+    const isTrulyManual = existingSources?.[key] === "manual";
+    const isLegacyNoSource =
+      !isTrulyManual &&
+      existing !== undefined && existing !== null && existing !== "" &&
+      existingSources?.[key] !== "history_analysis";
 
     // 4. Never overwrite with invalid values
     if (!isValidSuggestionValue(val)) {
@@ -303,14 +338,25 @@ export function filterManualFields({
       continue;
     }
 
-    if (isManual) {
-      manualSkipped.push(key);
+    if (isTrulyManual) {
+      manualSilentSkipped.push(key);
       if (process.env.NODE_ENV === "development") {
         console.info(`[profile-safe-sync]`, {
           fieldName: key,
           currentValue: existing,
           suggestedValue: val,
           fieldSource: "manual",
+          action: "skipped_manual"
+        });
+      }
+    } else if (isLegacyNoSource) {
+      manualSkipped.push(key);
+      if (process.env.NODE_ENV === "development") {
+        console.info(`[profile-safe-sync]`, {
+          fieldName: key,
+          currentValue: existing,
+          suggestedValue: val,
+          fieldSource: "none (legacy value)",
           action: "skipped_manual"
         });
       }
@@ -332,7 +378,7 @@ export function filterManualFields({
     console.info(`[profile-safe-sync] final update payload keys:`, Object.keys(toSave));
   }
 
-  return { toSave: toSave as Partial<UserProfile>, manualSkipped };
+  return { toSave: toSave as Partial<UserProfile>, manualSkipped, manualSilentSkipped };
 }
 
 /** Build field_sources update record for a list of auto-saved keys */
