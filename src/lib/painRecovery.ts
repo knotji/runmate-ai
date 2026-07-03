@@ -43,6 +43,18 @@ export const PAIN_RECOVERY_COPY: Record<PainRecoveryStatus, string> = {
   cleared_normal: "อาการดูนิ่งขึ้นแล้ว กลับเข้าแผนได้แบบค่อยเป็นค่อยไป",
 };
 
+// ── Validator ─────────────────────────────────────────────────────────────────
+
+export function isPainRecoveryStatus(value: unknown): value is PainRecoveryStatus {
+  return (
+    value === "active_pain" ||
+    value === "recent_pain" ||
+    value === "improving" ||
+    value === "cleared_light" ||
+    value === "cleared_normal"
+  );
+}
+
 // ── Core logic ────────────────────────────────────────────────────────────────
 
 export function getPainRecoveryStatus(input: PainRecoveryInput): PainRecoveryStatus {

@@ -393,6 +393,7 @@ const emptyContext: CoachContext = {
   activePain: false,
   recentPainHistory: false,
   painResolved: false,
+  painRecoveryStatus: "cleared_normal",
   nutritionBalanceToday: null,
   readinessV2: null,
   recoverySystem: null as unknown as RunMateRecoverySystem,
