@@ -150,7 +150,7 @@ test("Daily slots are collapsed by default (no full DayCard details)", async ({ 
   await expect(page.getByTestId("week-day-list").locator("summary").getByText(/5 กม\./)).toBeVisible();
   await expect(page.getByTestId("week-day-list").locator("summary").getByText(/อาหาร 1 มื้อ · โปรตีน 38g · คาร์บ 82g/)).toBeVisible();
   await expect(page.getByText("ข้าวไก่ย่าง")).not.toBeVisible();
-  await expect(page.getByTestId("report-day").first()).not.toBeVisible();
+  await expect(page.getByTestId("report-compact-item").first()).not.toBeVisible();
 
   const dataSlot = page.getByTestId("day-slot").filter({ hasText: /5/ }).first();
   await expect(dataSlot.getByText("รายละเอียด ˅")).toBeVisible();
@@ -175,7 +175,7 @@ test("Rolling 7d insight and full history are collapsed by default", async ({ pa
   await expect(page.getByText("แนวโน้ม Recovery 7 วัน")).not.toBeVisible();
   await expect(page.getByText("ตัวเลขสรุป 7 วันล่าสุด")).not.toBeVisible();
   await expect(page.getByTestId("full-history-details")).toBeVisible();
-  await expect(page.getByTestId("report-day").first()).not.toBeVisible();
+  await expect(page.getByTestId("report-compact-item").first()).not.toBeVisible();
   await expect(page.getByRole("button", { name: "ทั้งหมด" })).not.toBeVisible();
 
   await page.getByText("ดูรายละเอียด 7 วันล่าสุด").click();
@@ -184,7 +184,50 @@ test("Rolling 7d insight and full history are collapsed by default", async ({ pa
 
   await page.getByText("รายการทั้งหมด").click();
   await expect(page.getByRole("button", { name: "ทั้งหมด" })).toBeVisible();
-  await expect(page.getByTestId("report-day").first()).toBeVisible();
+  await expect(page.getByTestId("report-compact-item").first()).toBeVisible();
+});
+
+test("all-items section compact layout and lazy loading", async ({ page }) => {
+  const state = await installMockBackend(page);
+  // Inject 10 sleep logs
+  for (let i = 0; i < 10; i++) {
+    state.history.push(makeSleep(bangkokDateKey(), `sleep-lazy-${i}`));
+  }
+
+  await gotoApp(page, "/logs");
+
+  // Verify full-history details summary has "เปิด"
+  await expect(page.getByTestId("full-history-details").getByText("เปิด")).toBeVisible();
+
+  // Open "รายการทั้งหมด"
+  await page.getByText("รายการทั้งหมด").click();
+
+  // Verify button changes to "ซ่อนรายการ"
+  await expect(page.getByTestId("full-history-details").getByText("ซ่อนรายการ")).toBeVisible();
+
+  // Initial visible compact items should be 7
+  await expect(page.getByTestId("report-compact-item")).toHaveCount(7);
+
+  // Verify "ดูเพิ่ม" is visible
+  const loadMoreBtn = page.getByRole("button", { name: "ดูเพิ่ม" });
+  await expect(loadMoreBtn).toBeVisible();
+
+  // Click "ดูเพิ่ม"
+  await loadMoreBtn.click();
+
+  // Now all 10 compact items should be visible
+  await expect(page.getByTestId("report-compact-item")).toHaveCount(10);
+  await expect(loadMoreBtn).not.toBeVisible();
+
+  // Expand one item
+  const firstItem = page.getByTestId("report-compact-item").first();
+  await expect(firstItem.getByTestId("compact-item-details")).not.toBeVisible();
+  await firstItem.getByRole("button", { name: "รายละเอียด" }).click();
+  await expect(firstItem.getByTestId("compact-item-details")).toBeVisible();
+  
+  // Collapse it
+  await firstItem.getByRole("button", { name: "ย่อ" }).click();
+  await expect(firstItem.getByTestId("compact-item-details")).not.toBeVisible();
 });
 
 // ─── Month mode shows monthly summary ─────────────────────────────────────────
@@ -203,7 +246,7 @@ test("Switching to month mode shows month week blocks", async ({ page }) => {
   await expect(page.getByTestId("month-week-block").first()).toBeVisible();
   // Period metrics visible
   await expect(page.getByTestId("period-metrics")).toBeVisible();
-  await expect(page.getByTestId("report-day").first()).not.toBeVisible();
+  await expect(page.getByTestId("report-compact-item").first()).not.toBeVisible();
 });
 
 // ─── Month navigation ──────────────────────────────────────────────────────────

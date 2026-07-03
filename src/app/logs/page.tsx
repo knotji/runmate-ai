@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
 import { LoadingButton } from "@/components/LoadingButton";
@@ -746,19 +746,11 @@ function RollingSevenDayInsight({
 function FullHistoryDetails({
   activeFilter,
   onFilterChange,
-  filteredDays,
-  visibleDays,
-  olderDays,
-  showOlderDays,
-  onToggleOlderDays,
   items,
-  raceResultsByDate,
   proteinTarget,
   onDeleteItem,
   onEditItem,
-  onDeleteRaceResult,
   deletingKey,
-  yesterdayDateKey,
 }: {
   activeFilter: ReportFilter;
   onFilterChange: (filter: ReportFilter) => void;
@@ -777,6 +769,48 @@ function FullHistoryDetails({
   todayDateKey: string;
   yesterdayDateKey: string;
 }) {
+  const [visibleCount, setVisibleCount] = useState(7);
+
+  // Reset visibleCount on filter change
+  useEffect(() => {
+    setVisibleCount(7);
+  }, [activeFilter]);
+
+  // Filter and sort individual items
+  const sortedItems = useMemo(() => {
+    const list = items.filter((item) => {
+      if (activeFilter === "all") return true;
+      if (activeFilter === "run") {
+        return item.type === "workout" && isRun(item);
+      }
+      if (activeFilter === "meal") {
+        return item.type === "meal";
+      }
+      if (activeFilter === "strength") {
+        return (
+          item.type === "strength" ||
+          (item.type === "workout" && !isRun(item) && !isWalk(item) && (item.data as WorkoutAnalysis)?.extracted?.workoutKind === "strength")
+        );
+      }
+      if (activeFilter === "pain") {
+        return item.type === "pain";
+      }
+      if (activeFilter === "health") {
+        return item.type === "health_check";
+      }
+      return true;
+    });
+    return [...list].sort((a, b) => Date.parse(b.recordedAt || b.createdAt) - Date.parse(a.recordedAt || a.createdAt));
+  }, [items, activeFilter]);
+
+  const painMetaById = useMemo(() => {
+    const pains = items.filter((i) => i.type === "pain");
+    return buildPainDisplayMeta(pains);
+  }, [items]);
+
+  const visibleItems = sortedItems.slice(0, visibleCount);
+  const hasMore = sortedItems.length > visibleCount;
+
   return (
     <details className="group rounded-3xl border border-[var(--color-border-soft)] bg-[var(--surface)] p-4 shadow-sm" data-testid="full-history-details">
       <summary className="list-none cursor-pointer">
@@ -786,8 +820,8 @@ function FullHistoryDetails({
             <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">ดูบันทึกทั้งหมดแบบละเอียด</p>
           </div>
           <span className="rounded-full bg-[var(--surface-muted)] px-3 py-1.5 text-[10px] font-bold text-[var(--primary)]">
-            <span className="group-open:hidden">เปิดดู</span>
-            <span className="hidden group-open:inline">ซ่อน</span>
+            <span className="group-open:hidden">เปิด</span>
+            <span className="hidden group-open:inline">ซ่อนรายการ</span>
           </span>
         </div>
       </summary>
@@ -795,43 +829,223 @@ function FullHistoryDetails({
       <div className="mt-4 space-y-4 border-t border-[var(--color-border-soft)] pt-4">
         <FilterPills activeFilter={activeFilter} onFilterChange={onFilterChange} />
 
-        {activeFilter === "pain" && (
-          <PainHistoryCompactList items={items} onDelete={onDeleteItem} deletingKey={deletingKey} />
-        )}
-
-        {filteredDays.length === 0 ? (
+        {sortedItems.length === 0 ? (
           <section className="card p-5 text-center text-sm text-slate-500">ไม่พบรายการที่ตรงกับตัวกรอง</section>
         ) : (
-          <>
-            {visibleDays.map((day) => (
-              <DayCard
-                key={day.date}
-                day={day}
-                raceResults={raceResultsByDate.get(day.date) ?? []}
-                proteinTarget={proteinTarget}
-                onDeleteItem={onDeleteItem}
-                onEditItem={onEditItem}
-                onDeleteRaceResult={onDeleteRaceResult}
-                deletingKey={deletingKey}
-                initialExpanded={day.date >= yesterdayDateKey}
-              />
-            ))}
-            {olderDays.length > 0 && (
+          <div className="space-y-4">
+            <div className="divide-y divide-[var(--color-border-soft)] text-[var(--foreground)]">
+              {visibleItems.map((item) => (
+                <CompactHistoryItemRow
+                  key={item.id}
+                  item={item}
+                  painMetaById={painMetaById}
+                  onDeleteItem={onDeleteItem}
+                  onEditItem={onEditItem}
+                  deletingKey={deletingKey}
+                />
+              ))}
+            </div>
+
+            {hasMore && (
               <button
                 type="button"
-                onClick={onToggleOlderDays}
-                className="w-full rounded-2xl border border-slate-200 bg-white/75 px-4 py-3 text-sm font-bold text-slate-600"
+                onClick={() => setVisibleCount((c) => c + 7)}
+                className="w-full rounded-2xl border border-slate-200 bg-white/75 px-4 py-3 text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors"
               >
-                {showOlderDays ? "ซ่อนรายการก่อนหน้า" : `ดูรายการก่อนหน้า (${olderDays.length} วัน)`}
+                ดูเพิ่ม
               </button>
             )}
-          </>
+          </div>
         )}
       </div>
     </details>
   );
 }
 
+function CompactHistoryItemRow({
+  item,
+  painMetaById,
+  onDeleteItem,
+  onEditItem,
+  deletingKey,
+}: {
+  item: LocalHistoryItem;
+  painMetaById: Map<string, PainDisplayMeta>;
+  onDeleteItem: (item: LocalHistoryItem) => void;
+  onEditItem: (item: LocalHistoryItem) => void;
+  deletingKey: string | null;
+}) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const mappedType = getMappedTypeName(item);
+
+  return (
+    <div data-testid="report-compact-item" data-date-key={getHistoryItemDateKey(item)} className="py-3 border-b border-[var(--color-border-soft)] last:border-0">
+      <div
+        className="flex items-center justify-between gap-3 cursor-pointer select-none"
+        onClick={() => setIsExpanded((prev) => !prev)}
+      >
+        <div className="flex flex-wrap items-center gap-2 min-w-0">
+          <span className="text-[11px] font-semibold text-[var(--color-text-muted)]">
+            {formatItemDateTime(item)}
+          </span>
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${getTypeBadgeStyles(mappedType)}`}>
+            {mappedType}
+          </span>
+          <span className="text-sm font-medium text-[var(--foreground)] truncate max-w-[200px] sm:max-w-xs md:max-w-md">
+            {getItemShortSummary(item)}
+          </span>
+        </div>
+        <button
+          type="button"
+          className="text-xs font-bold text-[var(--primary)] hover:underline shrink-0"
+        >
+          {isExpanded ? "ย่อ" : "รายละเอียด"}
+        </button>
+      </div>
+      {isExpanded && (
+        <div className="mt-3 space-y-3" data-testid="compact-item-details">
+          {renderDetailCard(item, painMetaById, onDeleteItem, onEditItem, deletingKey)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function getMappedTypeName(item: LocalHistoryItem): string {
+  if (item.type === "meal") return "food";
+  if (item.type === "health_check") return "health";
+  if (item.type === "strength") return "workout";
+  return item.type; // sleep, workout, pain, body, summary
+}
+
+function getTypeBadgeStyles(type: string): string {
+  if (type === "sleep") return "bg-indigo-50 text-indigo-700 border border-indigo-100";
+  if (type === "workout") return "bg-emerald-50 text-emerald-700 border border-emerald-100";
+  if (type === "food") return "bg-orange-50 text-orange-700 border border-orange-100";
+  if (type === "pain") return "bg-red-50 text-red-700 border border-red-100";
+  if (type === "body") return "bg-purple-50 text-purple-700 border border-purple-100";
+  if (type === "health") return "bg-blue-50 text-blue-700 border border-blue-100";
+  return "bg-slate-50 text-slate-700 border border-slate-100";
+}
+
+function formatItemDateTime(item: LocalHistoryItem): string {
+  const dateStr = getHistoryItemDateKey(item);
+  const formattedDate = formatDayLabel(dateStr);
+  const time = formatBangkokTime(item.recordedAt || item.createdAt);
+  return time ? `${formattedDate} ${time} น.` : formattedDate;
+}
+
+function getItemShortSummary(item: LocalHistoryItem): string {
+  if (item.type === "sleep") {
+    const ext = (item.data as SleepAnalysis)?.extracted ?? {};
+    const rawDur = getSleepDurationRaw(item);
+    const durStr = rawDur ? formatSleepDuration(rawDur) : "";
+    const scoreStr = ext.sleepScore != null ? ` (คะแนน ${ext.sleepScore})` : "";
+    return `นอน ${durStr}${scoreStr}`.trim() || "บันทึกการนอน";
+  }
+  if (item.type === "workout") {
+    const ext = (item.data as WorkoutAnalysis)?.extracted ?? {};
+    const kindLabel =
+      ext.workoutKind === "outdoor_run" ? "วิ่งเอาท์ดอร์"
+      : ext.workoutKind === "treadmill" ? "วิ่งเทรดมิล"
+      : ext.workoutKind === "walk" ? "เดิน"
+      : ext.workoutKind === "cycling" ? "ปั่นจักรยาน"
+      : ext.workoutKind === "strength" ? "เวท"
+      : "ออกกำลังกาย";
+    const parts = [kindLabel];
+    if (ext.distanceKm != null) parts.push(`${formatDecimal(ext.distanceKm)} กม.`);
+    if (ext.duration) parts.push(formatDuration(ext.duration));
+    return parts.join(" · ");
+  }
+  if (item.type === "meal") {
+    const d = extractMealData(item);
+    const isQuickProtein = isQuickProteinMeal(item.data);
+    const n = normalizeMealNutrition(d);
+    const normalizedSlot = normalizeMealSlot(item, item.recordedAt || item.createdAt);
+    const label = isQuickProtein ? "Quick log" : getMealSlotLabel(normalizedSlot);
+    const foodNames = isQuickProtein
+      ? "บันทึกโปรตีนด่วน"
+      : d.detectedFoods?.map((f) => f.name).filter(Boolean).join(", ") || d?.extracted?.detectedFood || "อาหาร";
+    
+    const macroParts = [];
+    if (n.proteinG != null) macroParts.push(`โปรตีน ${Math.round(n.proteinG)}g`);
+    if (n.caloriesKcal != null) macroParts.push(`${Math.round(n.caloriesKcal)} kcal`);
+    
+    const macroStr = macroParts.length > 0 ? ` (${macroParts.join(" · ")})` : "";
+    return `${label}: ${truncate(foodNames, 45)}${macroStr}`;
+  }
+  if (item.type === "pain") {
+    const painLog = item.data as PainLog;
+    if (!painLog) return "บันทึกอาการเจ็บ";
+    const isResolved = isResolvedPainItem(item);
+    const loc = painLog.painLocation || "อาการเจ็บ";
+    const side = painLog.painSide && painLog.painSide !== "unknown"
+      ? ` (${painLog.painSide === "left" ? "ซ้าย" : painLog.painSide === "right" ? "ขวา" : painLog.painSide === "both" ? "ทั้งสองข้าง" : painLog.painSide})`
+      : "";
+    if (isResolved) return `หายแล้ว: ${loc}${side}`;
+    return `เจ็บ ${loc}${side} · ระดับ ${painLog.painLevel}/10`;
+  }
+  if (item.type === "body") {
+    const ext = (item.data as BodyCompositionAnalysis)?.extracted ?? {};
+    const parts = [];
+    if (ext.weightKg != null) parts.push(`น้ำหนัก ${formatDecimal(ext.weightKg)} กก.`);
+    if (ext.bodyFatPercent != null) parts.push(`ไขมัน ${formatPercent(ext.bodyFatPercent)}`);
+    if (ext.skeletalMuscleKg != null) parts.push(`กล้ามเนื้อ ${formatDecimal(ext.skeletalMuscleKg)} กก.`);
+    return parts.length > 0 ? parts.join(" · ") : "บันทึกร่างกาย";
+  }
+  if (item.type === "health_check") {
+    const d = item.data as HealthCheckAnalysis;
+    const labsCount = Object.keys(d.labs || {}).length;
+    return labsCount > 0 ? `ผลตรวจสุขภาพ (${labsCount} รายการ)` : "ผลตรวจสุขภาพ";
+  }
+  if (item.type === "strength") {
+    const log = item.data as StrengthLog;
+    if (!log) return "เวทเทรนนิ่ง";
+    const routine = log.routineName || "เวทเทรนนิ่ง";
+    const dur = log.durationMin ? ` · ${log.durationMin} นาที` : "";
+    return `${routine}${dur}`;
+  }
+  if (item.type === "summary") {
+    const d = item.data as DailySummary & { coachMessage?: string; overallSummary?: string };
+    return truncate(d?.coachMessage ?? d?.overallSummary ?? "สรุปท้ายวัน", 60);
+  }
+  return "บันทึกข้อมูล";
+}
+
+function renderDetailCard(
+  item: LocalHistoryItem,
+  painMetaById: Map<string, PainDisplayMeta>,
+  onDeleteItem: (item: LocalHistoryItem) => void,
+  onEditItem: (item: LocalHistoryItem) => void,
+  deletingKey: string | null
+): React.ReactNode {
+  if (item.type === "sleep") {
+    return <SleepDetail item={item} onDelete={onDeleteItem} deleting={deletingKey === item.id} />;
+  }
+  if (item.type === "workout") {
+    return <WorkoutDetail item={item} onDelete={onDeleteItem} deleting={deletingKey === item.id} />;
+  }
+  if (item.type === "meal") {
+    return <MealDetail item={item} onDelete={onDeleteItem} onEdit={onEditItem} deleting={deletingKey === item.id} />;
+  }
+  if (item.type === "pain") {
+    return <PainDetail item={item} meta={painMetaById.get(item.id)} onDelete={onDeleteItem} deleting={deletingKey === item.id} />;
+  }
+  if (item.type === "body") {
+    return <BodyDetail item={item} onDelete={onDeleteItem} deleting={deletingKey === item.id} />;
+  }
+  if (item.type === "health_check") {
+    return <HealthCheckDetail item={item} onDelete={onDeleteItem} deleting={deletingKey === item.id} />;
+  }
+  if (item.type === "strength") {
+    return <StrengthDetail item={item} onDelete={onDeleteItem} deleting={deletingKey === item.id} />;
+  }
+  if (item.type === "summary") {
+    return <SummaryDetail item={item} onDelete={onDeleteItem} deleting={deletingKey === item.id} />;
+  }
+  return null;
+}
 function FilterPills({
   activeFilter,
   onFilterChange,

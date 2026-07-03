@@ -425,6 +425,7 @@ test("Report page shows updated readiness labels and disclaimers", async ({ page
   await page.getByTestId("full-history-details").evaluate((el) => {
     (el as HTMLDetailsElement).open = true;
   });
+  await page.getByRole("button", { name: "รายละเอียด" }).first().click();
   await expect(page.getByText("* Readiness เป็นคะแนนความพร้อมจากข้อมูล recovery ของวันนั้น ไม่ใช่คะแนนสรุปทั้งวัน")).toBeVisible();
 });
 

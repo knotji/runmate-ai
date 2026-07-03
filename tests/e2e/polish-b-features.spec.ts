@@ -47,17 +47,18 @@ test("protein quick log record appears in Report without guessed kcal/carbs/fat"
 
   await gotoApp(page, "/logs");
   await page.getByText("รายการทั้งหมด").click();
-  const day = reportDayByDate(page, today);
-  const mealCard = day.getByTestId("report-meal-card");
+  const compactItem = page.locator(`[data-testid="report-compact-item"][data-date-key="${today}"]`).first();
+  await expect(compactItem).toBeVisible();
+  await compactItem.getByRole("button", { name: "รายละเอียด" }).click();
+  const mealCard = compactItem.getByTestId("report-meal-card");
   await expect(mealCard.getByText("กินโปรตีนแล้ว · 25g")).toBeVisible();
   await expect(mealCard.getByText("บันทึกไว ๆ")).toBeVisible();
   await expect(mealCard.getByText("450 kcal")).toHaveCount(0);
-  await expect(day.getByText("25 /").first()).toBeVisible();
 });
 
 // ─── Phase B2: Report day collapse ────────────────────────────────────────────
 
-test("today starts expanded and 3-day-old card starts collapsed", async ({ page }) => {
+test("all items start collapsed by default and can be expanded", async ({ page }) => {
   const state = await installMockBackend(page);
 
   // Inject a workout 3 days ago (falls within recentDays slice but not today/yesterday)
@@ -84,24 +85,22 @@ test("today starts expanded and 3-day-old card starts collapsed", async ({ page 
   await gotoApp(page, "/logs");
   await page.getByText("รายการทั้งหมด").click();
 
-  // Today card — expanded by default: meal card visible without clicking toggle
-  const today = reportDayByDate(page, bangkokDateKey());
-  await expect(today).toBeVisible();
-  await expect(today.getByTestId("report-meal-card")).toBeVisible();
+  // Today item
+  const todayItem = page.locator(`[data-testid="report-compact-item"][data-date-key="${bangkokDateKey()}"]`).first();
+  await expect(todayItem).toBeVisible();
+  await expect(todayItem.getByTestId("report-meal-card")).not.toBeVisible();
 
-  // Old day card (3 days ago) — collapsed by default: no meal/workout cards visible
-  const oldDay = reportDayByDate(page, oldDate);
-  await expect(oldDay).toBeVisible();
-  await expect(oldDay.getByText("ดูรายละเอียด")).toBeVisible();
-  await expect(oldDay.getByTestId("report-workout-card").or(oldDay.getByTestId("report-meal-card"))).toHaveCount(0);
+  // Old item (3 days ago)
+  const oldItem = page.locator(`[data-testid="report-compact-item"][data-date-key="${oldDate}"]`).first();
+  await expect(oldItem).toBeVisible();
+  await expect(oldItem.getByTestId("report-workout-card")).not.toBeVisible();
 
-  // After toggle, content becomes visible
-  await oldDay.getByTestId("report-day-toggle").click();
-  // Content area appears (border-t div becomes visible)
-  await expect(oldDay.locator(".border-t").first()).toBeVisible();
+  // Expand old item
+  await oldItem.getByRole("button", { name: "รายละเอียด" }).click();
+  await expect(oldItem.getByTestId("report-workout-card")).toBeVisible();
 });
 
-test("yesterday starts expanded by default", async ({ page }) => {
+test("yesterday starts collapsed by default and can be expanded", async ({ page }) => {
   const state = await installMockBackend(page);
 
   // Save a breakfast today, then also inject yesterday's workout
@@ -125,16 +124,19 @@ test("yesterday starts expanded by default", async ({ page }) => {
   await gotoApp(page, "/logs");
   await page.getByText("รายการทั้งหมด").click();
 
-  // Yesterday card — expanded by default, so border-t content div is in DOM
-  const yesterday = reportDayByDate(page, yesterdayKey);
-  await expect(yesterday).toBeVisible();
-  // The expanded content area has class "border-t" and is only rendered when expanded
-  await expect(yesterday.locator(".border-t").first()).toBeVisible();
+  // Yesterday card — collapsed by default
+  const yesterdayItem = page.locator(`[data-testid="report-compact-item"][data-date-key="${yesterdayKey}"]`).first();
+  await expect(yesterdayItem).toBeVisible();
+  await expect(yesterdayItem.getByTestId("report-workout-card")).not.toBeVisible();
+
+  // Expand
+  await yesterdayItem.getByRole("button", { name: "รายละเอียด" }).click();
+  await expect(yesterdayItem.getByTestId("report-workout-card")).toBeVisible();
 });
 
 // ─── Phase B2b: Expand / collapse an older day ───────────────────────────────
 
-test("older day can be expanded then collapsed with ดูรายละเอียด / ย่อ", async ({ page }) => {
+test("older day can be expanded then collapsed with รายละเอียด / ย่อ", async ({ page }) => {
   const state = await installMockBackend(page);
 
   // Inject a workout 3 days ago
@@ -158,23 +160,24 @@ test("older day can be expanded then collapsed with ดูรายละเอ�
   await gotoApp(page, "/logs");
   await page.getByText("รายการทั้งหมด").click();
 
-  const oldDay = reportDayByDate(page, oldDate);
-  await expect(oldDay).toBeVisible();
+  const oldItem = page.locator(`[data-testid="report-compact-item"][data-date-key="${oldDate}"]`).first();
+  await expect(oldItem).toBeVisible();
 
-  // Collapsed: toggle shows "ดูรายละเอียด"
-  const toggle = oldDay.getByTestId("report-day-toggle");
-  await expect(toggle.getByText("ดูรายละเอียด")).toBeVisible();
+  // Collapsed: toggle shows "รายละเอียด"
+  const toggle = oldItem.getByRole("button", { name: "รายละเอียด" });
+  await expect(toggle).toBeVisible();
 
   // Expand
   await toggle.click();
-  await expect(toggle.getByText("ย่อ")).toBeVisible();
-  // Expanded content area is present
-  await expect(oldDay.locator(".border-t").first()).toBeVisible();
+  // Now button says "ย่อ"
+  const collapseToggle = oldItem.getByRole("button", { name: "ย่อ" });
+  await expect(collapseToggle).toBeVisible();
+  await expect(oldItem.getByTestId("report-workout-card")).toBeVisible();
 
   // Collapse again
-  await toggle.click();
-  await expect(toggle.getByText("ดูรายละเอียด")).toBeVisible();
-  await expect(oldDay.locator(".border-t")).toHaveCount(0);
+  await collapseToggle.click();
+  await expect(toggle).toBeVisible();
+  await expect(oldItem.getByTestId("report-workout-card")).not.toBeVisible();
 });
 
 // ─── Phase B3: Weekly Review focus visibility ──────────────────────────────────

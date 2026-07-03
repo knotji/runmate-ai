@@ -13,9 +13,10 @@ test("editing a meal moves it to yesterday and removes it from Today context", a
   await page.getByTestId("full-history-details").evaluate((el) => {
     (el as HTMLDetailsElement).open = true;
   });
-  const today = reportDayByDate(page, todayKey);
-  // Today starts expanded by default — no toggle click needed
-  await today.getByTestId("report-meal-card").getByRole("button", { name: "แก้ไข" }).click();
+  const todayItem = page.locator(`[data-testid="report-compact-item"][data-date-key="${todayKey}"]`).first();
+  await expect(todayItem).toBeVisible();
+  await todayItem.getByRole("button", { name: "รายละเอียด" }).click();
+  await todayItem.getByTestId("report-meal-card").getByRole("button", { name: "แก้ไข" }).click();
 
   const modal = page.getByTestId("meal-edit-modal");
   await expect(modal).toBeVisible();
@@ -28,12 +29,11 @@ test("editing a meal moves it to yesterday and removes it from Today context", a
   await page.getByTestId("full-history-details").evaluate((el) => {
     (el as HTMLDetailsElement).open = true;
   });
-  const yesterday = reportDayByDate(page, yesterdayKey);
-  await expect(yesterday).toBeVisible();
-  // Yesterday starts expanded by default — no toggle click needed
-  await expect(yesterday.getByRole("heading", { name: /มื้อกลางวัน/ })).toBeVisible();
-  await expect(yesterday.getByTestId("report-meal-card").getByText("500 kcal", { exact: true })).toBeVisible();
-  await expect(reportDayByDate(page, todayKey)).toHaveCount(0);
+  const yesterdayItem = page.locator(`[data-testid="report-compact-item"][data-date-key="${yesterdayKey}"]`).first();
+  await expect(yesterdayItem).toBeVisible();
+  await yesterdayItem.getByRole("button", { name: "รายละเอียด" }).click();
+  await expect(yesterdayItem.getByTestId("report-meal-card").getByText("500 kcal", { exact: true })).toBeVisible();
+  await expect(page.locator(`[data-testid="report-compact-item"][data-date-key="${todayKey}"]`)).toHaveCount(0);
 
   await gotoApp(page, "/");
   await expect(page.getByText(/Protein 30/)).toHaveCount(0);
