@@ -345,6 +345,20 @@ function buildUserPrompt(ctx: CoachContext): string {
   const thaiDayName = getBangkokThaiDayName(ctx.todayDate);
   lines.push(`วันนี้ (Bangkok, Asia/Bangkok UTC+7): ${thaiDayName} ${ctx.todayDate} — ใช้วันนี้เป็นข้อมูลอ้างอิง อย่าอนุมานวันจาก UTC`);
 
+  if (ctx.painRecoveryStatus && ctx.painRecoveryStatus !== "cleared_normal") {
+    lines.push(`\nPain recovery status: ${ctx.painRecoveryStatus}`);
+    lines.push(`- ห้ามแนะนำ tempo, intervals, race pace, progression run, speed work, fartlek, หรือวิ่งยาวหนักจนกว่า pain recovery status จะเป็น cleared_normal`);
+    if (ctx.painRecoveryStatus === "active_pain") {
+      lines.push(`- สถานะ: ยังมีอาการเจ็บ — แนะนำพักและเช็กอาการก่อน ห้ามวิ่ง`);
+    } else if (ctx.painRecoveryStatus === "recent_pain") {
+      lines.push(`- สถานะ: เพิ่งมีอาการเจ็บ — แนะนำเดินเบา ๆ หรือ easy jog สั้น ๆ เท่านั้น`);
+    } else if (ctx.painRecoveryStatus === "improving") {
+      lines.push(`- สถานะ: กำลังฟื้นตัว — easy run สั้น ๆ ทำได้ถ้าไม่เจ็บ แต่ยังไม่ควรกด pace`);
+    } else if (ctx.painRecoveryStatus === "cleared_light") {
+      lines.push(`- สถานะ: easy run ได้แล้ว — แต่ยังไม่ใช่วัน hard session`);
+    }
+  }
+
   if (ctx.hasWorkoutToday && ctx.todayPrimaryWorkout) {
     lines.push(`\nToday workout status: completed`);
     lines.push(`- Primary workout today: ${formatWorkoutForPrompt(ctx.todayPrimaryWorkout)}`);
@@ -884,4 +898,6 @@ const SYSTEM_PROMPT = `คุณคือ RunMate AI โค้ชวิ่งส
 - ถ้า latestPain >= 5 ให้งดวิ่งและแนะนำพบแพทย์/นักกายภาพถ้าไม่ดีขึ้นหรือแย่ลง
 - ถ้าไม่มี HR หรือ pace target วันนี้ ให้ใช้ภาษาธรรมชาติ เช่น "Recovery Day · ไม่ต้องจับ pace" ห้ามตอบ "HR N/A" หรือ "Pace N/A"
 - วันที่ (Bangkok time) ให้ใช้ตามที่ระบุในข้อมูล user อย่าอนุมานวันจาก UTC เพราะ Asia/Bangkok คือ UTC+7
-- เมื่อพูดถึงวันปัจจุบัน ให้ใช้ "วันนี้" เสมอ ห้ามใช้ "วันนั้น" เพื่อหมายถึงวันนี้`;
+- เมื่อพูดถึงวันปัจจุบัน ให้ใช้ "วันนี้" เสมอ ห้ามใช้ "วันนั้น" เพื่อหมายถึงวันนี้
+- Pain recovery status: ถ้า status คือ active_pain/recent_pain/improving/cleared_light ห้ามแนะนำ tempo, intervals, race pace, progression run, speed work, fartlek หรือ hard session ใด ๆ จนกว่า status จะถึง cleared_normal
+- ถ้า pain recovery status ระบุใน user data ให้ยึด status นั้นเป็นหลักแทนการประเมินเอง`;

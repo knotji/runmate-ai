@@ -3,6 +3,7 @@
 // Does NOT change any scoring logic — pure display/coaching layer.
 
 import type { RunMateRecoverySystem } from "./recoverySystem";
+import type { PainRecoveryStatus } from "./painRecovery";
 
 export type TrainingGuardrailTone = "neutral" | "success" | "caution" | "warning" | "danger";
 export type TrainingIntensity = "rest" | "walk" | "mobility" | "recovery" | "easy" | "normal" | "quality";
@@ -61,28 +62,9 @@ const PAIN_ALLOWED = [
 export function getTodayTrainingGuardrail(
   recSys: RunMateRecoverySystem | null,
   hasActivePain: boolean,
+  painRecoveryStatus?: PainRecoveryStatus,
 ): TrainingGuardrail {
-  // No data → neutral fallback
-  if (!recSys) {
-    return {
-      tone: "neutral",
-      canRun: true,
-      avoidRun: false,
-      canDoHardWorkout: true,
-      recommendedIntensity: "normal",
-      allowedActivities: [],
-      blockedActivities: [],
-      reason: "ยังไม่มีข้อมูลเพียงพอ",
-      shortThaiCopy: "ซ้อมตามความรู้สึกเป็นหลัก",
-      detailThaiCopy: "ยังไม่มีข้อมูล recovery, sleep หรือ load สะสม ฟังร่างกายเป็นหลัก",
-      shortEnglishCopy: "Train by feel",
-      shouldAdjustPlannedWorkout: false,
-    };
-  }
-
-  const recoveryScore = recSys.axes.recovery.score;
-  const sleepScore = recSys.axes.sleep.score;
-  const loadScore = recSys.axes.load.score;
+  // ── Pain checks always run first, regardless of recovery data ──────────────
 
   // ── 1. Active pain ─────────────────────────────────────────────────────────
   if (hasActivePain) {
@@ -103,6 +85,90 @@ export function getTodayTrainingGuardrail(
       shouldAdjustPlannedWorkout: true,
     };
   }
+
+  // ── 1b. Recent pain (resolved but within last 48 h, or worsened after run) ─
+  if (painRecoveryStatus === "recent_pain") {
+    return {
+      tone: "warning",
+      canRun: true,
+      avoidRun: false,
+      canDoHardWorkout: false,
+      recommendedIntensity: "easy",
+      allowedActivities: [...PAIN_ALLOWED, "เดินเบา ๆ 20–30 นาที", "Easy jog สั้น ๆ (ถ้าไม่เจ็บ)"],
+      blockedActivities: [...HARD_BLOCKED, "Long run", "วิ่งยาว"],
+      reason: "เพิ่งมีอาการเจ็บ",
+      shortThaiCopy: "เพิ่งมีอาการเจ็บมา — วันนี้กลับมาเบา ๆ ก่อน ยังไม่ควรกด pace",
+      detailThaiCopy:
+        "อาการเจ็บเพิ่งผ่านมา ร่างกายยังอยู่ในช่วงฟื้นตัว เลือกเดินเบา ๆ หรือ mobility แทนก่อน ถ้าจะวิ่งให้เป็น easy สั้นมาก และหยุดทันทีถ้าเริ่มเจ็บ",
+      shortEnglishCopy: "Easy return only — no hard workouts",
+      adjustedWorkoutLabel: "Easy Walk / Light Jog",
+      shouldAdjustPlannedWorkout: true,
+    };
+  }
+
+  // ── 1c. Improving (2+ pain-free days, no activity yet) ───────────────────
+  if (painRecoveryStatus === "improving") {
+    return {
+      tone: "caution",
+      canRun: true,
+      avoidRun: false,
+      canDoHardWorkout: false,
+      recommendedIntensity: "easy",
+      allowedActivities: [...RECOVERY_ALLOWED, "Easy jog 20–30 นาที"],
+      blockedActivities: HARD_BLOCKED,
+      reason: "อยู่ระหว่างฟื้นตัวจากอาการเจ็บ",
+      shortThaiCopy: "อาการดีขึ้นแล้ว แต่ยังควรค่อย ๆ กลับมา",
+      detailThaiCopy:
+        "ไม่มีอาการเจ็บแล้ว 2+ วัน ลองเริ่ม easy run หรือเดินเบา ๆ ดูก่อน ถ้าไม่เจ็บค่อยเพิ่มระยะสัปดาห์ถัดไป",
+      shortEnglishCopy: "Improving — easy runs OK, no hard sessions",
+      adjustedWorkoutLabel: "Easy Run / Walk",
+      shouldAdjustPlannedWorkout: true,
+    };
+  }
+
+  // ── 1d. Cleared for light training only ──────────────────────────────────
+  if (painRecoveryStatus === "cleared_light") {
+    return {
+      tone: "caution",
+      canRun: true,
+      avoidRun: false,
+      canDoHardWorkout: false,
+      recommendedIntensity: "easy",
+      allowedActivities: [...RECOVERY_ALLOWED, "Easy run ตามแผน (เบา · ไม่กด pace)"],
+      blockedActivities: HARD_BLOCKED,
+      reason: "กลับมา easy ได้แต่ยังไม่ hard",
+      shortThaiCopy: "เริ่มกลับมา easy ได้ แต่ยังไม่ใช่วันกด pace",
+      detailThaiCopy:
+        "easy run ทำได้แล้ว ดีมาก แต่ tempo, intervals หรือวิ่งยาวหนักยังต้องรอก่อน เน้นระยะเบา ๆ ฟัง HR ระหว่างวิ่ง",
+      shortEnglishCopy: "Easy runs cleared — no tempo/intervals yet",
+      adjustedWorkoutLabel: "Easy Run",
+      shouldAdjustPlannedWorkout: false,
+    };
+  }
+
+  // cleared_normal → falls through to the recovery/sleep/load logic below
+
+  // ── No recovery data → neutral fallback (pain already handled above) ───────
+  if (!recSys) {
+    return {
+      tone: "neutral",
+      canRun: true,
+      avoidRun: false,
+      canDoHardWorkout: true,
+      recommendedIntensity: "normal",
+      allowedActivities: [],
+      blockedActivities: [],
+      reason: "ยังไม่มีข้อมูลเพียงพอ",
+      shortThaiCopy: "ซ้อมตามความรู้สึกเป็นหลัก",
+      detailThaiCopy: "ยังไม่มีข้อมูล recovery, sleep หรือ load สะสม ฟังร่างกายเป็นหลัก",
+      shortEnglishCopy: "Train by feel",
+      shouldAdjustPlannedWorkout: false,
+    };
+  }
+
+  const recoveryScore = recSys.axes.recovery.score;
+  const sleepScore = recSys.axes.sleep.score;
+  const loadScore = recSys.axes.load.score;
 
   // ── 2. Critical combined risk ──────────────────────────────────────────────
   // Danger only when all three axes are in bad shape simultaneously.

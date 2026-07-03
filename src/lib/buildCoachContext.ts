@@ -19,6 +19,7 @@ import { normalizeMealSlot, getMealSlotLabel } from "@/lib/mealSlots";
 import { calculateRunMateReadiness, type ReadinessV2Result } from "@/lib/readinessV2";
 import { buildRunMateRecoverySystem, type RunMateRecoverySystem } from "@/lib/recoverySystem";
 import { buildRunMateRecoveryLoop, type RunMateRecoveryLoop } from "@/lib/recoveryLoop";
+import { getPainRecoveryStatus, derivePainRecoveryInput, type PainRecoveryStatus } from "@/lib/painRecovery";
 
 export type DayWorkoutSummary = {
   date: string;
@@ -56,6 +57,7 @@ export type PainSummary = {
   painLocation: string;
   painSide: string;
   painLevel: number;
+  startedWhen: string; // "before_run" | "during_run" | "after_run" | "next_morning" | "unknown"
   riskLevel: string;
   trainingImpact: string;
   coachAdvice: string;
@@ -119,6 +121,7 @@ export type CoachContext = {
   activePain: boolean;
   recentPainHistory: boolean;
   painResolved: boolean;
+  painRecoveryStatus: PainRecoveryStatus;
   nutritionBalanceToday: DailyNutritionBalance | null;
   readinessV2: ReadinessV2Result | null;
   recoverySystem: RunMateRecoverySystem;
@@ -463,6 +466,7 @@ export function buildCoachContextFromData(input: {
       painLocation: d?.painLocation ?? "ไม่ระบุ",
       painSide: d?.painSide ?? "unknown",
       painLevel,
+      startedWhen: d?.startedWhen ?? "unknown",
       riskLevel: d?.riskLevel ?? "unknown",
       trainingImpact: d?.trainingImpact ?? "unknown",
       coachAdvice: d?.coachAdvice ?? "",
@@ -599,6 +603,13 @@ export function buildCoachContextFromData(input: {
     activePain,
     recentPainHistory,
     painResolved,
+    painRecoveryStatus: getPainRecoveryStatus(derivePainRecoveryInput({
+      activePain,
+      latestPain,
+      recentPainLogs,
+      workouts7d,
+      todayDate: today,
+    })),
     nutritionBalanceToday,
     readinessV2,
     contextNotes: buildContextNotes({

@@ -84,7 +84,7 @@ export function CoachContextDashboard() {
     ? "text-[#9b742c]"
     : "text-[var(--status-rest)]";
 
-  const guardrail = getTodayTrainingGuardrail(recSys, context.activePain);
+  const guardrail = getTodayTrainingGuardrail(recSys, context.activePain, context.painRecoveryStatus);
   const suggestedChips = getGuardrailSuggestedChips(guardrail);
   const contextChips = buildContextChips(context, recSys);
   const hasUsefulData = context.sleep7d.length > 0 || context.workouts7d.length > 0 ||

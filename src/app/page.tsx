@@ -1720,7 +1720,7 @@ function TodaySnapshotCard({
 
       {/* Coaching interpretation line — driven by shared guardrail */}
       {!loading && recSys && (() => {
-        const guardrail = getTodayTrainingGuardrail(recSys, !!(coachCtx?.activePain));
+        const guardrail = getTodayTrainingGuardrail(recSys, !!(coachCtx?.activePain), coachCtx?.painRecoveryStatus);
         if (guardrail.tone === "neutral" || guardrail.tone === "success") return null;
 
         const bgColor = guardrail.tone === "danger" ? "" : "rounded-2xl bg-[#fff8ed]/80 px-3 py-2 space-y-1.5";

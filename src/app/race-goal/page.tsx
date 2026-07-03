@@ -9,6 +9,8 @@ import { TrainingPhaseCard } from "@/components/TrainingPhaseCard";
 import { WeeklyPlanCard } from "@/components/WeeklyPlanCard";
 import { buildCoachContextFromSupabase, type CoachContext } from "@/lib/buildCoachContext";
 import { formatRaceDisplayName } from "@/lib/date";
+import { PAIN_RECOVERY_COPY, type PainRecoveryStatus } from "@/lib/painRecovery";
+import { getTodayTrainingGuardrail } from "@/lib/trainingGuardrails";
 
 import { loadHistoryItems } from "@/lib/cloudHistory";
 import { suggestStrengthRoutine } from "@/lib/strengthRoutineSelect";
@@ -505,6 +507,13 @@ function TodayWorkoutCard({ workout, coachContext }: { workout: WeekWorkout; coa
     return <TodayWorkoutCompletedCard workout={workout} completedKm={todayRunKm} />;
   }
 
+  const painStatus = coachContext?.painRecoveryStatus;
+  const painBlocked = painStatus && painStatus !== "cleared_normal";
+  const recSys = coachContext?.recoverySystem ?? null;
+  const guardrail = painBlocked
+    ? getTodayTrainingGuardrail(recSys, coachContext?.activePain ?? false, painStatus as PainRecoveryStatus)
+    : null;
+
   const isStrength = isStrengthOrMobilityType(workout.workoutType);
   const adaptiveNote = getAdaptiveLongRunNote(workout, coachContext);
   return (
@@ -537,6 +546,11 @@ function TodayWorkoutCard({ workout, coachContext }: { workout: WeekWorkout; coa
       {adaptiveNote && (
         <div className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800 font-medium border border-amber-200">
           ⚠️ {adaptiveNote}
+        </div>
+      )}
+      {guardrail && guardrail.canDoHardWorkout === false && (
+        <div className="mt-3 rounded-xl bg-[#fff8ed] px-3 py-2.5 text-xs leading-5 text-[#9b742c] font-medium border border-[#f0dab0]" data-testid="pain-recovery-race-banner">
+          ⚠️ {guardrail.shortThaiCopy}
         </div>
       )}
     </section>
