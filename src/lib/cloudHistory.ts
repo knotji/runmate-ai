@@ -85,6 +85,36 @@ export async function saveHistoryItems(items: LocalHistoryItem[]): Promise<{ ok:
   }
   logSupabaseSyncSuccess({ table: "history_items", operation: "upsert", userId: session.userId, count: rows.length });
   window.dispatchEvent(new Event("runmate:cloud-data-updated"));
+
+  // Check if we should trigger background profile auto sync
+  const importantTypes = new Set(["sleep", "workout", "body", "pain"]);
+  const hasImportantType = items.some(item => importantTypes.has(item.type));
+  if (hasImportantType) {
+    let latestDataUpdatedAt: string | undefined;
+    for (const item of items) {
+      if (importantTypes.has(item.type)) {
+        if (!latestDataUpdatedAt || item.createdAt > latestDataUpdatedAt) {
+          latestDataUpdatedAt = item.createdAt;
+        }
+      }
+    }
+
+    // Background sync - fire and forget, dynamic import to break circular dependency
+    import("@/lib/runAutoProfileSync").then(({ runAutoProfileSync }) => {
+      runAutoProfileSync("after_upload", latestDataUpdatedAt)
+        .then((syncResult) => {
+          if (syncResult.ok) {
+            showAutoSyncToast(syncResult);
+          }
+        })
+        .catch((err) => {
+          console.warn("[auto-profile-sync] post-save background sync failed:", err);
+        });
+    }).catch((err) => {
+      console.warn("[auto-profile-sync] dynamic import of runAutoProfileSync failed:", err);
+    });
+  }
+
   return { ok: true };
 }
 
@@ -251,4 +281,75 @@ export async function findMealSlotByDateAndType(
     }
   }
   return null;
+}
+
+function showAutoSyncToast(result: { ok: boolean; autoSaved: number; silentSkipped: number }) {
+  if (typeof window === "undefined") return;
+
+  let message = "";
+  if (result.autoSaved > 0) {
+    message = `อัปเดตอัตโนมัติ ${result.autoSaved} ค่า`;
+    if (result.silentSkipped > 0) {
+      message += ` · ข้าม ${result.silentSkipped} ค่าที่คุณแก้เอง`;
+    }
+  } else if (result.silentSkipped > 0) {
+    message = `ข้าม ${result.silentSkipped} ค่าที่คุณแก้เอง`;
+  } else {
+    message = "โปรไฟล์อัปเดตจากข้อมูลล่าสุด";
+  }
+
+  // Create toast container if not exists
+  let container = document.getElementById("auto-sync-toast-container");
+  if (!container) {
+    container = document.createElement("div");
+    container.id = "auto-sync-toast-container";
+    container.style.position = "fixed";
+    container.style.bottom = "80px"; // above bottom navigation
+    container.style.left = "50%";
+    container.style.transform = "translateX(-50%)";
+    container.style.zIndex = "9999";
+    container.style.display = "flex";
+    container.style.flexDirection = "column";
+    container.style.gap = "8px";
+    container.style.width = "90%";
+    container.style.maxWidth = "380px";
+    container.style.pointerEvents = "none";
+    document.body.appendChild(container);
+  }
+
+  const toast = document.createElement("div");
+  toast.className = "auto-sync-toast-message";
+  toast.style.pointerEvents = "auto";
+  toast.style.background = "var(--primary-strong, #4f8a78)";
+  toast.style.color = "#ffffff";
+  toast.style.padding = "10px 16px";
+  toast.style.borderRadius = "var(--radius-card-sm, 14px)";
+  toast.style.fontSize = "12px";
+  toast.style.fontWeight = "600";
+  toast.style.boxShadow = "var(--shadow-floating, 0 10px 24px rgba(79, 138, 120, 0.18))";
+  toast.style.textAlign = "center";
+  toast.style.opacity = "0";
+  toast.style.transform = "translateY(12px)";
+  toast.style.transition = "all 0.4s cubic-bezier(0.16, 1, 0.3, 1)";
+
+  toast.textContent = message;
+  container.appendChild(toast);
+
+  // Animate in
+  setTimeout(() => {
+    toast.style.opacity = "1";
+    toast.style.transform = "translateY(0)";
+  }, 10);
+
+  // Animate out and remove
+  setTimeout(() => {
+    toast.style.opacity = "0";
+    toast.style.transform = "translateY(-8px)";
+    setTimeout(() => {
+      toast.remove();
+      if (container && container.childNodes.length === 0) {
+        container.remove();
+      }
+    }, 400);
+  }, 4000);
 }

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
@@ -1213,7 +1213,7 @@ function UploadEmptyGuide({
           </p>
           {type === "body" ? (
             <Link href="/pain" className="inline-flex rounded-full bg-white px-3 py-1.5 text-[11px] font-bold text-[var(--primary)] shadow-sm">
-              มีอาการเจ็บ? บันทึกที่หน้า "เจ็บ"
+              มีอาการเจ็บ? บันทึกที่หน้า &quot;เจ็บ&quot;
             </Link>
           ) : null}
         </div>

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { shouldRunProfileAutoSync } from "@/lib/profileAutoSync";
 import { buildRunnerHistoryStats } from "@/lib/analyzeHistory";
 import { loadProfileFromSupabase, saveProfileToSupabase } from "@/lib/profileStorage";
 import { loadHistoryItems } from "@/lib/cloudHistory";
@@ -138,19 +139,35 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(false);
   const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
   const [syncSummary, setSyncSummary] = useState<string | null>(null);
+  const hasAutoSyncedThisMount = useRef(false);
 
   useEffect(() => {
     loadProfileFromSupabase().then((result) => {
       if (result.ok && result.profile) {
-        setCurrentProfile(result.profile);
-        setAutoSyncEnabled(result.profile.autoProfileSyncEnabled ?? true);
-        setLastSyncAt(result.profile.lastAutoProfileSyncAt ?? null);
+        const profile = result.profile;
+        setCurrentProfile(profile);
+        const autoSyncEnabledVal = profile.autoProfileSyncEnabled ?? true;
+        setAutoSyncEnabled(autoSyncEnabledVal);
+        const lastSyncAtVal = profile.lastAutoProfileSyncAt ?? null;
+        setLastSyncAt(lastSyncAtVal);
+
+        const check = shouldRunProfileAutoSync({
+          autoProfileSyncEnabled: autoSyncEnabledVal,
+          lastAutoProfileSyncAt: lastSyncAtVal,
+          trigger: "profile_open",
+        });
+
+        if (check.shouldRun && !hasAutoSyncedThisMount.current) {
+          hasAutoSyncedThisMount.current = true;
+          void analyze();
+        }
       } else {
         setAutoSyncEnabled(true);
       }
     }).catch(() => {
       setAutoSyncEnabled(true);
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function toggleAutoSync() {
@@ -442,9 +459,14 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
       </div>
 
       {/* ── Description ──────────────────────────────────────── */}
-      <p className="text-xs leading-5 text-[var(--muted-text)]">
-        RunMate จะอัปเดตเฉพาะค่าที่คุณยังไม่ได้ตั้งเอง — ถ้าคุณเคยแก้ค่าเอง ระบบจะแค่เสนอค่าใหม่ให้เลือก ไม่ทับอัตโนมัติ
-      </p>
+      <div className="space-y-1">
+        <p className="text-xs leading-5 text-[var(--muted-text)]">
+          RunMate จะอัปเดตเฉพาะค่าที่คุณยังไม่ได้ตั้งเอง — ถ้าคุณเคยแก้ค่าเอง ระบบจะแค่เสนอค่าใหม่ให้เลือก ไม่ทับอัตโนมัติ
+        </p>
+        <p className="text-[11px] leading-4 text-[var(--muted-text)] opacity-80">
+          Auto Sync จะทำงานหลังบันทึกข้อมูลใหม่ หรือเมื่อโปรไฟล์ไม่ได้อัปเดตเกิน 24 ชม.
+        </p>
+      </div>
 
       {state === "done" && result && (
         <div className="space-y-3">

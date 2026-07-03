@@ -13,6 +13,8 @@
 
 import { expect, test } from "@playwright/test";
 import { installMockBackend } from "./helpers/app";
+import { shouldRunProfileAutoSync } from "../../src/lib/profileAutoSync";
+import { buildAutoSaveDecisions } from "../../src/lib/profile/autoSaveHistorySuggestions";
 
 // ── Shared constants ────────────────────────────────────────────────────────
 
@@ -487,4 +489,135 @@ test("UI copy: states system will not overwrite manually edited values", async (
     bodyText?.includes("ไม่ทับค่าที่คุณแก้เอง") ||
     bodyText?.includes("จะไม่ทับค่าที่คุณแก้เอง"),
   ).toBe(true);
+});
+
+// ── Pure logic unit tests for shouldRunProfileAutoSync and auto-save protection ──────────────────────────
+
+test.describe("shouldRunProfileAutoSync logic rules & auto-save protection", () => {
+  const now = "2026-07-03T12:00:00.000Z";
+  const within24h = "2026-07-03T00:00:00.000Z"; // 12 hours ago
+  const olderThan24h = "2026-07-02T10:00:00.000Z"; // 26 hours ago
+
+  test("a) manual trigger always runs", () => {
+    const res = shouldRunProfileAutoSync({
+      autoProfileSyncEnabled: false,
+      lastAutoProfileSyncAt: within24h,
+      trigger: "manual",
+      now,
+    });
+    expect(res.shouldRun).toBe(true);
+    expect(res.reason).toBe("manual");
+  });
+
+  test("b) auto sync disabled blocks automatic trigger", () => {
+    const res = shouldRunProfileAutoSync({
+      autoProfileSyncEnabled: false,
+      lastAutoProfileSyncAt: within24h,
+      trigger: "profile_open",
+      now,
+    });
+    expect(res.shouldRun).toBe(false);
+    expect(res.reason).toBe("disabled");
+  });
+
+  test("c) last sync missing allows profile_open sync", () => {
+    const res = shouldRunProfileAutoSync({
+      autoProfileSyncEnabled: true,
+      lastAutoProfileSyncAt: null,
+      trigger: "profile_open",
+      now,
+    });
+    expect(res.shouldRun).toBe(true);
+    expect(res.reason).toBe("stale_24h");
+  });
+
+  test("d) last sync older than 24h allows profile_open sync", () => {
+    const res = shouldRunProfileAutoSync({
+      autoProfileSyncEnabled: true,
+      lastAutoProfileSyncAt: olderThan24h,
+      trigger: "profile_open",
+      now,
+    });
+    expect(res.shouldRun).toBe(true);
+    expect(res.reason).toBe("stale_24h");
+  });
+
+  test("e) fresh last sync blocks profile_open sync", () => {
+    const res = shouldRunProfileAutoSync({
+      autoProfileSyncEnabled: true,
+      lastAutoProfileSyncAt: within24h,
+      trigger: "profile_open",
+      now,
+    });
+    expect(res.shouldRun).toBe(false);
+    expect(res.reason).toBe("fresh");
+  });
+
+  test("f) latest data newer than last sync allows after_upload sync", () => {
+    const res = shouldRunProfileAutoSync({
+      autoProfileSyncEnabled: true,
+      lastAutoProfileSyncAt: within24h,
+      latestDataUpdatedAt: "2026-07-03T06:00:00.000Z", // 6 hours after last sync
+      trigger: "after_upload",
+      now,
+    });
+    expect(res.shouldRun).toBe(true);
+    expect(res.reason).toBe("new_data");
+  });
+
+  test("g) after upload sync does not overwrite manual fields (unit test)", () => {
+    const existingProfile = {
+      displayName: "นักวิ่ง",
+      weeklyMileageKm: 30,
+      fieldSources: { weeklyMileageKm: "manual" },
+    };
+    const suggestions = {
+      weeklyMileageKm: 40,
+    };
+    const decisions = buildAutoSaveDecisions({
+      suggestions: suggestions as unknown as Parameters<typeof buildAutoSaveDecisions>[0]["suggestions"],
+      confidence: "high",
+      existingProfile: existingProfile as unknown as Parameters<typeof buildAutoSaveDecisions>[0]["existingProfile"],
+      existingSources: existingProfile.fieldSources as unknown as Parameters<typeof buildAutoSaveDecisions>[0]["existingSources"],
+    });
+    expect(decisions.toSave.weeklyMileageKm).toBeUndefined();
+    expect(decisions.manualSilentSkipped).toContain("weeklyMileageKm");
+  });
+});
+
+test("h) failed background sync does not break upload success", async ({ page }) => {
+  const state = await installMockBackend(page);
+
+  // Mock profiles table
+  await mockProfilesTable(page, { id: "test-profile", display_name: "นักวิ่งทดสอบ", field_sources: null, auto_profile_sync_enabled: true });
+
+  // Override profile analysis API to return a 500 error
+  await page.route("**/api/analyze-profile-history", async (route) => {
+    await route.fulfill({ status: 500, contentType: "application/json", body: JSON.stringify({ error: "Internal Server Error" }) });
+  });
+
+  // Navigate to Upload page for sleep log
+  await page.goto("/upload?type=sleep");
+  
+  // Wait for the upload dashboard to be loaded
+  await expect(page.getByTestId("upload-dashboard")).toBeVisible();
+
+  // Set file on file input to trigger upload analysis
+  const fileInput = page.locator('input[type="file"]');
+  await fileInput.setInputFiles({
+    name: "sleep_screenshot.png",
+    mimeType: "image/png",
+    buffer: Buffer.from("test-image-data"),
+  });
+
+  // Click the analysis button to launch the API call
+  await page.getByRole("button", { name: "วิเคราะห์การนอน" }).click();
+
+  // Wait for the confirmation button to appear
+  const saveBtn = page.getByRole("button", { name: "บันทึกผลการนอน" });
+  await expect(saveBtn).toBeVisible({ timeout: 10000 });
+  await saveBtn.click();
+
+  // Verify that the sleep log was successfully saved in the history state (meaning the failure of background sync didn't break save)
+  await expect.poll(() => state.history.filter((row) => row.type === "sleep").length).toBe(1);
 });
