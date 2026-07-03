@@ -39,7 +39,7 @@ test.describe("Upload Dashboard v2", () => {
     await expect(page.getByRole("button", { name: /อัปโหลดรูป/ })).toBeVisible();
 
     await page.getByRole("button", { name: /สุขภาพ/ }).click();
-    await expect(page.getByTestId("upload-type-summary")).toContainText("Health Check PDF");
+    await expect(page.getByTestId("upload-type-summary")).toContainText("ผลตรวจสุขภาพ (PDF)");
     await expect(page.getByTestId("upload-type-summary")).toContainText("ไม่ใช่การวินิจฉัยทางการแพทย์");
     await expect(page.getByRole("button", { name: "เลือก PDF ก่อนวิเคราะห์" })).toBeDisabled();
     await expect(page.locator('input[type="file"]')).toBeHidden();

@@ -105,9 +105,9 @@ test("Settings: changelog section shows recent updates", async ({ page }) => {
 
   await gotoApp(page, "/settings");
 
-  await expect(page.getByText("มีอะไรใหม่")).toBeVisible();
+  await expect(page.getByText("v0.1.0 Beta")).toBeVisible();
   // At least one changelog item should be visible
   const text = await page.locator("body").textContent();
-  const hasChangelog = text?.includes("guardrail") || text?.includes("insight") || text?.includes("recovery");
+  const hasChangelog = text?.includes("insight") || text?.includes("recovery") || text?.includes("Today");
   expect(hasChangelog).toBe(true);
 });

@@ -695,6 +695,7 @@ function RollingSevenDayInsight({
   review: WeeklyReview | null;
 }) {
   const preview = buildRollingInsightPreview(dashboard, review);
+  const coachNote = buildRollingInsightCoachNote(dashboard, review);
 
   return (
     <details className="group rounded-3xl border border-[var(--color-border-soft)] bg-[var(--surface)] p-4 shadow-sm" data-testid="rolling-insight">
@@ -703,6 +704,7 @@ function RollingSevenDayInsight({
           <div className="min-w-0">
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--label-color)]">Insight 7 วันล่าสุด</p>
             <p className="mt-1 text-xs leading-5 text-[var(--color-text-muted)]">{preview}</p>
+            {coachNote && <p className="mt-0.5 text-xs font-medium leading-5 text-[var(--primary-strong)]">{coachNote}</p>}
           </div>
           <span className="shrink-0 rounded-full bg-[var(--surface-muted)] px-3 py-1.5 text-[10px] font-bold text-[var(--primary)]">
             <span className="group-open:hidden">ดูรายละเอียด 7 วันล่าสุด</span>
@@ -860,6 +862,18 @@ function FilterPills({
       ))}
     </div>
   );
+}
+
+function buildRollingInsightCoachNote(dashboard: Dashboard, review: WeeklyReview | null): string | null {
+  const recovery = review?.avgRecoveryScore;
+  const sleep = dashboard.avgSleepHours;
+  const load = review?.loadLevel;
+  if (review?.activePainDays && review.activePainDays > 0) return "มีอาการเจ็บในสัปดาห์นี้ — ให้เวลาฟื้นตัวก่อนเพิ่มโหลด";
+  if ((load === "สูง" || load === "สูงมาก") && recovery != null && recovery < 65) return "ฟื้นตัวไม่ทันโหลดสะสม — รอบถัดไปลดความหนักลงก่อน";
+  if (sleep != null && sleep < 6) return "นอนเฉลี่ยต่ำ — ดันการนอนให้เกิน 6.5 ชม. ก่อนเพิ่มความหนัก";
+  if (load === "สูงมาก") return "โหลดสะสมสูงมาก — วันถัดไปคุม easy run ให้เบาจริง";
+  if (recovery != null && recovery >= 75 && (load === "ปานกลาง" || load === "ต่ำ")) return "ฟื้นตัวดี — คุมวันเบาให้เบาจริงเพื่อให้ร่างกายปรับตัวได้ต่อเนื่อง";
+  return null;
 }
 
 function buildRollingInsightPreview(dashboard: Dashboard, review: WeeklyReview | null): string {

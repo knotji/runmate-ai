@@ -1,4 +1,4 @@
-import { daysUntil, formatDate } from "@/lib/date";
+import { daysUntil, formatDate, formatRaceDisplayName } from "@/lib/date";
 import type { RaceGoal } from "@/types/race";
 
 export function RaceCountdownCard({ goal, phase }: { goal?: RaceGoal | null; phase?: string }) {
@@ -12,7 +12,7 @@ export function RaceCountdownCard({ goal, phase }: { goal?: RaceGoal | null; pha
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <h2 className="text-2xl font-extrabold leading-tight text-[var(--foreground)] line-clamp-2" title={goal?.raceName}>
-            {goal?.raceName || "ยังไม่มี Race Goal"}
+            {formatRaceDisplayName(goal?.raceName) || "ยังไม่มี Race Goal"}
           </h2>
           <p className="mt-1.5 text-sm text-[var(--muted-text)]">
             {goal ? `${goal.raceDistance} · ${formatDate(goal.raceDate)}` : "สร้างเป้าหมายเพื่อให้โค้ชวางแผนยาวได้"}

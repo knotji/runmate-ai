@@ -5,7 +5,7 @@ import { type CoachContext, type TodayCompletedWorkoutSummary } from "@/lib/buil
 import { getTodayReadiness, getTodayPlannedWorkout, getReadinessCategoryLabel } from "@/lib/todayPlanning";
 import type { DailyCoachInsight } from "@/types/ai";
 import type { WeekWorkout } from "@/types/race";
-import { todayBangkokDateKey } from "@/lib/date";
+import { todayBangkokDateKey, getBangkokThaiDayName } from "@/lib/date";
 import { getCoachCautionFactors } from "@/lib/coachCautionFactors";
 import { buildRunMateRecoverySystem, type RunMateRecoverySystem } from "@/lib/recoverySystem";
 import { buildRunMateRecoveryLoop, type RunMateRecoveryLoop } from "@/lib/recoveryLoop";
@@ -342,7 +342,8 @@ function buildUserPrompt(ctx: CoachContext): string {
     for (const note of ctx.contextNotes) lines.push(`- ${note}`);
   }
 
-  lines.push(`วันนี้: ${ctx.todayDate}`);
+  const thaiDayName = getBangkokThaiDayName(ctx.todayDate);
+  lines.push(`วันนี้ (Bangkok, Asia/Bangkok UTC+7): ${thaiDayName} ${ctx.todayDate} — ใช้วันนี้เป็นข้อมูลอ้างอิง อย่าอนุมานวันจาก UTC`);
 
   if (ctx.hasWorkoutToday && ctx.todayPrimaryWorkout) {
     lines.push(`\nToday workout status: completed`);
@@ -881,4 +882,6 @@ const SYSTEM_PROMPT = `คุณคือ RunMate AI โค้ชวิ่งส
 - ถ้า latestPain 2 ให้ conservative: walk/mobility/recovery และวิ่งได้เฉพาะถ้าเดินกับวอร์มอัปไม่เจ็บ
 - ถ้า latestPain 3-4 ให้ Rest / Recovery เป็นค่าเริ่มต้น ไม่แนะนำวิ่งเป็น default
 - ถ้า latestPain >= 5 ให้งดวิ่งและแนะนำพบแพทย์/นักกายภาพถ้าไม่ดีขึ้นหรือแย่ลง
-- ถ้าไม่มี HR หรือ pace target วันนี้ ให้ใช้ภาษาธรรมชาติ เช่น "Recovery Day · ไม่ต้องจับ pace" ห้ามตอบ "HR N/A" หรือ "Pace N/A"`;
+- ถ้าไม่มี HR หรือ pace target วันนี้ ให้ใช้ภาษาธรรมชาติ เช่น "Recovery Day · ไม่ต้องจับ pace" ห้ามตอบ "HR N/A" หรือ "Pace N/A"
+- วันที่ (Bangkok time) ให้ใช้ตามที่ระบุในข้อมูล user อย่าอนุมานวันจาก UTC เพราะ Asia/Bangkok คือ UTC+7
+- เมื่อพูดถึงวันปัจจุบัน ให้ใช้ "วันนี้" เสมอ ห้ามใช้ "วันนั้น" เพื่อหมายถึงวันนี้`;

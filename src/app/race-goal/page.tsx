@@ -8,6 +8,7 @@ import { LoadingButton } from "@/components/LoadingButton";
 import { TrainingPhaseCard } from "@/components/TrainingPhaseCard";
 import { WeeklyPlanCard } from "@/components/WeeklyPlanCard";
 import { buildCoachContextFromSupabase, type CoachContext } from "@/lib/buildCoachContext";
+import { formatRaceDisplayName } from "@/lib/date";
 
 import { loadHistoryItems } from "@/lib/cloudHistory";
 import { suggestStrengthRoutine } from "@/lib/strengthRoutineSelect";
@@ -257,7 +258,7 @@ function DraftModeHint({ currentGoal }: { currentGoal: RaceGoal }) {
     >
       <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--label-color)]">แผนปัจจุบัน</p>
       <p className="mt-1 truncate text-sm font-bold text-[var(--foreground)]">
-        {currentGoal.raceName} · {currentGoal.raceDistance}
+        {formatRaceDisplayName(currentGoal.raceName)} · {currentGoal.raceDistance}
       </p>
       {currentGoal.raceDate && (
         <p className="text-xs text-[var(--muted-text)]">วันแข่ง {currentGoal.raceDate}</p>
@@ -293,9 +294,9 @@ function ConfirmReplaceSection({
         </p>
       </div>
       <div className="rounded-2xl bg-[var(--surface-muted)] px-4 py-3 text-sm">
-        <span className="font-semibold text-[var(--foreground)]">{currentGoal.raceName}</span>
+        <span className="font-semibold text-[var(--foreground)]">{formatRaceDisplayName(currentGoal.raceName)}</span>
         <span className="mx-1.5 text-[var(--label-color)]">→</span>
-        <span className="font-semibold text-[var(--foreground)]">{newGoal.raceName}</span>
+        <span className="font-semibold text-[var(--foreground)]">{formatRaceDisplayName(newGoal.raceName)}</span>
         {newGoal.raceDistance ? <span className="ml-1 text-[var(--muted-text)]">· {newGoal.raceDistance}</span> : null}
       </div>
       {replaceError && (
@@ -328,7 +329,7 @@ function LatestRacePrompt({ result }: { result: RaceResult }) {
   return (
     <div className="card space-y-2 px-5 py-4">
       <p className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--label-color)]">Race completed</p>
-      <p className="truncate text-base font-bold text-[var(--foreground)]">{result.raceName ?? "Race"} · {result.raceDistance}</p>
+      <p className="truncate text-base font-bold text-[var(--foreground)]">{formatRaceDisplayName(result.raceName) || "Race"} · {result.raceDistance}</p>
       {result.actualTime ? (
         <p className="text-sm text-[var(--muted-text)]">
           {result.actualTime}{result.actualPace ? ` · ${result.actualPace}/km` : ""} ·{" "}
@@ -462,7 +463,48 @@ function getAdaptiveLongRunNote(workout: WeekWorkout, context: CoachContext | nu
   return `ปรับตามสภาพ: ถ้าฟื้นตัวไม่ดี${reducedText} (ถ้าคืนก่อนนอนน้อยหรือ HR ลอย ให้ลด Long Run ลง 10–20% · เป้าหมายวันนี้คือสะสมเวลา easy ไม่ใช่ฝืนระยะ · ถ้าเจ็บกลับมา ให้หยุดที่เดิน/จ็อกเบา)`;
 }
 
+function isRunWorkoutType(workoutType: string | undefined): boolean {
+  if (!workoutType) return false;
+  return /(run|tempo|interval|fartlek|progression|race pace|วิ่ง)/i.test(workoutType);
+}
+
+function TodayWorkoutCompletedCard({ workout, completedKm }: { workout: WeekWorkout; completedKm: number }) {
+  const planned = workout.distanceKm;
+  const exceeded = planned != null && completedKm > planned;
+  return (
+    <section className="card relative overflow-hidden border border-[#b7dcc4] bg-[#f4fbf6] p-5 pl-7" data-testid="today-workout-completed-card">
+      <div className="absolute inset-y-0 left-0 w-1.5 bg-[var(--primary)]" aria-hidden="true" />
+      <div className="mb-3 flex items-center gap-2">
+        <p className="text-xs font-bold uppercase tracking-[0.22em] text-[var(--primary-strong)]">วันนี้ทำแล้ว</p>
+        <span className="rounded-full bg-[var(--primary-soft)] px-2 py-0.5 text-[9px] font-bold text-[var(--primary-strong)]">✓ เสร็จแล้ว</span>
+      </div>
+      <div className="flex items-start justify-between gap-3">
+        <h2 className="text-2xl font-bold text-[var(--foreground)]">{workout.workoutType}</h2>
+        <span className="rounded-full bg-[var(--primary-soft)] px-3 py-1 text-sm font-bold text-[var(--primary-strong)] shadow-sm">
+          {completedKm.toFixed(1)} km{exceeded ? " 🎉" : ""}
+        </span>
+      </div>
+      {planned != null && (
+        <p className="mt-1.5 text-xs text-[var(--muted-text)]">
+          แผน {planned} km{exceeded ? " · เกินแผน!" : ` · ${completedKm.toFixed(1)} km`}
+        </p>
+      )}
+      <div className="mt-4 rounded-xl bg-[var(--surface-muted)] px-3 py-2.5 text-xs leading-5 text-[var(--foreground)]">
+        วิ่งเสร็จแล้ววันนี้ — เติมน้ำและโปรตีน เน้น recovery และดันการนอนคืนนี้
+      </div>
+    </section>
+  );
+}
+
 function TodayWorkoutCard({ workout, coachContext }: { workout: WeekWorkout; coachContext: CoachContext | null }) {
+  const todayRunKm = (coachContext?.todayWorkouts ?? [])
+    .filter(w => w.kind === "run" || w.kind === "race")
+    .reduce((sum, w) => sum + (w.distanceKm ?? 0), 0);
+  const plannedKm = workout.distanceKm;
+  if (isRunWorkoutType(workout.workoutType) && plannedKm != null && plannedKm > 0 && todayRunKm >= plannedKm * 0.8) {
+    return <TodayWorkoutCompletedCard workout={workout} completedKm={todayRunKm} />;
+  }
+
   const isStrength = isStrengthOrMobilityType(workout.workoutType);
   const adaptiveNote = getAdaptiveLongRunNote(workout, coachContext);
   return (
@@ -623,7 +665,7 @@ function CompletedRaceSection({ results }: { results: RaceResult[] }) {
             <div key={result.id ?? `${result.raceDate}-${result.raceName}`} className="card-soft p-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="truncate font-bold text-[var(--foreground)]">{result.raceName || "Race"}</p>
+                  <p className="truncate font-bold text-[var(--foreground)]">{formatRaceDisplayName(result.raceName) || "Race"}</p>
                   <p className="text-xs text-[var(--color-text-soft)]">{result.raceDate} · {result.raceDistance}</p>
                 </div>
                 <span className="rounded-full bg-[var(--primary-soft)] px-3 py-1 text-xs font-bold text-[var(--primary-strong)]">

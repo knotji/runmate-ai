@@ -89,3 +89,19 @@ export function fmt2(n: number | null | undefined): string {
   if (n == null) return "-";
   return n.toFixed(2);
 }
+
+/** Return Thai weekday name (e.g. "วันพฤหัสบดี") for a Bangkok date. */
+export function getBangkokThaiDayName(dateKey?: string): string {
+  try {
+    const d = dateKey ? new Date(`${dateKey}T12:00:00+07:00`) : new Date();
+    return new Intl.DateTimeFormat("th-TH", { timeZone: "Asia/Bangkok", weekday: "long" }).format(d);
+  } catch {
+    return "";
+  }
+}
+
+/** Clean colon-heavy race names like "ASICS : META : Time : Trials" → "ASICS META Time Trials". */
+export function formatRaceDisplayName(name: string | null | undefined): string {
+  if (!name) return name ?? "";
+  return name.replace(/\s*:\s*/g, " ").replace(/\s{2,}/g, " ").trim();
+}

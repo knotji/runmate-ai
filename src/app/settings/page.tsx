@@ -311,12 +311,13 @@ export default function SettingsPage() {
       )}
 
       <section className="soft-panel mt-5 px-4 py-3 text-xs text-[var(--muted-text)]">
-        <p className="font-bold uppercase tracking-[0.15em] text-[var(--label-color)]">มีอะไรใหม่</p>
+        <p className="font-bold uppercase tracking-[0.15em] text-[var(--label-color)]">v0.1.0 Beta</p>
         <ul className="mt-2 space-y-1.5 leading-5">
-          <li>· ปรับคำแนะนำ recovery ให้นุ่มขึ้น — ไม่ตื่นตระหนกเมื่อนอนน้อยหรือฟื้นตัวต่ำ</li>
-          <li>· Today, Coach และ Race ใช้คำแนะนำเดียวกันตามสถานะร่างกายจริง</li>
-          <li>· เพิ่ม insight รายสัปดาห์ใน Report วิเคราะห์การนอน วิ่ง และฟื้นตัว</li>
-          <li>· ปรับหน้าเพิ่มข้อมูลให้อ่านง่ายขึ้น มีคำแนะนำรายประเภท</li>
+          <li>· วันไหนฟื้นตัวต่ำหรือนอนน้อย โค้ชจะพูดนุ่ม ๆ และแนะนำลดโหลด ไม่กดดัน</li>
+          <li>· Today, Coach และ Race ใช้ข้อมูล recovery เดียวกัน — คำแนะนำสอดคล้องกัน</li>
+          <li>· Report มี Weekly Insight สรุปการนอน การวิ่ง และการฟื้นตัวรายสัปดาห์</li>
+          <li>· Auto Sync โปรไฟล์ไม่เขียนทับค่าที่คุณแก้ไว้เอง</li>
+          <li>· หน้า Upload มีคำอธิบายชัดขึ้นว่าแต่ละประเภทบันทึกอะไร</li>
         </ul>
       </section>
 
