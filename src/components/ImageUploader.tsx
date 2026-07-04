@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useState, useEffect } from "react";
 import { fileToDataUrl, type UploadKind } from "@/lib/storage";
 import { ErrorState } from "@/components/ErrorState";
 import { LoadingButton } from "@/components/LoadingButton";
@@ -25,9 +25,26 @@ export function ImageUploader({
   onResult: (result: unknown) => void | Promise<void>;
 }) {
   const [files, setFiles] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
   const [inputKey, setInputKey] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    return () => {
+      previews.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [previews]);
+
+  function removeFile(indexToRemove: number) {
+    setFiles((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+    setPreviews((prev) => {
+      if (prev[indexToRemove]) {
+        URL.revokeObjectURL(prev[indexToRemove]);
+      }
+      return prev.filter((_, idx) => idx !== indexToRemove);
+    });
+  }
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -37,11 +54,6 @@ export function ImageUploader({
 
     if (!files.length) {
       setError(isMealUpload ? "กรุณาเลือกรูปอาหารก่อน" : "กรุณาเลือกรูปก่อน");
-      return;
-    }
-
-    if (isMealUpload && files.length !== 1) {
-      setError("กรุณาเลือกรูปอาหารก่อน");
       return;
     }
 
@@ -73,13 +85,13 @@ export function ImageUploader({
     setLoading(true);
     try {
       const imageDataUrls = await Promise.all(files.map(fileToDataUrl));
-      if (isMealUpload && imageDataUrls.length !== 1) {
+      if (isMealUpload && imageDataUrls.length === 0) {
         throw new Error("กรุณาเลือกรูปอาหารก่อน");
       }
       if (!imageDataUrls[0]) {
         throw new Error("วิเคราะห์รูปไม่สำเร็จ ลองเลือกรูปใหม่อีกครั้ง");
       }
-      if (isMealUpload && !imageDataUrls[0].startsWith("data:image/")) {
+      if (isMealUpload && imageDataUrls.some((img) => !img || !img.startsWith("data:image/"))) {
         throw new Error("รูปภาพไม่ถูกต้อง ลองเลือกรูปใหม่");
       }
       if (process.env.NODE_ENV === "development") {
@@ -96,17 +108,11 @@ export function ImageUploader({
           requestRoute: endpoint,
         });
       }
-      const payload = isMealUpload
-        ? {
-            imageDataUrl: imageDataUrls[0],
-            mealType,
-            context: extraFields?.context,
-          }
-        : {
-            imageDataUrl: imageDataUrls[0],
-            imageDataUrls,
-            ...extraFields,
-          };
+      const payload = {
+        imageDataUrl: imageDataUrls[0],
+        imageDataUrls,
+        ...extraFields,
+      };
       const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -118,7 +124,9 @@ export function ImageUploader({
       }
       const result = await response.json();
       await onResult(result);
+      previews.forEach((url) => URL.revokeObjectURL(url));
       setFiles([]);
+      setPreviews([]);
       setInputKey((value) => value + 1);
     } catch (err) {
       if (process.env.NODE_ENV === "development") {
@@ -135,7 +143,7 @@ export function ImageUploader({
       <label
         className={`flex min-h-[96px] cursor-pointer flex-col items-center justify-center gap-2 rounded-[22px] border border-dashed px-4 py-4 text-center transition-colors ${
           files.length > 0
-            ? "border-[var(--primary)] bg-[var(--primary-soft)]"
+            ? "border-[var(--primary)] bg-[var(--primary-soft)]/20"
             : "border-[var(--border-warm)] bg-white/70 hover:border-[var(--primary)]/60 hover:bg-[var(--surface)]"
         }`}
       >
@@ -145,13 +153,22 @@ export function ImageUploader({
           className="sr-only"
           accept="image/*"
           multiple={maxFiles > 1}
-          onChange={(event) => setFiles(Array.from(event.target.files || []).slice(0, maxFiles))}
+          onChange={(event) => {
+            const incoming = Array.from(event.target.files || []).slice(0, maxFiles);
+            setFiles(incoming);
+            previews.forEach((url) => URL.revokeObjectURL(url));
+            setPreviews(incoming.map((file) => URL.createObjectURL(file)));
+          }}
         />
         {files.length === 0 ? (
           <>
             <span className="text-2xl">📷</span>
             <p className="text-sm font-bold text-[var(--foreground)]">แตะเพื่อเลือกรูป</p>
-            <p className="text-xs text-[var(--muted-text)]">สูงสุด {maxFiles} รูป · ใช้เพื่อวิเคราะห์ครั้งนี้เท่านั้น</p>
+            <p className="text-xs text-[var(--muted-text)]">
+              {kind === "meal"
+                ? "สูงสุด 4 รูป · ใช้เพื่อวิเคราะห์มื้อนี้เท่านั้น"
+                : `สูงสุด ${maxFiles} รูป · ใช้เพื่อวิเคราะห์ครั้งนี้เท่านั้น`}
+            </p>
           </>
         ) : (
           <>
@@ -163,6 +180,34 @@ export function ImageUploader({
           </>
         )}
       </label>
+
+      {files.length > 0 && (
+        <div className="grid grid-cols-4 gap-2 mt-2" data-testid="upload-thumbnails-grid">
+          {files.map((file, idx) => (
+            <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-[var(--border-warm)] bg-slate-100">
+              <img
+                src={previews[idx] || ""}
+                alt={`Selected preview ${idx + 1}`}
+                className="w-full h-full object-cover"
+              />
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  removeFile(idx);
+                }}
+                className="absolute top-1 right-1 bg-black/60 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] hover:bg-black/80 transition"
+                aria-label="Remove image"
+                data-testid={`remove-image-${idx}`}
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       <LoadingButton
         className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-45"
         type="submit"

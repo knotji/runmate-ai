@@ -298,7 +298,7 @@ export default function UploadPage() {
   const [csvImportError, setCsvImportError] = useState("");
   const [csvDuplicateCount, setCsvDuplicateCount] = useState(0);
   const [manualMealText, setManualMealText] = useState("");
-  const [manualMealNote, setManualMealNote] = useState("");
+  const [imageMealText, setImageMealText] = useState("");
   const [manualMealError, setManualMealError] = useState("");
   const [manualMealLoading, setManualMealLoading] = useState(false);
   const [existingRaceResults, setExistingRaceResults] = useState<RaceResult[]>([]);
@@ -461,6 +461,7 @@ export default function UploadPage() {
     setWorkoutSavedItem(null);
     setSaveFeedback("");
     setRaceDuplicateConfirm(null);
+    setImageMealText("");
 
     // If API/extraction returns date, suggest it to the user, but never auto-apply it without confirmation.
     const suggestedDate = parseExtractedDate(extractDateFromResult(next as Record<string, unknown>));
@@ -590,7 +591,7 @@ export default function UploadPage() {
           mealText,
           mealType,
           mealSlot: mealType,
-          note: manualMealNote.trim(),
+          note: "",
           profile,
           context: coachContext,
         }),
@@ -604,7 +605,7 @@ export default function UploadPage() {
         mealType,
         inputMode: "text",
         originalMealText: mealText,
-        note: manualMealNote.trim(),
+        note: "",
       });
       setResult({ data: meal });
     } catch (error) {
@@ -1054,11 +1055,9 @@ export default function UploadPage() {
         {type === "meal" && mealInputMode === "text" ? (
           <ManualMealLogForm
             mealText={manualMealText}
-            note={manualMealNote}
             error={manualMealError}
             loading={manualMealLoading}
             onMealTextChange={setManualMealText}
-            onNoteChange={setManualMealNote}
             onAnalyze={() => void analyzeManualMeal()}
           />
         ) : null}
@@ -1098,17 +1097,29 @@ export default function UploadPage() {
               key={type + (type === "workout" ? `-${workoutSubtype}-${strengthInputMode}` : "")}
               kind={type}
               endpoint={endpoint}
-              maxFiles={type === "meal" ? 1 : type === "sleep" ? 3 : 4}
+              maxFiles={type === "meal" ? 4 : type === "sleep" ? 3 : 4}
               ctaLabel={selectedMeta.ctaLabel}
               noFileCtaLabel={selectedMeta.noFileCtaLabel}
               extraFields={{
-                ...(type === "meal" ? { mealType } : {}),
+                ...(type === "meal" ? { mealType, mealText: imageMealText } : {}),
                 ...(type === "workout" ? { workoutSubtype } : {}),
                 profile,
                 context: coachContext,
               }}
               onResult={handleAnalysisResult}
             />
+            {type === "meal" && (
+              <div className="space-y-1.5 mt-3" data-testid="meal-image-text-container">
+                <label htmlFor="meal-image-text" className="text-xs font-bold uppercase tracking-wide text-slate-400">เพิ่มเติม</label>
+                <textarea
+                  id="meal-image-text"
+                  className="control min-h-[80px]"
+                  placeholder="เช่น กินข้าวครึ่งจาน, ไก่แดง 2 ไม้, ไม่ได้กินน้ำจิ้ม, มีชาไม่หวาน 1 แก้ว"
+                  value={imageMealText}
+                  onChange={(e) => setImageMealText(e.target.value)}
+                />
+              </div>
+            )}
             {saveStatus === "saving" && <p className="text-xs font-semibold text-[var(--color-text-soft)]">กำลังบันทึก...</p>}
             {saveStatus === "saved" && <p className="text-xs font-semibold text-[var(--status-ready)]">บันทึกเข้า Report แล้ว</p>}
             {saveStatus === "error" && <p className="text-xs font-semibold text-[var(--status-rest)]">บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง</p>}
@@ -1999,19 +2010,15 @@ function RaceDuplicateWarnCard({
 
 function ManualMealLogForm({
   mealText,
-  note,
   error,
   loading,
   onMealTextChange,
-  onNoteChange,
   onAnalyze,
 }: {
   mealText: string;
-  note: string;
   error: string;
   loading: boolean;
   onMealTextChange: (value: string) => void;
-  onNoteChange: (value: string) => void;
   onAnalyze: () => void;
 }) {
   return (
@@ -2022,22 +2029,12 @@ function ManualMealLogForm({
       </div>
 
       <label className="block space-y-1.5">
-        <span className="text-xs font-bold uppercase tracking-wide text-slate-400">กินอะไร?</span>
+        <span className="text-xs font-bold uppercase tracking-wide text-slate-400">พิมพ์เมนูของมื้อนี้</span>
         <textarea
           className="control min-h-[96px]"
-          placeholder="เช่น ข้าวต้มปลา 1 ชาม + ไข่ลวก 1 ฟอง"
+          placeholder="เช่น ข้าวเหนียว 1 ห่อ + ไก่แดง 2 ไม้ + กาแฟดำไม่หวาน"
           value={mealText}
           onChange={(event) => onMealTextChange(event.target.value)}
-        />
-      </label>
-
-      <label className="block space-y-1.5">
-        <span className="text-xs font-bold uppercase tracking-wide text-slate-400">หมายเหตุ (ไม่บังคับ)</span>
-        <textarea
-          className="control min-h-[72px]"
-          placeholder="เช่น หลังวิ่ง, หิวมาก, ไม่ใส่น้ำตาล, กินครึ่งจาน"
-          value={note}
-          onChange={(event) => onNoteChange(event.target.value)}
         />
       </label>
 

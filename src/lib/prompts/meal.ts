@@ -15,6 +15,11 @@ Rules:
 - If nutrition, portion, ingredients, or label values are unclear, list those names in unclearFields.
 - For image input, mention that the estimate is based only on what is visible.
 - For text input, mention that the estimate is based on the typed text and portion details may be uncertain.
+- Quantity parsing rules for text description:
+  - Quantity words or numbers (e.g. "2 ไม้", "ครึ่งจาน", "1 ห่อ") must attach ONLY to the nearest food item or phrase.
+  - If a food item has no explicit quantity (e.g. "ข้าวเหนียว"), assume a normal single serving/portion and note that it is a default estimate. Do NOT duplicate or apply quantities from other food items to it (e.g. do not assume "ข้าวเหนียว 2 ห่อ" just because "ไก่แดง" has "2 ไม้").
+  - Example: If user typed "ข้าวเหนียว + ไก่แดง 2 ไม้", interpret it as "ไก่แดง 2 ไม้" and "ข้าวเหนียว 1 หน่วยปกติโดยประมาณ" (estimate), NOT "ข้าวเหนียว 2 ห่อ".
+  - If uncertain, state the assumption briefly instead of asking a follow-up.
 - Sleep/recovery context is supporting information only. Focus mainly on food fit, protein, carbs, fat, hydration, recovery usefulness, and next-meal adjustment.
 - Mention exact sleep duration only when context explicitly provides latestSleepDuration.
 - Never invent exact sleep hours and never reuse example numbers.

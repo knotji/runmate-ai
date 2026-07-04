@@ -47,6 +47,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const inputMode = body.inputMode === "text" ? "text" : "image";
     const imageDataUrl = typeof body.imageDataUrl === "string" ? body.imageDataUrl : "";
+    const imageDataUrls = Array.isArray(body.imageDataUrls) ? body.imageDataUrls : [];
     const mealType = typeof body.mealType === "string" ? body.mealType.trim() : "";
     const mealText = typeof body.mealText === "string" ? body.mealText.trim() : "";
     const note = typeof body.note === "string" ? body.note.trim() : "";
@@ -57,6 +58,7 @@ export async function POST(request: Request) {
       inputMode,
       hasImageDataUrl: Boolean(imageDataUrl),
       imageDataUrlPrefix: imageDataUrl.slice(0, 30),
+      imageDataUrlsCount: imageDataUrls.length,
       mealType,
       hasMealText: Boolean(mealText),
       mealTextLength: mealText.length,
@@ -73,14 +75,20 @@ export async function POST(request: Request) {
     if (inputMode === "text" && mealText.length < 2) {
       return NextResponse.json({ error: "missing_meal_text", message: "พิมพ์เมนูที่กินก่อนครับ" }, { status: 400 });
     }
-    if (inputMode === "image" && !imageDataUrl) {
+    if (inputMode === "image" && !imageDataUrl && !imageDataUrls.length) {
       return NextResponse.json({ error: "missing_image", message: "ไม่พบรูปอาหาร" }, { status: 400 });
     }
-    if (inputMode === "image" && !imageDataUrl.startsWith("data:image/")) {
-      return NextResponse.json({ error: "missing_image", message: "ไม่พบรูปอาหาร" }, { status: 400 });
-    }
-    if (inputMode === "image" && estimateDataUrlBytes(imageDataUrl) > MAX_IMAGE_BYTES) {
-      return NextResponse.json({ error: "image_too_large", message: "รูปภาพใหญ่เกินไป ลองลดขนาดรูปแล้วอัปโหลดใหม่" }, { status: 413 });
+
+    if (inputMode === "image") {
+      const imagesToValidate = imageDataUrls.length ? imageDataUrls : [imageDataUrl];
+      for (const img of imagesToValidate) {
+        if (!img || typeof img !== "string" || !img.startsWith("data:image/")) {
+          return NextResponse.json({ error: "missing_image", message: "ไม่พบรูปอาหาร" }, { status: 400 });
+        }
+        if (estimateDataUrlBytes(img) > MAX_IMAGE_BYTES) {
+          return NextResponse.json({ error: "image_too_large", message: "รูปภาพใหญ่เกินไป ลองลดขนาดรูปแล้วอัปโหลดใหม่" }, { status: 413 });
+        }
+      }
     }
 
     const profileCtx = buildRunnerProfileContext(body.profile ?? (body.context as { profile?: unknown } | null)?.profile ?? null);
@@ -92,8 +100,9 @@ export async function POST(request: Request) {
       system,
       user: inputMode === "text"
         ? buildManualMealUserPrompt({ mealType, mealText, note })
-        : `Analyze this ${mealType} photo for a runner. Return JSON only. If uncertain, return nullable nutrition values and low confidence instead of failing.`,
-      imageDataUrl: inputMode === "image" ? imageDataUrl : undefined,
+        : buildImageMealUserPrompt({ mealType, mealText }),
+      imageDataUrl: inputMode === "image" && !imageDataUrls.length ? imageDataUrl : undefined,
+      imageDataUrls: inputMode === "image" && imageDataUrls.length ? imageDataUrls : undefined,
       fallback,
     });
     logMealApi("openai-call-success", { source: result.source });
@@ -101,7 +110,7 @@ export async function POST(request: Request) {
     const data = normalizeMealResult(mergeWithFallback(result.data, { ...fallback, mealType }), freshSleep, {
       inputMode,
       mealText,
-      note,
+      note: inputMode === "image" ? mealText : note,
     });
     logMealApi("json-parse-success", {
       source: result.source,
@@ -229,6 +238,19 @@ function buildManualMealUserPrompt({
     "If portion size is unclear, use medium/low confidence, needsReview true, and list unclearFields.",
     "Return JSON only using the existing meal schema. Thai coachNote should say this is a rough estimate from the typed text.",
   ].join("\n");
+}
+
+function buildImageMealUserPrompt({
+  mealType,
+  mealText,
+}: {
+  mealType: string;
+  mealText: string;
+}) {
+  return [
+    `Analyze this ${mealType} photo for a runner. Return JSON only. If uncertain, return nullable nutrition values and low confidence instead of failing.`,
+    mealText ? `Additional user description/context: "${mealText}"` : "",
+  ].filter(Boolean).join("\n");
 }
 
 function normalizeMealResult(
