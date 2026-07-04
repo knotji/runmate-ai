@@ -109,6 +109,7 @@ IMAGE INTENT HINT: "${imageIntent}".
     const systemExtra = [
       `Current Bangkok date/time: ${dateTimeStr}`,
       buildLatestReportContextOverride(context),
+      buildReadinessGuidance(context),
       buildRunnerProfileContext(profile),
       contextGuidance,
       `Context from Report/Profile/Race Goal:\n${JSON.stringify(context)}`,
@@ -425,6 +426,62 @@ export function buildContextGuidance(question: string, context: unknown) {
   }
 
   return lines.length ? `Coach response guidance:\n${lines.join("\n")}` : "";
+}
+
+export function buildReadinessGuidance(context: unknown): string {
+  const ctx = context as Record<string, unknown>;
+  const activePain = Boolean(ctx.activePain);
+  const v2 = readRecord(ctx.readinessV2);
+  const score = numberValue(v2?.score);
+  const recSys = readRecord(ctx.recoverySystem);
+  const axes = readRecord(recSys?.axes);
+  const loadScore = numberValue((readRecord(axes?.load) as Record<string, unknown>)?.score);
+  const isRaceToday = Boolean(ctx.isRaceToday);
+  const isRaceTomorrow = Boolean(ctx.isRaceTomorrow);
+
+  // Derive band
+  let band: string;
+  if (activePain) {
+    band = "pain_risk";
+  } else if (score === null) {
+    band = "yellow";
+  } else if (score >= 66) {
+    band = "green";
+  } else if (score >= 50) {
+    band = "yellow";
+  } else {
+    band = "red";
+  }
+
+  // Derive loadTarget
+  let loadTarget: string;
+  if (band === "pain_risk") {
+    loadTarget = "rest";
+  } else if (isRaceToday) {
+    loadTarget = "race";
+  } else if (isRaceTomorrow) {
+    loadTarget = "easy";
+  } else if (band === "red") {
+    loadTarget = "walk";
+  } else if (band === "yellow") {
+    loadTarget = (loadScore ?? 0) >= 65 ? "easy" : "moderate";
+  } else {
+    // green
+    loadTarget = (loadScore ?? 0) >= 65 ? "easy" : (loadScore ?? 0) <= 25 ? "build" : "moderate";
+  }
+
+  const lines = [
+    `DAILY READINESS BAND: ${band} — LoadTarget: ${loadTarget}.`,
+    band === "pain_risk"
+      ? "READINESS RESTRICTION: Active pain detected. Do NOT recommend running or high-impact activity. Guide toward gentle movement, physio, or rest only."
+      : band === "red"
+      ? "READINESS RESTRICTION: Body is fatigued (red band). Do NOT recommend tempo, interval, or hard workouts. Suggest easy walk, light jog at most."
+      : band === "yellow"
+      ? "READINESS NOTE: Moderate readiness (yellow band). Avoid recommending hard workouts unless user explicitly asks. Prefer easy/recovery-type suggestions."
+      : "",
+  ].filter(Boolean);
+
+  return lines.join("\n");
 }
 
 function isSimpleFollowUp(question: string) {

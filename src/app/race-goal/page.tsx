@@ -11,6 +11,7 @@ import { buildCoachContextFromSupabase, type CoachContext } from "@/lib/buildCoa
 import { formatRaceDisplayName } from "@/lib/date";
 import { PAIN_RECOVERY_COPY, type PainRecoveryStatus } from "@/lib/painRecovery";
 import { getTodayTrainingGuardrail } from "@/lib/trainingGuardrails";
+import { buildDailyReadiness } from "@/lib/readiness/dailyReadiness";
 
 import { loadHistoryItems } from "@/lib/cloudHistory";
 import { suggestStrengthRoutine } from "@/lib/strengthRoutineSelect";
@@ -564,6 +565,25 @@ function TodayWorkoutCard({ workout, coachContext }: { workout: WeekWorkout; coa
           ⚠️ {guardrail.shortThaiCopy}
         </div>
       )}
+      {!painBlocked && coachContext && (() => {
+        const dr = buildDailyReadiness(coachContext);
+        const isHardWorkout = /interval|tempo|ซ้อมเร็ว|long run|วิ่งยาว|race pace/i.test(workout.workoutType);
+        if (dr.band === "red" && isHardWorkout) {
+          return (
+            <div className="mt-3 rounded-xl bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-600 border border-slate-200" data-testid="readiness-race-softening">
+              💡 ร่างกายฟื้นตัวต่ำวันนี้ — พิจารณาลดเป็น easy run หรือพัก แล้วทำตามแผนพรุ่งนี้แทน
+            </div>
+          );
+        }
+        if (dr.band === "pain_risk") {
+          return (
+            <div className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-xs leading-5 text-red-700 border border-red-200" data-testid="readiness-race-pain-note">
+              🩹 มีอาการเจ็บ — แนะนำงดซ้อมตามแผนนี้ก่อน และประเมินอาการก่อนกลับซ้อม
+            </div>
+          );
+        }
+        return null;
+      })()}
     </section>
   );
 }

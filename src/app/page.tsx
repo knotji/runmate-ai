@@ -12,6 +12,8 @@ import { formatThaiDate, getHistoryItemDateKey, todayBangkokDateKey } from "@/li
 import { buildCoachContextFromSupabase, type CoachContext, type NutritionDaySummary, type PainSummary, type TodayCompletedWorkoutSummary } from "@/lib/buildCoachContext";
 import { getTodayReadiness, getTodayPlannedWorkout, getReadinessCategoryLabel, checkPlannedWorkoutMatching } from "@/lib/todayPlanning";
 import { buildRunMateRecoverySystem, getAxisTone, getRecoveryAxisCoachingTone, formatAxisScore, getRecoveryAxisLabel, getOverallDisplayStatus } from "@/lib/recoverySystem";
+import { buildDailyReadiness } from "@/lib/readiness/dailyReadiness";
+import { ReadinessSignalBars } from "@/components/ReadinessSignalBars";
 import { getTodayTrainingGuardrail } from "@/lib/trainingGuardrails";
 import { createHistoryItem, loadHistoryItems, saveHistoryItems } from "@/lib/cloudHistory";
 import { loadActiveRaceGoalAndPlan } from "@/lib/raceStorage";
@@ -338,6 +340,20 @@ export default function TodayPage() {
         hasWorkoutToday={hasWorkoutToday}
         coachCtx={coachCtx}
       />
+
+      {/* 1b. สัญญาณ 4 มิติ — readiness signal bars */}
+      {coachCtx && !loading && (() => {
+        const dr = buildDailyReadiness(coachCtx);
+        return (
+          <div className="space-y-1.5">
+            <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--color-text-soft)]">สัญญาณวันนี้</p>
+            <ReadinessSignalBars signals={dr.signals} />
+            {dr.sleepAdvice && (
+              <p className="px-1 text-[11px] text-amber-600 leading-snug">💡 {dr.sleepAdvice}</p>
+            )}
+          </div>
+        );
+      })()}
 
       {/* 2. วันนี้ควรทำอะไร — coach prescription */}
       <section className="rounded-3xl bg-[var(--surface)]/92 border border-[var(--border-warm)]/55 shadow-[0_12px_32px_rgba(72,82,72,0.055)] overflow-hidden">
