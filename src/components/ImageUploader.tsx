@@ -2,10 +2,16 @@
 
 import { FormEvent, useState, useEffect, type ReactNode } from "react";
 import { fileToDataUrl, type UploadKind } from "@/lib/storage";
+import { compressImage } from "@/lib/images/compressImage";
 import { ErrorState } from "@/components/ErrorState";
 import { LoadingButton } from "@/components/LoadingButton";
 
+// When compressImages=true, allow up to 20 MB per file (compression will reduce it).
+// Without compression the old 5 MB / 6 MB limits stay in effect.
 const MEAL_MAX_FILE_BYTES = 5 * 1024 * 1024;
+const COMPRESS_MAX_FILE_BYTES = 20 * 1024 * 1024;
+// 3.5 MB safety cap on the estimated base64 payload sent to the AI API
+const MAX_PAYLOAD_BYTES = 3.5 * 1024 * 1024;
 
 export function ImageUploader({
   kind,
@@ -14,6 +20,7 @@ export function ImageUploader({
   maxFiles = 1,
   ctaLabel = "วิเคราะห์",
   noFileCtaLabel = "เลือกรูปก่อนวิเคราะห์",
+  compressImages = false,
   onResult,
   children,
 }: {
@@ -23,6 +30,8 @@ export function ImageUploader({
   maxFiles?: number;
   ctaLabel?: string;
   noFileCtaLabel?: string;
+  /** Compress images client-side before upload. Enable for meal image analysis. */
+  compressImages?: boolean;
   onResult: (result: unknown) => void | Promise<void>;
   children?: ReactNode;
 }) {
@@ -74,19 +83,77 @@ export function ImageUploader({
       return;
     }
 
-    if (isMealUpload && files.some((file) => file.size > MEAL_MAX_FILE_BYTES)) {
-      setError("รูปภาพใหญ่เกินไป ลองเลือกรูปที่เล็กลง");
-      return;
-    }
-
-    if (files.some((file) => file.size > 6 * 1024 * 1024)) {
-      setError("รูปใหญ่เกินไป กรุณาใช้ไฟล์ละไม่เกิน 6MB");
-      return;
+    // File size guards — relax the per-file limit when compression is enabled,
+    // since compression handles large originals. The payload guard below is the
+    // real safety net in that case.
+    if (compressImages) {
+      if (files.some((file) => file.size > COMPRESS_MAX_FILE_BYTES)) {
+        setError("รูปภาพใหญ่เกินไป ลองเลือกรูปที่เล็กลง");
+        return;
+      }
+    } else {
+      if (isMealUpload && files.some((file) => file.size > MEAL_MAX_FILE_BYTES)) {
+        setError("รูปภาพใหญ่เกินไป ลองเลือกรูปที่เล็กลง");
+        return;
+      }
+      if (files.some((file) => file.size > 6 * 1024 * 1024)) {
+        setError("รูปใหญ่เกินไป กรุณาใช้ไฟล์ละไม่เกิน 6MB");
+        return;
+      }
     }
 
     setLoading(true);
     try {
-      const imageDataUrls = await Promise.all(files.map(fileToDataUrl));
+      // ── 1. Compress images (meal only) ──────────────────────────────────────
+      let filesToSend: File[] = files;
+      if (compressImages) {
+        const results = await Promise.allSettled(files.map((f) => compressImage(f)));
+        filesToSend = results.map((result, i) => {
+          if (result.status === "fulfilled") return result.value.file;
+          // Compression failed (e.g. invalid JPEG data) — use the original
+          return files[i];
+        });
+
+        if (process.env.NODE_ENV === "development") {
+          results.forEach((result, i) => {
+            if (result.status === "fulfilled") {
+              const { originalSize, compressedSize, wasCompressed } = result.value;
+              console.info("[meal-compression]", {
+                file: files[i].name,
+                originalSize,
+                compressedSize,
+                wasCompressed,
+                savedPct: wasCompressed
+                  ? `${Math.round((1 - compressedSize / originalSize) * 100)}%`
+                  : "0%",
+              });
+            } else {
+              console.warn("[meal-compression-failed]", {
+                file: files[i].name,
+                error: result.reason,
+              });
+            }
+          });
+        }
+      }
+
+      // ── 2. Payload size guard ───────────────────────────────────────────────
+      // base64 inflates each byte to ~4/3 chars. Guard before converting so we
+      // never build a string that would OOM or hit Vercel's 4.5 MB body limit.
+      if (compressImages) {
+        const estimatedBytes = filesToSend.reduce(
+          (sum, f) => sum + Math.ceil(f.size / 3) * 4,
+          0,
+        );
+        if (estimatedBytes > MAX_PAYLOAD_BYTES) {
+          throw new Error(
+            "รูปยังใหญ่เกินไปสำหรับการวิเคราะห์ ลองเลือกรูปน้อยลงหรือเลือกรูปที่เล็กลง",
+          );
+        }
+      }
+
+      // ── 3. Convert to data URLs ─────────────────────────────────────────────
+      const imageDataUrls = await Promise.all(filesToSend.map(fileToDataUrl));
       if (isMealUpload && imageDataUrls.length === 0) {
         throw new Error("กรุณาเลือกรูปอาหารก่อน");
       }
@@ -96,11 +163,12 @@ export function ImageUploader({
       if (isMealUpload && imageDataUrls.some((img) => !img || !img.startsWith("data:image/"))) {
         throw new Error("รูปภาพไม่ถูกต้อง ลองเลือกรูปใหม่");
       }
+
       if (process.env.NODE_ENV === "development") {
-        const firstFile = files[0];
+        const firstFile = filesToSend[0];
         console.info(isMealUpload ? "[meal-upload-debug]" : "[upload-debug]", {
           uploadType: kind,
-          selectedFilesLength: files.length,
+          selectedFilesLength: filesToSend.length,
           firstFileName: firstFile?.name,
           firstFileType: firstFile?.type,
           firstFileSize: firstFile?.size,
@@ -110,6 +178,8 @@ export function ImageUploader({
           requestRoute: endpoint,
         });
       }
+
+      // ── 4. POST to API ──────────────────────────────────────────────────────
       const payload = {
         imageDataUrl: imageDataUrls[0],
         imageDataUrls,
@@ -120,10 +190,24 @@ export function ImageUploader({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
+
+      // 413 arrives as HTML from Vercel's edge, not JSON — handle before json parse
+      if (response.status === 413) {
+        throw new Error(
+          "รูปใหญ่เกินไปสำหรับการวิเคราะห์ ลองเลือกรูปน้อยลงหรือเลือกรูปที่เล็กลง",
+        );
+      }
+
       if (!response.ok) {
-        const message = await getApiErrorMessage(response, isMealUpload ? "วิเคราะห์รูปอาหารไม่สำเร็จ ลองเลือกรูปใหม่อีกครั้ง" : "วิเคราะห์รูปไม่สำเร็จ");
+        const message = await getApiErrorMessage(
+          response,
+          isMealUpload
+            ? "วิเคราะห์รูปอาหารไม่สำเร็จ ลองเลือกรูปใหม่อีกครั้ง"
+            : "วิเคราะห์รูปไม่สำเร็จ",
+        );
         throw new Error(message);
       }
+
       const result = await response.json();
       await onResult(result);
       previews.forEach((url) => URL.revokeObjectURL(url));
@@ -171,6 +255,9 @@ export function ImageUploader({
                 ? "สูงสุด 4 รูป · ใช้เพื่อวิเคราะห์มื้อนี้เท่านั้น"
                 : `สูงสุด ${maxFiles} รูป · ใช้เพื่อวิเคราะห์ครั้งนี้เท่านั้น`}
             </p>
+            {kind === "meal" && compressImages && (
+              <p className="text-xs text-[var(--color-text-muted)]">ระบบจะย่อรูปก่อนวิเคราะห์อัตโนมัติ</p>
+            )}
           </>
         ) : (
           <>

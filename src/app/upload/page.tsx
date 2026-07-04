@@ -967,6 +967,7 @@ export default function UploadPage() {
               maxFiles={type === "meal" ? 4 : type === "sleep" ? 3 : 4}
               ctaLabel={selectedMeta.ctaLabel}
               noFileCtaLabel={selectedMeta.noFileCtaLabel}
+              compressImages={type === "meal"}
               extraFields={{
                 ...(type === "meal" ? { mealType, mealText: imageMealText } : {}),
                 ...(type === "workout" ? { workoutSubtype } : {}),

@@ -1,6 +1,10 @@
 import { expect, test } from "@playwright/test";
 import { gotoApp, installMockBackend } from "./helpers/app";
 
+// 900 KB fake JPEG — large enough that 4 copies exceed the 3.5 MB payload guard
+// (4 × 900 KB × 4/3 base64 ≈ 4.7 MB) but small enough to pass per-file limits.
+const LARGE_FAKE_JPEG = { name: "big.jpg", mimeType: "image/jpeg", buffer: Buffer.alloc(900 * 1024) };
+
 test.describe("Meal Upload UX Improvements", () => {
   test("Meal manual mode has a simplified form with no note field and submits single input", async ({ page }) => {
     await installMockBackend(page);
@@ -94,6 +98,60 @@ test.describe("Meal Upload UX Improvements", () => {
     // Check grid has only 1 item remaining
     await expect(page.getByTestId("remove-image-0")).toBeVisible();
     await expect(page.getByTestId("remove-image-1")).toBeHidden();
+  });
+
+  test("Oversized payload is blocked before API call and shows Thai error", async ({ page }) => {
+    await installMockBackend(page);
+    await gotoApp(page, "/upload?type=meal");
+
+    // Select meal type so the form is valid
+    await page.getByRole("button", { name: "เช้า" }).click();
+
+    // Upload 4 large files — compression will fail (fake data) so originals are used.
+    // 4 × 900 KB × (4/3 base64) ≈ 4.7 MB, which exceeds the 3.5 MB payload guard.
+    await page.locator('input[type="file"]').first().setInputFiles([
+      LARGE_FAKE_JPEG,
+      LARGE_FAKE_JPEG,
+      LARGE_FAKE_JPEG,
+      LARGE_FAKE_JPEG,
+    ]);
+
+    // Track whether the API was called — it must NOT be
+    let apiCallCount = 0;
+    await page.route("**/api/analyze-meal", async (route) => {
+      apiCallCount++;
+      await route.continue();
+    });
+
+    await page.getByRole("button", { name: "วิเคราะห์อาหาร" }).click();
+
+    await expect(
+      page.getByText("รูปยังใหญ่เกินไปสำหรับการวิเคราะห์ ลองเลือกรูปน้อยลงหรือเลือกรูปที่เล็กลง"),
+    ).toBeVisible();
+    expect(apiCallCount).toBe(0);
+  });
+
+  test("413 response from API shows Thai friendly error", async ({ page }) => {
+    await installMockBackend(page);
+    await gotoApp(page, "/upload?type=meal");
+
+    // Select meal type
+    await page.getByRole("button", { name: "เช้า" }).click();
+
+    // Upload one tiny file — well within payload limit
+    const tinyFile = { name: "food.jpg", mimeType: "image/jpeg", buffer: Buffer.from("x") };
+    await page.locator('input[type="file"]').first().setInputFiles([tinyFile]);
+
+    // Override the mock backend to return 413 (last-registered route wins)
+    await page.route("**/api/analyze-meal", async (route) => {
+      await route.fulfill({ status: 413, body: "" });
+    });
+
+    await page.getByRole("button", { name: "วิเคราะห์อาหาร" }).click();
+
+    await expect(
+      page.getByText("รูปใหญ่เกินไปสำหรับการวิเคราะห์ ลองเลือกรูปน้อยลงหรือเลือกรูปที่เล็กลง"),
+    ).toBeVisible();
   });
 
   test("Meal image mode shows 'เพิ่มเติม' textarea before the CTA button and has enough bottom spacing", async ({ page }) => {
