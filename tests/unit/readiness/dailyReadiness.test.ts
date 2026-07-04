@@ -92,6 +92,48 @@ describe("buildDailyReadiness — loadTarget", () => {
   });
 });
 
+describe("buildDailyReadiness — pain recovery status overrides", () => {
+  it("cleared_normal → does NOT force pain_risk band", () => {
+    const ctx = makeCtx({
+      activePain: false,
+      painRecoveryStatus: "cleared_normal",
+      readinessV2: { score: 72, label: "Good", level: "green" } as never,
+    });
+    const dr = buildDailyReadiness(ctx);
+    expect(dr.band).not.toBe("pain_risk");
+    expect(dr.band).toBe("green");
+  });
+
+  it("improving → loadTarget capped at easy even with green band + low load", () => {
+    const ctx = makeCtx({
+      activePain: false,
+      painRecoveryStatus: "improving",
+      readinessV2: { score: 75, label: "Good", level: "green" } as never,
+      recoverySystem: makeRecoverySys({ loadScore: 20 }),
+    });
+    expect(buildDailyReadiness(ctx).loadTarget).toBe("easy");
+  });
+
+  it("cleared_light → loadTarget capped at easy", () => {
+    const ctx = makeCtx({
+      activePain: false,
+      painRecoveryStatus: "cleared_light",
+      readinessV2: { score: 75, label: "Good", level: "green" } as never,
+      recoverySystem: makeRecoverySys({ loadScore: 20 }),
+    });
+    expect(buildDailyReadiness(ctx).loadTarget).toBe("easy");
+  });
+
+  it("active_pain still overrides band to pain_risk even when painRecoveryStatus says cleared", () => {
+    const ctx = makeCtx({
+      activePain: true,
+      latestPain: makePainSummary(5),
+      painRecoveryStatus: "cleared_normal",
+    });
+    expect(buildDailyReadiness(ctx).band).toBe("pain_risk");
+  });
+});
+
 describe("buildDailyReadiness — reasons and avoid/allow", () => {
   it("active pain → reason includes pain_active key", () => {
     const ctx = makeCtx({

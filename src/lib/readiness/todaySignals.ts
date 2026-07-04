@@ -78,6 +78,18 @@ function buildPainSignal(ctx: CoachContext): TodaySignal {
     return { key: "pain", label: "เจ็บ", value, icon: "🩹", tone: "bad" };
   }
 
+  // Use explicit painRecoveryStatus for precise display
+  const prs = ctx.painRecoveryStatus;
+  if (prs === "cleared_normal") {
+    return { key: "pain", label: "เจ็บ", value: "ไม่มีเจ็บ", icon: "🩹", tone: "good" };
+  }
+  if (prs === "cleared_light") {
+    return { key: "pain", label: "เจ็บ", value: "เบา ๆ ได้", icon: "🩹", tone: "warn" };
+  }
+  if (prs === "improving" || prs === "recent_pain") {
+    return { key: "pain", label: "เจ็บ", value: "กำลังฟื้น", icon: "🩹", tone: "warn" };
+  }
+
   if ((ctx.recentPainHistory || ctx.painResolved) && ctx.latestPain) {
     return { key: "pain", label: "เจ็บ", value: "กำลังฟื้น", icon: "🩹", tone: "warn" };
   }

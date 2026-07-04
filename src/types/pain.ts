@@ -23,6 +23,8 @@ export type PainLog = {
   resolved?: boolean;
   status?: PainStatus;
   resolvedAt?: string;
+  // User-selected recovery status — overrides the time-based derivation in buildCoachContext
+  recoveryStatus?: "active_pain" | "improving" | "cleared_light" | "cleared_normal";
 };
 
 export type PainAnalysisResult = {

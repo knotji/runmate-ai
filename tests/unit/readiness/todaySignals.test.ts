@@ -13,10 +13,11 @@ describe("buildTodaySignals — pain signal", () => {
     expect(sig.value).toContain("5/10");
   });
 
-  it("recent / resolved pain → pain signal tone = warn", () => {
+  it("recent / resolved pain (recent_pain status) → pain signal tone = warn", () => {
     const ctx = makeCtx({
       activePain: false,
       recentPainHistory: true,
+      painRecoveryStatus: "recent_pain",
       latestPain: { ...makePainSummary(3), hasActivePain: false, hasResolvedPain: true, resolved: true, painStatus: "resolved" as const },
     });
     const sig = buildTodaySignals(ctx).find((s) => s.key === "pain")!;
@@ -100,6 +101,39 @@ describe("buildTodaySignals — recovery signal", () => {
       recoverySystem: makeRecoverySys({ recoveryScore: 40 }),
     });
     const sig = buildTodaySignals(ctx).find((s) => s.key === "recovery")!;
+    expect(sig.tone).toBe("bad");
+  });
+});
+
+describe("buildTodaySignals — pain signal with painRecoveryStatus", () => {
+  it("cleared_normal → tone=good, value=ไม่มีเจ็บ", () => {
+    const ctx = makeCtx({ activePain: false, painRecoveryStatus: "cleared_normal" });
+    const sig = buildTodaySignals(ctx).find((s) => s.key === "pain")!;
+    expect(sig.tone).toBe("good");
+    expect(sig.value).toBe("ไม่มีเจ็บ");
+  });
+
+  it("cleared_light → tone=warn, value=เบา ๆ ได้", () => {
+    const ctx = makeCtx({ activePain: false, painRecoveryStatus: "cleared_light" });
+    const sig = buildTodaySignals(ctx).find((s) => s.key === "pain")!;
+    expect(sig.tone).toBe("warn");
+    expect(sig.value).toBe("เบา ๆ ได้");
+  });
+
+  it("improving → tone=warn, value=กำลังฟื้น", () => {
+    const ctx = makeCtx({ activePain: false, painRecoveryStatus: "improving" });
+    const sig = buildTodaySignals(ctx).find((s) => s.key === "pain")!;
+    expect(sig.tone).toBe("warn");
+    expect(sig.value).toBe("กำลังฟื้น");
+  });
+
+  it("active_pain always overrides to bad regardless of painRecoveryStatus", () => {
+    const ctx = makeCtx({
+      activePain: true,
+      latestPain: makePainSummary(5),
+      painRecoveryStatus: "cleared_normal", // override should not matter
+    });
+    const sig = buildTodaySignals(ctx).find((s) => s.key === "pain")!;
     expect(sig.tone).toBe("bad");
   });
 });

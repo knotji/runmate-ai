@@ -8,6 +8,17 @@ import { fileToDataUrl } from "@/lib/storage";
 import { createHistoryItem, loadHistoryItemById, saveHistoryItems } from "@/lib/cloudHistory";
 import type { PainLog, PainAnalysisResult, PainSide, PainTriYesNo, PainRiskLevel, PainTrainingImpact } from "@/types/pain";
 
+// ── status choice ────────────────────────────────────────────────────────────
+
+type PainStatusChoice = "active_pain" | "improving" | "cleared_light" | "cleared_normal";
+
+const STATUS_OPTIONS: { value: PainStatusChoice; label: string; emoji: string; desc: string }[] = [
+  { value: "active_pain",    label: "ยังเจ็บอยู่",          emoji: "🔴", desc: "ยังมีอาการอยู่" },
+  { value: "improving",      label: "ดีขึ้น แต่ยังระวัง",   emoji: "🟡", desc: "ดีขึ้นแต่ยังไม่ 100%" },
+  { value: "cleared_light",  label: "กลับมาเบา ๆ ได้",      emoji: "🟢", desc: "กลับมาวิ่งเบา ๆ ได้" },
+  { value: "cleared_normal", label: "กลับมาปกติแล้ว",       emoji: "✅", desc: "หายสนิท ซ้อมได้ตามแผน" },
+];
+
 // ── form field options ───────────────────────────────────────────────────────
 
 const COMMON_LOCATIONS = ["เข่า", "ข้อเท้า", "น่อง", "สะโพก", "หลัง", "เท้า", "หัวเข่า", "ขาหนีบ"];
@@ -20,11 +31,11 @@ const SIDE_OPTIONS: { value: PainSide; label: string }[] = [
 ];
 
 const STARTED_WHEN_OPTIONS = [
-  { value: "before_run",     label: "ก่อนวิ่ง" },
-  { value: "during_run",     label: "ระหว่างวิ่ง" },
-  { value: "after_run",      label: "หลังวิ่ง" },
-  { value: "next_morning",   label: "เช้าวันถัดไป" },
-  { value: "unknown",        label: "ไม่แน่ใจ" },
+  { value: "before_run",   label: "ก่อนวิ่ง" },
+  { value: "during_run",   label: "ระหว่างวิ่ง" },
+  { value: "after_run",    label: "หลังวิ่ง" },
+  { value: "next_morning", label: "เช้าวันถัดไป" },
+  { value: "unknown",      label: "ไม่แน่ใจ" },
 ];
 
 const PAIN_TYPE_OPTIONS = [
@@ -78,18 +89,10 @@ function impactLabel(impact: PainTrainingImpact) {
   return "Easy run ได้ถ้าอาการไม่แย่ลง";
 }
 
-function cleanRoboticNotes(rawNotes: string): string {
-  const parts = rawNotes.split(/\s*·\s*/);
-  const cleanParts = parts.filter(p => {
-    const trimmed = p.trim();
-    if (!trimmed) return false;
-    if (trimmed.includes("อาการหายแล้วจากหน้า Today")) return false;
-    if (trimmed.includes("อาการหายแล้ว")) return false;
-    if (trimmed.includes("ไม่มีอาการขณะเดินหรือวิ่งเบา")) return false;
-    if (trimmed.includes("ไม่มีอาการตอนเดินหรือวิ่งเบา")) return false;
-    return true;
-  });
-  return cleanParts.join(" · ").trim();
+function submitLabel(choice: PainStatusChoice): string {
+  if (choice === "cleared_normal") return "บันทึกว่ากลับมาปกติแล้ว";
+  if (choice === "cleared_light")  return "บันทึกว่ากลับมาเบา ๆ ได้";
+  return "บันทึกและปรับคำแนะนำวันนี้";
 }
 
 // ── component ────────────────────────────────────────────────────────────────
@@ -98,7 +101,10 @@ function PainPageContent() {
   const searchParams = useSearchParams();
   const fromId = searchParams.get("from");
 
-  // form
+  // status selector
+  const [painStatusChoice, setPainStatusChoice] = useState<PainStatusChoice>("active_pain");
+
+  // full-form fields (used for active_pain / improving)
   const [painLocation, setPainLocation] = useState("");
   const [painSide, setPainSide] = useState<PainSide>("unknown");
   const [painLevel, setPainLevel] = useState<number>(3);
@@ -108,27 +114,26 @@ function PainPageContent() {
   const [swellingOrRedness, setSwellingOrRedness] = useState<PainTriYesNo>("unknown");
   const [canBearWeight, setCanBearWeight] = useState<PainTriYesNo>("unknown");
   const [notes, setNotes] = useState("");
-  const [markResolved, setMarkResolved] = useState(false);
 
   // image
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // state
+  // page state
   const [prefillComplete, setPrefillComplete] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<PainAnalysisResult | null>(null);
-  const [saved, setSaved] = useState(false);
+  const [savedStatus, setSavedStatus] = useState<PainStatusChoice | null>(null);
 
-  // Derive: show loading spinner while waiting for prefill (only when ?from is present)
   const prefilling = fromId !== null && !prefillComplete;
 
-  // Prefill from existing pain log when ?from=[id] is present or reset if not
+  // Prefill from existing pain log when ?from=[id] is present
   useEffect(() => {
     if (!fromId) {
       queueMicrotask(() => {
+        setPainStatusChoice("active_pain");
         setPainLocation("");
         setPainSide("unknown");
         setPainLevel(3);
@@ -138,21 +143,21 @@ function PainPageContent() {
         setSwellingOrRedness("unknown");
         setCanBearWeight("unknown");
         setNotes("");
-        setMarkResolved(false);
         setImageFile(null);
         setImagePreview(null);
         setResult(null);
-        setSaved(false);
+        setSavedStatus(null);
         setError("");
         setPrefillComplete(false);
       });
       return;
     }
     queueMicrotask(() => setPrefillComplete(false));
-    // Do not call setState synchronously here — only in the async callback below
     loadHistoryItemById(fromId).then((res) => {
       if (res.ok) {
         const log = res.item.data as PainLog;
+        if (log?.recoveryStatus) setPainStatusChoice(log.recoveryStatus);
+        else if (log?.resolved || log?.status === "resolved") setPainStatusChoice("cleared_normal");
         if (log?.painLocation) setPainLocation(log.painLocation);
         if (log?.painSide)     setPainSide(log.painSide);
         if (log?.painLevel != null) setPainLevel(log.painLevel);
@@ -162,7 +167,6 @@ function PainPageContent() {
         if (log?.swellingOrRedness) setSwellingOrRedness(log.swellingOrRedness);
         if (log?.canBearWeight)     setCanBearWeight(log.canBearWeight);
         if (log?.notes) setNotes(log.notes);
-        setMarkResolved(Boolean(log?.resolved || log?.status === "resolved"));
       }
       setPrefillComplete(true);
     });
@@ -182,78 +186,100 @@ function PainPageContent() {
     }
   }
 
+  // ── submit ──────────────────────────────────────────────────────────────────
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!painLocation.trim()) {
+
+    // Location required only for active/improving
+    const needsLocation = painStatusChoice === "active_pain" || painStatusChoice === "improving";
+    if (needsLocation && !painLocation.trim()) {
       setError("กรุณาระบุตำแหน่งที่เจ็บ");
       return;
     }
+
     setError("");
     setSubmitting(true);
     setResult(null);
-    setSaved(false);
+    setSavedStatus(null);
 
     try {
-      const imageDataUrl = imageFile ? await fileToDataUrl(imageFile) : undefined;
+      const now = new Date().toISOString();
+      let savedAnalysis: PainAnalysisResult;
+      let logResolved: boolean;
+      let logPainLevel: number;
+      let logNotes: string | undefined;
 
-      const res = await fetch("/api/analyze-pain", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          formData: { painLocation, painSide, painLevel, startedWhen, painType, painfulWhen, swellingOrRedness, canBearWeight, notes },
-          imageDataUrl,
-        }),
-      });
-      if (!res.ok) throw new Error("วิเคราะห์ไม่สำเร็จ");
-      const json = await res.json() as { ok: boolean; data: PainAnalysisResult };
-      if (!json.ok || !json.data) throw new Error("วิเคราะห์ไม่สำเร็จ");
-
-      const analysis = json.data;
-      const hasRedFlags = analysis.redFlags.length > 0 || swellingOrRedness === "yes" || canBearWeight === "no";
-      const canSaveResolved = painLevel === 0 && markResolved && !hasRedFlags;
-      const savedAnalysis: PainAnalysisResult = canSaveResolved
-        ? {
+      if (painStatusChoice === "cleared_normal") {
+        // No AI call — write directly with safe defaults
+        savedAnalysis = {
           riskLevel: "low",
           trainingImpact: "run_ok_easy",
-          coachAdvice: "ล่าสุดบันทึกว่าอาการหายแล้ว ค่อย ๆ เพิ่มโหลดกลับแบบคุมความรู้สึก และหยุดทันทีถ้ามีอาการกลับมา",
+          coachAdvice: "บันทึกว่ากลับมาปกติแล้ว RunMate จะไม่ใช้อาการนี้เป็นตัวบล็อกซ้อม แต่ยังดู sleep/load/recovery อยู่",
           redFlags: [],
-        }
-        : analysis;
-      setResult(savedAnalysis);
+        };
+        logResolved = true;
+        logPainLevel = 0;
+        logNotes = notes.trim() || undefined;
+      } else if (painStatusChoice === "cleared_light") {
+        savedAnalysis = {
+          riskLevel: "low",
+          trainingImpact: "run_ok_easy",
+          coachAdvice: "เริ่มกลับมาวิ่ง easy ได้ แต่ยังไม่กด pace หรือวิ่ง interval ค่อย ๆ เพิ่มโหลดแบบคุมความรู้สึก",
+          redFlags: [],
+        };
+        logResolved = true;
+        logPainLevel = 0;
+        logNotes = notes.trim() || undefined;
+      } else {
+        // active_pain or improving → call AI
+        const imageDataUrl = imageFile ? await fileToDataUrl(imageFile) : undefined;
+        const res = await fetch("/api/analyze-pain", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            formData: { painLocation, painSide, painLevel, startedWhen, painType, painfulWhen, swellingOrRedness, canBearWeight, notes },
+            imageDataUrl,
+          }),
+        });
+        if (!res.ok) throw new Error("วิเคราะห์ไม่สำเร็จ");
+        const json = await res.json() as { ok: boolean; data: PainAnalysisResult };
+        if (!json.ok || !json.data) throw new Error("วิเคราะห์ไม่สำเร็จ");
+        savedAnalysis = json.data;
+        logResolved = false;
+        logPainLevel = painLevel;
+        logNotes = notes.trim() || undefined;
+      }
 
-      // Build and save history item
-      const now = new Date().toISOString();
+      const effectiveLocation = painLocation.trim() || "ไม่ระบุ";
+
       const painLog: PainLog = {
-        painLocation: painLocation.trim(),
+        painLocation: effectiveLocation,
         painSide,
-        painLevel,
+        painLevel: logPainLevel,
         startedWhen,
         painType,
         painfulWhen,
         swellingOrRedness,
         canBearWeight,
-        notes: canSaveResolved
-          ? (() => {
-              const cleaned = cleanRoboticNotes(notes);
-              return cleaned
-                ? `${cleaned} · อาการดีขึ้นแล้ว ไม่มีอาการขณะเดินหรือวิ่งเบา ๆ`
-                : "วันนี้ไม่มีอาการตอนเดินหรือวิ่งเบา ๆ";
-            })()
-          : (cleanRoboticNotes(notes) || undefined),
+        notes: logNotes,
         riskLevel: savedAnalysis.riskLevel,
         trainingImpact: savedAnalysis.trainingImpact,
         coachAdvice: savedAnalysis.coachAdvice,
         redFlags: savedAnalysis.redFlags,
         createdAt: now,
-        resolved: canSaveResolved,
-        status: canSaveResolved ? "resolved" : "active",
-        resolvedAt: canSaveResolved ? now : undefined,
+        resolved: logResolved,
+        status: logResolved ? "resolved" : "active",
+        resolvedAt: logResolved ? now : undefined,
+        recoveryStatus: painStatusChoice,
       };
 
       const item = createHistoryItem("pain", painLog, now);
       const saveResult = await saveHistoryItems([item]);
       if (!saveResult.ok) throw new Error(saveResult.error ?? "บันทึกไม่สำเร็จ");
-      setSaved(true);
+
+      setResult(savedAnalysis);
+      setSavedStatus(painStatusChoice);
     } catch (err) {
       setError(err instanceof Error ? err.message : "บันทึกอาการเจ็บไม่สำเร็จ ลองใหม่อีกครั้ง");
     } finally {
@@ -262,6 +288,7 @@ function PainPageContent() {
   }
 
   function reset() {
+    setPainStatusChoice("active_pain");
     setPainLocation("");
     setPainSide("unknown");
     setPainLevel(3);
@@ -271,11 +298,10 @@ function PainPageContent() {
     setSwellingOrRedness("unknown");
     setCanBearWeight("unknown");
     setNotes("");
-    setMarkResolved(false);
     setImageFile(null);
     setImagePreview(null);
     setResult(null);
-    setSaved(false);
+    setSavedStatus(null);
     setError("");
     if (inputRef.current) inputRef.current.value = "";
   }
@@ -288,15 +314,50 @@ function PainPageContent() {
     );
   }
 
-  return (
-    <AppShell
-      title={fromId ? "อัปเดตอาการ" : "แจ้งอาการเจ็บ"}
-      subtitle="ประเมินผลกระทบต่อการซ้อม · ไม่ใช่การวินิจฉัยทางการแพทย์"
-      medicalDisclaimer
-    >
+  // ── success views ────────────────────────────────────────────────────────────
 
-      {/* Result card */}
-      {result && saved && (
+  if (result && savedStatus === "cleared_normal") {
+    return (
+      <AppShell title="อัปเดตอาการ" subtitle="บันทึกสถานะการฟื้นตัว" medicalDisclaimer>
+        <div className="card rounded-2xl border border-green-200 bg-[#e7efea] p-5 space-y-3" data-testid="cleared-normal-success">
+          <p className="text-base font-bold text-[#2a5a39]">กลับมาปกติแล้ว ✅</p>
+          <p className="text-sm leading-6 text-[#17201d]">
+            ดีมาก RunMate จะไม่ใช้อาการนี้เป็นตัวบล็อกซ้อมหนักอีกต่อไป
+            แต่ยังดู sleep / load / recovery อยู่ตามปกติ
+          </p>
+          <p className="text-xs text-slate-500 leading-5">
+            สัญญาณ Today จะแสดง <strong>ไม่มีเจ็บ</strong> ตั้งแต่รอบข้อมูลถัดไป
+          </p>
+          <button type="button" onClick={reset} className="btn-secondary w-full text-sm">
+            รายงานอาการใหม่
+          </button>
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (result && savedStatus === "cleared_light") {
+    return (
+      <AppShell title="อัปเดตอาการ" subtitle="บันทึกสถานะการฟื้นตัว" medicalDisclaimer>
+        <div className="card rounded-2xl border border-amber-200 bg-amber-50 p-5 space-y-3">
+          <p className="text-base font-bold text-amber-800">กลับมาเบา ๆ ได้ 🟢</p>
+          <p className="text-sm leading-6 text-[#17201d]">
+            {result.coachAdvice}
+          </p>
+          <p className="text-xs text-slate-500 leading-5">
+            วันนี้สัญญาณ Today จะแสดง <strong>เบา ๆ ได้</strong> — ยังงด interval และ tempo
+          </p>
+          <button type="button" onClick={reset} className="btn-secondary w-full text-sm">
+            รายงานอาการใหม่
+          </button>
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (result && savedStatus) {
+    return (
+      <AppShell title={fromId ? "อัปเดตอาการ" : "แจ้งอาการเจ็บ"} subtitle="ประเมินผลกระทบต่อการซ้อม · ไม่ใช่การวินิจฉัยทางการแพทย์" medicalDisclaimer>
         <div className={`card rounded-2xl border p-5 space-y-3 ${riskColor(result.riskLevel)}`}>
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm font-bold text-[#17201d]">บันทึกอาการเจ็บแล้ว</p>
@@ -322,226 +383,275 @@ function PainPageContent() {
             รายงานอาการใหม่
           </button>
         </div>
-      )}
+      </AppShell>
+    );
+  }
 
-      {!result && (
-        <form onSubmit={submit} className="space-y-4">
+  // ── form ─────────────────────────────────────────────────────────────────────
 
-          {/* Image upload (optional) */}
-          <div className="card p-4 space-y-2">
-            <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">รูปบริเวณที่เจ็บ <span className="normal-case font-normal text-slate-400">(ถ้ามี)</span></p>
-            <label className={`flex min-h-[100px] cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed transition-colors ${imageFile ? "border-[#42677f] bg-[#f5faf7]" : "border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-white"}`}>
-              <input
-                ref={inputRef}
-                type="file"
-                accept="image/*"
-                className="sr-only"
-                onChange={(e) => void handleImageChange(e.target.files?.[0] ?? null)}
-              />
-              {imagePreview ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={imagePreview} alt="ตัวอย่าง" className="max-h-32 rounded-xl object-contain" />
-              ) : (
-                <>
-                  <span className="text-2xl">📷</span>
-                  <p className="text-xs text-slate-500">กดเพื่อเลือกรูป (ไม่บังคับ)</p>
-                </>
-              )}
-            </label>
-            {imageFile && (
-              <button type="button" onClick={() => void handleImageChange(null)} className="text-xs text-slate-400 underline underline-offset-2">
-                ลบรูป
+  const showFullForm  = painStatusChoice === "active_pain" || painStatusChoice === "improving";
+  const showLightForm = painStatusChoice === "cleared_light";
+  const showNormalCard = painStatusChoice === "cleared_normal";
+
+  return (
+    <AppShell
+      title={fromId ? "อัปเดตอาการ" : "แจ้งอาการเจ็บ"}
+      subtitle="ประเมินผลกระทบต่อการซ้อม · ไม่ใช่การวินิจฉัยทางการแพทย์"
+      medicalDisclaimer
+    >
+      <form onSubmit={submit} className="space-y-4">
+
+        {/* ── Status selector (always visible) ─────────────────────────── */}
+        <div className="card p-4 space-y-3" data-testid="pain-status-selector">
+          <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">สถานะอาการตอนนี้</p>
+          <div className="grid grid-cols-2 gap-2">
+            {STATUS_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setPainStatusChoice(opt.value)}
+                className={`rounded-xl border px-3 py-2.5 text-left transition-colors ${
+                  painStatusChoice === opt.value
+                    ? "border-[#17201d] bg-[#17201d] text-white"
+                    : "border-slate-200 text-slate-600 hover:border-slate-300 bg-white"
+                }`}
+              >
+                <span className="block text-sm font-semibold">{opt.emoji} {opt.label}</span>
+                <span className={`block text-[11px] mt-0.5 ${painStatusChoice === opt.value ? "text-slate-300" : "text-slate-400"}`}>{opt.desc}</span>
               </button>
-            )}
+            ))}
           </div>
+        </div>
 
-          {/* Location */}
-          <div className="card p-4 space-y-3">
-            <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">ตำแหน่งที่เจ็บ</p>
-            <input
-              className="control"
-              placeholder="เช่น เข่าซ้าย, น่องขวา, ข้อเท้า"
-              value={painLocation}
-              onChange={(e) => setPainLocation(e.target.value)}
-            />
-            <div className="flex flex-wrap gap-2">
-              {COMMON_LOCATIONS.map((loc) => (
-                <button
-                  key={loc}
-                  type="button"
-                  onClick={() => setPainLocation(loc)}
-                  className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${painLocation === loc ? "border-[#17201d] bg-[#17201d] text-white" : "border-slate-200 text-slate-600 hover:border-slate-300"}`}
-                >
-                  {loc}
-                </button>
-              ))}
-            </div>
-
-            <div>
-              <p className="mb-1.5 text-xs font-semibold text-slate-500">ข้าง</p>
-              <div className="grid grid-cols-4 gap-2">
-                {SIDE_OPTIONS.map((opt) => (
-                  <button key={opt.value} type="button" onClick={() => setPainSide(opt.value)}
-                    className={`rounded-xl border py-2 text-xs font-semibold ${painSide === opt.value ? "border-[#17201d] bg-[#17201d] text-white" : "border-slate-200 text-slate-600"}`}>
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            </div>
+        {/* ── cleared_normal: calm confirmation card ────────────────────── */}
+        {showNormalCard && (
+          <div className="card rounded-2xl border border-green-200 bg-[#f5faf7] p-4 space-y-2" data-testid="cleared-normal-info">
+            <p className="text-sm font-semibold text-[#2a5a39]">
+              ดีมาก ถ้ากลับมาปกติแล้ว RunMate จะไม่ใช้ pain เป็นตัวบล็อกซ้อมหนัก
+            </p>
+            <p className="text-xs leading-5 text-slate-500">
+              แต่ยังดู sleep / load / recovery อยู่ตามปกติ — ถ้าอาการกลับมาให้รายงานใหม่ได้เลย
+            </p>
           </div>
+        )}
 
-          {/* Pain level */}
-          <div className="card p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">ระดับความเจ็บปวด</p>
-              <span className={`text-2xl font-bold ${painLevel >= 7 ? "text-red-500" : painLevel >= 4 ? "text-amber-500" : "text-[#2a5a39]"}`}>{painLevel}</span>
-            </div>
-            <input
-              type="range"
-              min={0}
-              max={10}
-              step={1}
-              value={painLevel}
-              onChange={(e) => {
-                const next = Number(e.target.value);
-                setPainLevel(next);
-                if (next !== 0) setMarkResolved(false);
-              }}
-              className="w-full accent-[#42677f]"
-            />
-            <div className="flex justify-between text-[11px] text-slate-400">
-              <span>0 — ไม่เจ็บ</span>
-              <span>5 — ปานกลาง</span>
-              <span>10 — ทนไม่ได้</span>
-            </div>
+        {/* ── cleared_light: brief note card ───────────────────────────── */}
+        {showLightForm && (
+          <div className="card rounded-2xl border border-amber-100 bg-amber-50/60 p-4 space-y-1">
+            <p className="text-sm font-semibold text-amber-800">
+              เริ่มกลับมาเบา ๆ ได้ — ยังงด interval และ tempo
+            </p>
+            <p className="text-xs leading-5 text-slate-500">
+              RunMate จะปรับ loadTarget เป็น easy และยังจับตา recovery อยู่
+            </p>
           </div>
+        )}
 
-          {painLevel === 0 && (
-            <div className="space-y-2">
-              <label className="flex items-start gap-3 rounded-2xl bg-[#f5faf7] p-3 text-sm text-[#17201d]">
+        {/* ── Full form (active_pain / improving) ──────────────────────── */}
+        {showFullForm && (
+          <>
+            {/* Image upload (optional) */}
+            <div className="card p-4 space-y-2">
+              <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">รูปบริเวณที่เจ็บ <span className="normal-case font-normal text-slate-400">(ถ้ามี)</span></p>
+              <label className={`flex min-h-[100px] cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed transition-colors ${imageFile ? "border-[#42677f] bg-[#f5faf7]" : "border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-white"}`}>
                 <input
-                  type="checkbox"
-                  checked={markResolved}
-                  onChange={(e) => setMarkResolved(e.target.checked)}
-                  className="mt-1 h-4 w-4 rounded border-slate-300 accent-[#42677f]"
+                  ref={inputRef}
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  onChange={(e) => void handleImageChange(e.target.files?.[0] ?? null)}
                 />
-                <span>
-                  <span className="font-bold">ตอนนี้หายแล้ว / ไม่มีอาการตอนเดินหรือวิ่งเบา ๆ</span>
-                  <span className="mt-1 block text-xs leading-5 text-slate-500">
-                    ระบบจะบันทึกเป็นสถานะหายแล้ว และใช้เป็นอาการล่าสุดในการแนะนำซ้อม
-                  </span>
-                </span>
+                {imagePreview ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={imagePreview} alt="ตัวอย่าง" className="max-h-32 rounded-xl object-contain" />
+                ) : (
+                  <>
+                    <span className="text-2xl">📷</span>
+                    <p className="text-xs text-slate-500">กดเพื่อเลือกรูป (ไม่บังคับ)</p>
+                  </>
+                )}
               </label>
-              {markResolved && (
-                <p className="px-3 text-xs leading-5 text-[#2e7d32] font-semibold animate-fadeIn" data-testid="resolved-helper-copy">
-                  ถึงไม่มีอาการแล้ว RunMate จะยังให้กลับมาเบา ๆ ก่อน จนกว่าอาการจะนิ่งต่อเนื่อง
-                </p>
+              {imageFile && (
+                <button type="button" onClick={() => void handleImageChange(null)} className="text-xs text-slate-400 underline underline-offset-2">
+                  ลบรูป
+                </button>
               )}
             </div>
-          )}
 
-          {/* Pain type + started when */}
-          <div className="card p-4 space-y-4">
-            <div>
-              <p className="mb-1.5 text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">ลักษณะอาการ <span className="normal-case font-normal text-slate-400">(เลือกได้หลายข้อ)</span></p>
+            {/* Location */}
+            <div className="card p-4 space-y-3">
+              <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">
+                ตำแหน่งที่เจ็บ
+                {painStatusChoice === "improving" && <span className="normal-case font-normal text-slate-400"> (ถ้ามี)</span>}
+              </p>
+              <input
+                className="control"
+                placeholder="เช่น เข่าซ้าย, น่องขวา, ข้อเท้า"
+                value={painLocation}
+                onChange={(e) => setPainLocation(e.target.value)}
+              />
               <div className="flex flex-wrap gap-2">
-                {PAIN_TYPE_OPTIONS.map((opt) => (
+                {COMMON_LOCATIONS.map((loc) => (
+                  <button
+                    key={loc}
+                    type="button"
+                    onClick={() => setPainLocation(loc)}
+                    className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${painLocation === loc ? "border-[#17201d] bg-[#17201d] text-white" : "border-slate-200 text-slate-600 hover:border-slate-300"}`}
+                  >
+                    {loc}
+                  </button>
+                ))}
+              </div>
+
+              <div>
+                <p className="mb-1.5 text-xs font-semibold text-slate-500">ข้าง</p>
+                <div className="grid grid-cols-4 gap-2">
+                  {SIDE_OPTIONS.map((opt) => (
+                    <button key={opt.value} type="button" onClick={() => setPainSide(opt.value)}
+                      className={`rounded-xl border py-2 text-xs font-semibold ${painSide === opt.value ? "border-[#17201d] bg-[#17201d] text-white" : "border-slate-200 text-slate-600"}`}>
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Pain level */}
+            <div className="card p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">ระดับความเจ็บปวด</p>
+                <span className={`text-2xl font-bold ${painLevel >= 7 ? "text-red-500" : painLevel >= 4 ? "text-amber-500" : "text-[#2a5a39]"}`}>{painLevel}</span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={10}
+                step={1}
+                value={painLevel}
+                onChange={(e) => setPainLevel(Number(e.target.value))}
+                className="w-full accent-[#42677f]"
+                title="ระดับความเจ็บปวด 0-10"
+                aria-label="ระดับความเจ็บปวด"
+              />
+              <div className="flex justify-between text-[11px] text-slate-400">
+                <span>0 — ไม่เจ็บ</span>
+                <span>5 — ปานกลาง</span>
+                <span>10 — ทนไม่ได้</span>
+              </div>
+            </div>
+
+            {/* Pain type + started when */}
+            <div className="card p-4 space-y-4">
+              <div>
+                <p className="mb-1.5 text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">ลักษณะอาการ <span className="normal-case font-normal text-slate-400">(เลือกได้หลายข้อ)</span></p>
+                <div className="flex flex-wrap gap-2">
+                  {PAIN_TYPE_OPTIONS.map((opt) => (
+                    <button key={opt.value} type="button"
+                      onClick={() => toggleMulti(painType, opt.value, setPainType)}
+                      className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${painType.includes(opt.value) ? "border-[#17201d] bg-[#17201d] text-white" : "border-slate-200 text-slate-600 hover:border-slate-300"}`}>
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <p className="mb-1.5 text-xs font-semibold text-slate-500">เริ่มเจ็บตอนไหน</p>
+                <div className="flex flex-wrap gap-2">
+                  {STARTED_WHEN_OPTIONS.map((opt) => (
+                    <button key={opt.value} type="button" onClick={() => setStartedWhen(opt.value)}
+                      className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${startedWhen === opt.value ? "border-[#17201d] bg-[#17201d] text-white" : "border-slate-200 text-slate-600 hover:border-slate-300"}`}>
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Painful when */}
+            <div className="card p-4 space-y-3">
+              <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">เจ็บเมื่อ <span className="normal-case font-normal text-slate-400">(เลือกได้หลายข้อ)</span></p>
+              <div className="flex flex-wrap gap-2">
+                {PAINFUL_WHEN_OPTIONS.map((opt) => (
                   <button key={opt.value} type="button"
-                    onClick={() => toggleMulti(painType, opt.value, setPainType)}
-                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${painType.includes(opt.value) ? "border-[#17201d] bg-[#17201d] text-white" : "border-slate-200 text-slate-600 hover:border-slate-300"}`}>
+                    onClick={() => toggleMulti(painfulWhen, opt.value, setPainfulWhen)}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${painfulWhen.includes(opt.value) ? "border-[#17201d] bg-[#17201d] text-white" : "border-slate-200 text-slate-600 hover:border-slate-300"}`}>
                     {opt.label}
                   </button>
                 ))}
               </div>
             </div>
 
-            <div>
-              <p className="mb-1.5 text-xs font-semibold text-slate-500">เริ่มเจ็บตอนไหน</p>
-              <div className="flex flex-wrap gap-2">
-                {STARTED_WHEN_OPTIONS.map((opt) => (
-                  <button key={opt.value} type="button" onClick={() => setStartedWhen(opt.value)}
-                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${startedWhen === opt.value ? "border-[#17201d] bg-[#17201d] text-white" : "border-slate-200 text-slate-600 hover:border-slate-300"}`}>
-                    {opt.label}
-                  </button>
-                ))}
+            {/* Swelling + bear weight */}
+            <div className="card p-4 space-y-4">
+              <div>
+                <p className="mb-1.5 text-xs font-semibold text-slate-500">บวมหรือแดง</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {TRI_OPTIONS.map((opt) => (
+                    <button key={opt.value} type="button" onClick={() => setSwellingOrRedness(opt.value)}
+                      className={`rounded-xl border py-2 text-xs font-semibold ${swellingOrRedness === opt.value ? "border-[#17201d] bg-[#17201d] text-white" : "border-slate-200 text-slate-600"}`}>
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <p className="mb-1.5 text-xs font-semibold text-slate-500">รับน้ำหนักได้ไหม</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {BEAR_WEIGHT_OPTIONS.map((opt) => (
+                    <button key={opt.value} type="button" onClick={() => setCanBearWeight(opt.value)}
+                      className={`rounded-xl border py-2 text-xs font-semibold ${canBearWeight === opt.value ? "border-[#17201d] bg-[#17201d] text-white" : "border-slate-200 text-slate-600"}`}>
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
+          </>
+        )}
 
-          {/* Painful when */}
-          <div className="card p-4 space-y-3">
-            <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">เจ็บเมื่อ <span className="normal-case font-normal text-slate-400">(เลือกได้หลายข้อ)</span></p>
-            <div className="flex flex-wrap gap-2">
-              {PAINFUL_WHEN_OPTIONS.map((opt) => (
-                <button key={opt.value} type="button"
-                  onClick={() => toggleMulti(painfulWhen, opt.value, setPainfulWhen)}
-                  className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${painfulWhen.includes(opt.value) ? "border-[#17201d] bg-[#17201d] text-white" : "border-slate-200 text-slate-600 hover:border-slate-300"}`}>
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
+        {/* Notes — visible for all statuses */}
+        <div className="card p-4 space-y-2">
+          <p className="text-xs font-semibold text-slate-500">
+            {showLightForm ? "ยังรู้สึกอะไรอยู่ไหม" : "หมายเหตุเพิ่มเติม"}
+            <span className="font-normal text-slate-400"> (ถ้ามี)</span>
+          </p>
+          <textarea
+            className="control min-h-[70px]"
+            placeholder={
+              showNormalCard ? "บันทึกสั้น ๆ ถ้าอยากจดไว้..."
+              : showLightForm ? "เช่น ยังตึงเล็กน้อยตอนเช้า แต่ดีขึ้นเรื่อย ๆ"
+              : "เช่น เริ่มเจ็บหลังวิ่ง tempo เมื่อวาน, มีประวัติบาดเจ็บบริเวณนี้ก่อนหน้า"
+            }
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+          />
+        </div>
 
-          {/* Swelling + bear weight */}
-          <div className="card p-4 space-y-4">
-            <div>
-              <p className="mb-1.5 text-xs font-semibold text-slate-500">บวมหรือแดง</p>
-              <div className="grid grid-cols-3 gap-2">
-                {TRI_OPTIONS.map((opt) => (
-                  <button key={opt.value} type="button" onClick={() => setSwellingOrRedness(opt.value)}
-                    className={`rounded-xl border py-2 text-xs font-semibold ${swellingOrRedness === opt.value ? "border-[#17201d] bg-[#17201d] text-white" : "border-slate-200 text-slate-600"}`}>
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            </div>
+        {error && (
+          <p className="rounded-2xl bg-red-50 p-3 text-sm font-semibold text-red-600">{error}</p>
+        )}
 
-            <div>
-              <p className="mb-1.5 text-xs font-semibold text-slate-500">รับน้ำหนักได้ไหม</p>
-              <div className="grid grid-cols-3 gap-2">
-                {BEAR_WEIGHT_OPTIONS.map((opt) => (
-                  <button key={opt.value} type="button" onClick={() => setCanBearWeight(opt.value)}
-                    className={`rounded-xl border py-2 text-xs font-semibold ${canBearWeight === opt.value ? "border-[#17201d] bg-[#17201d] text-white" : "border-slate-200 text-slate-600"}`}>
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
+        <LoadingButton
+          type="submit"
+          loading={submitting}
+          loadingText="กำลังบันทึก..."
+          className="btn-primary w-full py-3 text-sm"
+          data-testid="pain-submit-btn"
+        >
+          {submitLabel(painStatusChoice)}
+        </LoadingButton>
 
-          {/* Notes */}
-          <div className="card p-4 space-y-2">
-            <p className="text-xs font-semibold text-slate-500">หมายเหตุเพิ่มเติม <span className="font-normal text-slate-400">(ถ้ามี)</span></p>
-            <textarea
-              className="control min-h-[80px]"
-              placeholder="เช่น เริ่มเจ็บหลังวิ่ง tempo เมื่อวาน, มีประวัติบาดเจ็บบริเวณนี้ก่อนหน้า"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-            />
-          </div>
-
-          {error && (
-            <p className="rounded-2xl bg-red-50 p-3 text-sm font-semibold text-red-600">{error}</p>
-          )}
-
-          <LoadingButton
-            type="submit"
-            loading={submitting}
-            loadingText="กำลังวิเคราะห์..."
-            className="btn-primary w-full py-3 text-sm"
-          >
-            บันทึกและปรับคำแนะนำวันนี้
-          </LoadingButton>
-          {!submitting && (
-            <p className="mt-2 text-center text-xs text-slate-500 font-medium animate-fadeIn" data-testid="submit-helper-copy">
-              ข้อมูลนี้จะใช้ปรับ Today, Coach และ Race plan วันนี้
-            </p>
-          )}
-          {submitting && (
-            <p className="text-center text-xs text-slate-400 mt-2">AI กำลังประเมินอาการ กรุณารอสักครู่…</p>
-          )}
-        </form>
-      )}
+        {!submitting && (
+          <p className="mt-2 text-center text-xs text-slate-500 font-medium animate-fadeIn" data-testid="submit-helper-copy">
+            ข้อมูลนี้จะใช้ปรับ Today, Coach และ Race plan วันนี้
+          </p>
+        )}
+        {submitting && showFullForm && (
+          <p className="text-center text-xs text-slate-400 mt-2">AI กำลังประเมินอาการ กรุณารอสักครู่…</p>
+        )}
+      </form>
     </AppShell>
   );
 }

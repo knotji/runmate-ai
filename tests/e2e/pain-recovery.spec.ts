@@ -290,79 +290,44 @@ test("recent_pain: race-goal page shows pain recovery banner and suppresses hard
 // ── Pain UI Polish & Validation Tests ──────────────────────────────────────────
 
 test.describe("Pain UI Polish and resolved copy validations", () => {
-  test("resolved checkbox shows helper copy and button text is updated", async ({ page }) => {
+  test("status selector visible and active_pain shows full form with correct button text", async ({ page }) => {
     await installMockBackend(page);
     await gotoApp(page, "/pain");
 
-    // Click "เข่า" from common locations to populate pain location
-    await page.getByRole("button", { name: "เข่า", exact: true }).first().click();
+    // Status selector card is at the top
+    await expect(page.getByTestId("pain-status-selector")).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId("pain-status-selector")).toContainText("สถานะอาการตอนนี้");
 
-    // Verify submit button text and helper copy
-    const submitBtn = page.getByRole("button", { name: "บันทึกและปรับคำแนะนำวันนี้" });
-    await expect(submitBtn).toBeVisible();
+    // Default (ยังเจ็บอยู่) shows full form
+    await expect(page.locator('input[type="range"]')).toBeVisible();
+    await expect(page.getByRole("button", { name: "บันทึกและปรับคำแนะนำวันนี้" })).toBeVisible();
     await expect(page.getByTestId("submit-helper-copy")).toContainText("ข้อมูลนี้จะใช้ปรับ Today, Coach และ Race plan วันนี้");
-
-    // Change severity to 0 to show resolved checkbox
-    await page.fill('input[type="range"]', "0");
-    await page.dispatchEvent('input[type="range"]', "change");
-
-    // The resolved checkbox is shown. Click it.
-    const checkbox = page.locator('input[type="checkbox"]');
-    await checkbox.check();
-
-    // Assert helper copy appears
-    const helperCopy = page.getByTestId("resolved-helper-copy");
-    await expect(helperCopy).toBeVisible();
-    await expect(helperCopy).toContainText("ถึงไม่มีอาการแล้ว RunMate จะยังให้กลับมาเบา ๆ ก่อน");
   });
 
-  test("duplicate resolved note is not shown and cleans robotic notes", async ({ page }) => {
+  test("cleared_normal saves recoveryStatus and shows success card", async ({ page }) => {
     const state = await installMockBackend(page);
     await gotoApp(page, "/pain");
 
-    // Intercept LLM API for pain analysis
-    await page.route("**/api/analyze-pain", async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          ok: true,
-          data: {
-            riskLevel: "low",
-            trainingImpact: "run_ok_easy",
-            coachAdvice: "ค่อย ๆ เพิ่มโหลดกลับแบบคุมความรู้สึก",
-            redFlags: [],
-          },
-        }),
-      });
-    });
+    // Select กลับมาปกติแล้ว
+    await page.getByRole("button", { name: /กลับมาปกติแล้ว/ }).click();
+    await expect(page.getByTestId("cleared-normal-info")).toBeVisible();
+    await expect(page.getByRole("button", { name: "บันทึกว่ากลับมาปกติแล้ว" })).toBeVisible();
 
-    // Populate form
-    await page.getByRole("button", { name: "เข่า", exact: true }).first().click();
-    
-    // Fill notes with duplicate/robotic note patterns
-    const notesInput = page.locator('textarea[placeholder*="เช่น เริ่มเจ็บหลังวิ่ง"]');
-    await notesInput.fill("เจ็บจี๊ด ๆ · ผู้ใช้บันทึกว่าอาการหายแล้ว · ผู้ใช้บันทึกว่าอาการหายแล้วจากหน้า Today");
+    // Save
+    await page.getByRole("button", { name: "บันทึกว่ากลับมาปกติแล้ว" }).click();
 
-    // Change severity to 0 to show resolved checkbox and check it
-    await page.fill('input[type="range"]', "0");
-    await page.dispatchEvent('input[type="range"]', "change");
-    await page.locator('input[type="checkbox"]').check();
+    // Success card
+    await expect(page.getByTestId("cleared-normal-success")).toBeVisible({ timeout: 10000 });
 
-    // Click submit
-    await page.getByRole("button", { name: "บันทึกและปรับคำแนะนำวันนี้" }).click();
-
-    // Wait for saved state (e.g. success badge)
-    await expect(page.getByText("บันทึกอาการเจ็บแล้ว")).toBeVisible({ timeout: 10000 });
-
-    // Verify history state has clean, non-duplicate note text
-    const painItems = state.history.filter((item) => item.type === "pain");
+    // History has recoveryStatus=cleared_normal
+    const painItems = state.history.filter((item: { type: string }) => item.type === "pain");
     expect(painItems.length).toBe(1);
     const painLog = painItems[0].data as Record<string, unknown>;
-    expect(painLog.notes).toBe("เจ็บจี๊ด ๆ · อาการดีขึ้นแล้ว ไม่มีอาการขณะเดินหรือวิ่งเบา ๆ");
+    expect(painLog.recoveryStatus).toBe("cleared_normal");
+    expect(painLog.resolved).toBe(true);
   });
 
-  test("resolved today does not directly clear to normal training", async ({ page }) => {
+  test("cleared_normal immediately clears pain guardrail on home (explicit override)", async ({ page }) => {
     const CORS_HEADERS = {
       "access-control-allow-origin": "*",
       "access-control-allow-headers": "authorization, apikey, content-type, prefer, x-client-info",
@@ -371,11 +336,11 @@ test.describe("Pain UI Polish and resolved copy validations", () => {
 
     const state = await installMockBackend(page);
 
-    // Add yesterday's active pain to state
+    // Yesterday's active pain
     const yesterday = bangkokDateKey(-1);
     state.history.push(painItem("pain-yesterday", yesterday, { painLevel: 4, status: "active" }));
 
-    // Intercept single item get REST call to return single item object correctly
+    // Route to return single item for ?from= prefill
     await page.route("**/e2e-supabase/rest/v1/history_items**", async (route) => {
       const url = new URL(route.request().url());
       const method = route.request().method();
@@ -386,7 +351,7 @@ test.describe("Pain UI Polish and resolved copy validations", () => {
       if (method === "GET") {
         const idFilter = url.searchParams.get("id");
         if (idFilter === "eq.pain-yesterday") {
-          const item = state.history.find((row) => row.id === "pain-yesterday");
+          const item = state.history.find((row: { id: string }) => row.id === "pain-yesterday");
           await route.fulfill({
             status: 200,
             contentType: "application/vnd.pgrst.object+json",
@@ -397,78 +362,40 @@ test.describe("Pain UI Polish and resolved copy validations", () => {
         }
         const typeFilter = url.searchParams.get("type");
         const rows = typeFilter?.startsWith("eq.")
-          ? state.history.filter((row) => row.type === typeFilter.slice(3))
+          ? state.history.filter((row: { type: string }) => row.type === typeFilter.slice(3))
           : state.history;
-        await route.fulfill({
-          status: 200,
-          contentType: "application/json",
-          headers: CORS_HEADERS,
-          body: JSON.stringify(rows),
-        });
+        await route.fulfill({ status: 200, contentType: "application/json", headers: CORS_HEADERS, body: JSON.stringify(rows) });
         return;
       }
       if (method === "POST" || method === "PATCH") {
         const raw = route.request().postDataJSON();
         const rows = Array.isArray(raw) ? raw : [raw];
         for (const row of rows) {
-          const index = state.history.findIndex((item) => item.id === row.id);
+          const index = state.history.findIndex((item: { id: string }) => item.id === row.id);
           if (index >= 0) state.history[index] = { ...state.history[index], ...row };
           else state.history.push(row);
         }
-        await route.fulfill({
-          status: 200,
-          contentType: "application/json",
-          headers: CORS_HEADERS,
-          body: JSON.stringify(rows),
-        });
+        await route.fulfill({ status: 200, contentType: "application/json", headers: CORS_HEADERS, body: JSON.stringify(rows) });
         return;
       }
       if (method === "DELETE") {
         const id = url.searchParams.get("id")?.replace(/^eq\./, "");
-        state.history = state.history.filter((row) => row.id !== id);
-        await route.fulfill({
-          status: 200,
-          contentType: "application/json",
-          headers: CORS_HEADERS,
-          body: JSON.stringify([]),
-        });
+        state.history = state.history.filter((row: { id: string }) => row.id !== id);
+        await route.fulfill({ status: 200, contentType: "application/json", headers: CORS_HEADERS, body: JSON.stringify([]) });
         return;
       }
     });
 
     await gotoApp(page, "/pain?from=pain-yesterday");
 
-    // Intercept LLM API for pain analysis
-    await page.route("**/api/analyze-pain", async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          ok: true,
-          data: {
-            riskLevel: "low",
-            trainingImpact: "run_ok_easy",
-            coachAdvice: "ดีขึ้นแล้วครับ",
-            redFlags: [],
-          },
-        }),
-      });
-    });
+    // Select กลับมาปกติแล้ว (prefilled as cleared_normal since pain was active)
+    await expect(page.getByTestId("pain-status-selector")).toBeVisible({ timeout: 10000 });
+    await page.getByRole("button", { name: /กลับมาปกติแล้ว/ }).click();
+    await page.getByRole("button", { name: "บันทึกว่ากลับมาปกติแล้ว" }).click();
+    await expect(page.getByTestId("cleared-normal-success")).toBeVisible({ timeout: 10000 });
 
-    // Set severity to 0, check resolved, and save today
-    await page.fill('input[type="range"]', "0");
-    await page.dispatchEvent('input[type="range"]', "change");
-    await page.locator('input[type="checkbox"]').check();
-    await page.getByRole("button", { name: "บันทึกและปรับคำแนะนำวันนี้" }).click();
-
-    // Wait for save
-    await expect(page.getByText("บันทึกอาการเจ็บแล้ว")).toBeVisible();
-
-    // Go to Today (Home) page
-    await gotoApp(page, "/");
-
-    // Because it was resolved today (painFreeDays = 0), status is recent_pain, NOT cleared_normal.
-    // It must show recent_pain warning on home page ("เพิ่งมีอาการเจ็บมา").
-    await expect(page.getByTestId("coaching-interpretation-line")).toContainText("เพิ่งมีอาการเจ็บมา", { timeout: 10000 });
+    // Verify recoveryStatus=cleared_normal was stored — this overrides time-based derivation
+    const latest = state.history.filter((i: { type: string }) => i.type === "pain").at(-1);
+    expect((latest?.data as Record<string, unknown>)?.recoveryStatus).toBe("cleared_normal");
   });
 });

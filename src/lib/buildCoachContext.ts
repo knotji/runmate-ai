@@ -19,7 +19,7 @@ import { normalizeMealSlot, getMealSlotLabel } from "@/lib/mealSlots";
 import { calculateRunMateReadiness, type ReadinessV2Result } from "@/lib/readinessV2";
 import { buildRunMateRecoverySystem, type RunMateRecoverySystem } from "@/lib/recoverySystem";
 import { buildRunMateRecoveryLoop, type RunMateRecoveryLoop } from "@/lib/recoveryLoop";
-import { getPainRecoveryStatus, derivePainRecoveryInput, type PainRecoveryStatus } from "@/lib/painRecovery";
+import { getPainRecoveryStatus, derivePainRecoveryInput, isPainRecoveryStatus, type PainRecoveryStatus } from "@/lib/painRecovery";
 
 export type DayWorkoutSummary = {
   date: string;
@@ -70,6 +70,7 @@ export type PainSummary = {
   hasResolvedPain: boolean;
   resolved: boolean;
   resolvedAt: string | null;
+  recoveryStatus?: string; // user-set override, matches PainRecoveryStatus values
 };
 
 export type CoachContext = {
@@ -450,8 +451,8 @@ export function buildCoachContextFromData(input: {
     const redFlags = Array.isArray(d?.redFlags) ? d.redFlags : [];
     const painType = Array.isArray(d?.painType) ? d.painType : [];
     const painLevel = Number.isFinite(Number(d?.painLevel)) ? Number(d?.painLevel) : 0;
-    const resolved = isResolvedPainLog(d, redFlags, painType);
-    const hasActivePain = !resolved && (
+    const baseResolved = isResolvedPainLog(d, redFlags, painType);
+    const baseHasActivePain = !baseResolved && (
       painLevel > 0
       || painHasRedFlag({
         swellingOrRedness: d?.swellingOrRedness,
@@ -460,6 +461,22 @@ export function buildCoachContextFromData(input: {
         painType,
       })
     );
+
+    // Respect explicit user-selected recovery status — overrides time-based derivation
+    const storedStatus = d?.recoveryStatus;
+    let resolved = baseResolved;
+    let hasActivePain = baseHasActivePain;
+    if (storedStatus === "active_pain") {
+      hasActivePain = true;
+      resolved = false;
+    } else if (storedStatus === "improving") {
+      hasActivePain = false;
+      resolved = false;
+    } else if (storedStatus === "cleared_light" || storedStatus === "cleared_normal") {
+      hasActivePain = false;
+      resolved = true;
+    }
+
     return {
       id: item.id,
       date: getHistoryItemDateKey(item),
@@ -479,6 +496,7 @@ export function buildCoachContextFromData(input: {
       hasResolvedPain: resolved,
       resolved,
       resolvedAt: d?.resolvedAt ?? null,
+      recoveryStatus: storedStatus,
     };
   });
   const recentPainCutoff3d = dateBefore(3);
@@ -603,13 +621,18 @@ export function buildCoachContextFromData(input: {
     activePain,
     recentPainHistory,
     painResolved,
-    painRecoveryStatus: getPainRecoveryStatus(derivePainRecoveryInput({
-      activePain,
-      latestPain,
-      recentPainLogs,
-      workouts7d,
-      todayDate: today,
-    })),
+    painRecoveryStatus: (() => {
+      // If the user explicitly selected a recovery status on the pain page, honour it
+      const override = latestPain?.recoveryStatus;
+      if (override && isPainRecoveryStatus(override)) return override as PainRecoveryStatus;
+      return getPainRecoveryStatus(derivePainRecoveryInput({
+        activePain,
+        latestPain,
+        recentPainLogs,
+        workouts7d,
+        todayDate: today,
+      }));
+    })(),
     nutritionBalanceToday,
     readinessV2,
     contextNotes: buildContextNotes({

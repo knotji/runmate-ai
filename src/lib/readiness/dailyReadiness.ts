@@ -46,12 +46,22 @@ function deriveLoadTarget(ctx: CoachContext, band: ReadinessBand): LoadTarget {
   const loadScore = ctx.recoverySystem?.axes?.load?.score ?? 0;
   const highLoad = loadScore >= 65;
 
-  if (band === "red") return "walk";
-  if (band === "yellow") return highLoad ? "easy" : "moderate";
-  // green
-  if (highLoad) return "easy";
-  if (loadScore <= 25) return "build";
-  return "moderate";
+  let target: LoadTarget;
+  if (band === "red") target = "walk";
+  else if (band === "yellow") target = highLoad ? "easy" : "moderate";
+  else if (highLoad) target = "easy";
+  else if (loadScore <= 25) target = "build";
+  else target = "moderate";
+
+  // Cap for pain recovery states — must not go above easy during recovery
+  const prs = ctx.painRecoveryStatus;
+  if ((prs === "improving" || prs === "recent_pain") && target !== "walk") {
+    target = "easy";
+  } else if (prs === "cleared_light" && (target === "moderate" || target === "build")) {
+    target = "easy";
+  }
+
+  return target;
 }
 
 // ─── Reasons ──────────────────────────────────────────────────────────────────
@@ -66,11 +76,21 @@ function buildReasons(ctx: CoachContext, band: ReadinessBand): ReadinessReason[]
       label: `มีอาการเจ็บ${ctx.latestPain.painLocation} ${ctx.latestPain.painLevel}/10`,
       detail: "ควรงดวิ่งและเน้นฟื้นฟู",
     });
-  } else if ((ctx.recentPainHistory || ctx.painResolved) && ctx.latestPain) {
+  } else if (
+    (ctx.recentPainHistory || ctx.painResolved ||
+      ctx.painRecoveryStatus === "improving" ||
+      ctx.painRecoveryStatus === "recent_pain" ||
+      ctx.painRecoveryStatus === "cleared_light") &&
+    ctx.latestPain
+  ) {
+    const prs = ctx.painRecoveryStatus;
+    const detail = prs === "cleared_light"
+      ? "เริ่มกลับมา easy ได้ แต่ยังไม่กด pace"
+      : "เพิ่มโหลดได้เล็กน้อย แต่ยังระวัง";
     out.push({
       key: "pain_recent",
       label: `กำลังฟื้นจากอาการเจ็บ${ctx.latestPain.painLocation}`,
-      detail: "เพิ่มโหลดได้เล็กน้อย แต่ยังระวัง",
+      detail,
     });
   }
 
