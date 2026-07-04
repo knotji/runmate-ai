@@ -29,7 +29,7 @@ import { extractMealData, normalizeMealNutrition } from "@/lib/mealMerge";
 import { polishSleepInsightText } from "@/lib/sleepInsight";
 import { sanitizeAIThaiText } from "@/lib/sanitizeAIText";
 import { dedupeSleepItems } from "@/lib/sleepDedupe";
-import { getHistoryItemDateKey, dateKeyToRecordedAt, todayBangkokDateKey, yesterdayBangkokDateKey } from "@/lib/date";
+import { getHistoryItemDateKey, getBangkokDateKey, dateKeyToRecordedAt, todayBangkokDateKey, yesterdayBangkokDateKey } from "@/lib/date";
 import { normalizeMealSlot, getMealSlotLabel, getMealSlotIcon, getMealSlotOrder } from "@/lib/mealSlots";
 import { getMealSourceInfo, isQuickProteinMeal } from "@/lib/mealSource";
 import { buildWeeklyReview, type WeeklyReview } from "@/lib/weeklyReview";
@@ -933,7 +933,13 @@ function getTypeBadgeStyles(type: string): string {
 function formatItemDateTime(item: LocalHistoryItem): string {
   const dateStr = getHistoryItemDateKey(item);
   const formattedDate = formatDayLabel(dateStr);
-  const time = formatBangkokTime(item.recordedAt || item.createdAt);
+  // recordedAt is always a synthetic noon (dateKeyToRecordedAt). Never use it for time display.
+  // Only show createdAt time when the item was uploaded on the same Bangkok day as its logical date.
+  // For backdated items, createdAt is the upload timestamp, not the event time — show date only.
+  if (getBangkokDateKey(item.createdAt) !== dateStr) {
+    return formattedDate;
+  }
+  const time = formatBangkokTime(item.createdAt);
   return time ? `${formattedDate} ${time} น.` : formattedDate;
 }
 
