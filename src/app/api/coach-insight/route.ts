@@ -5,7 +5,7 @@ import { type CoachContext, type TodayCompletedWorkoutSummary } from "@/lib/buil
 import { getTodayReadiness, getTodayPlannedWorkout, getReadinessCategoryLabel } from "@/lib/todayPlanning";
 import type { DailyCoachInsight } from "@/types/ai";
 import type { WeekWorkout } from "@/types/race";
-import { todayBangkokDateKey, getBangkokThaiDayName } from "@/lib/date";
+import { todayBangkokDateKey, getBangkokThaiDayName, formatThaiBuddhistDate } from "@/lib/date";
 import { getCoachCautionFactors } from "@/lib/coachCautionFactors";
 import { buildRunMateRecoverySystem, type RunMateRecoverySystem } from "@/lib/recoverySystem";
 import { buildRunMateRecoveryLoop, type RunMateRecoveryLoop } from "@/lib/recoveryLoop";
@@ -353,7 +353,8 @@ function buildUserPrompt(ctx: CoachContext): string {
   }
 
   const thaiDayName = getBangkokThaiDayName(ctx.todayDate);
-  lines.push(`วันนี้ (Bangkok, Asia/Bangkok UTC+7): ${thaiDayName} ${ctx.todayDate} — ใช้วันนี้เป็นข้อมูลอ้างอิง อย่าอนุมานวันจาก UTC`);
+  const thaiBuddhistDate = formatThaiBuddhistDate();
+  lines.push(`วันนี้ (Bangkok, Asia/Bangkok UTC+7): ${thaiDayName} ${ctx.todayDate} (${thaiBuddhistDate}) — ใช้วันนี้เป็นข้อมูลอ้างอิง อย่าอนุมานวันจาก UTC`);
 
   if (ctx.painRecoveryStatus && ctx.painRecoveryStatus !== "cleared_normal") {
     lines.push(`\nPain recovery status: ${ctx.painRecoveryStatus}`);

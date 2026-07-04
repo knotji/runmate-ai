@@ -17,7 +17,7 @@ export function WeeklyPlanCard({ week }: { week: TrainingWeek }) {
       <p className="text-xs font-bold uppercase tracking-[0.22em] text-[var(--color-info)]">Week {week.weekNumber}</p>
       <h2 className="mt-2 text-lg font-bold">{week.weeklyFocus}</h2>
       <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-        รวม {week.targetWeeklyDistanceKm ?? "-"} km · Long run {week.longRunDistanceKm ?? "-"} km
+        รวม {week.targetWeeklyDistanceKm ?? "-"} กม. · Long run {week.longRunDistanceKm ?? "-"} กม.
       </p>
       <div className="mt-4 space-y-2">
         {week.workouts.map((workout) => (

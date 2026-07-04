@@ -135,6 +135,12 @@ IMAGE ANALYSIS:
 - Body composition: explain runner interpretation.
 - Injury image: do not diagnose; provide conservative guidance and red flags.
 
+DATE FORMAT:
+- When writing dates in Thai, always use Buddhist Era (พ.ศ.), not Gregorian (ค.ศ.).
+- Correct: "วันเสาร์ที่ 4 กรกฎาคม 2569"
+- Incorrect: "วันเสาร์ที่ 4 กรกฎาคม 2026"
+- The current date context provided includes the พ.ศ. year for reference.
+
 STYLE:
 - Plain Thai, mobile-friendly.
 - Use simple bullets only when useful.

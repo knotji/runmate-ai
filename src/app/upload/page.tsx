@@ -1148,11 +1148,11 @@ export default function UploadPage() {
 }
 
 const UPLOAD_TYPE_HELPER_COPY: Record<UploadType, string> = {
-  sleep: "อ่านได้จากหน้าสรุปการนอนใน Samsung Health เช่น เวลานอน sleep score HRV และ sleep duration",
+  sleep: "อ่านได้จาก Samsung Health หรือแอปนอนหลับ เช่น เวลานอน, sleep score, HRV และคุณภาพการนอน",
   meal: "อ่านได้จากรูปจานอาหาร ฉลากโภชนาการ เมนู หรือข้อความที่พิมพ์เอง",
   workout: "อ่านได้จากสรุปการวิ่งหรือเวท เช่น ระยะ เวลา pace HR หรือ calories",
-  body: "อ่านได้จากรูปเครื่องชั่ง, Samsung Health body composition หรือพิมพ์ค่าน้ำหนักเอง",
-  health_check: "บันทึกค่าผลตรวจสุขภาพเพื่อใช้ประกอบคำแนะนำ recovery และโภชนาการ",
+  body: "อ่านได้จากรูปเครื่องชั่ง หรือหน้าสรุป body composition ใน Samsung Health",
+  health_check: "ระบบจะอ่านเฉพาะค่าที่จำเป็น และบันทึกเป็นสรุปสำหรับโค้ช ไม่ใช่การวินิจฉัย",
 };
 
 function UploadEmptyGuide({

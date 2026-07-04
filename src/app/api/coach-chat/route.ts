@@ -532,7 +532,8 @@ function bangkokDateTimeString() {
   const dd = String(nowBangkok.getUTCDate()).padStart(2, "0");
   const mm = String(nowBangkok.getUTCMonth() + 1).padStart(2, "0");
   const yyyy = nowBangkok.getUTCFullYear();
+  const buddhistYear = yyyy + 543;
   const hh = String(nowBangkok.getUTCHours()).padStart(2, "0");
   const min = String(nowBangkok.getUTCMinutes()).padStart(2, "0");
-  return `${dd}/${mm}/${yyyy} ${hh}:${min} (Bangkok UTC+7)`;
+  return `${dd}/${mm}/${yyyy} ${hh}:${min} (Bangkok UTC+7, พ.ศ. ${buddhistYear})`;
 }

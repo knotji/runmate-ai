@@ -44,7 +44,7 @@ export function ProfileSummaryCard() {
         <summary className="cursor-pointer text-xs font-bold uppercase tracking-wide text-slate-500">รายละเอียดโปรไฟล์</summary>
         <div className="mt-3 space-y-2 text-sm leading-6 text-slate-700">
           <InfoLine label="Level" value={profile?.currentLevel} />
-          <InfoLine label="Longest run" value={profile?.currentLongestRunKm ? `${profile.currentLongestRunKm} km` : undefined} />
+          <InfoLine label="Longest run" value={profile?.currentLongestRunKm ? `${profile.currentLongestRunKm} กม.` : undefined} />
           <InfoLine label="Long run day" value={profile?.preferredLongRunDay} />
           <InfoLine label="Available days" value={profile?.availableTrainingDays} />
           <InfoLine label="Device" value={profile?.watchDevice} />

@@ -31,7 +31,7 @@ export function ActivePlanCard({ goal, plan }: { goal: RaceGoal | null; plan: Ra
       <div className="grid grid-cols-3 gap-2">
         <MiniStat label="Status" value={goal ? status : "No race"} />
         <MiniStat label="Phase" value={plan?.currentPhase ?? "Data-led"} />
-        <MiniStat label="Long run" value={week?.longRunDistanceKm != null ? `${week.longRunDistanceKm} km` : "-"} />
+        <MiniStat label="Long run" value={week?.longRunDistanceKm != null ? `${week.longRunDistanceKm} กม.` : "-"} />
       </div>
 
       <p className="rounded-2xl bg-[#e7efea] p-3 text-sm leading-6 text-slate-700">

@@ -87,8 +87,8 @@ function formatValueWithUnit(key: string, v: unknown): string {
   }
   if (key === "weightKg") return `${strVal} kg`;
   if (key === "heightCm") return `${strVal} cm`;
-  if (key === "weeklyMileageKm") return `${strVal} km/สัปดาห์`;
-  if (key === "currentLongestRunKm") return `${strVal} km`;
+  if (key === "weeklyMileageKm") return `${strVal} กม./สัปดาห์`;
+  if (key === "currentLongestRunKm") return `${strVal} กม.`;
   if (key === "averageSleepHours") return `${strVal} ชม.`;
   if (key === "easyHrCap" || key === "maxHr" || key === "normalRestingHr") return formatBpm(strVal);
   return strVal;

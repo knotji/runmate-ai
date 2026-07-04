@@ -465,7 +465,7 @@ function getAdaptiveLongRunNote(workout: WeekWorkout, context: CoachContext | nu
     if (!hasCaution) return null;
 
     const d = workout.distanceKm;
-    const reducedText = d ? ` ลดเหลือ ${Math.round(d * 0.8)}–${Math.round(d * 0.9)} km` : " ลดระยะลง 10–20%";
+    const reducedText = d ? ` ลดเหลือ ${Math.round(d * 0.8)}–${Math.round(d * 0.9)} กม.` : " ลดระยะลง 10–20%";
     return `ปรับตามสภาพ: ถ้าฟื้นตัวไม่ดี${reducedText} (ถ้าคืนก่อนนอนน้อยหรือ HR ลอย ให้ลด Long Run ลง 10–20% · เป้าหมายวันนี้คือสะสมเวลา easy ไม่ใช่ฝืนระยะ · ถ้าเจ็บกลับมา ให้หยุดที่เดิน/จ็อกเบา)`;
   }
 
@@ -617,6 +617,7 @@ function ActionableWeekCard({ workouts, coachContext }: { workouts: WeekWorkout[
           const isStrength = isStrengthOrMobilityType(workout.workoutType);
           const isToday = isTodayWorkout(workout.day);
           const adaptiveNote = getAdaptiveLongRunNote(workout, coachContext, isToday);
+          const showRecoveryBadge = !isToday && isHardWorkoutType(workout.workoutType);
           return (
             <details
               key={`${workout.day}-${workout.workoutType}-${index}`}
@@ -629,6 +630,11 @@ function ActionableWeekCard({ workouts, coachContext }: { workouts: WeekWorkout[
                     {isToday && (
                       <span className="rounded bg-[var(--primary)] px-1.5 py-0.5 text-[9px] font-bold text-white">
                         วันนี้
+                      </span>
+                    )}
+                    {showRecoveryBadge && (
+                      <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold text-amber-700" data-testid="recovery-check-badge">
+                        รอเช็ก recovery
                       </span>
                     )}
                   </span>

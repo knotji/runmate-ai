@@ -1111,7 +1111,7 @@ function WeeklyDashboard({ dashboard, proteinTarget, items, cutoff }: { dashboar
     <details className="group cursor-pointer rounded-3xl border border-slate-100 bg-white p-4 shadow-sm">
       <summary className="list-none flex items-center justify-between font-bold text-[var(--foreground)]">
         <div className="flex flex-col gap-0.5">
-          <span className="text-[10px] uppercase tracking-[0.15em] text-[var(--label-color)]">METRICS 7 วัน</span>
+          <span className="text-[10px] uppercase tracking-[0.15em] text-[var(--label-color)]">ตัวเลขสำคัญ 7 วัน</span>
           <span className="text-sm font-bold text-[var(--foreground)]">ตัวเลขสรุป 7 วันล่าสุด</span>
         </div>
         <div className="flex items-center gap-1.5 text-xs text-[var(--primary)] font-bold shrink-0">
@@ -1127,17 +1127,17 @@ function WeeklyDashboard({ dashboard, proteinTarget, items, cutoff }: { dashboar
           <p className="mt-1 text-xs leading-relaxed text-slate-600 font-medium bg-slate-50 p-3 rounded-2xl border border-slate-100">{dashboard.coachNote}</p>
         </div>
         <div className="grid grid-cols-2 gap-2">
-          <DashboardMetric label="Run volume" value={dashboard.runKm > 0 ? formatDistanceKm(dashboard.runKm) : "-"} sub={`${dashboard.runSessions} sessions`} />
-          <DashboardMetric label="Longest run" value={dashboard.longestRunKm != null ? formatDistanceKm(dashboard.longestRunKm) : "-"} sub="last 7 days" />
-          <DashboardMetric label="Readiness เฉลี่ย" value={dashboard.avgReadiness != null ? formatScore(dashboard.avgReadiness) : "-"} sub="จากวันที่มีข้อมูล" />
-          <DashboardMetric label="Sleep avg 7 วัน" value={formatSleepAverageHours(dashboard.avgSleepHours)} sub={sleepAverageSubtext(dashboard.sleepCount)} />
-          <DashboardMetric label="Meal kcal avg" value={dashboard.avgMealCalories != null ? formatCalories(dashboard.avgMealCalories) : "-"} sub={assessmentText} />
-          <DashboardMetric label="Protein avg / day" value={dashboard.avgMealProtein != null ? formatMacro(dashboard.avgMealProtein) : "-"} sub={`target ${proteinTarget} g`} />
+          <DashboardMetric label="ระยะวิ่งรวม" value={dashboard.runKm > 0 ? formatDistanceKm(dashboard.runKm) : "-"} sub={`${dashboard.runSessions} ครั้ง`} />
+          <DashboardMetric label="วิ่งไกลสุด" value={dashboard.longestRunKm != null ? formatDistanceKm(dashboard.longestRunKm) : "-"} sub="7 วันที่ผ่านมา" />
+          <DashboardMetric label="ความพร้อมเฉลี่ย" value={dashboard.avgReadiness != null ? formatScore(dashboard.avgReadiness) : "-"} sub="จากวันที่มีข้อมูล" />
+          <DashboardMetric label="นอนเฉลี่ย 7 วัน" value={formatSleepAverageHours(dashboard.avgSleepHours)} sub={sleepAverageSubtext(dashboard.sleepCount)} />
+          <DashboardMetric label="พลังงานเฉลี่ย" value={dashboard.avgMealCalories != null ? formatCalories(dashboard.avgMealCalories) : "-"} sub={assessmentText} />
+          <DashboardMetric label="โปรตีนเฉลี่ย/วัน" value={dashboard.avgMealProtein != null ? formatMacro(dashboard.avgMealProtein) : "-"} sub={`เป้า ${proteinTarget} g`} />
         </div>
         <div className="grid grid-cols-3 gap-2">
-          <DashboardMetric label="Weight" value={dashboard.latestBody?.weightKg != null ? `${formatDecimal(dashboard.latestBody.weightKg)} kg` : "-"} compact />
-          <DashboardMetric label="Body fat" value={formatPercent(dashboard.latestBody?.bodyFatPct)} compact />
-          <DashboardMetric label="Muscle" value={dashboard.latestBody?.muscleKg != null ? `${formatDecimal(dashboard.latestBody.muscleKg)} kg` : "-"} compact />
+          <DashboardMetric label="น้ำหนัก" value={dashboard.latestBody?.weightKg != null ? `${formatDecimal(dashboard.latestBody.weightKg)} kg` : "-"} compact />
+          <DashboardMetric label="ไขมัน" value={formatPercent(dashboard.latestBody?.bodyFatPct)} compact />
+          <DashboardMetric label="กล้ามเนื้อ" value={dashboard.latestBody?.muscleKg != null ? `${formatDecimal(dashboard.latestBody.muscleKg)} kg` : "-"} compact />
         </div>
       </div>
     </details>
@@ -2929,7 +2929,7 @@ function WeeklyReviewCard({ review }: { review: WeeklyReview }) {
         <div className="grid grid-cols-4 gap-1.5 text-center">
           <div className="rounded-xl bg-slate-50/50 p-2">
             <p className="text-[9px] text-slate-400">วิ่งรวม</p>
-            <p className="text-xs font-bold text-slate-700 mt-0.5">{review.runningKmTotal > 0 ? `${review.runningKmTotal} km` : "–"}</p>
+            <p className="text-xs font-bold text-slate-700 mt-0.5">{review.runningKmTotal > 0 ? `${review.runningKmTotal} กม.` : "–"}</p>
             <p className="text-[9px] text-slate-400 mt-0.5">{review.runCount} ครั้ง</p>
           </div>
           <div className="rounded-xl bg-slate-50/50 p-2">

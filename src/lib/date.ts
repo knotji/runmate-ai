@@ -100,6 +100,20 @@ export function getBangkokThaiDayName(dateKey?: string): string {
   }
 }
 
+/**
+ * Returns a Thai-style date string using Buddhist Era year.
+ * e.g. "วันเสาร์ที่ 4 กรกฎาคม 2569" (Gregorian 2026 → BE 2569)
+ */
+export function formatThaiBuddhistDate(date = new Date()): string {
+  return new Intl.DateTimeFormat("th-TH-u-ca-buddhist", {
+    timeZone: "Asia/Bangkok",
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(date);
+}
+
 /** Clean colon-heavy race names like "ASICS : META : Time : Trials" → "ASICS META Time Trials". */
 export function formatRaceDisplayName(name: string | null | undefined): string {
   if (!name) return name ?? "";
