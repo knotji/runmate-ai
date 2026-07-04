@@ -443,26 +443,37 @@ function RecoveryGuardrailsCard({ coachContext }: { coachContext: CoachContext |
   );
 }
 
-function getAdaptiveLongRunNote(workout: WeekWorkout, context: CoachContext | null): string | null {
+function isHardWorkoutType(workoutType: string | undefined): boolean {
+  if (!workoutType) return false;
+  return /tempo|interval|fartlek|progression|race\s*pace/i.test(workoutType);
+}
+
+function getAdaptiveLongRunNote(workout: WeekWorkout, context: CoachContext | null, isToday = false): string | null {
   if (!context) return null;
   const recSys = context.recoverySystem;
   if (!recSys) return null;
 
   const isLong = isLongRun(workout);
-  if (!isLong) return null;
 
-  // Use recovery system metrics for caution checks
-  const isLowSleepAvg = recSys.axes.sleep.score < 60;
-  const isLowReadiness = recSys.axes.recovery.score < 70;
-  const isHighWeeklyLoad = recSys.axes.load.score >= 75;
-  const hasPainHistory = context.activePain || context.recentPainHistory;
+  if (isLong) {
+    const isLowSleepAvg = recSys.axes.sleep.score < 60;
+    const isLowReadiness = recSys.axes.recovery.score < 70;
+    const isHighWeeklyLoad = recSys.axes.load.score >= 75;
+    const hasPainHistory = context.activePain || context.recentPainHistory;
 
-  const hasCaution = isLowSleepAvg || isLowReadiness || isHighWeeklyLoad || hasPainHistory;
-  if (!hasCaution) return null;
+    const hasCaution = isLowSleepAvg || isLowReadiness || isHighWeeklyLoad || hasPainHistory;
+    if (!hasCaution) return null;
 
-  const d = workout.distanceKm;
-  const reducedText = d ? ` ลดเหลือ ${Math.round(d * 0.8)}–${Math.round(d * 0.9)} km` : " ลดระยะลง 10–20%";
-  return `ปรับตามสภาพ: ถ้าฟื้นตัวไม่ดี${reducedText} (ถ้าคืนก่อนนอนน้อยหรือ HR ลอย ให้ลด Long Run ลง 10–20% · เป้าหมายวันนี้คือสะสมเวลา easy ไม่ใช่ฝืนระยะ · ถ้าเจ็บกลับมา ให้หยุดที่เดิน/จ็อกเบา)`;
+    const d = workout.distanceKm;
+    const reducedText = d ? ` ลดเหลือ ${Math.round(d * 0.8)}–${Math.round(d * 0.9)} km` : " ลดระยะลง 10–20%";
+    return `ปรับตามสภาพ: ถ้าฟื้นตัวไม่ดี${reducedText} (ถ้าคืนก่อนนอนน้อยหรือ HR ลอย ให้ลด Long Run ลง 10–20% · เป้าหมายวันนี้คือสะสมเวลา easy ไม่ใช่ฝืนระยะ · ถ้าเจ็บกลับมา ให้หยุดที่เดิน/จ็อกเบา)`;
+  }
+
+  if (!isToday && isHardWorkoutType(workout.workoutType)) {
+    return "จะยืนยันอีกครั้งตาม recovery วันนั้น — ปรับได้ถ้า sleep หรือ recovery ยังต่ำ";
+  }
+
+  return null;
 }
 
 function isRunWorkoutType(workoutType: string | undefined): boolean {
@@ -515,7 +526,7 @@ function TodayWorkoutCard({ workout, coachContext }: { workout: WeekWorkout; coa
     : null;
 
   const isStrength = isStrengthOrMobilityType(workout.workoutType);
-  const adaptiveNote = getAdaptiveLongRunNote(workout, coachContext);
+  const adaptiveNote = getAdaptiveLongRunNote(workout, coachContext, true);
   return (
     <section className="card relative overflow-hidden border border-[#b7dcc4] bg-[#f4fbf6] p-5 pl-7">
       <div className="absolute inset-y-0 left-0 w-1.5 bg-[var(--primary)]" aria-hidden="true" />
@@ -604,8 +615,8 @@ function ActionableWeekCard({ workouts, coachContext }: { workouts: WeekWorkout[
       <div className="border-t border-[var(--color-border-soft)]">
         {workouts.map((workout, index) => {
           const isStrength = isStrengthOrMobilityType(workout.workoutType);
-          const adaptiveNote = getAdaptiveLongRunNote(workout, coachContext);
           const isToday = isTodayWorkout(workout.day);
+          const adaptiveNote = getAdaptiveLongRunNote(workout, coachContext, isToday);
           return (
             <details
               key={`${workout.day}-${workout.workoutType}-${index}`}

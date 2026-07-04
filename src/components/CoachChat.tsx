@@ -12,8 +12,27 @@ import { fetchRecentCoachMessages, clearCoachMessages } from "@/lib/coachMessage
 type ChatMessage = { role: "user" | "assistant"; content: string; imageUrl?: string };
 
 type RaceQuickContext = { raceName: string | null; raceDistance: string | null; daysUntilRace: number | null };
+type RecoveryChipContext = { isLowRecovery: boolean; hasActivePain: boolean };
 
-function buildQuickQuestions(race: RaceQuickContext | null) {
+function buildQuickQuestions(race: RaceQuickContext | null, recovery: RecoveryChipContext | null) {
+  if (recovery?.hasActivePain) {
+    return [
+      { label: "เจ็บแบบนี้วิ่งได้ไหม", prompt: "มีอาการเจ็บอยู่ตอนนี้ วิ่งหรือซ้อมได้ไหมครับ ดูจากบันทึกอาการด้วย" },
+      { label: "ควรพักนานแค่ไหน", prompt: "ควรพักนานแค่ไหนเพื่อให้หายก่อนกลับมาวิ่งครับ" },
+      { label: "ขยับแทนวิ่งได้ไหม", prompt: "ช่วงที่เจ็บมีกิจกรรมอะไรทำได้บ้างครับ ที่ไม่ทำให้แย่ลง" },
+      { label: "กินช่วยฟื้นตัว", prompt: "กินอะไรช่วยลดอาการอักเสบและฟื้นตัวเร็วขึ้นครับ" },
+    ];
+  }
+
+  if (recovery?.isLowRecovery) {
+    return [
+      { label: "วันนี้ควรพักไหม", prompt: "Recovery และ sleep ยังต่ำอยู่ วันนี้ควรพักดีกว่าซ้อมไหมครับ ดูจากข้อมูลล่าสุดด้วย" },
+      { label: "ถ้าจะวิ่งเบาแค่ไหน", prompt: "ถ้าจะวิ่งวันนี้ ควรเบาแค่ไหนครับ ดูจากข้อมูล recovery และนอนล่าสุด" },
+      { label: "นอนน้อยซ้อมยังไง", prompt: "นอนน้อยแต่อยากขยับ ควรทำยังไงดีครับ ให้ได้ประโยชน์โดยไม่บาดเจ็บ" },
+      { label: "กินช่วยฟื้นตัว", prompt: "กินอะไรช่วยฟื้นตัวและชาร์จพลังงานหลังนอนน้อยครับ" },
+    ];
+  }
+
   const raceTag = race
     ? [race.raceName, race.raceDistance, race.daysUntilRace != null ? `อีก ${race.daysUntilRace} วัน` : null]
         .filter(Boolean).join(" · ")
@@ -95,6 +114,7 @@ export function CoachChat() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [raceQuickContext, setRaceQuickContext] = useState<RaceQuickContext | null>(null);
+  const [recoveryCtx, setRecoveryCtx] = useState<RecoveryChipContext | null>(null);
   const [showMealQuestions, setShowMealQuestions] = useState(false);
   const [manualCurrentPain, setManualCurrentPain] = useState(false);
 
@@ -148,6 +168,12 @@ export function CoachChat() {
       if (ctx.raceGoal) {
         setRaceQuickContext({ raceName: ctx.raceName, raceDistance: ctx.raceDistance, daysUntilRace: ctx.daysUntilRace });
       }
+      const sleepScore = ctx.recoverySystem?.axes?.sleep?.score ?? 100;
+      const recoveryScore = ctx.recoverySystem?.axes?.recovery?.score ?? 100;
+      setRecoveryCtx({
+        isLowRecovery: sleepScore < 40 || recoveryScore < 45,
+        hasActivePain: ctx.activePain,
+      });
     }).catch(() => {});
   }, []);
 
@@ -322,7 +348,7 @@ export function CoachChat() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          {buildQuickQuestions(raceQuickContext).map((item) => (
+          {buildQuickQuestions(raceQuickContext, recoveryCtx).map((item) => (
             <button
               key={item.label}
               className="whitespace-nowrap rounded-full border border-[var(--border-warm)] bg-[var(--surface-muted)] px-3 py-2 text-xs font-semibold text-[var(--foreground)] transition hover:bg-[var(--primary-soft)]"

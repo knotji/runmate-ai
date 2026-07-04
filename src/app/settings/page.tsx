@@ -152,7 +152,7 @@ export default function SettingsPage() {
               <p className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--label-color)]">วิเคราะห์โปรไฟล์อัตโนมัติ</p>
               <h2 className="mt-1 text-xl font-bold text-[var(--foreground)]">วิเคราะห์โปรไฟล์จากประวัติ</h2>
               <p className="mt-1 text-sm leading-6 text-[var(--muted-text)]">
-                ระบบจะดู pace, HR, sleep, pain และ workout ที่บันทึกไว้ เพื่อแนะนำค่า easy pace / HR zone / recovery routine ที่เหมาะกับคุณโดยเฉพาะ
+                ระบบจะดู pace, HR, sleep, pain และ workout ที่บันทึกไว้ เพื่อแนะนำค่า easy pace / HR / recovery routine ที่ปลอดภัยและเหมาะกับคุณโดยเฉพาะ
               </p>
             </div>
             <ProfileHistoryAnalyzer onProfileUpdated={handleProfileUpdated} />
