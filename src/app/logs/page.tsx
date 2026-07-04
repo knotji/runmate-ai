@@ -736,10 +736,59 @@ function RollingSevenDayInsight({
             </div>
           );
         })()}
+        <WeeklyReadinessDots items={items} />
         {review && <WeeklyReviewCard review={review} />}
         <WeeklyDashboard dashboard={dashboard} proteinTarget={proteinTarget} items={items} cutoff={cutoff} />
       </div>
     </details>
+  );
+}
+
+function WeeklyReadinessDots({ items }: { items: LocalHistoryItem[] }) {
+  const sleepItems = dedupeSleepItems(
+    items.filter((i) => i.type === "sleep")
+  ).slice(0, 7);
+
+  if (sleepItems.length === 0) return null;
+
+  const days = sleepItems.map((item) => {
+    const data = item.data as SleepAnalysis | undefined;
+    const score = data?.extracted?.sleepScore ?? data?.coach?.readinessScore ?? null;
+    const dateKey = getHistoryItemDateKey(item);
+    let band: "green" | "yellow" | "red" | "no_data";
+    if (score === null) band = "no_data";
+    else if (score >= 66) band = "green";
+    else if (score >= 50) band = "yellow";
+    else band = "red";
+    return { dateKey, score, band };
+  }).reverse();
+
+  const DOT: Record<string, string> = {
+    green: "bg-[var(--color-success)] ring-[var(--color-success)]/30",
+    yellow: "bg-amber-400 ring-amber-300/40",
+    red: "bg-red-400 ring-red-300/40",
+    no_data: "bg-slate-200 ring-slate-200/40",
+  };
+
+  return (
+    <div className="rounded-2xl border border-[var(--color-border-soft)] bg-slate-50/60 px-3 py-2.5" data-testid="weekly-readiness-dots">
+      <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--label-color)] mb-2">Readiness 7 วัน</p>
+      <div className="flex items-center gap-2 flex-wrap">
+        {days.map(({ dateKey, score, band }) => (
+          <div key={dateKey} className="flex flex-col items-center gap-0.5">
+            <div className={`h-3 w-3 rounded-full ring-2 ${DOT[band]}`} title={dateKey ?? ""} />
+            <span className="text-[8px] font-bold text-slate-400 tabular-nums">
+              {score != null ? Math.round(score) : "–"}
+            </span>
+          </div>
+        ))}
+      </div>
+      <p className="mt-1.5 text-[10px] text-slate-400">
+        <span className="inline-flex items-center gap-1 mr-2"><span className="inline-block h-2 w-2 rounded-full bg-[var(--color-success)]" />ดี</span>
+        <span className="inline-flex items-center gap-1 mr-2"><span className="inline-block h-2 w-2 rounded-full bg-amber-400" />ปานกลาง</span>
+        <span className="inline-flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-red-400" />ต่ำ</span>
+      </p>
+    </div>
   );
 }
 
