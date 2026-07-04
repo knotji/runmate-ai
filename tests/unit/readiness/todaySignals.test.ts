@@ -41,11 +41,11 @@ describe("buildTodaySignals — energy signal (null-safety)", () => {
     expect(sig.value).toBe("ไม่มีข้อมูล");
   });
 
-  it("energyScore = 80 → energy tone = good", () => {
+  it("energyScore = 80 → energy tone = good, qualitative label", () => {
     const ctx = makeCtx({ latestEnergyScore: 80 });
     const sig = buildTodaySignals(ctx).find((s) => s.key === "energy")!;
     expect(sig.tone).toBe("good");
-    expect(sig.value).toBe("80");
+    expect(sig.value).toBe("ดี");
   });
 
   it("energyScore = 40 → energy tone = bad", () => {
@@ -54,14 +54,27 @@ describe("buildTodaySignals — energy signal (null-safety)", () => {
     expect(sig.tone).toBe("bad");
   });
 
-  it("energyScore = null but has meal data + fuel score → uses fuel proxy (not neutral-forced)", () => {
+  it("energyScore = null, 1 meal logged → ยังไม่ชัด (partial data, not confident)", () => {
     const ctx = makeCtx({
       latestEnergyScore: null,
       mealsToday: [{ mealType: "breakfast", foods: ["ข้าว"], caloriesKcal: 400, proteinG: 20, carbsG: 60, fatG: 10, fiberG: 3, fatLoad: "low", coachNote: null }],
       recoverySystem: makeRecoverySys({ fuelScore: 75 }),
     });
     const sig = buildTodaySignals(ctx).find((s) => s.key === "energy")!;
+    expect(sig.tone).toBe("neutral");
+    expect(sig.value).toBe("ยังไม่ชัด");
+  });
+
+  it("energyScore = null, >= 2 meals + fuel score → uses fuel proxy", () => {
+    const meal = { mealType: "breakfast" as const, foods: ["ข้าว"], caloriesKcal: 400, proteinG: 20, carbsG: 60, fatG: 10, fiberG: 3, fatLoad: "low" as const, coachNote: null };
+    const ctx = makeCtx({
+      latestEnergyScore: null,
+      mealsToday: [meal, { ...meal, mealType: "lunch" as const }],
+      recoverySystem: makeRecoverySys({ fuelScore: 75 }),
+    });
+    const sig = buildTodaySignals(ctx).find((s) => s.key === "energy")!;
     expect(sig.tone).toBe("good");
+    expect(sig.value).toBe("เพียงพอ");
   });
 });
 

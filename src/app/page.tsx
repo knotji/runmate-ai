@@ -1685,8 +1685,8 @@ function TodaySnapshotCard({
             <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-400">รอข้อมูลล่าสุด</span>
           )}
           {!loading && readinessScore != null && insight && (
-            <span className={`rounded-full px-2.5 py-1 text-[11px] font-black shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] ${readinessChipClass(readinessScore, displayStatus.displayLabel)}`}>
-              {readinessScore} Readiness {hasSleepToday ? displayStatus.displayLabel : `ล่าสุด · ${displayStatus.displayLabel}`}
+            <span className={`rounded-full px-2.5 py-1 text-[11px] font-black shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] ${readinessChipClass(readinessScore, displayStatus.label)}`}>
+              {readinessScore} Readiness {hasSleepToday ? displayStatus.label : `ล่าสุด · ${displayStatus.label}`}
             </span>
           )}
           {!loading && isFallback && (

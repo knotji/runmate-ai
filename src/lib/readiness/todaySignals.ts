@@ -35,9 +35,12 @@ function buildLoadSignal(ctx: CoachContext): TodaySignal {
   const effective = loadScore ?? (runKm > 40 ? 70 : runKm > 20 ? 50 : 30);
   // Higher load score = heavier week = body is more stressed
   const tone: SignalTone = effective >= 70 ? "bad" : effective >= 45 ? "warn" : "good";
-  const value = runKm > 0
-    ? `${Math.round(runKm * 10) / 10} กม.`
-    : effective >= 70 ? "หนัก" : effective >= 45 ? "ปกติ" : "เบา";
+  const kmText = runKm > 0 ? `${Math.round(runKm * 10) / 10} กม.` : null;
+  const value = effective >= 70
+    ? "สัปดาห์หนัก"
+    : effective >= 45
+    ? (kmText ?? "ปกติ")
+    : (kmText ?? "เบา");
 
   return { key: "load", label: "โหลด", value, icon: "🏃", tone };
 }
@@ -46,21 +49,26 @@ function buildEnergySignal(ctx: CoachContext): TodaySignal {
   // CRITICAL: null/missing energy score must NEVER be treated as 0 or "bad"
   const energyScore = ctx.latestEnergyScore ?? null;
   const fuelScore = ctx.recoverySystem?.axes?.fuel?.score ?? null;
-  const hasMeals = ctx.mealsToday.length > 0;
 
   if (energyScore === null) {
-    // Fall back to fuel axis only when we have actual meal data
-    if (hasMeals && fuelScore !== null) {
+    // Fall back to fuel axis only when we have enough meal data to be confident
+    if (fuelScore !== null && ctx.mealsToday.length >= 2) {
       const tone: SignalTone = fuelScore >= 70 ? "good" : fuelScore >= 50 ? "warn" : "bad";
       const value = fuelScore >= 70 ? "เพียงพอ" : fuelScore >= 50 ? "ปานกลาง" : "ต่ำ";
       return { key: "energy", label: "พลังงาน", value, icon: "⚡", tone };
+    }
+    // Partial meal data (1 meal logged) — not enough to be confident
+    if (ctx.mealsToday.length === 1) {
+      return { key: "energy", label: "พลังงาน", value: "ยังไม่ชัด", icon: "⚡", tone: "neutral" };
     }
     // No data — always neutral, never bad
     return { key: "energy", label: "พลังงาน", value: "ไม่มีข้อมูล", icon: "⚡", tone: "neutral" };
   }
 
+  // Watch energy score: qualitative only — no raw numbers
   const tone: SignalTone = energyScore >= 70 ? "good" : energyScore >= 50 ? "warn" : "bad";
-  return { key: "energy", label: "พลังงาน", value: `${Math.round(energyScore)}`, icon: "⚡", tone };
+  const value = energyScore >= 70 ? "ดี" : energyScore >= 50 ? "ปานกลาง" : "ต่ำ";
+  return { key: "energy", label: "พลังงาน", value, icon: "⚡", tone };
 }
 
 function buildPainSignal(ctx: CoachContext): TodaySignal {
