@@ -129,6 +129,7 @@ test.describe("Google Sign-In button", () => {
     const origin = new URL(page.url()).origin;
     expect(call.provider).toBe("google");
     expect(call.options?.redirectTo).toBe(`${origin}/auth/callback`);
+    expect(call.options?.redirectTo).toMatch(/\/auth\/callback$/);
   });
 
   test("shows loading text and disables the Google button while OAuth is pending", async ({ page }) => {
