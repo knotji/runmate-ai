@@ -755,7 +755,7 @@ export default function UploadPage() {
 
   return (
     <AppShell title="เพิ่มข้อมูล" subtitle="บันทึกข้อมูลวันนี้ เพื่อให้โค้ชประเมินได้แม่นขึ้น">
-      <section className="space-y-3" data-testid="upload-dashboard">
+      <section className="space-y-3 pb-[calc(96px+env(safe-area-inset-bottom))]" data-testid="upload-dashboard">
         <div className="space-y-2">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--label-color)]">เลือกประเภทข้อมูล</p>
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-5" data-testid="upload-type-selector">
@@ -974,19 +974,20 @@ export default function UploadPage() {
                 context: coachContext,
               }}
               onResult={handleAnalysisResult}
-            />
-            {type === "meal" && (
-              <div className="space-y-1.5 mt-3" data-testid="meal-image-text-container">
-                <label htmlFor="meal-image-text" className="text-xs font-bold uppercase tracking-wide text-slate-400">เพิ่มเติม</label>
-                <textarea
-                  id="meal-image-text"
-                  className="control min-h-[80px]"
-                  placeholder="เช่น กินข้าวครึ่งจาน, ไก่แดง 2 ไม้, ไม่ได้กินน้ำจิ้ม, มีชาไม่หวาน 1 แก้ว"
-                  value={imageMealText}
-                  onChange={(e) => setImageMealText(e.target.value)}
-                />
-              </div>
-            )}
+            >
+              {type === "meal" && (
+                <div className="space-y-1.5 my-3" data-testid="meal-image-text-container">
+                  <label htmlFor="meal-image-text" className="text-xs font-bold uppercase tracking-wide text-slate-400">เพิ่มเติม</label>
+                  <textarea
+                    id="meal-image-text"
+                    className="control min-h-[80px]"
+                    placeholder="เช่น กินข้าวครึ่งจาน, ไก่แดง 2 ไม้, ไม่ได้กินน้ำจิ้ม, มีชาไม่หวาน 1 แก้ว"
+                    value={imageMealText}
+                    onChange={(e) => setImageMealText(e.target.value)}
+                  />
+                </div>
+              )}
+            </ImageUploader>
             {saveStatus === "saving" && <p className="text-xs font-semibold text-[var(--color-text-soft)]">กำลังบันทึก...</p>}
             {saveStatus === "saved" && <p className="text-xs font-semibold text-[var(--status-ready)]">บันทึกเข้า Report แล้ว</p>}
             {saveStatus === "error" && <p className="text-xs font-semibold text-[var(--status-rest)]">บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง</p>}

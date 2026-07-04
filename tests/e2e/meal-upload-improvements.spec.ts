@@ -95,4 +95,34 @@ test.describe("Meal Upload UX Improvements", () => {
     await expect(page.getByTestId("remove-image-0")).toBeVisible();
     await expect(page.getByTestId("remove-image-1")).toBeHidden();
   });
+
+  test("Meal image mode shows 'เพิ่มเติม' textarea before the CTA button and has enough bottom spacing", async ({ page }) => {
+    await installMockBackend(page);
+    await gotoApp(page, "/upload?type=meal");
+
+    // Upload mock file so CTA is enabled and shows "วิเคราะห์อาหาร"
+    const file1 = { name: "meal1.jpg", mimeType: "image/jpeg", buffer: Buffer.from("image1") };
+    await page.locator('input[type="file"]').first().setInputFiles([file1]);
+
+    // 1. Verify "เพิ่มเติม" container is physically located before "วิเคราะห์อาหาร" button
+    const container = page.getByTestId("meal-image-text-container");
+    const ctaButton = page.getByRole("button", { name: "วิเคราะห์อาหาร" });
+
+    await expect(container).toBeVisible();
+    await expect(ctaButton).toBeVisible();
+
+    const containerBox = await container.boundingBox();
+    const ctaButtonBox = await ctaButton.boundingBox();
+
+    expect(containerBox).not.toBeNull();
+    expect(ctaButtonBox).not.toBeNull();
+    if (containerBox && ctaButtonBox) {
+      expect(containerBox.y).toBeLessThan(ctaButtonBox.y);
+    }
+
+    // 2. Verify upload-dashboard has enough bottom padding
+    const dashboard = page.getByTestId("upload-dashboard");
+    const pbStyle = await dashboard.evaluate((el) => window.getComputedStyle(el).paddingBottom);
+    expect(pbStyle).toBe("96px");
+  });
 });

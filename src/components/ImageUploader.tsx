@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState, useEffect } from "react";
+import { FormEvent, useState, useEffect, type ReactNode } from "react";
 import { fileToDataUrl, type UploadKind } from "@/lib/storage";
 import { ErrorState } from "@/components/ErrorState";
 import { LoadingButton } from "@/components/LoadingButton";
@@ -15,6 +15,7 @@ export function ImageUploader({
   ctaLabel = "วิเคราะห์",
   noFileCtaLabel = "เลือกรูปก่อนวิเคราะห์",
   onResult,
+  children,
 }: {
   kind: UploadKind;
   endpoint: string;
@@ -23,6 +24,7 @@ export function ImageUploader({
   ctaLabel?: string;
   noFileCtaLabel?: string;
   onResult: (result: unknown) => void | Promise<void>;
+  children?: ReactNode;
 }) {
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
@@ -207,6 +209,8 @@ export function ImageUploader({
           ))}
         </div>
       )}
+
+      {children}
 
       <LoadingButton
         className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-45"
