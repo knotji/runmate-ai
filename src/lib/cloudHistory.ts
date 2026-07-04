@@ -67,6 +67,7 @@ export async function saveHistoryItems(items: LocalHistoryItem[]): Promise<{ ok:
       : {};
     if (item.recordedAt) dataObj.recordedAt = item.recordedAt;
     if (item.dateKey) dataObj.dateKey = item.dateKey;
+    if (item.source) dataObj.source = item.source;
 
     return {
       id: item.id,
@@ -144,12 +145,14 @@ export async function loadHistoryItems(types?: HistoryType[]): Promise<{ ok: tru
     const dataObj = row.data as Record<string, unknown> | null;
     const recordedAt = dataObj?.recordedAt as string | undefined;
     const dateKey = dataObj?.dateKey as string | undefined;
+    const source = dataObj?.source as LocalHistoryItem["source"] | undefined;
     return {
       id: row.id,
       type: row.type,
       createdAt: row.created_at,
       recordedAt,
       dateKey,
+      source,
       data: row.data,
     };
   });
@@ -190,6 +193,7 @@ export async function loadHistoryItemById(id: string): Promise<{ ok: true; item:
   const dataObj = row.data as Record<string, unknown> | null;
   const recordedAt = dataObj?.recordedAt as string | undefined;
   const dateKey = dataObj?.dateKey as string | undefined;
+  const source = dataObj?.source as LocalHistoryItem["source"] | undefined;
   return {
     ok: true,
     item: {
@@ -198,6 +202,7 @@ export async function loadHistoryItemById(id: string): Promise<{ ok: true; item:
       createdAt: row.created_at,
       recordedAt,
       dateKey,
+      source,
       data: row.data,
     },
   };
