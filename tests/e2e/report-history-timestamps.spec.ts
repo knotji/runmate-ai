@@ -150,3 +150,56 @@ test.describe("Report history timestamps", () => {
     await expect(row.getByTestId("compact-item-details")).toBeVisible();
   });
 });
+
+test.describe("Report รายการทั้งหมด UI polish", () => {
+  test("expanded section shows ซ่อนรายการ and no permanent black outline", async ({ page }) => {
+    const state = await installMockBackend(page);
+    const todayKey = bangkokDateKey();
+    state.history.push(makeMealRow("meal-polish", todayKey, `${todayKey}T11:00:00.000Z`));
+
+    await openFullHistory(page);
+
+    // Header shows ซ่อนรายการ when open
+    const details = page.getByTestId("full-history-details");
+    await expect(details.getByText("ซ่อนรายการ")).toBeVisible();
+
+    // summary element must not have outline style (browser default black outline removed)
+    const summary = details.locator("summary");
+    const outlineStyle = await summary.evaluate((el) => getComputedStyle(el).outlineStyle);
+    // With focus:outline-none the outline is "none" when not focused via keyboard
+    expect(outlineStyle).toBe("none");
+  });
+
+  test("filter pills row is horizontally scrollable and last chip not clipped", async ({ page }) => {
+    const state = await installMockBackend(page);
+    const todayKey = bangkokDateKey();
+    state.history.push(makeMealRow("meal-pills", todayKey, `${todayKey}T11:00:00.000Z`));
+
+    await openFullHistory(page);
+
+    const pillsRow = page.getByTestId("filter-pills-row");
+    await expect(pillsRow).toBeVisible();
+
+    // Scrollable container — overflow-x should be auto or scroll
+    const overflowX = await pillsRow.evaluate((el) => getComputedStyle(el).overflowX);
+    expect(["auto", "scroll"]).toContain(overflowX);
+
+    // All filter buttons are visible (not clipped off-screen at initial width)
+    await expect(pillsRow.getByRole("button", { name: "ทั้งหมด" })).toBeVisible();
+    await expect(pillsRow.getByRole("button", { name: "สุขภาพ" })).toBeVisible(); // last chip
+  });
+
+  test("active filter chip uses soft sage tone not solid primary fill", async ({ page }) => {
+    const state = await installMockBackend(page);
+    const todayKey = bangkokDateKey();
+    state.history.push(makeMealRow("meal-chip", todayKey, `${todayKey}T11:00:00.000Z`));
+
+    await openFullHistory(page);
+
+    // Default active chip is "ทั้งหมด" — should NOT have white text (solid fill)
+    const activeChip = page.getByTestId("filter-pills-row").getByRole("button", { name: "ทั้งหมด" });
+    const color = await activeChip.evaluate((el) => getComputedStyle(el).color);
+    // text-white is rgb(255,255,255); soft sage is not pure white
+    expect(color).not.toBe("rgb(255, 255, 255)");
+  });
+});

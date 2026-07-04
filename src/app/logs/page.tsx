@@ -813,27 +813,27 @@ function FullHistoryDetails({
   const hasMore = sortedItems.length > visibleCount;
 
   return (
-    <details className="group rounded-3xl border border-[var(--color-border-soft)] bg-[var(--surface)] p-4 shadow-sm" data-testid="full-history-details">
-      <summary className="list-none cursor-pointer">
+    <details className="group rounded-3xl border border-[var(--color-border-soft)] bg-[var(--surface)] shadow-sm overflow-hidden" data-testid="full-history-details">
+      <summary className="list-none cursor-pointer px-4 py-3.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/40 focus-visible:ring-inset">
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-sm font-bold text-[var(--foreground)]">รายการทั้งหมด</p>
             <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">ดูบันทึกทั้งหมดแบบละเอียด</p>
           </div>
-          <span className="rounded-full bg-[var(--surface-muted)] px-3 py-1.5 text-[10px] font-bold text-[var(--primary)]">
+          <span className="shrink-0 rounded-full bg-[var(--surface-muted)] px-3 py-1.5 text-[10px] font-bold text-[var(--primary)]">
             <span className="group-open:hidden">เปิด</span>
             <span className="hidden group-open:inline">ซ่อนรายการ</span>
           </span>
         </div>
       </summary>
 
-      <div className="mt-4 space-y-4 border-t border-[var(--color-border-soft)] pt-4">
+      <div className="border-t border-[var(--color-border-soft)] px-4 pb-24 pt-3 space-y-3">
         <FilterPills activeFilter={activeFilter} onFilterChange={onFilterChange} />
 
         {sortedItems.length === 0 ? (
-          <section className="card p-5 text-center text-sm text-slate-500">ไม่พบรายการที่ตรงกับตัวกรอง</section>
+          <p className="py-6 text-center text-sm text-[var(--color-text-muted)]">ไม่พบรายการที่ตรงกับตัวกรอง</p>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             <div className="divide-y divide-[var(--color-border-soft)] text-[var(--foreground)]">
               {visibleItems.map((item) => (
                 <CompactHistoryItemRow
@@ -851,7 +851,7 @@ function FullHistoryDetails({
               <button
                 type="button"
                 onClick={() => setVisibleCount((c) => c + 7)}
-                className="w-full rounded-2xl border border-slate-200 bg-white/75 px-4 py-3 text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors"
+                className="w-full rounded-2xl border border-[var(--border-warm)] bg-[var(--surface-muted)] px-4 py-3 text-sm font-bold text-[var(--foreground)] hover:bg-[var(--primary-soft)] hover:text-[var(--primary-strong)] transition-colors"
               >
                 ดูเพิ่ม
               </button>
@@ -881,7 +881,7 @@ function CompactHistoryItemRow({
   const mappedType = getMappedTypeName(item);
 
   return (
-    <div data-testid="report-compact-item" data-date-key={getHistoryItemDateKey(item)} className="py-3 border-b border-[var(--color-border-soft)] last:border-0">
+    <div data-testid="report-compact-item" data-date-key={getHistoryItemDateKey(item)} className="py-3">
       <div
         className="flex items-center justify-between gap-3 cursor-pointer select-none"
         onClick={() => setIsExpanded((prev) => !prev)}
@@ -1061,7 +1061,7 @@ function FilterPills({
   onFilterChange: (filter: ReportFilter) => void;
 }) {
   return (
-    <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+    <div className="flex gap-2 overflow-x-auto pb-1 pr-1 scrollbar-none" data-testid="filter-pills-row">
       {(
         [
           { id: "all", label: "ทั้งหมด" },
@@ -1076,7 +1076,7 @@ function FilterPills({
           key={f.id}
           type="button"
           onClick={() => onFilterChange(f.id)}
-          className={`min-h-[36px] whitespace-nowrap rounded-[var(--radius-pill)] border px-4 py-2 text-xs font-semibold transition-all ${activeFilter === f.id ? "border-[var(--primary)] bg-[var(--primary)] text-white" : "border-[var(--border-warm)] bg-[var(--surface)] text-[var(--color-text-muted)] hover:bg-[var(--surface-muted)]"}`}
+          className={`shrink-0 whitespace-nowrap rounded-[var(--radius-pill)] border px-3.5 py-1.5 text-xs font-semibold transition-all ${activeFilter === f.id ? "border-[var(--primary-soft)] bg-[var(--primary-soft)] text-[var(--primary-strong)]" : "border-[var(--border-warm)] bg-[var(--surface)] text-[var(--color-text-muted)] hover:bg-[var(--surface-muted)]"}`}
         >
           {f.label}
         </button>
