@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { jsonFromAI } from "@/lib/ai";
 import { buildRunnerProfileContext } from "@/lib/buildRunnerProfileContext";
-import type { CoachContext, MealContextSummary } from "@/lib/buildCoachContext";
+import type { CoachContext, MealContextSummary, WeekSleepRow } from "@/lib/buildCoachContext";
 import type { DailyNutritionBalance } from "@/lib/dailyNutritionBalance";
 import type { ReadinessV2Result } from "@/lib/readinessV2";
+import { formatSleepCitation } from "@/lib/formatSleepCitation";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -90,9 +91,12 @@ function buildFallback(
   const isPostStrength = ctx.todayPrimaryWorkout?.kind === "strength";
   const nb = ctx.nutritionBalanceToday as DailyNutritionBalance | null | undefined;
   const needProtein = nb?.proteinStatus === "low" || nb?.proteinStatus === "unknown";
+  const latestSleep = (ctx.sleep7d as WeekSleepRow[] | null | undefined)?.[0] ?? null;
+  const rv2 = ctx.readinessV2 as ReadinessV2Result | null | undefined;
   const basedOn: string[] = ["ข้อมูลล่าสุดจาก Report"];
   if (nb) basedOn.push("สัดส่วนอาหารวันนี้");
   if (ctx.hasWorkoutToday) basedOn.push("การซ้อมวันนี้");
+  if (latestSleep) basedOn.push("ข้อมูลการนอนล่าสุด");
 
   let options: NextMealOption[];
 
@@ -116,10 +120,21 @@ function buildFallback(
     ];
   }
 
+  const sleepCitation = latestSleep ? formatSleepCitation(latestSleep) : null;
+  const isLowReadiness = rv2 != null && rv2.score < 60;
+  let summary = "คำแนะนำจากข้อมูล Report วันนี้";
+  if (isLowReadiness && sleepCitation) {
+    summary = `ดูจาก${sleepCitation} — ร่างกายยังพักไม่เต็มที่ เลือกมื้อย่อยง่าย`;
+  } else if (isLowReadiness) {
+    summary = "จากข้อมูล recovery ล่าสุด — ร่างกายยังพักไม่เต็มที่ เลือกมื้อย่อยง่าย";
+  } else if (nb?.proteinStatus === "low") {
+    summary = "โปรตีนวันนี้ยังน้อย ควรเสริมมื้อนี้";
+  }
+
   return {
     mealSlot: slot,
     mealSlotLabel: slotLabel,
-    summary: `คำแนะนำสำรองจากข้อมูล Report วันนี้${nb?.proteinStatus === "low" ? " — โปรตีนยังน้อย ควรเสริม" : ""}`,
+    summary,
     options,
     nutritionFocus: needProtein ? ["protein", "carbs"] : ["balance"],
     caution: null,
@@ -162,12 +177,17 @@ function buildPrompt(
 
   if (userIntent) lines.push(`\nความต้องการพิเศษ: ${userIntent}`);
 
-  // Readiness
+  // Readiness + raw sleep data
   const rv2 = ctx.readinessV2 as ReadinessV2Result | null | undefined;
+  const latestSleep = (ctx.sleep7d as WeekSleepRow[] | null | undefined)?.[0] ?? null;
   if (rv2) {
     lines.push(`\nReadiness วันนี้: ${rv2.score}/100 (${rv2.label})`);
     if (rv2.cap != null) lines.push(`- Pain cap: ใช้คะแนนสูงสุด ${rv2.cap} เพราะมีอาการเจ็บ`);
     lines.push(`- ${rv2.readinessNote}`);
+  }
+  if (latestSleep) {
+    const citation = formatSleepCitation(latestSleep);
+    if (citation) lines.push(`- ข้อมูลการนอนล่าสุด: ${citation}`);
   }
 
   // Today's workout/plan
@@ -248,6 +268,11 @@ export async function POST(request: Request) {
       "respect allergy/avoid lists strictly, avoid foods already eaten today,",
       "tailor to training/recovery context.",
       "For health check concerns: use 'เลือกแบบเบากว่า' / 'ควรระวัง' wording only.",
+      "IMPORTANT — summary transparency: when recovery or sleep is the reason,",
+      "cite the actual values from 'ข้อมูลการนอนล่าสุด' in the summary field,",
+      "e.g. 'ดูจากการนอนล่าสุด 6 ชม. 14 นาที สกอร์ 68 — ร่างกายยังพักไม่เต็มที่...'.",
+      "If sleep data is absent, write 'จากข้อมูล recovery ล่าสุด...'.",
+      "Keep summary concise (1–2 short Thai sentences).",
     ].join(" ");
 
     const user = buildPrompt(ctx, slot, label, profileCtx, body.userIntent);
