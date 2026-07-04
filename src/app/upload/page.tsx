@@ -309,23 +309,33 @@ export default function UploadPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const raw = params.get("type") ?? "";
+    const mode = params.get("mode") ?? "";
     const aliasMap: Record<string, UploadType> = {
       sleep: "sleep", meal: "meal", workout: "workout", body: "body", health: "health_check", health_check: "health_check",
       run: "workout", วิ่ง: "workout",
     };
     const resolved: UploadType | undefined = aliasMap[raw.toLowerCase()];
     if (process.env.NODE_ENV === "development") {
-      console.info("[upload-type-debug]", { queryType: raw, resolvedType: resolved ?? "(none — keeping default)" });
+      console.info("[upload-type-debug]", { queryType: raw, resolvedType: resolved ?? "(none — keeping default)", mode });
     }
-    if (resolved) {
-      queueMicrotask(() => setType(resolved));
-      if (resolved === "workout") {
-        const sub = params.get("subtype") ?? "";
-        if (isWorkoutSubtype(sub)) {
-          queueMicrotask(() => setWorkoutSubtype(sub));
+
+    const finalType = resolved || "sleep";
+
+    queueMicrotask(() => {
+      if (resolved) {
+        setType(resolved);
+        if (resolved === "workout") {
+          const sub = params.get("subtype") ?? "";
+          if (isWorkoutSubtype(sub)) {
+            setWorkoutSubtype(sub);
+          }
         }
       }
-    }
+
+      if (mode === "csv" && (finalType === "sleep" || finalType === "workout")) {
+        setCsvUploadMode("csv");
+      }
+    });
   }, []);
   const [draftMealBadge, setDraftMealBadge] = useState(false);
 
@@ -678,7 +688,15 @@ export default function UploadPage() {
     setType(nextType);
     setWorkoutSubtype("run");
     setStrengthInputMode("image");
-    setCsvUploadMode("image");
+    
+    // Preserve CSV mode if active and the next category supports it
+    const nextSupportsCsv = nextType === "sleep" || nextType === "workout";
+    if (csvUploadMode === "csv" && nextSupportsCsv) {
+      // Keep "csv"
+    } else {
+      setCsvUploadMode("image");
+    }
+
     if (nextType !== "meal") setMealInputMode("image");
     setResult(null);
     setSaveStatus("idle");
@@ -832,7 +850,7 @@ export default function UploadPage() {
   const selectedMeta = UPLOAD_DASHBOARD_META[type];
 
   return (
-    <AppShell title="เพิ่มข้อมูล" subtitle="บันทึกข้อมูลวันนี้ให้โค้ชประเมิน">
+    <AppShell title="เพิ่มข้อมูล" subtitle="บันทึกข้อมูลวันนี้ หรือนำเข้าไฟล์เล็ก ๆ เพื่อให้โค้ชประเมินได้แม่นขึ้น">
       <section className="space-y-3" data-testid="upload-dashboard">
         <div className="space-y-2">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--label-color)]">เลือกประเภทข้อมูล</p>
@@ -1419,8 +1437,8 @@ function CsvImportPanel({
   const [localError, setLocalError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const helperText = type === "sleep"
-    ? "รองรับรูปสรุปการนอน หรือ CSV จาก Garmin/Apple Health ที่มี duration, score, HRV, resting HR"
-    : "รองรับรูปสรุปการซ้อม หรือ CSV จาก Garmin/Apple Health/Strava ที่มีระยะ เวลา pace HR หรือ calories";
+    ? "รองรับ CSV การนอนจาก Garmin/Apple Health เช่น duration, score, HRV, resting HR"
+    : "รองรับ CSV กิจกรรมจาก Garmin หรือแหล่งอื่น เช่น ระยะ เวลา pace HR และ calories";
 
   async function handleFile(file: File | null) {
     setLocalError("");

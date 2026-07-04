@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
 import { ProfileSetupForm } from "@/components/ProfileSetupForm";
 import { ProfileHistoryAnalyzer } from "@/components/ProfileHistoryAnalyzer";
@@ -25,6 +26,7 @@ type EnvDebug = {
 export default function SettingsPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>("profile");
+  const [historyImportMode, setHistoryImportMode] = useState<"samsung" | null>("samsung");
   const [runnerProfile, setRunnerProfile] = useState<UserProfile | null>(null);
   const [envDebug, setEnvDebug] = useState<EnvDebug | null>(null);
   const [versionCopied, setVersionCopied] = useState(false);
@@ -164,15 +166,55 @@ export default function SettingsPage() {
 
       {activeTab === "data" && (
         <div className="space-y-4">
-          <section className="card space-y-3 p-5">
+          <section className="card space-y-4 p-5" data-testid="history-import-card">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--label-color)]">นำเข้าข้อมูล</p>
-              <h2 className="mt-1 text-xl font-bold text-[var(--foreground)]">นำเข้า Samsung Health</h2>
+              <h2 className="mt-1 text-xl font-bold text-[var(--foreground)]">นำเข้าประวัติ</h2>
               <p className="mt-1 text-sm leading-6 text-[var(--muted-text)]">
-                อัปโหลดไฟล์ ZIP เพื่อบันทึกข้อมูลการนอน การซ้อม และองค์ประกอบร่างกาย
+                รวมไฟล์จาก Samsung Health, Garmin, Apple Health หรือ CSV อื่น ๆ เพื่อเติมประวัติการนอนและการซ้อม
               </p>
             </div>
-            <SamsungHealthImport />
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3" data-testid="history-import-selector">
+              <button
+                type="button"
+                onClick={() => setHistoryImportMode("samsung")}
+                className={`text-left p-4 rounded-2xl border transition-all ${
+                  historyImportMode === "samsung"
+                    ? "border-[var(--primary-strong)] bg-[var(--primary-soft)]/40"
+                    : "border-[var(--border-warm)] bg-white/70 hover:bg-[var(--primary-soft)]/20"
+                }`}
+                data-testid="import-samsung-btn"
+              >
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl mt-0.5 select-none">📱</span>
+                  <div>
+                    <h3 className="font-bold text-sm text-[var(--foreground)]">Samsung Health ZIP</h3>
+                    <p className="text-xs text-[var(--muted-text)] mt-1 leading-relaxed">นำเข้าไฟล์ .zip ที่ export จาก Samsung Health</p>
+                  </div>
+                </div>
+              </button>
+
+              <Link
+                href="/upload?source=history-import&mode=csv"
+                className="text-left p-4 rounded-2xl border border-[var(--border-warm)] bg-white/70 hover:bg-[var(--primary-soft)]/20 transition-all"
+                data-testid="import-csv-btn"
+              >
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl mt-0.5 select-none">📄</span>
+                  <div>
+                    <h3 className="font-bold text-sm text-[var(--foreground)]">CSV นอน / ซ้อม</h3>
+                    <p className="text-xs text-[var(--muted-text)] mt-1 leading-relaxed">นำเข้าไฟล์ .csv จาก Garmin, Apple Health หรือแหล่งอื่น</p>
+                  </div>
+                </div>
+              </Link>
+            </div>
+
+            {historyImportMode === "samsung" && (
+              <div className="mt-2 pt-4 border-t border-[var(--border-warm)]/50" data-testid="samsung-import-zone">
+                <SamsungHealthImport />
+              </div>
+            )}
           </section>
 
           {!isStandalone && (
