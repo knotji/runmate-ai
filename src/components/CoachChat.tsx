@@ -380,8 +380,8 @@ export function CoachChat() {
         {hasLoadedHistory && messages.length === 0 ? (
           <div className="my-auto flex flex-col items-center justify-center text-center p-6" data-testid="chat-empty-state">
             <span className="text-3xl">💬</span>
-            <p className="mt-2 text-sm font-bold text-[var(--foreground)]">ยังไม่มีบทสนทนากับโค้ชวันนี้</p>
-            <p className="mt-1 text-xs text-[var(--muted-text)]">ลองถามว่า วันนี้ควรซ้อมยังไงดี</p>
+            <p className="mt-2 text-sm font-bold text-[var(--foreground)]">ยังไม่มีบทสนทนากับโค้ช</p>
+            <p className="mt-1 text-xs text-[var(--muted-text)]">ลองถามว่า วันนี้ควรซ้อมยังไงดี หรือ กินอะไรดีหลังวิ่ง</p>
           </div>
         ) : (
           messages.map((message, index) => {

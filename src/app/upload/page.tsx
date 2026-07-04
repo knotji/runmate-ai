@@ -397,9 +397,9 @@ export default function UploadPage() {
       if (process.env.NODE_ENV === "development") {
         console.warn("[upload-debug]", { uploadType: overrideType, saveError: saveResult.error });
       }
-      if (overrideType === "body") setBodySaveError(saveResult.error ?? "บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+      if (overrideType === "body") setBodySaveError(saveResult.error ?? "บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้งอีกครั้ง");
       setSaveStatus("error");
-      throw new Error("บันทึกไม่สำเร็จ กรุณาลองใหม่");
+      throw new Error("บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้งอีกครั้ง");
     }
     setResult(next);
     setSaveStatus("saved");
@@ -957,7 +957,7 @@ export default function UploadPage() {
             />
             {saveStatus === "saving" && <p className="text-xs font-semibold text-[var(--color-text-soft)]">กำลังบันทึก...</p>}
             {saveStatus === "saved" && <p className="text-xs font-semibold text-[var(--status-ready)]">บันทึกเข้า Report แล้ว</p>}
-            {saveStatus === "error" && <p className="text-xs font-semibold text-[var(--status-rest)]">บันทึกไม่สำเร็จ กรุณาลองใหม่</p>}
+            {saveStatus === "error" && <p className="text-xs font-semibold text-[var(--status-rest)]">บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง</p>}
             {!result && saveStatus !== "saving" && <UploadEmptyGuide type={type} workoutSubtype={workoutSubtype === "strength" ? "strength" : undefined} />}
           </>
         ) : null}
@@ -1116,7 +1116,7 @@ export default function UploadPage() {
               </LoadingButton>
               {saveStatus === "error" && (
                 <p className="text-center text-xs font-semibold text-[var(--status-rest)]">
-                  บันทึกไม่สำเร็จ กรุณาลองใหม่
+                  บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง
                 </p>
               )}
             </div>
@@ -1309,7 +1309,7 @@ function HealthCheckUploader({
   return (
     <div className="space-y-3 rounded-[22px] bg-[var(--surface-muted)]/70 p-3">
       <p className="rounded-2xl bg-white/75 px-3 py-2 text-xs leading-5 text-slate-500">
-        ระบบจะอ่านเฉพาะค่าที่จำเป็น และบันทึกเฉพาะ structured summary
+        ระบบจะอ่านเฉพาะค่าที่จำเป็น และบันทึกเป็นสรุปสำหรับโค้ช
       </p>
 
       <label
@@ -1567,7 +1567,7 @@ function HealthCheckReviewCard({
           </button>
         </div>
       )}
-      {saveStatus === "error" ? <p className="text-center text-xs font-semibold text-[var(--status-rest)]">บันทึกไม่สำเร็จ กรุณาลองใหม่</p> : null}
+      {saveStatus === "error" ? <p className="text-center text-xs font-semibold text-[var(--status-rest)]">บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง</p> : null}
     </section>
   );
 }
@@ -1988,7 +1988,7 @@ function BodySaveBar({
           </LoadingButton>
           {saveStatus === "error" && (
             <p className="text-center text-xs font-semibold text-[var(--status-rest)]">
-              {saveError || "บันทึกไม่สำเร็จ กรุณาลองใหม่"}
+              {saveError || "บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง"}
             </p>
           )}
         </>

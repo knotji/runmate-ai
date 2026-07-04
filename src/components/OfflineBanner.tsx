@@ -28,7 +28,7 @@ export function OfflineBanner() {
       data-testid="offline-banner"
     >
       <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-      ตอนนี้ออฟไลน์ — ข้อมูลบางส่วนอาจยังไม่อัปเดต
+      ออฟไลน์อยู่ — ข้อมูลจะอัปเดตเมื่อเชื่อมต่ออินเทอร์เน็ตอีกครั้ง
     </div>
   );
 }

@@ -161,5 +161,5 @@ test("Recovery Loop high load shows human copy with activity detail", async ({ p
   // Human copy for very_high: "วันนี้โหลดสูงมาก ควรเน้นฟื้นตัว"
   await expect(card.getByTestId("day-load-context")).toContainText("วันนี้โหลดสูงมาก");
   // Activity detail appended
-  await expect(card.getByTestId("day-load-context")).toContainText("15 km");
+  await expect(card.getByTestId("day-load-context")).toContainText("15 กม.");
 });

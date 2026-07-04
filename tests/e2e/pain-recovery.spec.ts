@@ -359,7 +359,7 @@ test.describe("Pain UI Polish and resolved copy validations", () => {
     const painItems = state.history.filter((item) => item.type === "pain");
     expect(painItems.length).toBe(1);
     const painLog = painItems[0].data as Record<string, unknown>;
-    expect(painLog.notes).toBe("เจ็บจี๊ด ๆ · ผู้ใช้บันทึกว่าอาการดีขึ้นแล้ว และตอนนี้ไม่มีอาการขณะเดินหรือวิ่งเบา ๆ");
+    expect(painLog.notes).toBe("เจ็บจี๊ด ๆ · อาการดีขึ้นแล้ว ไม่มีอาการขณะเดินหรือวิ่งเบา ๆ");
   });
 
   test("resolved today does not directly clear to normal training", async ({ page }) => {

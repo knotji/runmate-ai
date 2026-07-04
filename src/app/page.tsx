@@ -63,8 +63,8 @@ function buildClientTodayFallback(ctx: CoachContext | null): DailyCoachInsight {
   const latestWorkout = ctx?.todayPrimaryWorkout ?? null;
   const readinessNote = v2?.readinessNote ?? (ctx?.latestSleepDurationText ? `นอนล่าสุด ${ctx.latestSleepDurationText}` : "ใช้ข้อมูลล่าสุดจาก Report");
   const weekParts = [
-    ctx && ctx.totalRunKm > 0 ? `วิ่ง ${Math.round(ctx.totalRunKm * 10) / 10} km` : null,
-    ctx && ctx.totalSessions > 0 ? `${ctx.totalSessions} sessions` : null,
+    ctx && ctx.totalRunKm > 0 ? `วิ่ง ${Math.round(ctx.totalRunKm * 10) / 10} กม.` : null,
+    ctx && ctx.totalSessions > 0 ? `${ctx.totalSessions} ครั้ง` : null,
     ctx?.sleepAvg7dText ? `นอนเฉลี่ย ${ctx.sleepAvg7dText}` : null,
   ].filter(Boolean);
 
@@ -73,7 +73,7 @@ function buildClientTodayFallback(ctx: CoachContext | null): DailyCoachInsight {
       todayReadiness: readiness,
       readinessLabel: label,
       readinessNote,
-      workoutRec: latestWorkout.kind === "race" ? "Recovery หลัง Race วันนี้" : latestWorkout.kind === "run" ? `ฟื้นตัวหลังวิ่ง${formatKm(latestWorkout.distanceKm) ? ` ${formatKm(latestWorkout.distanceKm)} km` : ""}` : "Recovery หลังซ้อมวันนี้",
+      workoutRec: latestWorkout.kind === "race" ? "Recovery หลัง Race วันนี้" : latestWorkout.kind === "run" ? `ฟื้นตัวหลังวิ่ง${formatKm(latestWorkout.distanceKm) ? ` ${formatKm(latestWorkout.distanceKm)} กม.` : ""}` : "Recovery หลังซ้อมวันนี้",
       workoutTarget: "ไม่ต้องซ้อมเพิ่ม · เน้นฟื้นตัว",
       weekSummary: weekParts.length ? weekParts.join(" / ") : "ยังมีข้อมูลสัปดาห์นี้ไม่มาก",
       keyObservation: latestWorkout.label,
@@ -306,7 +306,7 @@ export default function TodayPage() {
       setDailySummaryMessage(existingItem ? "อัปเดตสรุปท้ายวันใน Report แล้ว" : "บันทึกสรุปท้ายวันเข้า Report แล้ว");
     } catch (error) {
       if (process.env.NODE_ENV === "development") console.warn("[end-of-day-summary-error]", error);
-      setDailySummaryError("สร้างสรุปท้ายวันไม่สำเร็จ กรุณาลองใหม่");
+      setDailySummaryError("สร้างสรุปท้ายวันไม่สำเร็จ ลองใหม่อีกครั้ง");
     } finally {
       setDailySummaryLoading(false);
     }
@@ -736,7 +736,7 @@ function PostWorkoutFocusContent({ insight, context }: { insight: DailyCoachInsi
   const parts1: string[] = [];
   if (workout) {
     const distance = formatKm(workout.distanceKm);
-    if (workout.kind === "run" && distance) parts1.push(`วิ่งแล้ว ${distance} km`);
+    if (workout.kind === "run" && distance) parts1.push(`วิ่งแล้ว ${distance} กม.`);
     else parts1.push(`${workout.label}วันนี้แล้ว`);
     const avgHR = toFiniteNumber(workout.avgHR);
     if (avgHR != null) parts1.push(`Avg HR ${Math.round(avgHR)}`);
@@ -881,7 +881,7 @@ function buildPostWorkoutTitle(workout: TodayCompletedWorkoutSummary | null, ins
   if (workout.kind === "run") {
     const distance = formatKm(workout.distanceKm);
     return distance
-      ? `ฟื้นตัวหลังวิ่ง ${distance} km`
+      ? `ฟื้นตัวหลังวิ่ง ${distance} กม.`
       : "Recovery หลังวิ่งวันนี้";
   }
   if (workout.kind === "strength") return "ฟื้นตัวหลังเวทวันนี้";
@@ -1390,12 +1390,12 @@ function buildReadinessCoverageSummary(ctx: CoachContext | null): { used: string
   // Training load
   if (ctx.hasWorkoutToday && ctx.todayPrimaryWorkout) {
     const w = ctx.todayPrimaryWorkout;
-    if (w.kind === "run") used.push(`วิ่ง${w.distanceKm ? ` ${Math.round(w.distanceKm * 10) / 10} km` : "วันนี้"}`);
+    if (w.kind === "run") used.push(`วิ่ง${w.distanceKm ? ` ${Math.round(w.distanceKm * 10) / 10} กม.` : "วันนี้"}`);
     else if (w.kind === "strength") used.push("เวทวันนี้");
     else if (w.kind === "race") used.push("แข่งวันนี้");
     else used.push("ออกกำลังกายวันนี้");
   } else if (ctx.workouts7d.length > 0) {
-    used.push(`โหลดสัปดาห์ ${Math.round(ctx.totalRunKm * 10) / 10} km`);
+    used.push(`โหลดสัปดาห์ ${Math.round(ctx.totalRunKm * 10) / 10} กม.`);
   } else {
     missing.push("กิจกรรมวันนี้");
   }
@@ -1434,7 +1434,7 @@ function RecoveryLoopCard({ coachCtx }: { coachCtx: CoachContext }) {
 
   // Day load context line using human coaching copy
   const activitySuffix = dayLoad.primaryActivity?.distanceKm != null
-    ? ` · วิ่ง ${Math.round(dayLoad.primaryActivity.distanceKm * 10) / 10} km`
+    ? ` · วิ่ง ${Math.round(dayLoad.primaryActivity.distanceKm * 10) / 10} กม.`
     : dayLoad.primaryActivity?.durationMin != null && dayLoad.primaryActivity.type === "strength"
     ? ` · เวท ${safeStrengthMins(dayLoad.primaryActivity.durationMin)} นาที`
     : "";

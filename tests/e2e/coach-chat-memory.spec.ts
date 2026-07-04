@@ -210,8 +210,8 @@ test.describe("E2E Coach Chat and Memory Interface", () => {
     // Verify empty state is displayed
     const emptyState = page.getByTestId("chat-empty-state");
     await expect(emptyState).toBeVisible();
-    await expect(emptyState.getByText("ยังไม่มีบทสนทนากับโค้ชวันนี้")).toBeVisible();
-    await expect(emptyState.getByText("ลองถามว่า วันนี้ควรซ้อมยังไงดี")).toBeVisible();
+    await expect(emptyState.getByText("ยังไม่มีบทสนทนากับโค้ช")).toBeVisible();
+    await expect(emptyState.getByText("ลองถามว่า วันนี้ควรซ้อมยังไงดี หรือ กินอะไรดีหลังวิ่ง")).toBeVisible();
 
     // Verify header and privacy text are visible
     await expect(page.getByRole("heading", { name: "บทสนทนาล่าสุด" })).toBeVisible();

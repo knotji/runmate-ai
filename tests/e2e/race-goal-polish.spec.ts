@@ -122,7 +122,7 @@ test("TodayWorkoutCard shows completed state when run >= 80% of planned", { time
   // Use testid for reliable targeting — cold dev server may take 20s to compile on first test
   const completedCard = page.getByTestId("today-workout-completed-card");
   await expect(completedCard).toBeVisible({ timeout: 30000 });
-  await expect(completedCard.getByText(/13\.0 km/).first()).toBeVisible();
+  await expect(completedCard.getByText(/13\.0 กม\./).first()).toBeVisible();
   // Pre-workout card should be gone
   await expect(page.getByText("วันนี้แผนซ้อมปรับตามร่างกาย")).toHaveCount(0);
 });
@@ -152,7 +152,7 @@ test("TodayWorkoutCard shows completed state with exceeded km when run > planned
 
   const completedCard = page.getByTestId("today-workout-completed-card");
   await expect(completedCard).toBeVisible({ timeout: 10000 });
-  await expect(completedCard.getByText(/12\.0 km/)).toBeVisible();
+  await expect(completedCard.getByText(/12\.0 กม\./)).toBeVisible();
   await expect(completedCard.getByText("เกินแผน!")).toBeVisible();
 });
 

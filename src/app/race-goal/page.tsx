@@ -334,7 +334,7 @@ function LatestRacePrompt({ result }: { result: RaceResult }) {
       <p className="truncate text-base font-bold text-[var(--foreground)]">{formatRaceDisplayName(result.raceName) || "Race"} · {result.raceDistance}</p>
       {result.actualTime ? (
         <p className="text-sm text-[var(--muted-text)]">
-          {result.actualTime}{result.actualPace ? ` · ${result.actualPace}/km` : ""} ·{" "}
+          {result.actualTime}{result.actualPace ? ` · ${result.actualPace}/กม.` : ""} ·{" "}
           <span className="font-semibold text-[var(--color-success)]">{resultBadge(result.goalResult)}</span>
         </p>
       ) : null}
@@ -483,12 +483,12 @@ function TodayWorkoutCompletedCard({ workout, completedKm }: { workout: WeekWork
       <div className="flex items-start justify-between gap-3">
         <h2 className="text-2xl font-bold text-[var(--foreground)]">{workout.workoutType}</h2>
         <span className="rounded-full bg-[var(--primary-soft)] px-3 py-1 text-sm font-bold text-[var(--primary-strong)] shadow-sm">
-          {completedKm.toFixed(1)} km{exceeded ? " 🎉" : ""}
+          {completedKm.toFixed(1)} กม.{exceeded ? " 🎉" : ""}
         </span>
       </div>
       {planned != null && (
         <p className="mt-1.5 text-xs text-[var(--muted-text)]">
-          แผน {planned} km{exceeded ? " · เกินแผน!" : ` · ${completedKm.toFixed(1)} km`}
+          แผน {planned} กม.{exceeded ? " · เกินแผน!" : ` · ${completedKm.toFixed(1)} กม.`}
         </p>
       )}
       <div className="mt-4 rounded-xl bg-[var(--surface-muted)] px-3 py-2.5 text-xs leading-5 text-[var(--foreground)]">
@@ -762,8 +762,8 @@ function renderWorkoutDetails(workout: WeekWorkout) {
 }
 
 function formatWorkoutAmount(workout: WeekWorkout) {
-  if (isRunType(workout.workoutType ?? "") && workout.distanceKm != null) return `${workout.distanceKm} km`;
-  if (workout.durationMin != null) return `${workout.durationMin} min`;
+  if (isRunType(workout.workoutType ?? "") && workout.distanceKm != null) return `${workout.distanceKm} กม.`;
+  if (workout.durationMin != null) return `${workout.durationMin} นาที`;
   return "พัก";
 }
 
@@ -812,10 +812,10 @@ async function loadLatestRelevantReportTime(raceResults: RaceResult[]) {
 }
 
 function resultBadge(value: RaceResult["goalResult"]) {
-  if (value === "achieved") return "Achieved";
-  if (value === "missed") return "Missed";
-  if (value === "completed") return "Completed";
-  return "Race Result";
+  if (value === "achieved") return "บรรลุเป้า";
+  if (value === "missed") return "ไม่ถึงเป้า";
+  if (value === "completed") return "เสร็จสมบูรณ์";
+  return "ผลแข่ง";
 }
 
 // ── Today workout selection (display-layer, does not mutate stored plan) ─────

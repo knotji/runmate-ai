@@ -351,7 +351,7 @@ test("Post-workout recommendation uses recovery wording and avoids suggesting du
 
   // Title uses recovery wording: "ฟื้นตัวหลังวิ่ง 5 km" or "หลังซ้อมวันนี้ควรทำอะไรต่อ"
   await expect(page.getByText("หลังซ้อมวันนี้ควรทำอะไรต่อ")).toBeVisible();
-  await expect(page.getByText("ฟื้นตัวหลังวิ่ง 5 km")).toBeVisible();
+  await expect(page.getByText("ฟื้นตัวหลังวิ่ง 5 กม.")).toBeVisible();
 
   // Recovery note is inside "ดูสิ่งที่ควรทำต่อ" accordion — expand first
   await page.getByText("ดูสิ่งที่ควรทำต่อ").click();

@@ -14,8 +14,11 @@ import { gotoApp, installMockBackend } from "./helpers/app";
 
 // ─── Unit: formatSleepCitation ────────────────────────────────────────────────
 
+const baseSleep = { restingHR: null, hrv: null, energyScore: null };
+
 test("formatSleepCitation: durationH takes priority over durationMinutes", () => {
   const result = formatSleepCitation({
+    ...baseSleep,
     date: "2026-07-04",
     durationH: "6 ชม. 14 นาที",
     durationMinutes: 374,
@@ -27,6 +30,7 @@ test("formatSleepCitation: durationH takes priority over durationMinutes", () =>
 
 test("formatSleepCitation: falls back to durationMinutes when durationH is null", () => {
   const result = formatSleepCitation({
+    ...baseSleep,
     date: "2026-07-04",
     durationH: null,
     durationMinutes: 374,
@@ -38,6 +42,7 @@ test("formatSleepCitation: falls back to durationMinutes when durationH is null"
 
 test("formatSleepCitation: whole-hour minutes show no minute part", () => {
   const result = formatSleepCitation({
+    ...baseSleep,
     date: "2026-07-04",
     durationH: null,
     durationMinutes: 360,
@@ -49,6 +54,7 @@ test("formatSleepCitation: whole-hour minutes show no minute part", () => {
 
 test("formatSleepCitation: omits score and readiness when null", () => {
   const result = formatSleepCitation({
+    ...baseSleep,
     date: "2026-07-04",
     durationH: "5 ชม. 30 นาที",
     durationMinutes: 330,
@@ -60,6 +66,7 @@ test("formatSleepCitation: omits score and readiness when null", () => {
 
 test("formatSleepCitation: returns empty string when all fields are null/zero", () => {
   const result = formatSleepCitation({
+    ...baseSleep,
     date: "2026-07-04",
     durationH: null,
     durationMinutes: null,

@@ -236,7 +236,7 @@ function PainPageContent() {
           ? (() => {
               const cleaned = cleanRoboticNotes(notes);
               return cleaned
-                ? `${cleaned} · ผู้ใช้บันทึกว่าอาการดีขึ้นแล้ว และตอนนี้ไม่มีอาการขณะเดินหรือวิ่งเบา ๆ`
+                ? `${cleaned} · อาการดีขึ้นแล้ว ไม่มีอาการขณะเดินหรือวิ่งเบา ๆ`
                 : "วันนี้ไม่มีอาการตอนเดินหรือวิ่งเบา ๆ";
             })()
           : (cleanRoboticNotes(notes) || undefined),
@@ -353,7 +353,6 @@ function PainPageContent() {
                 ลบรูป
               </button>
             )}
-            <p className="text-[11px] text-slate-400">รูปช่วยบอกตำแหน่งได้ แต่คำแนะนำนี้ไม่ใช่การวินิจฉัยทางการแพทย์</p>
           </div>
 
           {/* Location */}

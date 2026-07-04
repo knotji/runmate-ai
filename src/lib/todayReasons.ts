@@ -20,7 +20,7 @@ export function buildTodayRecommendationReasons(
   if (ctx?.racePlan) {
     const planned = getTodayPlannedWorkout(ctx);
     if (planned?.workoutType && !/rest|พัก/i.test(planned.workoutType)) {
-      const distPart = planned.distanceKm != null && planned.distanceKm > 0 ? ` ${planned.distanceKm} km` : "";
+      const distPart = planned.distanceKm != null && planned.distanceKm > 0 ? ` ${planned.distanceKm} กม.` : "";
       reasons.push(`แผน Race เดิมคือ ${planned.workoutType}${distPart}`);
     }
   } else if (ctx?.raceName) {
@@ -52,9 +52,9 @@ export function buildTodayRecommendationReasons(
   if (ctx) {
     const isHighLoad = factors.some(f => f.key === "weeklyLoadHigh");
     if (isHighLoad) {
-      reasons.push(`โหลดสัปดาห์ ${Math.round(ctx.totalRunKm * 10) / 10} km สูงพอสมควร`);
+      reasons.push(`โหลดสัปดาห์ ${Math.round(ctx.totalRunKm * 10) / 10} กม. สูงพอสมควร`);
     } else if (ctx.totalRunKm > 0) {
-      reasons.push(`โหลดสัปดาห์ ${Math.round(ctx.totalRunKm * 10) / 10} km${ctx.runDays7d > 0 ? ` ใน ${ctx.runDays7d} วัน` : ""}`);
+      reasons.push(`โหลดสัปดาห์ ${Math.round(ctx.totalRunKm * 10) / 10} กม.${ctx.runDays7d > 0 ? ` ใน ${ctx.runDays7d} วัน` : ""}`);
     }
   }
 

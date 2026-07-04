@@ -12,12 +12,9 @@ export function formatDistanceKm(value: unknown): string {
   if (isInvalid(value)) return "-";
   const num = Number(value);
   if (isNaN(num)) return "-";
-  
-  const formatted = num.toFixed(2);
-  if (formatted.endsWith(".00")) {
-    return `${num} km`;
-  }
-  return `${formatted} km`;
+  const rounded = Math.round(num * 10) / 10;
+  const str = rounded % 1 === 0 ? String(rounded) : rounded.toFixed(1);
+  return `${str} กม.`;
 }
 
 export function formatDecimal(value: unknown): string {
@@ -151,11 +148,9 @@ export function formatSummaryText(text: string | null | undefined): string {
   clean = clean.replace(/(\d+(?:\.\d+)?)\s*km/gi, (match, val) => {
     const num = parseFloat(val);
     if (isNaN(num)) return match;
-    const formatted = num.toFixed(2);
-    if (formatted.endsWith(".00")) {
-      return `${num} km`;
-    }
-    return `${formatted} km`;
+    const rounded = Math.round(num * 10) / 10;
+    const str = rounded % 1 === 0 ? String(rounded) : rounded.toFixed(1);
+    return `${str} กม.`;
   });
   clean = clean.replace(/(\d+(?:\.\d+)?)\s*bpm/gi, (match, val) => {
     const num = parseFloat(val);
