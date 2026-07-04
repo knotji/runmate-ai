@@ -2,11 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
 import { ProfileSetupForm } from "@/components/ProfileSetupForm";
 import { ProfileHistoryAnalyzer } from "@/components/ProfileHistoryAnalyzer";
 import { SamsungHealthImport } from "@/components/SamsungHealthImport";
+import { CsvHistoryImporter } from "@/components/import/CsvHistoryImporter";
 import { StrengthRoutineManager } from "@/components/StrengthRoutineManager";
 import { loadProfileFromSupabase } from "@/lib/profileStorage";
 import { createClient } from "@/lib/supabase/client";
@@ -26,9 +26,32 @@ type EnvDebug = {
 export default function SettingsPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>("profile");
-  const [historyImportMode, setHistoryImportMode] = useState<"samsung" | null>("samsung");
+  const [historyImportMode, setHistoryImportMode] = useState<"samsung" | "sleep-csv" | "workout-csv" | null>("samsung");
   const [runnerProfile, setRunnerProfile] = useState<UserProfile | null>(null);
   const [envDebug, setEnvDebug] = useState<EnvDebug | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const tabParam = params.get("tab");
+    const importParam = params.get("import");
+
+    const timer = setTimeout(() => {
+      if (tabParam === "data" || tabParam === "account" || tabParam === "profile") {
+        setActiveTab((prev) => (prev !== tabParam ? (tabParam as Tab) : prev));
+      }
+      if (importParam) {
+        let nextMode: typeof historyImportMode = "samsung";
+        if (importParam === "sleep-csv") nextMode = "sleep-csv";
+        else if (importParam === "workout-csv") nextMode = "workout-csv";
+        else if (importParam === "samsung-health" || importParam === "samsung") nextMode = "samsung";
+        setHistoryImportMode((prev) => (prev !== nextMode ? nextMode : prev));
+      }
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   const [versionCopied, setVersionCopied] = useState(false);
   interface BeforeInstallPromptEvent extends Event {
     readonly platforms: string[];
@@ -175,7 +198,7 @@ export default function SettingsPage() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3" data-testid="history-import-selector">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3" data-testid="history-import-selector">
               <button
                 type="button"
                 onClick={() => setHistoryImportMode("samsung")}
@@ -195,24 +218,60 @@ export default function SettingsPage() {
                 </div>
               </button>
 
-              <Link
-                href="/upload?source=history-import&mode=csv"
-                className="text-left p-4 rounded-2xl border border-[var(--border-warm)] bg-white/70 hover:bg-[var(--primary-soft)]/20 transition-all"
-                data-testid="import-csv-btn"
+              <button
+                type="button"
+                onClick={() => setHistoryImportMode("sleep-csv")}
+                className={`text-left p-4 rounded-2xl border transition-all ${
+                  historyImportMode === "sleep-csv"
+                    ? "border-[var(--primary-strong)] bg-[var(--primary-soft)]/40"
+                    : "border-[var(--border-warm)] bg-white/70 hover:bg-[var(--primary-soft)]/20"
+                }`}
+                data-testid="import-sleep-csv-btn"
               >
                 <div className="flex items-start gap-3">
-                  <span className="text-2xl mt-0.5 select-none">📄</span>
+                  <span className="text-2xl mt-0.5 select-none">🌙</span>
                   <div>
-                    <h3 className="font-bold text-sm text-[var(--foreground)]">CSV นอน / ซ้อม</h3>
-                    <p className="text-xs text-[var(--muted-text)] mt-1 leading-relaxed">นำเข้าไฟล์ .csv จาก Garmin, Apple Health หรือแหล่งอื่น</p>
+                    <h3 className="font-bold text-sm text-[var(--foreground)]">CSV การนอน</h3>
+                    <p className="text-xs text-[var(--muted-text)] mt-1 leading-relaxed">นำเข้าไฟล์ .csv การนอน เช่น duration, score, HRV, resting HR</p>
                   </div>
                 </div>
-              </Link>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setHistoryImportMode("workout-csv")}
+                className={`text-left p-4 rounded-2xl border transition-all ${
+                  historyImportMode === "workout-csv"
+                    ? "border-[var(--primary-strong)] bg-[var(--primary-soft)]/40"
+                    : "border-[var(--border-warm)] bg-white/70 hover:bg-[var(--primary-soft)]/20"
+                }`}
+                data-testid="import-workout-csv-btn"
+              >
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl mt-0.5 select-none">🏃</span>
+                  <div>
+                    <h3 className="font-bold text-sm text-[var(--foreground)]">CSV การซ้อม</h3>
+                    <p className="text-xs text-[var(--muted-text)] mt-1 leading-relaxed">นำเข้าไฟล์ .csv กิจกรรม เช่น ระยะ เวลา pace HR และ calories</p>
+                  </div>
+                </div>
+              </button>
             </div>
 
             {historyImportMode === "samsung" && (
               <div className="mt-2 pt-4 border-t border-[var(--border-warm)]/50" data-testid="samsung-import-zone">
                 <SamsungHealthImport />
+              </div>
+            )}
+
+            {historyImportMode === "sleep-csv" && (
+              <div className="mt-2 pt-4 border-t border-[var(--border-warm)]/50" data-testid="sleep-csv-import-zone">
+                <CsvHistoryImporter type="sleep" />
+              </div>
+            )}
+
+            {historyImportMode === "workout-csv" && (
+              <div className="mt-2 pt-4 border-t border-[var(--border-warm)]/50" data-testid="workout-csv-import-zone">
+                <CsvHistoryImporter type="workout" />
               </div>
             )}
           </section>

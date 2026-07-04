@@ -97,13 +97,12 @@ test.describe("Readiness compatibility", () => {
   });
 });
 
-test.describe("Upload CSV UI", () => {
-  test("CSV option appears for sleep, previews records, and saves normalized sleep history", async ({ page }) => {
+test.describe("Settings CSV UI", () => {
+  test("CSV option appears for sleep in Settings, previews records, and saves normalized sleep history", async ({ page }) => {
     const state = await installMockBackend(page);
-    await gotoApp(page, "/upload?type=sleep");
+    await gotoApp(page, "/settings?tab=data&import=sleep-csv");
 
-    await expect(page.getByTestId("csv-mode-selector")).toContainText("อัปโหลด CSV");
-    await page.getByRole("button", { name: "อัปโหลด CSV" }).click();
+    await expect(page.getByTestId("sleep-csv-import-zone")).toBeVisible();
     await expect(page.getByTestId("csv-import-panel")).toBeVisible();
 
     await page.getByTestId("csv-file-input").setInputFiles({
@@ -121,15 +120,13 @@ test.describe("Upload CSV UI", () => {
     expect((saved?.data.extracted as Record<string, unknown>)?.energyScore).toBeNull();
   });
 
-  test("CSV option appears for workout, previews records, and existing image upload remains visible", async ({ page }) => {
+  test("CSV option appears for workout in Settings, previews records, and saves normalized activity history", async ({ page }) => {
     const state = await installMockBackend(page);
-    await gotoApp(page, "/upload?type=workout");
+    await gotoApp(page, "/settings?tab=data&import=workout-csv");
 
-    await expect(page.getByText("อัปโหลดรูป").first()).toBeVisible();
-    await expect(page.getByRole("button", { name: "อัปโหลด CSV" })).toBeVisible();
-    await expect(page.locator('input[type="file"]').first()).toBeAttached();
+    await expect(page.getByTestId("workout-csv-import-zone")).toBeVisible();
+    await expect(page.getByTestId("csv-import-panel")).toBeVisible();
 
-    await page.getByRole("button", { name: "อัปโหลด CSV" }).click();
     await page.getByTestId("csv-file-input").setInputFiles({
       name: "Activities_toey.csv",
       mimeType: "text/csv",
