@@ -770,11 +770,12 @@ function FullHistoryDetails({
   yesterdayDateKey: string;
 }) {
   const [visibleCount, setVisibleCount] = useState(7);
+  const [prevFilter, setPrevFilter] = useState(activeFilter);
 
-  // Reset visibleCount on filter change
-  useEffect(() => {
+  if (activeFilter !== prevFilter) {
+    setPrevFilter(activeFilter);
     setVisibleCount(7);
-  }, [activeFilter]);
+  }
 
   // Filter and sort individual items
   const sortedItems = useMemo(() => {
