@@ -415,7 +415,7 @@ test("Report page shows updated readiness labels and disclaimers", async ({ page
   // 7-Day Overview labels — inside WeeklyDashboard accordion, expand first
   await page.getByText("Insight 7 วันล่าสุด").click();
   await page.getByText("ตัวเลขสรุป 7 วันล่าสุด").click();
-  await expect(page.getByText("Readiness เฉลี่ย", { exact: true })).toBeVisible();
+  await expect(page.getByText("ความพร้อมเฉลี่ย", { exact: true })).toBeVisible();
   await expect(page.getByText("จากวันที่มีข้อมูล")).toBeVisible();
 
   // Collapsed Day card badge: Thai readiness label

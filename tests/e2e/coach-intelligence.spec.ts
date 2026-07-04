@@ -170,7 +170,7 @@ test.describe("Coach Intelligence UX & Guardrails Polish", () => {
 
     await gotoApp(page, "/race-goal");
     await expect(page.getByText("Long Run").first()).toBeVisible();
-    await expect(page.getByText(/ปรับตามสภาพ: ถ้าฟื้นตัวไม่ดี ลดเหลือ 10–11 km/).first()).toBeVisible();
+    await expect(page.getByText(/ปรับตามสภาพ: ถ้าฟื้นตัวไม่ดี ลดเหลือ 10–11 กม\./).first()).toBeVisible();
   });
 
   test("4. Workout fueling linking displays pre-run carbs and post-run recovery guidance", async ({ page }) => {

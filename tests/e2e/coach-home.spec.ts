@@ -16,7 +16,7 @@ test.describe("Coach home 10/10 polish", () => {
     await gotoApp(page, "/coach");
 
     await expect(page.getByRole("heading", { name: "โค้ชพร้อมช่วยวันนี้" })).toBeVisible();
-    await expect(page.getByText("ถามเรื่องซ้อม กิน นอน recovery หรืออาการเจ็บได้")).toBeVisible();
+    await expect(page.getByText("ใช้ข้อมูล Report เป็นพื้นหลัง · อัปเดตทุกครั้งที่บันทึกข้อมูล")).toBeVisible();
     await expect(page.getByRole("link", { name: "ลองถามโค้ช" })).toBeVisible();
     await expect(page.getByRole("link", { name: "แจ้งเจ็บ" })).toBeVisible();
     await expect(page.getByText("แชตนี้ไม่บันทึกเข้า Report อัตโนมัติ").first()).toBeVisible();
