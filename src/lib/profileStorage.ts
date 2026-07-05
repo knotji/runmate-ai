@@ -87,6 +87,7 @@ type ProfileRow = {
   field_sources: Record<string, string | undefined> | null;
   auto_profile_sync_enabled: boolean | null;
   last_auto_profile_sync_at: string | null;
+  goal_profile: Record<string, unknown> | null;
 };
 
 export async function ensureSupabaseProfileSession() {
@@ -245,6 +246,7 @@ function profileToRow(profile: UserProfile, userId: string): Partial<ProfileRow>
     field_sources: profile.fieldSources ?? null,
     auto_profile_sync_enabled: profile.autoProfileSyncEnabled ?? true,
     last_auto_profile_sync_at: profile.lastAutoProfileSyncAt ?? null,
+    goal_profile: profile.goalProfile ?? null,
 
     updated_at: new Date().toISOString(),
   };
@@ -329,6 +331,7 @@ function rowToProfile(row: ProfileRow): UserProfile {
     fieldSources: (row.field_sources as UserProfile["fieldSources"]) ?? undefined,
     autoProfileSyncEnabled: row.auto_profile_sync_enabled ?? true,
     lastAutoProfileSyncAt: row.last_auto_profile_sync_at ?? undefined,
+    goalProfile: (row.goal_profile as import("@/lib/goals/goalTypes").UserGoalProfile | null) ?? undefined,
   };
 }
 

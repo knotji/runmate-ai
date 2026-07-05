@@ -9,6 +9,8 @@ export type NutritionGoal = "recovery" | "lean_muscle" | "race_fuel" | "weight_c
  */
 export type ProfileFieldSource = "default" | "auto" | "manual";
 
+import type { UserGoalProfile } from "@/lib/goals/goalTypes";
+
 export type UserProfile = {
   id?: string;
   updatedAt?: string;
@@ -100,6 +102,9 @@ export type UserProfile = {
   coachTone?: string;
   responseDetail?: "short" | "medium" | "detailed";
   language?: "th" | "en" | "mixed";
+
+  // v0.2 Goal Profile
+  goalProfile?: UserGoalProfile;
 };
 
 export const defaultProfile: UserProfile = {
