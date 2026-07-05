@@ -27,6 +27,8 @@ import type { LocalHistoryItem } from "@/lib/localHistory";
 import type { BodyCompositionAnalysis, HealthCheckAnalysis, LabValue, MealAnalysis, MealType, SleepAnalysis, WorkoutAnalysis } from "@/types/logs";
 import type { UserProfile } from "@/types/profile";
 import { todayBangkokDateKey, yesterdayBangkokDateKey, dateKeyToRecordedAt } from "@/lib/date";
+import { fileToDataUrl } from "@/lib/storage";
+import { compressImage } from "@/lib/images/compressImage";
 import { DRAFT_MEAL_KEY, type DraftMeal } from "@/components/NextMealCard";
 
 function formatThaiShortDate(dateStr: string): string {
@@ -1045,14 +1047,28 @@ export default function UploadPage() {
         </div>
       )}
 
-      {type === "workout" && (workoutSubtype === "walk" || workoutSubtype === "other") && (
+      {type === "workout" && workoutSubtype === "walk" && (
         <div className="space-y-4">
           <SelectedDateBadge dateKey={selectedDateKey} />
           <ManualWorkoutLogForm
-            subtype={workoutSubtype}
+            subtype="walk"
             saving={saveStatus === "saving"}
             onSave={handleManualWorkoutSave}
             defaultDate={selectedDateKey}
+          />
+        </div>
+      )}
+
+      {type === "workout" && workoutSubtype === "other" && (
+        <div className="space-y-4">
+          <SelectedDateBadge dateKey={selectedDateKey} />
+          <OtherWorkoutForm
+            saving={saveStatus === "saving"}
+            onResult={handleAnalysisResult}
+            onSave={handleManualWorkoutSave}
+            defaultDate={selectedDateKey}
+            coachContext={coachContext}
+            profile={profile}
           />
         </div>
       )}
@@ -2206,6 +2222,221 @@ function MealSlotConflictCard({
         </button>
       </div>
     </section>
+  );
+}
+
+const OWF_MAX_PAYLOAD_BYTES = 3.5 * 1024 * 1024;
+const OWF_PAYLOAD_ERROR =
+  "รูปใหญ่เกินไปสำหรับการวิเคราะห์ ลองเลือกรูปน้อยลงหรือเลือกรูปที่เล็กลง";
+
+function buildOtherWorkoutFallback(noteText: string, date: string): WorkoutAnalysis {
+  return {
+    extracted: {
+      workoutKind: "other",
+      date,
+      distanceKm: null,
+      duration: null,
+      avgPace: null,
+      avgSpeedKmh: null,
+      avgHR: null,
+      maxHR: null,
+      cadence: null,
+      calories: null,
+      elevationGain: null,
+      vo2Max: null,
+      sweatLossMl: null,
+      visibleMetrics: [],
+    },
+    coach: {
+      workoutSummary: noteText,
+      intensityAssessment: "ประเมินจากบันทึก",
+      trainingLoadNote: noteText,
+      wasTooHard: false,
+      recoveryAdvice: "พักผ่อน ดื่มน้ำให้เพียงพอ",
+      nutritionAfterWorkout: "เติมพลังงานด้วยสารอาหารที่มีประโยชน์",
+      nextWorkoutSuggestion: "ซ้อมตามแผนปกติ",
+      coachNote: noteText,
+    },
+    confidence: "low",
+    unclearFields: [],
+  };
+}
+
+function OtherWorkoutForm({
+  onResult,
+  onSave,
+  saving,
+  defaultDate,
+  coachContext,
+  profile,
+}: {
+  onResult: (data: unknown) => void;
+  onSave: (workout: WorkoutAnalysis) => void;
+  saving: boolean;
+  defaultDate: string;
+  coachContext: CoachContext | null;
+  profile: UserProfile | null;
+}) {
+  const [note, setNote] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const picked = Array.from(e.target.files ?? []).filter((f) => f.type.startsWith("image/"));
+    setFiles((prev) => [...prev, ...picked].slice(0, 4));
+    e.target.value = "";
+  }
+
+  function removeFile(idx: number) {
+    setFiles((prev) => prev.filter((_, i) => i !== idx));
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const trimmed = note.trim();
+    if (!trimmed) {
+      setError("กรุณาเล่าให้โค้ชฟังก่อน");
+      return;
+    }
+    setError("");
+    setSubmitting(true);
+
+    // Text-only: save locally without hitting the API
+    if (files.length === 0) {
+      onSave(buildOtherWorkoutFallback(trimmed, defaultDate));
+      setSubmitting(false);
+      return;
+    }
+
+    try {
+      // Compress each image (max 1280px, JPEG 0.75, never increases size)
+      const results = await Promise.allSettled(
+        files.map((f) => compressImage(f, { maxDim: 1280, quality: 0.75 })),
+      );
+      const filesToSend = results.map((r, i) =>
+        r.status === "fulfilled" ? r.value.file : files[i],
+      );
+
+      // Payload guard — base64 inflates ~4/3
+      const estimatedBytes = filesToSend.reduce(
+        (sum, f) => sum + Math.ceil(f.size / 3) * 4,
+        0,
+      );
+      if (estimatedBytes > OWF_MAX_PAYLOAD_BYTES) {
+        setError(OWF_PAYLOAD_ERROR);
+        return;
+      }
+
+      const imageDataUrls = await Promise.all(filesToSend.map(fileToDataUrl));
+
+      const res = await fetch("/api/analyze-workout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workoutNote: trimmed,
+          workoutSubtype: "other",
+          imageDataUrls,
+          profile,
+          context: coachContext,
+          date: defaultDate,
+        }),
+      });
+
+      if (res.status === 413) {
+        setError(OWF_PAYLOAD_ERROR);
+        return;
+      }
+
+      if (!res.ok) throw new Error("api-error");
+
+      const result = (await res.json()) as unknown;
+      onResult(result);
+    } catch {
+      // API failed: fall back to local save from note
+      onSave(buildOtherWorkoutFallback(trimmed, defaultDate));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  const isLoading = submitting || saving;
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4 pt-2 card p-5 bg-white" data-testid="other-workout-form">
+      <div>
+        <h3 className="text-lg font-bold text-[var(--foreground)]">บันทึกกิจกรรมอื่น ๆ</h3>
+        <p className="text-xs text-slate-500">เล่าให้โค้ชฟัง แล้วโค้ชจะสรุปให้</p>
+      </div>
+
+      <div className="space-y-1.5">
+        <label htmlFor="owf-note" className="text-xs font-bold uppercase tracking-wide text-slate-400">
+          กิจกรรมวันนี้ <span className="text-[var(--primary)]">*</span>
+        </label>
+        <textarea
+          id="owf-note"
+          className="control min-h-[96px]"
+          placeholder="เช่น ว่ายน้ำเบา ๆ 25 นาที, HR ประมาณ 120, recovery swim, ไม่มีเจ็บ"
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          required
+        />
+      </div>
+
+      {/* Optional image upload */}
+      <div className="space-y-1.5">
+        <p className="text-xs font-bold uppercase tracking-wide text-slate-400">รูปสรุปจากแอป (ถ้ามี)</p>
+        {files.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {files.map((f, i) => (
+              <div key={i} className="relative">
+                <img
+                  src={URL.createObjectURL(f)}
+                  alt={f.name}
+                  className="h-16 w-16 rounded-xl object-cover border border-[var(--color-border-soft)]"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeFile(i)}
+                  className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-slate-700 text-white text-[10px] font-bold"
+                  aria-label="ลบรูป"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        {files.length < 4 && (
+          <>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="rounded-xl border border-dashed border-[var(--color-border-soft)] px-4 py-2.5 text-xs font-semibold text-[var(--muted-text)] hover:bg-[var(--surface-muted)] transition-colors"
+            >
+              + เพิ่มรูป
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              aria-label="เพิ่มรูปกิจกรรม"
+              className="sr-only"
+              onChange={handleFileChange}
+            />
+          </>
+        )}
+        <p className="text-[10px] text-[var(--muted-text)]">สูงสุด 4 รูป · ถ้าไม่มีรูป กรอกรายละเอียดในช่องด้านบนแทนได้เลย</p>
+      </div>
+
+      {error && <p className="text-xs font-semibold text-red-600 bg-red-50 p-2.5 rounded-xl">{error}</p>}
+
+      <LoadingButton type="submit" loading={isLoading} loadingText="กำลังวิเคราะห์..." className="btn-primary w-full py-3 text-sm font-bold">
+        {files.length > 0 ? "วิเคราะห์และบันทึก" : "บันทึกกิจกรรม"}
+      </LoadingButton>
+    </form>
   );
 }
 

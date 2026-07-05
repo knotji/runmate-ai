@@ -39,15 +39,21 @@ const fallback: WorkoutAnalysis = {
 export async function POST(request: Request) {
   const body = await request.json();
   const imageDataUrls = readImageDataUrls(body);
+  const workoutNote = typeof body.workoutNote === "string" ? body.workoutNote.trim() : "";
   const profileCtx = buildRunnerProfileContext(body.profile ?? null);
   const contextCtx = buildAnalysisContext(body.context);
   const system = [workoutPrompt, profileCtx, contextCtx].filter(Boolean).join("\n\n");
 
+  const noteClause = workoutNote ? ` The user also provided this description: "${workoutNote}"` : "";
+  const user = imageDataUrls.length > 1
+    ? `Analyze these ${imageDataUrls.length} workout screenshots together and merge them into one workout record. Apply the multi-image merge rules from the system prompt.${noteClause}`
+    : imageDataUrls.length === 1
+    ? `Analyze this workout screenshot and return JSON in the requested schema.${noteClause}`
+    : `The user described their workout as follows: "${workoutNote}". Extract what you can (workoutKind, duration, distanceKm, avgHR, calories) and fill remaining fields as null. Set workoutKind to "other". Return JSON in the requested schema.`;
+
   const result = await jsonFromAI<WorkoutAnalysis>({
     system,
-    user: imageDataUrls.length > 1
-      ? `Analyze these ${imageDataUrls.length} workout screenshots together and merge them into one workout record. Apply the multi-image merge rules from the system prompt.`
-      : "Analyze this workout screenshot and return JSON in the requested schema.",
+    user,
     imageDataUrl: imageDataUrls[0],
     imageDataUrls,
     fallback,
