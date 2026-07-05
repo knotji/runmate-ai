@@ -50,7 +50,7 @@ describe("buildReadinessExplanation", () => {
     }));
     expect(result).not.toBeNull();
     expect(result).toContain("โหลด");
-    expect(result).toContain("ฟื้นตัวดี");
+    expect(result).toContain("Readiness");
   });
 
   it("green + walk + high load → explains load constraint", () => {

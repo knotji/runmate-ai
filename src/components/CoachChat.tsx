@@ -45,8 +45,8 @@ function buildQuickQuestions(race: RaceQuickContext | null, recovery: RecoveryCh
         prompt: `วันนี้ควรซ้อมอะไรดีครับ${raceTag ? ` (${raceTag})` : ""} ใช้ข้อมูล Report และแผนซ้อมช่วยดูให้หน่อย`,
       },
       {
-        label: "Pace เป้าหมาย",
-        prompt: `Pace เป้าหมายแข่ง${race.raceName ? ` ${race.raceName}` : ""}${race.raceDistance ? ` ${race.raceDistance}` : ""} ควรเป็นเท่าไหร่ครับ ดูจาก Report ล่าสุดด้วย`,
+        label: "ควรวิ่ง pace ไหน",
+        prompt: `ควรวิ่ง pace ไหนดีครับ${race.raceName ? ` สำหรับ ${race.raceName}` : ""}${race.raceDistance ? ` ${race.raceDistance}` : ""} ดูจาก Report ล่าสุดและสภาพร่างกายวันนี้ด้วย`,
       },
       {
         label: "Recovery วันนี้",

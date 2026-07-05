@@ -708,7 +708,7 @@ function RollingSevenDayInsight({
             {coachNote && <p className="mt-0.5 text-xs font-medium leading-5 text-[var(--primary-strong)]">{coachNote}</p>}
           </div>
           <span className="shrink-0 rounded-full bg-[var(--surface-muted)] px-3 py-1.5 text-[10px] font-bold text-[var(--primary)]">
-            <span className="group-open:hidden">ดูรายละเอียด 7 วันล่าสุด</span>
+            <span className="group-open:hidden">ดู insight เต็ม</span>
             <span className="hidden group-open:inline">ซ่อน</span>
           </span>
         </div>

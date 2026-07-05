@@ -27,7 +27,7 @@ export function buildReadinessExplanation(input: ExplanationInput): string | nul
 
   // Green band but easy/walk target → load is the limiting factor, not recovery
   if (band === "green" && (loadTarget === "easy" || loadTarget === "walk") && hasHighLoad) {
-    return "ร่างกายฟื้นตัวดี แต่โหลดซ้อมสะสมสูงอยู่ — วันนี้คุมเบาไว้จะช่วยฟื้นได้ต่อเนื่อง";
+    return "Readiness ยังพอใช้ได้ แต่โหลดสะสมสูง — วันนี้เลยคุมเบา ไม่ได้แปลว่าร่างกายแย่";
   }
 
   // Recovering from pain — make the constraint explicit
@@ -46,7 +46,7 @@ export function buildReadinessExplanation(input: ExplanationInput): string | nul
 
   // Yellow band + high load
   if (band === "yellow" && hasHighLoad) {
-    return "โหลดสะสมสัปดาห์นี้สูง — easy run หรือพักก็ได้วันนี้";
+    return "ร่างกายไม่ได้แย่ แต่โหลดช่วงนี้สูง — easy run หรือพักก็ได้วันนี้";
   }
 
   return null;

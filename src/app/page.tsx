@@ -1787,18 +1787,27 @@ function TodaySnapshotCard({
         if (!paceBands) return null;
         const allowedKeys = getAllowedPaceBandsForReadiness({ bands: paceBands, dailyReadiness });
         if (allowedKeys.length === 0) return null;
+        // Recovery/easy day: show only Easy pace + safety tip
+        const isRecoveryDay = dailyReadiness.loadTarget === "easy" || dailyReadiness.loadTarget === "walk" || dailyReadiness.loadTarget === "rest";
+        const displayKeys: PaceBandKey[] = isRecoveryDay ? (allowedKeys.includes("easy") ? ["easy"] : [allowedKeys[0]]) : allowedKeys;
+        if (displayKeys.length === 0) return null;
         const LABELS: Record<PaceBandKey, string> = { easy: "Easy", long: "Long", tempo: "Tempo", interval: "Interval" };
         return (
           <div className="rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface-muted)] px-3 py-2" data-testid="today-pace-card">
             <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--label-color)]">ช่วงเพซวันนี้</p>
             <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
-              {allowedKeys.map((key) => (
+              {displayKeys.map((key) => (
                 <span key={key} className="text-[10px] text-[var(--foreground)]">
                   <span className="font-semibold">{LABELS[key]}</span>{" "}
                   <span className="tabular-nums text-[var(--primary-strong)]">{formatPaceRange(paceBands[key])}</span>
                 </span>
               ))}
             </div>
+            {isRecoveryDay && (
+              <p className="mt-1 text-[10px] text-[var(--color-text-muted)] leading-snug">
+                ถ้า HR ลอยหรือรู้สึกหนัก ให้ช้าลงได้
+              </p>
+            )}
           </div>
         );
       })()}
