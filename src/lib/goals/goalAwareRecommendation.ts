@@ -53,7 +53,7 @@ const SECONDARY_NOTES: Partial<Record<GoalType, string>> = {
   running_consistency: "ซ้อมสม่ำเสมอ อย่าข้ามวัน — ดีกว่าซ้อมหนักแล้วพัก",
   general_health: "รวม strength เบา ๆ 1–2 ครั้ง/สัปดาห์ เพื่อสุขภาพโดยรวม",
   fat_loss: "ถ้า readiness ดี ลอง เพิ่ม strength หรือ HIIT สั้น ๆ หลังวิ่ง เพื่อเพิ่มการเผาผลาญ",
-  six_pack: "วันที่ไม่วิ่งหนัก เพิ่ม core work เช่น plank / hollow hold 10–15 นาที",
+  six_pack: "วันที่ไม่วิ่งหนัก เพิ่ม core เบา ๆ เช่น plank / dead bug 10–15 นาที",
   muscle_gain: "เพิ่มวัน strength 2–3 ครั้ง/สัปดาห์ ห่างจากวัน long run",
   injury_prevention: "วอร์มอัพ 10 นาที stretch หลังซ้อม — ห้ามข้าม",
   injury_recovery: "ฟังร่างกาย หยุดทันทีถ้ารู้สึกปวด",

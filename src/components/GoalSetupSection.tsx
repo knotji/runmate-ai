@@ -181,22 +181,25 @@ export function GoalSetupSection() {
       </div>
 
       {/* Step indicator */}
-      <div className="flex items-center gap-2">
-        {([1, 2, 3, 4] as Step[]).map((s) => (
-          <button
-            key={s}
-            type="button"
-            onClick={() => setStep(s)}
-            className={`flex-1 h-1.5 rounded-full transition-all ${
-              s === step
-                ? "bg-[var(--primary-strong)]"
-                : s < step
-                ? "bg-[var(--primary-strong)]/40"
-                : "bg-[var(--border-warm)]"
-            }`}
-            aria-label={`ขั้นตอน ${s}`}
-          />
-        ))}
+      <div className="space-y-1.5">
+        <p className="text-[11px] font-semibold text-[var(--muted-text)]">ขั้นตอนที่ {step} จาก 4</p>
+        <div className="flex items-center gap-2">
+          {([1, 2, 3, 4] as Step[]).map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setStep(s)}
+              className={`flex-1 h-1.5 rounded-full transition-all ${
+                s === step
+                  ? "bg-[var(--primary-strong)]"
+                  : s < step
+                  ? "bg-[var(--primary-strong)]/40"
+                  : "bg-[var(--border-warm)]"
+              }`}
+              aria-label={`ขั้นตอน ${s}`}
+            />
+          ))}
+        </div>
       </div>
 
       {/* Step 1: Primary Goal */}
@@ -422,7 +425,7 @@ export function GoalSetupSection() {
                 />
               </label>
               <label className="block">
-                <span className="text-xs font-semibold text-[var(--foreground)]">ออกกำลังกายกี่วันต่อสัปดาห์</span>
+                <span className="text-xs font-semibold text-[var(--foreground)]">อยากขยับ/ออกกำลังกายกี่วันต่อสัปดาห์</span>
                 <input
                   type="number"
                   value={profile.lifestyleGoal?.weeklyWorkoutDays ?? ""}
