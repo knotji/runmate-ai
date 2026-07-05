@@ -431,13 +431,24 @@ export function buildContextGuidance(question: string, context: unknown) {
 export function buildReadinessGuidance(context: unknown): string {
   const ctx = context as Record<string, unknown>;
   const activePain = Boolean(ctx.activePain);
+  const recentPain = Boolean(ctx.recentPainHistory) || Boolean(ctx.painResolved);
+  const painRecoveryStatus = stringValue(ctx.painRecoveryStatus as unknown) ?? null;
   const v2 = readRecord(ctx.readinessV2);
   const score = numberValue(v2?.score);
   const recSys = readRecord(ctx.recoverySystem);
   const axes = readRecord(recSys?.axes);
-  const loadScore = numberValue((readRecord(axes?.load) as Record<string, unknown>)?.score);
+  const loadAxis = readRecord(axes?.load) as Record<string, unknown> | null;
+  const recoveryAxis = readRecord(axes?.recovery) as Record<string, unknown> | null;
+  const sleepAxis = readRecord(axes?.sleep) as Record<string, unknown> | null;
+  const fuelAxis = readRecord(axes?.fuel) as Record<string, unknown> | null;
+  const loadScore = numberValue(loadAxis?.score);
+  const recoveryScore = numberValue(recoveryAxis?.score);
+  const sleepScore = numberValue(sleepAxis?.score);
+  const fuelScore = numberValue(fuelAxis?.score);
   const isRaceToday = Boolean(ctx.isRaceToday);
   const isRaceTomorrow = Boolean(ctx.isRaceTomorrow);
+  const mealsToday = Array.isArray(ctx.mealsToday) ? (ctx.mealsToday as unknown[]).length : 0;
+  const totalRunKm = numberValue(ctx.totalRunKm as unknown) ?? 0;
 
   // Derive band
   let band: string;
@@ -453,7 +464,7 @@ export function buildReadinessGuidance(context: unknown): string {
     band = "red";
   }
 
-  // Derive loadTarget
+  // Derive loadTarget (mirrors deriveLoadTarget in dailyReadiness.ts)
   let loadTarget: string;
   if (band === "pain_risk") {
     loadTarget = "rest";
@@ -466,22 +477,84 @@ export function buildReadinessGuidance(context: unknown): string {
   } else if (band === "yellow") {
     loadTarget = (loadScore ?? 0) >= 65 ? "easy" : "moderate";
   } else {
-    // green
     loadTarget = (loadScore ?? 0) >= 65 ? "easy" : (loadScore ?? 0) <= 25 ? "build" : "moderate";
   }
+  // Pain recovery cap
+  if ((painRecoveryStatus === "improving" || painRecoveryStatus === "recent_pain") && loadTarget !== "walk") {
+    loadTarget = "easy";
+  } else if (painRecoveryStatus === "cleared_light" && (loadTarget === "moderate" || loadTarget === "build")) {
+    loadTarget = "easy";
+  }
+
+  // Signal summary
+  const signalLines: string[] = [];
+  if (recoveryScore !== null) {
+    signalLines.push(`Recovery: ${recoveryScore}/100 (${recoveryScore >= 66 ? "good" : recoveryScore >= 50 ? "moderate" : "low"})`);
+  }
+  if (loadScore !== null) {
+    signalLines.push(`Training load: ${loadScore}/100 (${loadScore >= 65 ? "HIGH — accumulated fatigue" : loadScore <= 25 ? "low — body fresh" : "moderate"})`);
+  }
+  if (sleepScore !== null) {
+    signalLines.push(`Sleep: ${sleepScore}/100 (${sleepScore >= 66 ? "good" : sleepScore >= 50 ? "moderate" : "low"})`);
+  }
+  if (fuelScore !== null && mealsToday >= 2) {
+    signalLines.push(`Fuel: ${fuelScore}/100 (${fuelScore >= 60 ? "adequate" : "low"})`);
+  } else if (mealsToday === 0) {
+    signalLines.push("Fuel: no meal data logged today");
+  } else if (mealsToday === 1) {
+    signalLines.push("Fuel: partial data (1 meal logged — unclear)");
+  }
+  if (totalRunKm > 0) {
+    signalLines.push(`Weekly run km so far: ${Math.round(totalRunKm * 10) / 10} km`);
+  }
+
+  // Pain context
+  const painLines: string[] = [];
+  if (activePain) {
+    painLines.push("PAIN STATUS: Active pain today. BLOCK all running/high-impact recommendations. Guide toward rest, gentle movement, or physio only.");
+  } else if (painRecoveryStatus === "improving") {
+    painLines.push("PAIN STATUS: improving — user selected 'ดีขึ้น แต่ยังระวัง'. Max intensity = easy. Do NOT suggest tempo, interval, or hard sessions.");
+  } else if (painRecoveryStatus === "recent_pain") {
+    painLines.push("PAIN STATUS: recent pain (< 48 h pain-free). Max intensity = easy. If user asks about hard sessions, redirect to easy + patience.");
+  } else if (painRecoveryStatus === "cleared_light") {
+    painLines.push("PAIN STATUS: cleared_light — ok for easy running, but do NOT suggest pushing pace or hard efforts.");
+  } else if (painRecoveryStatus === "cleared_normal") {
+    painLines.push("PAIN STATUS: cleared_normal — no pain restriction. Treat as healthy runner.");
+  } else if (recentPain) {
+    painLines.push("PAIN STATUS: recent pain history detected (time-based). Be conservative; prefer easy suggestions.");
+  }
+
+  // Hard restriction line
+  const restrictionLine = band === "pain_risk"
+    ? "GUARDRAIL: Do NOT recommend running or high-impact activity. Rest/physio only."
+    : band === "red"
+    ? "GUARDRAIL: Do NOT recommend tempo, interval, or hard workouts. Easy walk or light jog at most."
+    : band === "yellow" && (loadScore ?? 0) >= 65
+    ? "GUARDRAIL: High load + moderate readiness. Do NOT suggest hard sessions. Recommend easy or rest."
+    : band === "yellow"
+    ? "GUARDRAIL: Moderate readiness. Avoid hard workout recommendations unless user explicitly insists."
+    : "";
+
+  // Avoid / allow
+  const avoidAllow = band === "pain_risk"
+    ? "Avoid: running, jumping, loaded impact. Allow: walking, gentle stretching, physio."
+    : band === "red"
+    ? "Avoid: interval, tempo, long hard run. Allow: easy jog, walking, rest."
+    : band === "yellow"
+    ? "Avoid: max-effort interval. Allow: easy run, light strength, stretching."
+    : loadTarget === "build"
+    ? "Allow: long run, short tempo, 10% km increase. No specific avoids."
+    : "Allow: planned training. No specific avoids.";
 
   const lines = [
-    `DAILY READINESS BAND: ${band} — LoadTarget: ${loadTarget}.`,
-    band === "pain_risk"
-      ? "READINESS RESTRICTION: Active pain detected. Do NOT recommend running or high-impact activity. Guide toward gentle movement, physio, or rest only."
-      : band === "red"
-      ? "READINESS RESTRICTION: Body is fatigued (red band). Do NOT recommend tempo, interval, or hard workouts. Suggest easy walk, light jog at most."
-      : band === "yellow"
-      ? "READINESS NOTE: Moderate readiness (yellow band). Avoid recommending hard workouts unless user explicitly asks. Prefer easy/recovery-type suggestions."
-      : "",
+    `DAILY READINESS: band=${band}, loadTarget=${loadTarget}, readinessScore=${score ?? "none"}.`,
+    signalLines.length ? `Signals — ${signalLines.join(" | ")}` : "",
+    painLines.join(" "),
+    restrictionLine,
+    avoidAllow,
   ].filter(Boolean);
 
-  return lines.join("\n");
+  return `DAILY_COACH_GUARDRAILS:\n${lines.join("\n")}`;
 }
 
 function isSimpleFollowUp(question: string) {
