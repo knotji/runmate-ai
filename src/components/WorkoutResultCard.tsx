@@ -88,6 +88,7 @@ function SwimResultCard({ result }: { result: WorkoutAnalysis }) {
       </div>
       <MetricGrid
         items={[
+          { label: "Type", value: recovery ? "Recovery Swim" : "ว่ายน้ำ" },
           { label: "Distance", value: distanceValue },
           { label: "Duration", value: ext.duration ? formatDuration(ext.duration) : null },
           { label: "Avg pace", value: paceValue },

@@ -10,6 +10,7 @@ const fallback: WorkoutAnalysis = {
     workoutKind: "other",
     date: null,
     distanceKm: null,
+    distanceM: null,
     duration: null,
     avgPace: null,
     avgSpeedKmh: null,
@@ -21,6 +22,7 @@ const fallback: WorkoutAnalysis = {
     vo2Max: null,
     sweatLossMl: null,
     visibleMetrics: [],
+    swimKind: null,
   },
   coach: {
     workoutSummary: "อัปโหลดข้อมูลซ้อมแล้ว แต่ยังอ่านตัวเลขได้ไม่ครบ",
