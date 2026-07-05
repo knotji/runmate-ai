@@ -8,11 +8,12 @@ import { ProfileHistoryAnalyzer } from "@/components/ProfileHistoryAnalyzer";
 import { SamsungHealthImport } from "@/components/SamsungHealthImport";
 import { CsvHistoryImporter } from "@/components/import/CsvHistoryImporter";
 import { StrengthRoutineManager } from "@/components/StrengthRoutineManager";
+import { GoalSetupSection } from "@/components/GoalSetupSection";
 import { loadProfileFromSupabase } from "@/lib/profileStorage";
 import { createClient } from "@/lib/supabase/client";
 import type { UserProfile } from "@/types/profile";
 
-type Tab = "profile" | "data" | "account";
+type Tab = "profile" | "goals" | "data" | "account";
 
 type EnvDebug = {
   runtime: {
@@ -37,7 +38,7 @@ export default function SettingsPage() {
     const importParam = params.get("import");
 
     const timer = setTimeout(() => {
-      if (tabParam === "data" || tabParam === "account" || tabParam === "profile") {
+      if (tabParam === "data" || tabParam === "account" || tabParam === "profile" || tabParam === "goals") {
         setActiveTab((prev) => (prev !== tabParam ? (tabParam as Tab) : prev));
       }
       if (importParam) {
@@ -166,6 +167,7 @@ export default function SettingsPage() {
     <AppShell title="ตั้งค่า" subtitle="จัดการโปรไฟล์ โค้ช และข้อมูลของแอป">
       <div className="mb-5 segmented-control">
         <TabButton active={activeTab === "profile"} onClick={() => setActiveTab("profile")}>โปรไฟล์</TabButton>
+        <TabButton active={activeTab === "goals"} onClick={() => setActiveTab("goals")}>เป้าหมาย</TabButton>
         <TabButton active={activeTab === "data"} onClick={() => setActiveTab("data")}>ข้อมูล</TabButton>
         <TabButton active={activeTab === "account"} onClick={() => setActiveTab("account")}>บัญชี</TabButton>
       </div>
@@ -184,6 +186,12 @@ export default function SettingsPage() {
           </section>
           <ProfileSetupForm key={profileFormKey} profile={runnerProfile} onProfileSaved={handleProfileUpdated} />
           <StrengthRoutineManager />
+        </div>
+      )}
+
+      {activeTab === "goals" && (
+        <div className="space-y-4">
+          <GoalSetupSection />
         </div>
       )}
 
