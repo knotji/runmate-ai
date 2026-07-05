@@ -2229,12 +2229,19 @@ const OWF_MAX_PAYLOAD_BYTES = 3.5 * 1024 * 1024;
 const OWF_PAYLOAD_ERROR =
   "รูปใหญ่เกินไปสำหรับการวิเคราะห์ ลองเลือกรูปน้อยลงหรือเลือกรูปที่เล็กลง";
 
+function detectSwimFromNote(text: string): boolean {
+  const lower = text.toLowerCase();
+  return lower.includes("ว่ายน้ำ") || lower.includes("swim") || lower.includes("pool") || lower.includes("สระ");
+}
+
 function buildOtherWorkoutFallback(noteText: string, date: string): WorkoutAnalysis {
+  const isSwim = detectSwimFromNote(noteText);
   return {
     extracted: {
       workoutKind: "other",
       date,
       distanceKm: null,
+      distanceM: null,
       duration: null,
       avgPace: null,
       avgSpeedKmh: null,
@@ -2246,6 +2253,7 @@ function buildOtherWorkoutFallback(noteText: string, date: string): WorkoutAnaly
       vo2Max: null,
       sweatLossMl: null,
       visibleMetrics: [],
+      swimKind: isSwim ? "pool" : null,
     },
     coach: {
       workoutSummary: noteText,

@@ -166,6 +166,9 @@ export type WorkoutAnalysis = {
     muscleGroups?: string[] | null;
     intensity?: "easy" | "moderate" | "hard" | null;
     rpe?: number | null;
+    // Swim-specific fields (optional — null/undefined for non-swim)
+    swimKind?: "pool" | "open_water" | null;
+    distanceM?: number | null;
   };
   coach: {
     workoutSummary: string;

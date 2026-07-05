@@ -49,7 +49,7 @@ export async function POST(request: Request) {
     ? `Analyze these ${imageDataUrls.length} workout screenshots together and merge them into one workout record. Apply the multi-image merge rules from the system prompt.${noteClause}`
     : imageDataUrls.length === 1
     ? `Analyze this workout screenshot and return JSON in the requested schema.${noteClause}`
-    : `The user described their workout as follows: "${workoutNote}". Extract what you can (workoutKind, duration, distanceKm, avgHR, calories) and fill remaining fields as null. Set workoutKind to "other". Return JSON in the requested schema.`;
+    : `The user described their workout as follows: "${workoutNote}". Extract what you can (workoutKind, duration, distanceKm, avgHR, calories) and fill remaining fields as null. Set workoutKind to "other". If the description mentions swimming (ว่ายน้ำ, swim, pool, สระ), set swimKind to "pool" (or "open_water" if applicable) and store distance in metres in distanceM instead of distanceKm. Include the user's exact note context — especially recovery mentions, pain status, or effort level — in coach.workoutSummary and coach.coachNote. Return JSON in the requested schema.`;
 
   const result = await jsonFromAI<WorkoutAnalysis>({
     system,

@@ -11,12 +11,22 @@ import {
   formatSummaryText,
 } from "@/lib/format";
 
+function isRecoverySwim(summary: string, coachNote: string): boolean {
+  const text = `${summary} ${coachNote}`.toLowerCase();
+  return text.includes("recovery") || text.includes("ฟื้นตัว");
+}
+
 export function WorkoutResultCard({ result }: { result: WorkoutAnalysis }) {
   const ext = result.extracted;
   const isStrength = ext.workoutKind === "strength";
+  const isSwim = ext.swimKind != null;
 
   if (isStrength) {
     return <StrengthResultCard result={result} />;
+  }
+
+  if (isSwim) {
+    return <SwimResultCard result={result} />;
   }
 
   return (
@@ -51,6 +61,49 @@ export function WorkoutResultCard({ result }: { result: WorkoutAnalysis }) {
       <DetailBlock title="Nutrition After Workout">{result.coach.nutritionAfterWorkout}</DetailBlock>
       <DetailBlock title="Next Workout" tone="green">{result.coach.nextWorkoutSuggestion}</DetailBlock>
       <DetailBlock title="Visible Metrics">{ext.visibleMetrics?.length ? ext.visibleMetrics.join(", ") : "ยังไม่มี metric เพิ่มเติมที่อ่านได้ชัด"}</DetailBlock>
+      <DetailBlock title="Coach Note">{result.coach.coachNote}</DetailBlock>
+    </section>
+  );
+}
+
+function SwimResultCard({ result }: { result: WorkoutAnalysis }) {
+  const ext = result.extracted;
+  const recovery = isRecoverySwim(result.coach.workoutSummary, result.coach.coachNote ?? "");
+  const eyebrow = recovery ? "🏊 Recovery Swim" : "🏊 ว่ายน้ำ";
+
+  const distanceValue =
+    ext.distanceM != null
+      ? `${Math.round(ext.distanceM)} m`
+      : ext.distanceKm != null
+      ? formatDistanceKm(ext.distanceKm)
+      : null;
+
+  const paceValue = ext.avgPace ? `${formatPace(ext.avgPace)} /100m` : null;
+
+  return (
+    <section className="card p-5">
+      <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#6f8fa6]">{eyebrow}</p>
+      <h2 className="mt-2 text-xl font-bold">{formatSummaryText(result.coach.workoutSummary)}</h2>
+      {ext.mergedFromMultipleImages && (
+        <p className="mt-1 text-xs text-slate-500">รวมข้อมูลจากหลายภาพแล้ว</p>
+      )}
+      <div className="mt-3">
+        <DataQualityNote confidence={result.confidence} unclearFields={result.unclearFields} source="workout" />
+      </div>
+      <MetricGrid
+        items={[
+          { label: "Distance", value: distanceValue },
+          { label: "Duration", value: ext.duration ? formatDuration(ext.duration) : null },
+          { label: "Avg pace", value: paceValue },
+          { label: "Avg HR", value: ext.avgHR != null ? formatHeartRate(ext.avgHR) : null },
+          { label: "Max HR", value: ext.maxHR != null ? formatHeartRate(ext.maxHR) : null },
+          { label: "Calories", value: ext.calories != null ? formatCalories(ext.calories) : null },
+          { label: "Too hard?", value: result.coach.wasTooHard },
+        ]}
+      />
+      <DetailBlock title="Intensity">{result.coach.intensityAssessment}</DetailBlock>
+      <DetailBlock title="Training Load">{result.coach.trainingLoadNote}</DetailBlock>
+      <DetailBlock title="Recovery Advice">{result.coach.recoveryAdvice}</DetailBlock>
       <DetailBlock title="Coach Note">{result.coach.coachNote}</DetailBlock>
     </section>
   );

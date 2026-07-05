@@ -90,7 +90,7 @@ export function formatPace(value: unknown): string {
   if (isInvalid(value)) return "-";
   if (typeof value === "string") {
     let trimmed = value.trim();
-    trimmed = trimmed.replace(/\/km$/i, "").replace(/\/กม\.?$/i, "").trim();
+    trimmed = trimmed.replace(/\/km$/i, "").replace(/\/กม\.?$/i, "").replace(/\/100\s?m$/i, "").trim();
     if (trimmed.includes(":")) return trimmed;
     const num = Number(trimmed);
     if (!isNaN(num)) {
