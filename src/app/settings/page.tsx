@@ -456,8 +456,8 @@ function ReleaseNotesSection() {
           <p className="font-bold uppercase tracking-[0.15em] text-[var(--label-color)]">ประวัติอัปเดต</p>
           {!expanded && (
             <div className="mt-1.5" data-testid="release-notes-preview">
-              <p className="font-semibold text-[var(--foreground)]">v0.1.3</p>
-              <p className="mt-0.5 text-[var(--muted-text)]">Coach Clarity &amp; Pace Guidance</p>
+              <p className="font-semibold text-[var(--foreground)]">v0.2</p>
+              <p className="mt-0.5 text-[var(--muted-text)]">Goal-Aware Personal Running + Health Coach</p>
             </div>
           )}
         </div>
@@ -473,6 +473,17 @@ function ReleaseNotesSection() {
 
       {expanded && (
         <div className="mt-3 space-y-4" data-testid="release-notes-expanded">
+          <div>
+            <p className="font-semibold text-[var(--foreground)]">v0.2 — Goal-Aware Coach</p>
+            <ul className="mt-1.5 space-y-1 leading-5">
+              <li>· ตั้งเป้าหมายหลักและรองในแท็บ "เป้าหมาย" — โค้ชปรับคำแนะนำให้ตรงกับเป้า</li>
+              <li>· สิ่งที่ต้องระวัง (guardrail) — โค้ชจะลดความหนักอัตโนมัติเมื่อมีความเสี่ยง</li>
+              <li>· Today แสดง goal strip — เห็นทันทีว่าวันนี้เป้าหมายกำหนดอะไร</li>
+              <li>· Report มี goal progress insight — สรุปว่าสัปดาห์นี้เป็นยังไงกับเป้าหมาย</li>
+              <li>· Coach รับรู้เป้าหมายทุก v0.2 ครั้งที่ตอบ — ไม่ต้องบอกซ้ำ</li>
+              <li>· รองรับการว่ายน้ำ — แสดงระยะ ม. pace /100m และชื่อ ว่ายน้ำ/Recovery Swim</li>
+            </ul>
+          </div>
           <div>
             <p className="font-semibold text-[var(--foreground)]">v0.1.3</p>
             <ul className="mt-1.5 space-y-1 leading-5">
