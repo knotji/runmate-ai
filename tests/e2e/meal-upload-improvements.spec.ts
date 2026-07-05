@@ -184,3 +184,57 @@ test.describe("Meal Upload UX Improvements", () => {
     expect(pbStyle).toBe("96px");
   });
 });
+
+test.describe("Meal timing chips — simplified to 4 main categories", () => {
+  test("shows only เช้า กลางวัน เย็น ของว่าง chips", async ({ page }) => {
+    await installMockBackend(page);
+    await gotoApp(page, "/upload?type=meal");
+
+    await expect(page.getByRole("button", { name: "เช้า" })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole("button", { name: "กลางวัน" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "เย็น" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "ของว่าง" })).toBeVisible();
+  });
+
+  test("ก่อนวิ่ง and หลังวิ่ง chips are not visible", async ({ page }) => {
+    await installMockBackend(page);
+    await gotoApp(page, "/upload?type=meal");
+
+    await expect(page.getByRole("button", { name: "เช้า" })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole("button", { name: "ก่อนวิ่ง" })).not.toBeVisible();
+    await expect(page.getByRole("button", { name: "หลังวิ่ง" })).not.toBeVisible();
+  });
+
+  test("selecting เย็น chip and submitting manual meal still works", async ({ page }) => {
+    await installMockBackend(page);
+    await gotoApp(page, "/upload?type=meal");
+
+    await page.getByRole("button", { name: "เย็น" }).click();
+    await page.getByRole("button", { name: "พิมพ์เอง" }).click();
+
+    const textarea = page.locator("textarea").first();
+    await textarea.fill("ข้าวต้มปลา");
+
+    await page.route("/api/analyze-meal", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          source: "gemini",
+          data: {
+            mealType: "dinner",
+            detectedFoods: [{ name: "ข้าวต้มปลา", portionEstimate: "1 bowl", confidence: "high" }],
+            nutrition: { caloriesKcal: 250, proteinG: 18, carbsG: 30, fatG: 5, fiberG: 1 },
+            trainingFit: { bestFor: ["Recovery"], carbAdequacy: "ok", proteinAdequacy: "ok", fatLoad: "low", hydrationNote: "", coachNote: "" },
+            confidence: "high",
+            unclearFields: [],
+            needsReview: false,
+          },
+        }),
+      });
+    });
+
+    await page.getByRole("button", { name: "ให้โค้ชประเมิน" }).click();
+    await expect(page.getByText("ข้าวต้มปลา").first()).toBeVisible({ timeout: 10000 });
+  });
+});

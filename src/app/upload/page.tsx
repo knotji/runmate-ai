@@ -865,7 +865,7 @@ export default function UploadPage() {
               ))}
             </div>
             <div className="flex flex-wrap gap-1.5">
-              {(["breakfast", "lunch", "dinner", "snack", "pre-run", "post-run"] as const).map((m) => (
+              {(["breakfast", "lunch", "dinner", "snack"] as const).map((m) => (
                 <button
                   key={m}
                   type="button"
