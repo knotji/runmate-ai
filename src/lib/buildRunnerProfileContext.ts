@@ -1,5 +1,6 @@
 import type { UserProfile } from "@/types/profile";
 import { calculateAgeFromBirthDate } from "@/lib/profile/age";
+import { GOAL_LABEL_TH } from "@/lib/goals/goalTypes";
 
 export type FoodPreferencesJSON = {
   avoids?: string;
@@ -120,6 +121,34 @@ export function buildRunnerProfileContext(profile: UserProfile | Record<string, 
   }
 
   if (p.trainingConstraints) lines.push(`- ข้อจำกัดซ้อม: ${p.trainingConstraints}`);
+
+  // v0.2 Goal Profile
+  if (p.goalProfile) {
+    const gp = p.goalProfile;
+    lines.push(`- เป้าหมายหลัก (v0.2): ${GOAL_LABEL_TH[gp.primaryGoal] ?? gp.primaryGoal}`);
+    if (gp.secondaryGoals.length > 0) {
+      lines.push(`- เป้าหมายรอง: ${gp.secondaryGoals.map((g) => GOAL_LABEL_TH[g] ?? g).join(", ")}`);
+    }
+    if (gp.guardrailGoals.length > 0) {
+      lines.push(`- สิ่งที่ต้องระวัง: ${gp.guardrailGoals.map((g) => GOAL_LABEL_TH[g] ?? g).join(", ")}`);
+    }
+    if (gp.raceGoal?.enabled && gp.raceGoal.distanceKm) {
+      const parts = [`Race ${gp.raceGoal.distanceKm}km`];
+      if (gp.raceGoal.raceDate) parts.push(gp.raceGoal.raceDate);
+      if (gp.raceGoal.targetRacePaceSecPerKm) {
+        const min = Math.floor(gp.raceGoal.targetRacePaceSecPerKm / 60);
+        const sec = gp.raceGoal.targetRacePaceSecPerKm % 60;
+        parts.push(`target pace ${min}:${String(sec).padStart(2, "0")}/km`);
+      }
+      lines.push(`- เป้าหมาย Race: ${parts.join(" · ")}`);
+    }
+    if (gp.lifestyleGoal?.sleepTargetHours) {
+      lines.push(`- เป้าหมายนอน: ${gp.lifestyleGoal.sleepTargetHours}h`);
+    }
+    if (gp.lifestyleGoal?.weeklyWorkoutDays) {
+      lines.push(`- เป้าหมายออกกำลังกาย: ${gp.lifestyleGoal.weeklyWorkoutDays} วัน/สัปดาห์`);
+    }
+  }
 
   return lines.join("\n");
 }

@@ -20,6 +20,9 @@ import { ReadinessSignalBars } from "@/components/ReadinessSignalBars";
 import { getTodayTrainingGuardrail } from "@/lib/trainingGuardrails";
 import { createHistoryItem, loadHistoryItems, saveHistoryItems } from "@/lib/cloudHistory";
 import { loadActiveRaceGoalAndPlan } from "@/lib/raceStorage";
+import { loadGoalProfileFromSupabase } from "@/lib/goals/goalStorage";
+import { GoalAwareTodayStrip } from "@/components/GoalAwareTodayStrip";
+import type { UserGoalProfile } from "@/lib/goals/goalTypes";
 import { loadRoutinesFromSupabase, logCompletedStrength } from "@/lib/strength";
 import { safeStrengthMins } from "@/lib/reportDaySummary";
 import type { LocalHistoryItem } from "@/lib/localHistory";
@@ -139,6 +142,7 @@ export default function TodayPage() {
   }, []);
 
   const [goal, setGoal] = useState<RaceGoal | null>(null);
+  const [goalProfile, setGoalProfile] = useState<UserGoalProfile | null>(null);
   const [insight, setInsight] = useState<DailyCoachInsight | null>(null);
   const [coachCtx, setCoachCtx] = useState<CoachContext | null>(null);
   const [loading, setLoading] = useState(false);
@@ -276,6 +280,7 @@ export default function TodayPage() {
 
   useEffect(() => {
     loadActiveRaceGoalAndPlan().then((result) => { if (result.ok) setGoal(result.goal); });
+    loadGoalProfileFromSupabase().then((res) => { if (res.ok) setGoalProfile(res.goalProfile); });
     queueMicrotask(() => void generateInsight());
     queueMicrotask(() => void loadTodaysSummary());
   }, [generateInsight, loadTodaysSummary]);
@@ -353,6 +358,15 @@ export default function TodayPage() {
             <ReadinessSignalBars signals={dr.signals} />
             {dr.sleepAdvice && (
               <p className="px-1 text-[11px] text-amber-600 leading-snug">💡 {dr.sleepAdvice}</p>
+            )}
+            {/* 1c. Goal-aware strip — shown when goal profile is set */}
+            {goalProfile && (
+              <GoalAwareTodayStrip
+                goalProfile={goalProfile}
+                band={dr.band}
+                loadTarget={dr.loadTarget}
+                hasPain={coachCtx.activePain ?? false}
+              />
             )}
           </div>
         );
