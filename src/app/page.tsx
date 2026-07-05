@@ -13,6 +13,7 @@ import { buildCoachContextFromSupabase, type CoachContext, type NutritionDaySumm
 import { getTodayReadiness, getTodayPlannedWorkout, getReadinessCategoryLabel, checkPlannedWorkoutMatching } from "@/lib/todayPlanning";
 import { buildRunMateRecoverySystem, getAxisTone, getRecoveryAxisCoachingTone, formatAxisScore, getRecoveryAxisLabel, getOverallDisplayStatus } from "@/lib/recoverySystem";
 import { buildDailyReadiness } from "@/lib/readiness/dailyReadiness";
+import { buildReadinessExplanation } from "@/lib/readiness/readinessExplanation";
 import { ReadinessSignalBars } from "@/components/ReadinessSignalBars";
 import { getTodayTrainingGuardrail } from "@/lib/trainingGuardrails";
 import { createHistoryItem, loadHistoryItems, saveHistoryItems } from "@/lib/cloudHistory";
@@ -1658,6 +1659,9 @@ function TodaySnapshotCard({
 
   const axisSummaryLine = buildTodayOverviewReasonLine(recSys, coachCtx);
 
+  const dailyReadiness = coachCtx ? buildDailyReadiness(coachCtx) : null;
+  const readinessExplanation = dailyReadiness ? buildReadinessExplanation(dailyReadiness) : null;
+
   return (
     <section className="health-score-card px-4 pt-4 pb-3 space-y-2.5">
       <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--label-color)]">ภาพรวมวันนี้</p>
@@ -1706,6 +1710,13 @@ function TodaySnapshotCard({
       {!loading && displayStatus?.note && (
         <p className="text-[11px] text-slate-500 leading-relaxed">
           {displayStatus.cautionLevel === "high" ? "⚠️" : "💡"} {displayStatus.note}
+        </p>
+      )}
+
+      {/* Readiness explanation — why this recommendation */}
+      {!loading && readinessExplanation && (
+        <p className="text-[11px] text-[var(--color-text-muted)] leading-snug" data-testid="readiness-explanation">
+          {readinessExplanation}
         </p>
       )}
 
