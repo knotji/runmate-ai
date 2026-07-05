@@ -10,16 +10,12 @@ import {
   formatScore,
   formatSummaryText,
 } from "@/lib/format";
-
-function isRecoverySwim(summary: string, coachNote: string): boolean {
-  const text = `${summary} ${coachNote}`.toLowerCase();
-  return text.includes("recovery") || text.includes("ฟื้นตัว");
-}
+import { isSwimWorkout, isSwimRecovery, formatSwimDistance } from "@/lib/swimWorkout";
 
 export function WorkoutResultCard({ result }: { result: WorkoutAnalysis }) {
   const ext = result.extracted;
   const isStrength = ext.workoutKind === "strength";
-  const isSwim = ext.swimKind != null;
+  const isSwim = isSwimWorkout(ext);
 
   if (isStrength) {
     return <StrengthResultCard result={result} />;
@@ -68,12 +64,12 @@ export function WorkoutResultCard({ result }: { result: WorkoutAnalysis }) {
 
 function SwimResultCard({ result }: { result: WorkoutAnalysis }) {
   const ext = result.extracted;
-  const recovery = isRecoverySwim(result.coach.workoutSummary, result.coach.coachNote ?? "");
+  const recovery = isSwimRecovery(result.coach.workoutSummary, result.coach.coachNote ?? "");
   const eyebrow = recovery ? "🏊 Recovery Swim" : "🏊 ว่ายน้ำ";
 
   const distanceValue =
     ext.distanceM != null
-      ? `${Math.round(ext.distanceM)} m`
+      ? formatSwimDistance(ext.distanceM)
       : ext.distanceKm != null
       ? formatDistanceKm(ext.distanceKm)
       : null;

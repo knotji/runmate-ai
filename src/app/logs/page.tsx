@@ -33,6 +33,7 @@ import { getHistoryItemDateKey, getBangkokDateKey, dateKeyToRecordedAt, todayBan
 import { normalizeMealSlot, getMealSlotLabel, getMealSlotIcon, getMealSlotOrder } from "@/lib/mealSlots";
 import { getMealSourceInfo, isQuickProteinMeal } from "@/lib/mealSource";
 import { buildWeeklyReview, type WeeklyReview } from "@/lib/weeklyReview";
+import { isSwimWorkout, isSwimRecovery, formatSwimDistance } from "@/lib/swimWorkout";
 import { buildWeeklyCoachTrendInsight } from "@/lib/trainingGuardrails";
 import { buildWeeklyInsightSummary } from "@/lib/report/weeklyInsightSummary";
 import { getRunMateReadinessLabel } from "@/lib/readinessV2";
@@ -1014,15 +1015,19 @@ function getItemShortSummary(item: LocalHistoryItem): string {
   }
   if (item.type === "workout") {
     const ext = (item.data as WorkoutAnalysis)?.extracted ?? {};
-    const kindLabel =
-      ext.workoutKind === "outdoor_run" ? "วิ่งเอาท์ดอร์"
+    const coach = (item.data as WorkoutAnalysis)?.coach ?? {};
+    const isSwim = isSwimWorkout(ext);
+    const kindLabel = isSwim
+      ? (isSwimRecovery(coach.workoutSummary, coach.coachNote) ? "Recovery Swim" : "ว่ายน้ำ")
+      : ext.workoutKind === "outdoor_run" ? "วิ่งเอาท์ดอร์"
       : ext.workoutKind === "treadmill" ? "วิ่งเทรดมิล"
       : ext.workoutKind === "walk" ? "เดิน"
       : ext.workoutKind === "cycling" ? "ปั่นจักรยาน"
       : ext.workoutKind === "strength" ? "เวท"
       : "ออกกำลังกาย";
     const parts = [kindLabel];
-    if (ext.distanceKm != null) parts.push(`${formatDecimal(ext.distanceKm)} กม.`);
+    if (isSwim && ext.distanceM != null) parts.push(formatSwimDistance(ext.distanceM));
+    else if (!isSwim && ext.distanceKm != null) parts.push(`${formatDecimal(ext.distanceKm)} กม.`);
     if (ext.duration) parts.push(formatDuration(ext.duration));
     return parts.join(" · ");
   }
@@ -1568,21 +1573,27 @@ function WorkoutDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; o
   const d = item.data as WorkoutAnalysis;
   const ext = d?.extracted ?? {};
   const coach = d?.coach ?? {};
+  const isSwim = isSwimWorkout(ext);
+  const isStrength = ext.workoutKind === "strength";
+
   const icon =
-    ext.workoutKind === "outdoor_run" || ext.workoutKind === "treadmill" ? "🏃"
+    isSwim ? "🏊"
+    : ext.workoutKind === "outdoor_run" || ext.workoutKind === "treadmill" ? "🏃"
     : ext.workoutKind === "walk" ? "🚶"
     : ext.workoutKind === "cycling" ? "🚴"
     : "💪";
-  const kindLabel =
-    ext.workoutKind === "outdoor_run" ? "วิ่งนอก"
+  const kindLabel = isSwim
+    ? (isSwimRecovery(coach.workoutSummary, coach.coachNote) ? "Recovery Swim" : "ว่ายน้ำ")
+    : ext.workoutKind === "outdoor_run" ? "วิ่งนอก"
     : ext.workoutKind === "treadmill" ? "วิ่งเครื่อง"
     : ext.workoutKind === "walk" ? "เดิน"
     : ext.workoutKind === "cycling" ? "ปั่นจักรยาน"
     : ext.workoutKind === "strength" ? "เวท"
     : "ออกกำลังกาย";
 
-  const hasAnyMetric = ext.distanceKm != null || ext.duration || ext.avgHR != null || ext.calories != null;
-  const isStrength = ext.workoutKind === "strength";
+  const hasAnyMetric =
+    (isSwim ? ext.distanceM != null : ext.distanceKm != null) ||
+    ext.duration || ext.avgHR != null || ext.calories != null;
 
   const muscleGroupsText = isStrength && ext.muscleGroups && ext.muscleGroups.length > 0
     ? ext.muscleGroups.join(" · ")
@@ -1597,13 +1608,17 @@ function WorkoutDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; o
       <p className="text-xs font-bold uppercase tracking-wide text-[var(--recovery-blue)] mb-2">{icon} {kindLabel}</p>
       {hasAnyMetric && (
         <div className="grid grid-cols-3 gap-2 mb-3">
-          {ext.distanceKm != null && <Metric label="ระยะทาง" value={formatDistanceKm(ext.distanceKm)} />}
+          {isSwim
+            ? ext.distanceM != null && <Metric label="ระยะทาง" value={formatSwimDistance(ext.distanceM)} />
+            : ext.distanceKm != null && <Metric label="ระยะทาง" value={formatDistanceKm(ext.distanceKm)} />}
           {ext.duration && <Metric label="เวลา" value={formatDuration(ext.duration)} />}
-          {ext.avgPace && ext.avgPace !== ":" && <Metric label="Pace" value={formatPace(ext.avgPace)} sub="/km" />}
+          {ext.avgPace && ext.avgPace !== ":" && (
+            <Metric label="Pace" value={formatPace(ext.avgPace)} sub={isSwim ? "/100m" : "/km"} />
+          )}
           {ext.avgHR != null && <Metric label="Avg HR" value={formatScore(ext.avgHR)} sub="bpm" />}
           {ext.maxHR != null && <Metric label="Max HR" value={formatScore(ext.maxHR)} sub="bpm" />}
           {ext.calories != null && <Metric label="Calories" value={formatScore(ext.calories)} sub="Cal" />}
-          {ext.sweatLossMl != null && <Metric label="เหงื่อ" value={formatScore(ext.sweatLossMl)} sub="ml" />}
+          {ext.sweatLossMl != null && !isSwim && <Metric label="เหงื่อ" value={formatScore(ext.sweatLossMl)} sub="ml" />}
         </div>
       )}
       {/* Strength-specific info */}
