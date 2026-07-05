@@ -5,6 +5,7 @@ import { buildCoachResponseFormatInstruction } from "@/lib/coachPrompt";
 import { coachChatPrompt } from "@/lib/prompts/coachChat";
 import { createClient } from "@/lib/supabase/server";
 import { saveCoachMessage, fetchPromptCoachMessages } from "@/lib/coachMessages";
+import { buildTrainingPaceBands, getAllowedPaceBandsForReadiness, formatPaceRange } from "@/lib/training/trainingPaceBands";
 import type { UserProfile } from "@/types/profile";
 
 type ChatMessage = { role?: "user" | "assistant"; content?: string };
@@ -546,12 +547,33 @@ export function buildReadinessGuidance(context: unknown): string {
     ? "Allow: long run, short tempo, 10% km increase. No specific avoids."
     : "Allow: planned training. No specific avoids.";
 
+  // Pace bands context — only when race goal has a target time
+  let paceBandLine = "";
+  const raceGoal = readRecord(ctx.raceGoal);
+  if (raceGoal) {
+    const paceBands = buildTrainingPaceBands({
+      raceDistance: stringValue(raceGoal.raceDistance) ?? "",
+      targetTime: stringValue(raceGoal.targetTime) ?? undefined,
+    });
+    if (paceBands) {
+      const allowedKeys = getAllowedPaceBandsForReadiness({
+        bands: paceBands,
+        dailyReadiness: { band: band as "green" | "yellow" | "red" | "pain_risk", loadTarget: loadTarget as "rest" | "walk" | "easy" | "moderate" | "build" | "race" },
+      });
+      const BAND_NAMES: Record<string, string> = { easy: "Easy", long: "Long", tempo: "Tempo", interval: "Interval" };
+      const allBands = ["easy", "long", "tempo", "interval"] as const;
+      const bandDesc = allBands.map((k) => `${BAND_NAMES[k]}: ${formatPaceRange(paceBands[k])}${allowedKeys.includes(k) ? " [allowed today]" : " [too hard today]"}`).join(", ");
+      paceBandLine = `Pace bands for ${stringValue(raceGoal.raceDistance) ?? "race"} (goal ${stringValue(raceGoal.targetTime) ?? "?"}): ${bandDesc}. Only recommend allowed-today bands.`;
+    }
+  }
+
   const lines = [
     `DAILY READINESS: band=${band}, loadTarget=${loadTarget}, readinessScore=${score ?? "none"}.`,
     signalLines.length ? `Signals — ${signalLines.join(" | ")}` : "",
     painLines.join(" "),
     restrictionLine,
     avoidAllow,
+    paceBandLine,
   ].filter(Boolean);
 
   return `DAILY_COACH_GUARDRAILS:\n${lines.join("\n")}`;

@@ -412,6 +412,24 @@ export default function SettingsPage() {
       )}
 
       <section className="soft-panel mt-5 px-4 py-3 text-xs text-[var(--muted-text)]">
+        <p className="font-bold uppercase tracking-[0.15em] text-[var(--label-color)]">v0.1.3</p>
+        <ul className="mt-2 space-y-1.5 leading-5">
+          <li>· Today แสดงเหตุผลสั้น ๆ ว่าทำไมถึงแนะนำแบบนี้ — โหลดสูง, ฟื้นตัวต่ำ หรืออาการเจ็บ</li>
+          <li>· Coach ได้รับข้อมูล signals ครบ (recovery, load, sleep, fuel, pain) ก่อนตอบทุกครั้ง</li>
+          <li>· Report มีสรุปสั้น ๆ ของสัปดาห์นี้ — กม. วิ่ง, โหลด, การนอน และอาการเจ็บ</li>
+          <li>· ช่วงเพซซ้อม คำนวณจากเป้าหมาย Race แสดงบน Race Goal และ Today</li>
+        </ul>
+      </section>
+
+      <section className="soft-panel mt-3 px-4 py-3 text-xs text-[var(--muted-text)]">
+        <p className="font-bold uppercase tracking-[0.15em] text-[var(--label-color)]">v0.1.2</p>
+        <ul className="mt-2 space-y-1.5 leading-5">
+          <li>· หน้า Pain มี Selector สถานะ — เลือกได้ว่าอาการตอนนี้เป็นยังไง</li>
+          <li>· สถานะที่เลือกจะ override การประเมินอาการอัตโนมัติทันที ไม่ต้องรอ 48 ชม.</li>
+        </ul>
+      </section>
+
+      <section className="soft-panel mt-3 px-4 py-3 text-xs text-[var(--muted-text)]">
         <p className="font-bold uppercase tracking-[0.15em] text-[var(--label-color)]">v0.1.0 Beta</p>
         <ul className="mt-2 space-y-1.5 leading-5">
           <li>· วันไหนฟื้นตัวต่ำหรือนอนน้อย โค้ชจะพูดนุ่ม ๆ และแนะนำลดโหลด ไม่กดดัน</li>

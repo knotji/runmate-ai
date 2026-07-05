@@ -12,6 +12,8 @@ import { formatRaceDisplayName } from "@/lib/date";
 import { PAIN_RECOVERY_COPY, type PainRecoveryStatus } from "@/lib/painRecovery";
 import { getTodayTrainingGuardrail } from "@/lib/trainingGuardrails";
 import { buildDailyReadiness } from "@/lib/readiness/dailyReadiness";
+import { buildTrainingPaceBands, getAllowedPaceBandsForReadiness, formatPaceRange } from "@/lib/training/trainingPaceBands";
+import type { PaceBandKey } from "@/lib/training/trainingPaceTypes";
 
 import { loadHistoryItems } from "@/lib/cloudHistory";
 import { suggestStrengthRoutine } from "@/lib/strengthRoutineSelect";
@@ -199,6 +201,7 @@ export default function RaceGoalPage() {
         <>
           <RaceCountdownCard goal={goal} phase={plan.currentPhase} />
           {selectedTodayWorkout ? <TodayWorkoutCard workout={normalizeForDisplay(selectedTodayWorkout)} coachContext={coachContext} /> : null}
+          {goal ? <PaceBandsCard goal={goal} coachContext={coachContext} /> : null}
           {plan.weeklyPlan?.length ? <ActionableWeekCard workouts={plan.weeklyPlan.map(normalizeForDisplay)} coachContext={coachContext} /> : null}
           <RecoveryGuardrailsCard coachContext={coachContext} />
           <PlanAtGlance plan={plan} freshness={planFreshness} />
@@ -584,6 +587,49 @@ function TodayWorkoutCard({ workout, coachContext }: { workout: WeekWorkout; coa
         }
         return null;
       })()}
+    </section>
+  );
+}
+
+const BAND_LABELS: Record<PaceBandKey, string> = {
+  easy: "Easy run",
+  long: "Long run",
+  tempo: "Tempo",
+  interval: "Interval",
+};
+
+function PaceBandsCard({ goal, coachContext }: { goal: RaceGoal; coachContext: CoachContext | null }) {
+  const bands = buildTrainingPaceBands(goal);
+  if (!bands) return null;
+
+  const dr = coachContext ? buildDailyReadiness(coachContext) : null;
+  const allowedKeys = dr
+    ? getAllowedPaceBandsForReadiness({ bands, dailyReadiness: dr })
+    : (["easy", "long", "tempo", "interval"] as PaceBandKey[]);
+
+  const allKeys: PaceBandKey[] = ["easy", "long", "tempo", "interval"];
+
+  return (
+    <section className="rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface)] px-4 py-3" data-testid="pace-bands-card">
+      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--label-color)]">ช่วงเพซซ้อมของคุณ</p>
+      <p className="mt-0.5 text-[10px] text-[var(--color-text-muted)]">คำนวณจากเป้าหมาย {goal.raceDistance} · {goal.targetTime}</p>
+      <div className="mt-2 space-y-1.5">
+        {allKeys.map((key) => {
+          const range = bands[key];
+          const allowed = allowedKeys.includes(key);
+          return (
+            <div key={key} className={`flex items-center justify-between gap-2 rounded-xl px-3 py-1.5 ${allowed ? "bg-[var(--primary-soft)]" : "bg-[var(--surface-muted)] opacity-50"}`}>
+              <span className="text-[11px] font-semibold text-[var(--foreground)]">{BAND_LABELS[key]}</span>
+              <span className="text-[11px] font-bold text-[var(--primary-strong)] tabular-nums">{formatPaceRange(range)}</span>
+            </div>
+          );
+        })}
+      </div>
+      {dr && allowedKeys.length < 4 && (
+        <p className="mt-2 text-[10px] text-[var(--color-text-muted)] leading-snug">
+          💡 วันนี้เหมาะกับ {allowedKeys.map((k) => BAND_LABELS[k]).join(" · ")} เท่านั้น ตามสภาพร่างกาย
+        </p>
+      )}
     </section>
   );
 }

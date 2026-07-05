@@ -14,6 +14,8 @@ import { getTodayReadiness, getTodayPlannedWorkout, getReadinessCategoryLabel, c
 import { buildRunMateRecoverySystem, getAxisTone, getRecoveryAxisCoachingTone, formatAxisScore, getRecoveryAxisLabel, getOverallDisplayStatus } from "@/lib/recoverySystem";
 import { buildDailyReadiness } from "@/lib/readiness/dailyReadiness";
 import { buildReadinessExplanation } from "@/lib/readiness/readinessExplanation";
+import { buildTrainingPaceBands, getAllowedPaceBandsForReadiness, formatPaceRange } from "@/lib/training/trainingPaceBands";
+import type { PaceBandKey } from "@/lib/training/trainingPaceTypes";
 import { ReadinessSignalBars } from "@/components/ReadinessSignalBars";
 import { getTodayTrainingGuardrail } from "@/lib/trainingGuardrails";
 import { createHistoryItem, loadHistoryItems, saveHistoryItems } from "@/lib/cloudHistory";
@@ -1771,6 +1773,32 @@ function TodaySnapshotCard({
                 {recSys.axes.load.score >= 70 ? " · หลีกเลี่ยงวิ่งหนัก" : ""}
               </p>
             )}
+          </div>
+        );
+      })()}
+
+      {/* Compact today pace card — only when race goal with target time exists */}
+      {!loading && coachCtx?.raceGoal && dailyReadiness && (() => {
+        const rg = coachCtx.raceGoal as Record<string, unknown>;
+        const paceBands = buildTrainingPaceBands({
+          raceDistance: (rg.raceDistance as string) ?? "",
+          targetTime: rg.targetTime as string | undefined,
+        });
+        if (!paceBands) return null;
+        const allowedKeys = getAllowedPaceBandsForReadiness({ bands: paceBands, dailyReadiness });
+        if (allowedKeys.length === 0) return null;
+        const LABELS: Record<PaceBandKey, string> = { easy: "Easy", long: "Long", tempo: "Tempo", interval: "Interval" };
+        return (
+          <div className="rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface-muted)] px-3 py-2" data-testid="today-pace-card">
+            <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--label-color)]">ช่วงเพซวันนี้</p>
+            <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+              {allowedKeys.map((key) => (
+                <span key={key} className="text-[10px] text-[var(--foreground)]">
+                  <span className="font-semibold">{LABELS[key]}</span>{" "}
+                  <span className="tabular-nums text-[var(--primary-strong)]">{formatPaceRange(paceBands[key])}</span>
+                </span>
+              ))}
+            </div>
           </div>
         );
       })()}

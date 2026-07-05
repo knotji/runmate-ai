@@ -95,4 +95,20 @@ describe("buildReadinessGuidance", () => {
     expect(result).toContain("GUARDRAIL");
     expect(result).toContain("tempo");
   });
+
+  it("race goal with target time → pace bands included in output", () => {
+    const result = buildReadinessGuidance(makeCtx({
+      raceGoal: { raceDistance: "10K", targetTime: "1:00:00" },
+    }));
+    expect(result).toContain("Pace bands");
+    expect(result).toContain("10K");
+    expect(result).toContain("allowed today");
+  });
+
+  it("race goal without target time → no pace bands line", () => {
+    const result = buildReadinessGuidance(makeCtx({
+      raceGoal: { raceDistance: "10K", targetTime: null },
+    }));
+    expect(result).not.toContain("Pace bands");
+  });
 });
