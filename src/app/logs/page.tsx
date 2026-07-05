@@ -36,6 +36,7 @@ import { buildWeeklyReview, type WeeklyReview } from "@/lib/weeklyReview";
 import { isSwimWorkout, isSwimRecovery, formatSwimDistance } from "@/lib/swimWorkout";
 import { buildWeeklyCoachTrendInsight } from "@/lib/trainingGuardrails";
 import { buildWeeklyInsightSummary } from "@/lib/report/weeklyInsightSummary";
+import { buildGoalProgressInsight } from "@/lib/report/goalProgressInsight";
 import { getRunMateReadinessLabel } from "@/lib/readinessV2";
 import { getRecoveryAxisLabel } from "@/lib/recoverySystem";
 import {
@@ -360,6 +361,25 @@ export default function ReportPage() {
             cutoff={dashboardCutoff}
             review={weeklyReview}
           />
+
+          {/* Goal progress insight — shown when goal profile + weekly data available */}
+          {profile?.goalProfile && weeklyReview && (() => {
+            const insight = buildGoalProgressInsight(profile.goalProfile!, weeklyReview);
+            if (!insight) return null;
+            const toneClass =
+              insight.tone === "positive" ? "bg-[var(--primary-soft)] border-[var(--primary-strong)]/30 text-[var(--primary-strong)]" :
+              insight.tone === "caution" ? "bg-amber-50 border-amber-200 text-amber-900" :
+              "bg-[var(--surface-muted)] border-[var(--border-warm)] text-[var(--foreground)]";
+            return (
+              <div className={`rounded-2xl border px-4 py-3 space-y-1 ${toneClass}`} data-testid="goal-progress-insight">
+                <p className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-70">ความคืบหน้าสู่เป้าหมาย</p>
+                <p className="text-xs font-semibold leading-relaxed">{insight.summaryTh}</p>
+                <Link href="/settings?tab=goals" className="text-[10px] font-bold underline underline-offset-2 opacity-60 hover:opacity-100">
+                  ดูเป้าหมาย →
+                </Link>
+              </div>
+            );
+          })()}
 
           <FullHistoryDetails
             activeFilter={activeFilter}
