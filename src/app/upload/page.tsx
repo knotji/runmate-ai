@@ -2293,18 +2293,19 @@ function OtherWorkoutForm({
     setFiles((prev) => prev.filter((_, i) => i !== idx));
   }
 
+  const trimmed = note.trim();
+  const hasNote = trimmed.length > 0;
+  const hasImages = files.length > 0;
+  const canSubmit = hasNote || hasImages;
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const trimmed = note.trim();
-    if (!trimmed) {
-      setError("กรุณาเล่าให้โค้ชฟังก่อน");
-      return;
-    }
+    if (!canSubmit) return;
     setError("");
     setSubmitting(true);
 
     // Text-only: save locally without hitting the API
-    if (files.length === 0) {
+    if (!hasImages) {
       onSave(buildOtherWorkoutFallback(trimmed, defaultDate));
       setSubmitting(false);
       return;
@@ -2354,8 +2355,13 @@ function OtherWorkoutForm({
       const result = (await res.json()) as unknown;
       onResult(result);
     } catch {
-      // API failed: fall back to local save from note
-      onSave(buildOtherWorkoutFallback(trimmed, defaultDate));
+      if (hasNote) {
+        // Has a note: fall back to local save from note text
+        onSave(buildOtherWorkoutFallback(trimmed, defaultDate));
+      } else {
+        // Image-only with no note: can't fall back, ask user to retry
+        setError("วิเคราะห์รูปไม่สำเร็จ ลองอัปโหลดใหม่หรือพิมพ์รายละเอียดกิจกรรมแทน");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -2367,12 +2373,12 @@ function OtherWorkoutForm({
     <form onSubmit={handleSubmit} className="space-y-4 pt-2 card p-5 bg-white" data-testid="other-workout-form">
       <div>
         <h3 className="text-lg font-bold text-[var(--foreground)]">บันทึกกิจกรรมอื่น ๆ</h3>
-        <p className="text-xs text-slate-500">เล่าให้โค้ชฟัง แล้วโค้ชจะสรุปให้</p>
+        <p className="text-xs text-slate-500">พิมพ์รายละเอียด หรือแนบรูปสรุปกิจกรรมอย่างน้อย 1 อย่าง</p>
       </div>
 
       <div className="space-y-1.5">
         <label htmlFor="owf-note" className="text-xs font-bold uppercase tracking-wide text-slate-400">
-          กิจกรรมวันนี้ <span className="text-[var(--primary)]">*</span>
+          กิจกรรมวันนี้
         </label>
         <textarea
           id="owf-note"
@@ -2380,7 +2386,6 @@ function OtherWorkoutForm({
           placeholder="เช่น ว่ายน้ำเบา ๆ 25 นาที, HR ประมาณ 120, recovery swim, ไม่มีเจ็บ"
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          required
         />
       </div>
 
@@ -2433,8 +2438,14 @@ function OtherWorkoutForm({
 
       {error && <p className="text-xs font-semibold text-red-600 bg-red-50 p-2.5 rounded-xl">{error}</p>}
 
-      <LoadingButton type="submit" loading={isLoading} loadingText="กำลังวิเคราะห์..." className="btn-primary w-full py-3 text-sm font-bold">
-        {files.length > 0 ? "วิเคราะห์และบันทึก" : "บันทึกกิจกรรม"}
+      <LoadingButton
+        type="submit"
+        loading={isLoading}
+        loadingText="กำลังวิเคราะห์..."
+        disabled={!canSubmit || isLoading}
+        className="btn-primary w-full py-3 text-sm font-bold disabled:opacity-45 disabled:cursor-not-allowed"
+      >
+        {hasImages ? "วิเคราะห์และบันทึก" : "บันทึกกิจกรรม"}
       </LoadingButton>
     </form>
   );
