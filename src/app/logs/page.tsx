@@ -34,6 +34,7 @@ import { normalizeMealSlot, getMealSlotLabel, getMealSlotIcon, getMealSlotOrder 
 import { getMealSourceInfo, isQuickProteinMeal } from "@/lib/mealSource";
 import { buildWeeklyReview, type WeeklyReview } from "@/lib/weeklyReview";
 import { buildWeeklyCoachTrendInsight } from "@/lib/trainingGuardrails";
+import { buildWeeklyInsightSummary } from "@/lib/report/weeklyInsightSummary";
 import { getRunMateReadinessLabel } from "@/lib/readinessV2";
 import { getRecoveryAxisLabel } from "@/lib/recoverySystem";
 import {
@@ -714,6 +715,17 @@ function RollingSevenDayInsight({
       </summary>
 
       <div className="mt-4 space-y-3 border-t border-[var(--color-border-soft)] pt-4">
+        {/* Short weekly summary */}
+        {review && (() => {
+          const summary = buildWeeklyInsightSummary(review);
+          if (!summary) return null;
+          return (
+            <p className="text-[11px] text-[var(--color-text-muted)] leading-snug" data-testid="weekly-insight-summary">
+              สรุปสั้น ๆ: {summary}
+            </p>
+          );
+        })()}
+
         {/* Weekly coach trend insight */}
         {review && (() => {
           const insight = buildWeeklyCoachTrendInsight({
