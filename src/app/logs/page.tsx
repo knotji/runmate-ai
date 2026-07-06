@@ -725,6 +725,7 @@ function RollingSevenDayInsight({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--label-color)]">Insight 7 วันล่าสุด</p>
+            <p className="text-[9px] text-[var(--color-text-muted)] mt-0.5" data-testid="rolling-7-day-note">รวมข้อมูลย้อนหลัง 7 วัน แม้ข้ามสัปดาห์</p>
             <p className="mt-1 text-xs leading-5 text-[var(--color-text-muted)]">{preview}</p>
             {coachNote && <p className="mt-0.5 text-xs font-medium leading-5 text-[var(--primary-strong)]">{coachNote}</p>}
           </div>

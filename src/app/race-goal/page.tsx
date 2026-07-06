@@ -630,6 +630,9 @@ function PaceBandsCard({ goal, coachContext }: { goal: RaceGoal; coachContext: C
           💡 วันนี้เหมาะกับ {allowedKeys.map((k) => BAND_LABELS[k]).join(" · ")} เท่านั้น ตามสภาพร่างกาย
         </p>
       )}
+      <p className="mt-2 text-[10px] text-[var(--color-text-muted)] leading-snug" data-testid="pace-bands-reference-note">
+        ใช้ช่วงเพซด้านบนเป็น reference — ให้ readiness, HR/RPE, ความล้า และอาการเจ็บนำเสมอ
+      </p>
     </section>
   );
 }

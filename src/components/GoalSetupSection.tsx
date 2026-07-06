@@ -14,6 +14,7 @@ import { DEFAULT_GOAL_PROFILE, goalProfileSummaryTh, mergeGoalProfile } from "@/
 import { loadGoalProfileFromSupabase, saveGoalProfileToSupabase } from "@/lib/goals/goalStorage";
 
 type Step = 1 | 2 | 3 | 4;
+type Mode = "summary" | "wizard";
 
 const PRIMARY_GOAL_OPTIONS: { goal: GoalType; desc: string }[] = [
   { goal: "race_performance", desc: "อยากทำเวลาในการแข่งขัน มีเป้าหมาย race ที่ชัดเจน" },
@@ -46,7 +47,73 @@ function formatSeconds(sec: number): string {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
+// ─── Summary card ─────────────────────────────────────────────────────────────
+
+function GoalSummaryCard({ profile, onEdit }: { profile: UserGoalProfile; onEdit: () => void }) {
+  const rg = profile.raceGoal;
+  const lg = profile.lifestyleGoal;
+  return (
+    <section className="card space-y-4 p-5" data-testid="goal-summary-card">
+      <div>
+        <p className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--label-color)]">เป้าหมายของคุณ</p>
+        <p className="mt-1 text-sm leading-6 text-[var(--muted-text)]">
+          RunMate จะใช้เป้าหมายนี้ร่วมกับ readiness, load, pain และข้อมูลจริง เพื่อปรับคำแนะนำให้เหมาะกับคุณ
+        </p>
+      </div>
+
+      <div className="rounded-2xl bg-[var(--surface-muted)] px-4 py-3 space-y-2" data-testid="goal-summary-rows">
+        <SummaryRow label="หลัก" value={GOAL_LABEL_TH[profile.primaryGoal] ?? profile.primaryGoal} />
+        {profile.secondaryGoals.length > 0 && (
+          <SummaryRow
+            label="รอง"
+            value={profile.secondaryGoals.map((g) => GOAL_LABEL_TH[g] ?? g).join(", ")}
+          />
+        )}
+        {profile.guardrailGoals.length > 0 && (
+          <SummaryRow
+            label="กันพลาด"
+            value={profile.guardrailGoals.map((g) => GOAL_LABEL_TH[g] ?? g).join(", ")}
+          />
+        )}
+        {rg?.enabled && rg.distanceKm && (
+          <SummaryRow
+            label="Race"
+            value={`${rg.distanceKm} km${rg.targetTimeSec ? ` · ${formatSeconds(rg.targetTimeSec)}` : ""}${rg.raceDate ? ` · ${rg.raceDate}` : ""}`}
+          />
+        )}
+        {lg?.sleepTargetHours && (
+          <SummaryRow label="เป้านอน" value={`${lg.sleepTargetHours} ชั่วโมง/คืน`} />
+        )}
+        {lg?.weeklyWorkoutDays && (
+          <SummaryRow label="ขยับ/สัปดาห์" value={`${lg.weeklyWorkoutDays} วัน`} />
+        )}
+      </div>
+
+      <button
+        type="button"
+        onClick={onEdit}
+        className="btn-primary w-full py-3 text-sm font-bold"
+        data-testid="goal-edit-btn"
+      >
+        แก้ไขเป้าหมาย
+      </button>
+    </section>
+  );
+}
+
+function SummaryRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-start gap-3">
+      <span className="shrink-0 text-[11px] font-bold text-[var(--label-color)] w-20">{label}</span>
+      <span className="text-xs font-semibold text-[var(--foreground)] leading-relaxed">{value}</span>
+    </div>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
 export function GoalSetupSection() {
+  const [mode, setMode] = useState<Mode>("wizard");
   const [step, setStep] = useState<Step>(1);
   const [profile, setProfile] = useState<UserGoalProfile>(DEFAULT_GOAL_PROFILE);
   const [loading, setLoading] = useState(true);
@@ -68,6 +135,10 @@ export function GoalSetupSection() {
           if (rg.distanceKm) setRaceDistanceKm(String(rg.distanceKm));
           if (rg.raceDate) setRaceDate(rg.raceDate);
           if (rg.targetTimeSec) setRaceTargetTime(formatSeconds(rg.targetTimeSec));
+        }
+        // Show summary if profile was previously saved (has updatedAt timestamp)
+        if (res.goalProfile.updatedAt) {
+          setMode("summary");
         }
       }
       setLoading(false);
@@ -150,9 +221,14 @@ export function GoalSetupSection() {
         setError(res.reason);
         return;
       }
-      setProfile(finalProfile);
+      // Add a local updatedAt so summary mode knows this profile is saved
+      const savedProfile = { ...finalProfile, updatedAt: new Date().toISOString() };
+      setProfile(savedProfile);
       setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
+      setTimeout(() => {
+        setSaved(false);
+        setMode("summary");
+      }, 1200);
     } finally {
       setSaving(false);
     }
@@ -168,6 +244,10 @@ export function GoalSetupSection() {
         <p className="text-sm text-[var(--muted-text)]">กำลังโหลดเป้าหมาย...</p>
       </section>
     );
+  }
+
+  if (mode === "summary") {
+    return <GoalSummaryCard profile={profile} onEdit={() => { setMode("wizard"); setStep(1); }} />;
   }
 
   return (
