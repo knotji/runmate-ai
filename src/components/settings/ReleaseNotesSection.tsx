@@ -31,7 +31,7 @@ export function ReleaseNotesSection() {
           <div>
             <p className="font-semibold text-[var(--foreground)]">v0.2 — Goal-Aware Coach</p>
             <ul className="mt-1.5 space-y-1 leading-5">
-              <li>· ตั้งเป้าหมายหลักและรองในแท็บ "เป้าหมาย" — โค้ชปรับคำแนะนำให้ตรงกับเป้า</li>
+              <li>· ตั้งเป้าหมายหลักและรองในแท็บ &ldquo;เป้าหมาย&rdquo; — โค้ชปรับคำแนะนำให้ตรงกับเป้า</li>
               <li>· สิ่งที่ต้องระวัง (guardrail) — โค้ชจะลดความหนักอัตโนมัติเมื่อมีความเสี่ยง</li>
               <li>· Today แสดง goal strip — เห็นทันทีว่าวันนี้เป้าหมายกำหนดอะไร</li>
               <li>· Report มี goal progress insight — สรุปว่าสัปดาห์นี้เป็นยังไงกับเป้าหมาย</li>

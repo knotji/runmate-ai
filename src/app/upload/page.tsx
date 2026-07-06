@@ -800,6 +800,47 @@ export default function UploadPage() {
           </>
         ) : null}
         </div>
+
+        {/* ── Workout manual-entry forms (inside section so nav-pad doesn't create a gap above them) ── */}
+        {type === "workout" && workoutSubtype === "strength" && strengthInputMode === "manual" && (
+          <div className="space-y-4">
+            <SelectedDateBadge dateKey={selectedDateKey} />
+            <StrengthWorkoutCard
+              context={coachContext}
+              selectedDateKey={selectedDateKey}
+              onLogCompleted={() => {
+                setSaveStatus("saved");
+                setTimeout(() => setSaveStatus("idle"), 3000);
+              }}
+            />
+          </div>
+        )}
+
+        {type === "workout" && workoutSubtype === "walk" && (
+          <div className="space-y-4">
+            <SelectedDateBadge dateKey={selectedDateKey} />
+            <ManualWorkoutLogForm
+              subtype="walk"
+              saving={saveStatus === "saving"}
+              onSave={handleManualWorkoutSave}
+              defaultDate={selectedDateKey}
+            />
+          </div>
+        )}
+
+        {type === "workout" && workoutSubtype === "other" && (
+          <div className="space-y-4" data-testid="other-workout-section">
+            <SelectedDateBadge dateKey={selectedDateKey} />
+            <OtherWorkoutForm
+              saving={saveStatus === "saving"}
+              onResult={handleAnalysisResult}
+              onSave={handleManualWorkoutSave}
+              defaultDate={selectedDateKey}
+              coachContext={coachContext}
+              profile={profile}
+            />
+          </div>
+        )}
       </section>
 
       {/* ── AI-Suggested Date Confirmation ── */}
@@ -831,47 +872,6 @@ export default function UploadPage() {
               ⚠️ วันที่ที่อ่านได้อาจคลาดเคลื่อน กรุณาตรวจทานก่อนใช้
             </p>
           )}
-        </div>
-      )}
-
-      {/* Strength manual routine flow */}
-      {type === "workout" && workoutSubtype === "strength" && strengthInputMode === "manual" && (
-        <div className="space-y-4">
-          <SelectedDateBadge dateKey={selectedDateKey} />
-          <StrengthWorkoutCard
-            context={coachContext}
-            selectedDateKey={selectedDateKey}
-            onLogCompleted={() => {
-              setSaveStatus("saved");
-              setTimeout(() => setSaveStatus("idle"), 3000);
-            }}
-          />
-        </div>
-      )}
-
-      {type === "workout" && workoutSubtype === "walk" && (
-        <div className="space-y-4">
-          <SelectedDateBadge dateKey={selectedDateKey} />
-          <ManualWorkoutLogForm
-            subtype="walk"
-            saving={saveStatus === "saving"}
-            onSave={handleManualWorkoutSave}
-            defaultDate={selectedDateKey}
-          />
-        </div>
-      )}
-
-      {type === "workout" && workoutSubtype === "other" && (
-        <div className="space-y-4">
-          <SelectedDateBadge dateKey={selectedDateKey} />
-          <OtherWorkoutForm
-            saving={saveStatus === "saving"}
-            onResult={handleAnalysisResult}
-            onSave={handleManualWorkoutSave}
-            defaultDate={selectedDateKey}
-            coachContext={coachContext}
-            profile={profile}
-          />
         </div>
       )}
 

@@ -44,4 +44,41 @@ test.describe("Upload Dashboard v2", () => {
     await expect(page.getByRole("button", { name: "เลือก PDF ก่อนวิเคราะห์" })).toBeDisabled();
     await expect(page.locator('input[type="file"]')).toBeHidden();
   });
+
+  test("workout subtype 'other' shows OtherWorkoutForm near the subtype selector without large gap", async ({ page }) => {
+    await installMockBackend(page);
+    await gotoApp(page, "/upload");
+
+    // Select workout type
+    await page.getByRole("button", { name: /ซ้อม/ }).click();
+    await expect(page.getByTestId("upload-type-summary")).toContainText("บันทึกการซ้อม");
+
+    // Select "อื่น ๆ" subtype
+    await page.getByRole("button", { name: "อื่น ๆ" }).click();
+
+    // The form should be visible
+    const form = page.getByTestId("other-workout-form");
+    await expect(form).toBeVisible();
+
+    // The form wrapper and the upload-input-panel should both be inside upload-dashboard
+    const section = page.getByTestId("upload-dashboard");
+    const otherSection = page.getByTestId("other-workout-section");
+    await expect(otherSection).toBeVisible();
+
+    // Verify no large blank space: the vertical distance between the
+    // subtype-chip area (upload-input-panel) and the form should be small.
+    const panelBox = await page.getByTestId("upload-input-panel").boundingBox();
+    const formBox = await form.boundingBox();
+    expect(panelBox).not.toBeNull();
+    expect(formBox).not.toBeNull();
+    if (panelBox && formBox) {
+      const gap = formBox.y - (panelBox.y + panelBox.height);
+      // Gap should be less than 60px (normal card spacing, not a nav-pad gap of 96px+)
+      expect(gap).toBeLessThan(60);
+    }
+
+    // Both elements should be inside the upload-dashboard section
+    await expect(section.getByTestId("upload-input-panel")).toBeVisible();
+    await expect(section.getByTestId("other-workout-section")).toBeVisible();
+  });
 });
