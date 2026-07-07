@@ -117,6 +117,7 @@ export function CoachChat() {
   const [recoveryCtx, setRecoveryCtx] = useState<RecoveryChipContext | null>(null);
   const [showMealQuestions, setShowMealQuestions] = useState(false);
   const [manualCurrentPain, setManualCurrentPain] = useState(false);
+  const [showAllMessages, setShowAllMessages] = useState(false);
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -410,7 +411,17 @@ export function CoachChat() {
             <p className="mt-1 text-xs text-[var(--muted-text)]">ลองถามว่า วันนี้ควรซ้อมยังไงดี หรือ กินอะไรดีหลังวิ่ง</p>
           </div>
         ) : (
-          messages.map((message, index) => {
+          <>
+            {!showAllMessages && messages.length > 3 && (
+              <button
+                type="button"
+                onClick={() => setShowAllMessages(true)}
+                className="self-center rounded-full px-3 py-1 text-[11px] font-bold text-[var(--primary)] hover:underline"
+              >
+                ดูทั้งหมด ({messages.length} ข้อความ)
+              </button>
+            )}
+            {(showAllMessages ? messages : messages.slice(-3)).map((message, index) => {
             const isUser = message.role === "user";
             return (
               <div
@@ -440,7 +451,8 @@ export function CoachChat() {
                 </div>
               </div>
             );
-          })
+          })}
+          </>
         )}
         {loading ? (
           <div className="flex flex-col gap-1 items-start" data-testid="chat-loading-bubble">

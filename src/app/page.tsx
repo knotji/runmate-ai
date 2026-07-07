@@ -1800,7 +1800,18 @@ function TodaySnapshotCard({
         });
         if (!paceBands) return null;
         const allowedKeys = getAllowedPaceBandsForReadiness({ bands: paceBands, dailyReadiness });
-        if (allowedKeys.length === 0) return null;
+        // Rest/pain/walk day: no pace chasing, but show easy range as optional movement guide
+        if (allowedKeys.length === 0) {
+          return (
+            <div className="rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface-muted)] px-3 py-2" data-testid="today-pace-card">
+              <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--label-color)]">ช่วงเพซวันนี้</p>
+              <p className="mt-1 text-sm font-semibold text-[var(--status-rest)]">วันนี้ไม่ต้องไล่ pace</p>
+              <p className="mt-0.5 text-[10px] text-[var(--color-text-muted)] leading-snug">
+                ถ้าจะขยับ: Easy เบา ๆ {formatPaceRange(paceBands.easy)} หรือเดินเร็ว
+              </p>
+            </div>
+          );
+        }
         // Recovery/easy day: show only Easy pace + safety tip
         const isRecoveryDay = dailyReadiness.loadTarget === "easy" || dailyReadiness.loadTarget === "walk" || dailyReadiness.loadTarget === "rest";
         const displayKeys: PaceBandKey[] = isRecoveryDay ? (allowedKeys.includes("easy") ? ["easy"] : [allowedKeys[0]]) : allowedKeys;

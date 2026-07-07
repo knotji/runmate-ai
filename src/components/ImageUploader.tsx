@@ -300,7 +300,7 @@ export function ImageUploader({
       {children}
 
       <LoadingButton
-        className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-45"
+        className="btn-primary w-full"
         type="submit"
         loading={loading}
         loadingText="กำลังวิเคราะห์..."
