@@ -146,7 +146,7 @@ test.describe("Report history timestamps", () => {
     // Type badge
     await expect(row.locator(".text-orange-700")).toBeVisible(); // food badge
     // Expand
-    await row.getByRole("button", { name: "รายละเอียด" }).click();
+    await row.getByRole("button", { name: "ดู" }).click();
     await expect(row.getByTestId("compact-item-details")).toBeVisible();
   });
 });
@@ -186,7 +186,7 @@ test.describe("Report รายการทั้งหมด UI polish", () => 
 
     // All filter buttons are visible (not clipped off-screen at initial width)
     await expect(pillsRow.getByRole("button", { name: "ทั้งหมด" })).toBeVisible();
-    await expect(pillsRow.getByRole("button", { name: "สุขภาพ" })).toBeVisible(); // last chip
+    await expect(pillsRow.getByRole("button", { name: "เจ็บ" })).toBeVisible(); // last chip
   });
 
   test("active filter chip uses soft sage tone not solid primary fill", async ({ page }) => {

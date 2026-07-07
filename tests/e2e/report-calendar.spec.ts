@@ -178,7 +178,7 @@ test("Rolling 7d insight and full history are collapsed by default", async ({ pa
   await expect(page.getByTestId("report-compact-item").first()).not.toBeVisible();
   await expect(page.getByRole("button", { name: "ทั้งหมด" })).not.toBeVisible();
 
-  await page.getByText("ดูรายละเอียด 7 วันล่าสุด").click();
+  await page.getByText("ดู insight เต็ม").click();
   await expect(page.getByText("แนวโน้ม Recovery 7 วัน")).toBeVisible();
   await expect(page.getByText("ตัวเลขสรุป 7 วันล่าสุด")).toBeVisible();
 
@@ -222,7 +222,7 @@ test("all-items section compact layout and lazy loading", async ({ page }) => {
   // Expand one item
   const firstItem = page.getByTestId("report-compact-item").first();
   await expect(firstItem.getByTestId("compact-item-details")).not.toBeVisible();
-  await firstItem.getByRole("button", { name: "รายละเอียด" }).click();
+  await firstItem.getByRole("button", { name: "ดู" }).click();
   await expect(firstItem.getByTestId("compact-item-details")).toBeVisible();
   
   // Collapse it

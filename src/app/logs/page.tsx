@@ -58,7 +58,7 @@ import { buildRunMateExportFilename, downloadJsonFile } from "@/lib/downloadJson
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-type ReportFilter = "all" | "run" | "meal" | "strength" | "pain" | "health";
+type ReportFilter = "all" | "workout" | "meal" | "sleep" | "pain";
 
 export default function ReportPage() {
   const [items, setItems] = useState<LocalHistoryItem[]>([]);
@@ -194,26 +194,17 @@ export default function ReportPage() {
 
   const filteredDays = days.filter((day) => {
     if (activeFilter === "all") return true;
-    if (activeFilter === "run") {
-      const workouts = day.items.filter((i) => i.type === "workout");
-      return workouts.some((w) => isRun(w));
+    if (activeFilter === "workout") {
+      return day.items.some((i) => i.type === "workout" || i.type === "strength");
     }
     if (activeFilter === "meal") {
       return day.items.some((i) => i.type === "meal");
     }
-    if (activeFilter === "strength") {
-      const strengths = day.items.filter((i) => i.type === "strength");
-      const workouts = day.items.filter((i) => i.type === "workout");
-      return (
-        strengths.length > 0 ||
-        workouts.some((w) => !isRun(w) && !isWalk(w) && (w.data as WorkoutAnalysis)?.extracted?.workoutKind === "strength")
-      );
+    if (activeFilter === "sleep") {
+      return day.items.some((i) => i.type === "sleep");
     }
     if (activeFilter === "pain") {
       return day.items.some((i) => i.type === "pain");
-    }
-    if (activeFilter === "health") {
-      return day.items.some((i) => i.type === "health_check");
     }
     return true;
   });
@@ -313,7 +304,7 @@ export default function ReportPage() {
             </section>
           ) : null}
 
-          {/* Calendar views */}
+          {/* Calendar views — ordered: summary cards → insight → goal → daily rows */}
           <div
             aria-busy={calendarTransitioning}
             className={`space-y-3 transition-all duration-200 ${calendarTransitioning ? "translate-y-0.5 opacity-70" : "translate-y-0 opacity-100"}`}
@@ -321,65 +312,112 @@ export default function ReportPage() {
           >
             {reportMode === "week" ? (
               <>
+                {/* 2. Selected period summary */}
                 {weekSummary && (
-                  <PeriodMetrics totals={weekSummary.totals} averages={weekSummary.averages} />
+                  <>
+                    <p className="px-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--color-text-muted)]">สรุปสัปดาห์นี้</p>
+                    <PeriodMetrics totals={weekSummary.totals} averages={weekSummary.averages} />
+                  </>
                 )}
-                <div className="space-y-2" data-testid="week-day-list">
-                  {weekSummary?.days.map((day) => (
-                    <DaySlot key={day.dateKey} day={day} />
-                  ))}
+
+                {/* 3. Insight 7 วันล่าสุด */}
+                <RollingSevenDayInsight
+                  dashboard={dashboard}
+                  proteinTarget={pTarget}
+                  items={items}
+                  cutoff={dashboardCutoff}
+                  review={weeklyReview}
+                />
+
+                {/* 4. Goal progress */}
+                {profile?.goalProfile && weeklyReview && (() => {
+                  const insight = buildGoalProgressInsight(profile.goalProfile!, weeklyReview);
+                  if (!insight) return null;
+                  const toneClass =
+                    insight.tone === "positive" ? "bg-[var(--primary-soft)] border-[var(--primary-strong)]/30 text-[var(--primary-strong)]" :
+                    insight.tone === "caution" ? "bg-amber-50 border-amber-200 text-amber-900" :
+                    "bg-[var(--surface-muted)] border-[var(--border-warm)] text-[var(--foreground)]";
+                  return (
+                    <div className={`rounded-2xl border px-4 py-3 space-y-1 ${toneClass}`} data-testid="goal-progress-insight">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-70">ความคืบหน้าเป้าหมาย · 7 วันล่าสุด</p>
+                      <p className="text-xs font-semibold leading-relaxed">{insight.summaryTh}</p>
+                      <Link href="/settings?tab=goals" className="text-[10px] font-bold underline underline-offset-2 opacity-60 hover:opacity-100">
+                        ดูเป้าหมาย →
+                      </Link>
+                    </div>
+                  );
+                })()}
+
+                {/* 5. Daily summaries */}
+                <div>
+                  <p className="mb-2 px-0.5 text-xs font-bold text-[var(--foreground)]">บันทึกรายวัน</p>
+                  <div className="space-y-2" data-testid="week-day-list">
+                    {weekSummary?.days.map((day) => (
+                      <DaySlot key={day.dateKey} day={day} />
+                    ))}
+                  </div>
                 </div>
               </>
             ) : (
               <>
+                {/* 2. Selected period summary */}
                 {monthSummary && (
-                  <PeriodMetrics totals={monthSummary.totals} averages={monthSummary.averages} />
+                  <>
+                    <p className="px-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--color-text-muted)]">สรุปเดือนนี้</p>
+                    <PeriodMetrics totals={monthSummary.totals} averages={monthSummary.averages} />
+                  </>
                 )}
-                <div className="space-y-2" data-testid="month-week-list">
-                  {monthSummary?.weeks.map((week) => (
-                    <MonthWeekBlock
-                      key={week.startDateKey}
-                      week={week}
-                      disabled={calendarTransitioning}
-                      onSelectWeek={(period) => {
-                        runCalendarTransition(() => {
-                          setCalendarWeek(period);
-                          setReportMode("week");
-                        });
-                      }}
-                    />
-                  ))}
+
+                {/* 3. Insight 7 วันล่าสุด */}
+                <RollingSevenDayInsight
+                  dashboard={dashboard}
+                  proteinTarget={pTarget}
+                  items={items}
+                  cutoff={dashboardCutoff}
+                  review={weeklyReview}
+                />
+
+                {/* 4. Goal progress */}
+                {profile?.goalProfile && weeklyReview && (() => {
+                  const insight = buildGoalProgressInsight(profile.goalProfile!, weeklyReview);
+                  if (!insight) return null;
+                  const toneClass =
+                    insight.tone === "positive" ? "bg-[var(--primary-soft)] border-[var(--primary-strong)]/30 text-[var(--primary-strong)]" :
+                    insight.tone === "caution" ? "bg-amber-50 border-amber-200 text-amber-900" :
+                    "bg-[var(--surface-muted)] border-[var(--border-warm)] text-[var(--foreground)]";
+                  return (
+                    <div className={`rounded-2xl border px-4 py-3 space-y-1 ${toneClass}`} data-testid="goal-progress-insight">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-70">ความคืบหน้าเป้าหมาย · 7 วันล่าสุด</p>
+                      <p className="text-xs font-semibold leading-relaxed">{insight.summaryTh}</p>
+                      <Link href="/settings?tab=goals" className="text-[10px] font-bold underline underline-offset-2 opacity-60 hover:opacity-100">
+                        ดูเป้าหมาย →
+                      </Link>
+                    </div>
+                  );
+                })()}
+
+                {/* 5. Daily summaries (month: week blocks) */}
+                <div>
+                  <p className="mb-2 px-0.5 text-xs font-bold text-[var(--foreground)]">บันทึกรายวัน</p>
+                  <div className="space-y-2" data-testid="month-week-list">
+                    {monthSummary?.weeks.map((week) => (
+                      <MonthWeekBlock
+                        key={week.startDateKey}
+                        week={week}
+                        disabled={calendarTransitioning}
+                        onSelectWeek={(period) => {
+                          runCalendarTransition(() => {
+                            setCalendarWeek(period);
+                            setReportMode("week");
+                          });
+                        }}
+                      />
+                    ))}
+                  </div>
                 </div>
               </>
             )}
           </div>
-
-          <RollingSevenDayInsight
-            dashboard={dashboard}
-            proteinTarget={pTarget}
-            items={items}
-            cutoff={dashboardCutoff}
-            review={weeklyReview}
-          />
-
-          {/* Goal progress insight — shown when goal profile + weekly data available */}
-          {profile?.goalProfile && weeklyReview && (() => {
-            const insight = buildGoalProgressInsight(profile.goalProfile!, weeklyReview);
-            if (!insight) return null;
-            const toneClass =
-              insight.tone === "positive" ? "bg-[var(--primary-soft)] border-[var(--primary-strong)]/30 text-[var(--primary-strong)]" :
-              insight.tone === "caution" ? "bg-amber-50 border-amber-200 text-amber-900" :
-              "bg-[var(--surface-muted)] border-[var(--border-warm)] text-[var(--foreground)]";
-            return (
-              <div className={`rounded-2xl border px-4 py-3 space-y-1 ${toneClass}`} data-testid="goal-progress-insight">
-                <p className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-70">ความคืบหน้าสู่เป้าหมาย</p>
-                <p className="text-xs font-semibold leading-relaxed">{insight.summaryTh}</p>
-                <Link href="/settings?tab=goals" className="text-[10px] font-bold underline underline-offset-2 opacity-60 hover:opacity-100">
-                  ดูเป้าหมาย →
-                </Link>
-              </div>
-            );
-          })()}
 
           <FullHistoryDetails
             activeFilter={activeFilter}
@@ -536,12 +574,12 @@ function PeriodMetrics({
   return (
     <div className="grid grid-cols-4 gap-2" data-testid="period-metrics">
       <div className="rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface)] p-3 text-center">
-        <p className="text-[10px] text-[var(--color-text-muted)]">วิ่งรวม</p>
-        <p className="mt-0.5 text-sm font-bold text-[var(--foreground)]">{totals.runDistanceKm > 0 ? `${totals.runDistanceKm} กม.` : "—"}</p>
+        <p className="text-[10px] text-[var(--color-text-muted)]">ระยะวิ่ง</p>
+        <p className="mt-0.5 text-sm font-bold text-[var(--foreground)]">{totals.runDistanceKm > 0 ? `${totals.runDistanceKm} กม.` : "0 กม."}</p>
       </div>
       <div className="rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface)] p-3 text-center">
-        <p className="text-[10px] text-[var(--color-text-muted)]">วันซ้อม</p>
-        <p className="mt-0.5 text-sm font-bold text-[var(--foreground)]">{totals.workoutDays > 0 ? `${totals.workoutDays} วัน` : "—"}</p>
+        <p className="text-[10px] text-[var(--color-text-muted)]">กิจกรรม</p>
+        <p className="mt-0.5 text-sm font-bold text-[var(--foreground)]">{totals.workoutDays > 0 ? `${totals.workoutDays} วัน` : "0 วัน"}</p>
       </div>
       <div className="rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface)] p-3 text-center">
         <p className="text-[10px] text-[var(--color-text-muted)]">นอนเฉลี่ย</p>
@@ -616,7 +654,7 @@ function DaySlot({ day }: { day: import("@/lib/reportSummary").DailyReportItem }
         </div>
       </summary>
       <div className="mt-2 grid grid-cols-2 gap-2 border-t border-[var(--color-border-soft)] pt-2 text-[11px] text-[var(--color-text-muted)]" data-testid="day-slot-details">
-        <DaySlotDetail label="กิจกรรม" value={activityText ?? "ยังไม่มี"} />
+        <DaySlotDetail label="กิจกรรม" value={activityText ?? "ยังไม่มีการซ้อม"} />
         <DaySlotDetail label="นอน" value={day.sleepHours != null ? `${day.sleepHours} ชม.` : "ยังไม่มี"} />
         <DaySlotDetail label="ความพร้อม" value={day.readiness != null ? `${day.readiness}` : "ยังไม่มี"} />
         <DaySlotDetail label="อาหาร" value={nutritionText ?? (day.mealCount > 0 ? `${day.mealCount} มื้อ` : "ยังไม่มี")} />
@@ -864,23 +902,17 @@ function FullHistoryDetails({
   const sortedItems = useMemo(() => {
     const list = items.filter((item) => {
       if (activeFilter === "all") return true;
-      if (activeFilter === "run") {
-        return item.type === "workout" && isRun(item);
+      if (activeFilter === "workout") {
+        return item.type === "workout" || item.type === "strength";
       }
       if (activeFilter === "meal") {
         return item.type === "meal";
       }
-      if (activeFilter === "strength") {
-        return (
-          item.type === "strength" ||
-          (item.type === "workout" && !isRun(item) && !isWalk(item) && (item.data as WorkoutAnalysis)?.extracted?.workoutKind === "strength")
-        );
+      if (activeFilter === "sleep") {
+        return item.type === "sleep";
       }
       if (activeFilter === "pain") {
         return item.type === "pain";
-      }
-      if (activeFilter === "health") {
-        return item.type === "health_check";
       }
       return true;
     });
@@ -984,7 +1016,7 @@ function CompactHistoryItemRow({
           type="button"
           className="text-xs font-bold text-[var(--primary)] hover:underline shrink-0"
         >
-          {isExpanded ? "ย่อ" : "รายละเอียด"}
+          {isExpanded ? "ย่อ" : "ดู"}
         </button>
       </div>
       {isExpanded && (
@@ -1152,11 +1184,10 @@ function FilterPills({
       {(
         [
           { id: "all", label: "ทั้งหมด" },
-          { id: "run", label: "วิ่ง" },
+          { id: "workout", label: "ซ้อม" },
           { id: "meal", label: "อาหาร" },
-          { id: "strength", label: "เวท" },
+          { id: "sleep", label: "นอน" },
           { id: "pain", label: "เจ็บ" },
-          { id: "health", label: "สุขภาพ" },
         ] as const
       ).map((f) => (
         <button

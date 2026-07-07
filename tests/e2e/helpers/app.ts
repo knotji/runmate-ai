@@ -87,7 +87,7 @@ export async function saveManualBreakfast(page: Page, state: MockAppState): Prom
   await page.getByTestId("upload-type-selector").getByRole("button", { name: /อาหาร/ }).click();
   await page.getByRole("button", { name: "พิมพ์เอง" }).click();
   await page.getByRole("button", { name: "เช้า", exact: true }).click();
-  await page.getByLabel("กินอะไร?").fill("ข้าวไข่ต้ม 2 ฟอง นมโปรตีน");
+  await page.getByLabel("พิมพ์เมนูของมื้อนี้").fill("ข้าวไข่ต้ม 2 ฟอง นมโปรตีน");
   await page.getByRole("button", { name: "ให้โค้ชประเมิน" }).click();
   await expect(page.getByRole("heading", { name: "ตรวจโภชนาการก่อนบันทึก" })).toBeVisible();
   await expect(page.getByText("กรอกจากข้อความ")).toBeVisible();
