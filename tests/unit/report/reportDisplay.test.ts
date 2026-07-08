@@ -4,6 +4,7 @@ import {
   formatActivityCount,
   formatWorkoutTimelineTitle,
   getDayWorkoutAbsenceLabel,
+  getTimelineItemSubtitle,
 } from "@/lib/report/reportDisplay";
 
 // ─── formatSelectedPeriodRunDistance ─────────────────────────────────────────
@@ -130,5 +131,70 @@ describe("getDayWorkoutAbsenceLabel", () => {
 
   it("returns 'ยังไม่มีข้อมูล' when day has no data at all", () => {
     expect(getDayWorkoutAbsenceLabel(false)).toBe("ยังไม่มีข้อมูล");
+  });
+});
+
+// ─── getTimelineItemSubtitle ──────────────────────────────────────────────────
+
+describe("getTimelineItemSubtitle — workout", () => {
+  it("shows HR and calories when both present", () => {
+    const result = getTimelineItemSubtitle({ type: "workout", avgHR: 148.7, calories: 430 });
+    expect(result).toBe("HR 149 · 430 kcal");
+  });
+
+  it("shows only HR when calories absent", () => {
+    const result = getTimelineItemSubtitle({ type: "workout", avgHR: 155, calories: null });
+    expect(result).toBe("HR 155");
+  });
+
+  it("shows only kcal when HR absent", () => {
+    const result = getTimelineItemSubtitle({ type: "workout", avgHR: null, calories: 300 });
+    expect(result).toBe("300 kcal");
+  });
+
+  it("returns empty string when both absent", () => {
+    const result = getTimelineItemSubtitle({ type: "workout", avgHR: null, calories: null });
+    expect(result).toBe("");
+  });
+});
+
+describe("getTimelineItemSubtitle — sleep", () => {
+  it("shows score when present", () => {
+    expect(getTimelineItemSubtitle({ type: "sleep", sleepScore: 82 })).toBe("คะแนน 82");
+  });
+
+  it("returns empty string when score absent", () => {
+    expect(getTimelineItemSubtitle({ type: "sleep", sleepScore: null })).toBe("");
+  });
+});
+
+describe("getTimelineItemSubtitle — meal", () => {
+  it("shows protein and calories when both present", () => {
+    const result = getTimelineItemSubtitle({ type: "meal", proteinG: 38.6, caloriesKcal: 620 });
+    expect(result).toBe("โปรตีน 39g · 620 kcal");
+  });
+
+  it("shows only protein when calories absent", () => {
+    const result = getTimelineItemSubtitle({ type: "meal", proteinG: 25, caloriesKcal: null });
+    expect(result).toBe("โปรตีน 25g");
+  });
+
+  it("returns empty string when both absent", () => {
+    const result = getTimelineItemSubtitle({ type: "meal", proteinG: null, caloriesKcal: null });
+    expect(result).toBe("");
+  });
+});
+
+describe("getTimelineItemSubtitle — other types", () => {
+  it("returns empty string for pain", () => {
+    expect(getTimelineItemSubtitle({ type: "pain" })).toBe("");
+  });
+
+  it("returns empty string for body", () => {
+    expect(getTimelineItemSubtitle({ type: "body" })).toBe("");
+  });
+
+  it("returns empty string for summary", () => {
+    expect(getTimelineItemSubtitle({ type: "summary" })).toBe("");
   });
 });

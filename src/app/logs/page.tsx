@@ -55,6 +55,7 @@ import {
 } from "@/lib/reportSummary";
 import { buildReportPeriodJsonExport } from "@/lib/exportRunMateJson";
 import { buildRunMateExportFilename, downloadJsonFile } from "@/lib/downloadJson";
+import { getTimelineItemSubtitle, type TimelineItemSubtitleInput } from "@/lib/report/reportDisplay";
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -927,6 +928,22 @@ function FullHistoryDetails({
   const visibleItems = sortedItems.slice(0, visibleCount);
   const hasMore = sortedItems.length > visibleCount;
 
+  // Group visible items by date for timeline headings
+  const dayGroups = useMemo(() => {
+    const groups: { dateKey: string; items: LocalHistoryItem[] }[] = [];
+    const map = new Map<string, LocalHistoryItem[]>();
+    for (const item of visibleItems) {
+      const dk = getHistoryItemDateKey(item);
+      if (!map.has(dk)) {
+        const dayItems: LocalHistoryItem[] = [];
+        map.set(dk, dayItems);
+        groups.push({ dateKey: dk, items: dayItems });
+      }
+      map.get(dk)!.push(item);
+    }
+    return groups;
+  }, [visibleItems]);
+
   return (
     <details className="group rounded-3xl border border-[var(--color-border-soft)] bg-[var(--surface)] shadow-sm overflow-hidden" data-testid="full-history-details">
       <summary className="list-none cursor-pointer px-4 py-3.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/40 focus-visible:ring-inset">
@@ -946,21 +963,28 @@ function FullHistoryDetails({
         <FilterPills activeFilter={activeFilter} onFilterChange={onFilterChange} />
 
         {sortedItems.length === 0 ? (
-          <p className="py-6 text-center text-sm text-[var(--color-text-muted)]">ไม่พบรายการที่ตรงกับตัวกรอง</p>
+          <p className="py-6 text-center text-sm text-[var(--color-text-muted)]">ยังไม่มีบันทึกประเภทนี้ในช่วงนี้</p>
         ) : (
-          <div className="space-y-3">
-            <div className="divide-y divide-[var(--color-border-soft)] text-[var(--foreground)]">
-              {visibleItems.map((item) => (
-                <CompactHistoryItemRow
-                  key={item.id}
-                  item={item}
-                  painMetaById={painMetaById}
-                  onDeleteItem={onDeleteItem}
-                  onEditItem={onEditItem}
-                  deletingKey={deletingKey}
-                />
-              ))}
-            </div>
+          <div className="space-y-1">
+            {dayGroups.map(({ dateKey, items: dayItems }) => (
+              <div key={dateKey}>
+                <p className="text-[11px] font-semibold text-[var(--color-text-muted)] pt-2 pb-0.5 px-0.5">
+                  {formatDayLabel(dateKey)}
+                </p>
+                <div className="divide-y divide-[var(--color-border-soft)] text-[var(--foreground)]">
+                  {dayItems.map((item) => (
+                    <CompactHistoryItemRow
+                      key={item.id}
+                      item={item}
+                      painMetaById={painMetaById}
+                      onDeleteItem={onDeleteItem}
+                      onEditItem={onEditItem}
+                      deletingKey={deletingKey}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
 
             {hasMore && (
               <button
@@ -994,27 +1018,36 @@ function CompactHistoryItemRow({
   const [isExpanded, setIsExpanded] = useState(false);
 
   const mappedType = getMappedTypeName(item);
+  const title = getTimelineItemTitle(item);
+  const subtitle = getTimelineItemSubtitle(buildTimelineSubtitleInput(item, mappedType));
 
   return (
     <div data-testid="report-compact-item" data-date-key={getHistoryItemDateKey(item)} className="py-3">
       <div
-        className="flex items-center justify-between gap-3 cursor-pointer select-none"
+        className="flex items-start justify-between gap-3 cursor-pointer select-none"
         onClick={() => setIsExpanded((prev) => !prev)}
       >
-        <div className="flex flex-wrap items-center gap-2 min-w-0">
-          <span className="text-[11px] font-semibold text-[var(--color-text-muted)]">
-            {formatItemDateTime(item)}
-          </span>
-          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${getTypeBadgeStyles(mappedType)}`}>
-            {mappedType}
-          </span>
-          <span className="text-sm font-medium text-[var(--foreground)] truncate max-w-[200px] sm:max-w-xs md:max-w-md">
-            {getItemShortSummary(item)}
-          </span>
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-1.5 mb-0.5">
+            <span className="text-[11px] font-semibold text-[var(--color-text-muted)]">
+              {formatItemDateTime(item)}
+            </span>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide ${getTypeBadgeStyles(mappedType)}`}>
+              {getTypeBadgeLabel(mappedType)}
+            </span>
+          </div>
+          <p className="text-sm font-medium text-[var(--foreground)] truncate">
+            {title}
+          </p>
+          {subtitle && (
+            <p className="text-xs text-[var(--color-text-muted)] mt-0.5 truncate">
+              {subtitle}
+            </p>
+          )}
         </div>
         <button
           type="button"
-          className="text-xs font-bold text-[var(--primary)] hover:underline shrink-0"
+          className="text-xs font-bold text-[var(--primary)] hover:underline shrink-0 pt-0.5"
         >
           {isExpanded ? "ย่อ" : "ดู"}
         </button>
@@ -1033,6 +1066,106 @@ function getMappedTypeName(item: LocalHistoryItem): string {
   if (item.type === "health_check") return "health";
   if (item.type === "strength") return "workout";
   return item.type; // sleep, workout, pain, body, summary
+}
+
+function getTypeBadgeLabel(type: string): string {
+  if (type === "workout") return "ซ้อม";
+  if (type === "food") return "อาหาร";
+  if (type === "sleep") return "นอน";
+  if (type === "pain") return "เจ็บ";
+  if (type === "summary") return "สรุป";
+  if (type === "body") return "ร่างกาย";
+  if (type === "health") return "สุขภาพ";
+  return type;
+}
+
+function buildTimelineSubtitleInput(item: LocalHistoryItem, mappedType: string): TimelineItemSubtitleInput {
+  if (mappedType === "workout") {
+    const ext = (item.data as WorkoutAnalysis)?.extracted ?? {};
+    return { type: "workout", avgHR: ext.avgHR, calories: ext.calories };
+  }
+  if (mappedType === "sleep") {
+    const ext = (item.data as SleepAnalysis)?.extracted ?? {};
+    return { type: "sleep", sleepScore: ext.sleepScore };
+  }
+  if (mappedType === "food") {
+    const d = extractMealData(item);
+    const n = normalizeMealNutrition(d);
+    return { type: "meal", proteinG: n.proteinG, caloriesKcal: n.caloriesKcal };
+  }
+  return { type: mappedType };
+}
+
+function getTimelineItemTitle(item: LocalHistoryItem): string {
+  if (item.type === "sleep") {
+    const rawDur = getSleepDurationRaw(item);
+    const durStr = rawDur ? formatSleepDuration(rawDur) : "";
+    return `นอน ${durStr}`.trim() || "บันทึกการนอน";
+  }
+  if (item.type === "workout") {
+    const ext = (item.data as WorkoutAnalysis)?.extracted ?? {};
+    const coach = (item.data as WorkoutAnalysis)?.coach ?? {};
+    const isSwim = isSwimWorkout(ext);
+    const kindLabel = isSwim
+      ? (isSwimRecovery(coach.workoutSummary, coach.coachNote) ? "Recovery Swim" : "ว่ายน้ำ")
+      : ext.workoutKind === "outdoor_run" ? "วิ่งเอาท์ดอร์"
+      : ext.workoutKind === "treadmill" ? "วิ่งเทรดมิล"
+      : ext.workoutKind === "walk" ? "เดิน"
+      : ext.workoutKind === "cycling" ? "ปั่นจักรยาน"
+      : ext.workoutKind === "strength" ? "เวท"
+      : "ออกกำลังกาย";
+    const parts = [kindLabel];
+    if (isSwim && ext.distanceM != null) parts.push(formatSwimDistance(ext.distanceM));
+    else if (!isSwim && ext.distanceKm != null) parts.push(`${formatDecimal(ext.distanceKm)} กม.`);
+    if (ext.duration) parts.push(formatDuration(ext.duration));
+    return parts.join(" · ");
+  }
+  if (item.type === "meal") {
+    const d = extractMealData(item);
+    const isQuickProtein = isQuickProteinMeal(item.data);
+    const normalizedSlot = normalizeMealSlot(item, item.recordedAt || item.createdAt);
+    const label = isQuickProtein ? "Quick log" : getMealSlotLabel(normalizedSlot);
+    const foodNames = isQuickProtein
+      ? "บันทึกโปรตีนด่วน"
+      : d.detectedFoods?.map((f) => f.name).filter(Boolean).join(", ") || d?.extracted?.detectedFood || "อาหาร";
+    return `${label}: ${truncate(foodNames, 45)}`;
+  }
+  if (item.type === "pain") {
+    const painLog = item.data as PainLog;
+    if (!painLog) return "บันทึกอาการเจ็บ";
+    const isResolved = isResolvedPainItem(item);
+    const loc = painLog.painLocation || "อาการเจ็บ";
+    const side = painLog.painSide && painLog.painSide !== "unknown"
+      ? ` (${painLog.painSide === "left" ? "ซ้าย" : painLog.painSide === "right" ? "ขวา" : painLog.painSide === "both" ? "ทั้งสองข้าง" : painLog.painSide})`
+      : "";
+    if (isResolved) return `หายแล้ว: ${loc}${side}`;
+    return `เจ็บ ${loc}${side} · ระดับ ${painLog.painLevel}/10`;
+  }
+  if (item.type === "body") {
+    const ext = (item.data as BodyCompositionAnalysis)?.extracted ?? {};
+    const parts = [];
+    if (ext.weightKg != null) parts.push(`น้ำหนัก ${formatDecimal(ext.weightKg)} กก.`);
+    if (ext.bodyFatPercent != null) parts.push(`ไขมัน ${formatPercent(ext.bodyFatPercent)}`);
+    if (ext.skeletalMuscleKg != null) parts.push(`กล้ามเนื้อ ${formatDecimal(ext.skeletalMuscleKg)} กก.`);
+    return parts.length > 0 ? parts.join(" · ") : "บันทึกร่างกาย";
+  }
+  if (item.type === "health_check") {
+    const d = item.data as HealthCheckAnalysis;
+    const labsCount = Object.keys(d.labs || {}).length;
+    return labsCount > 0 ? `ผลตรวจสุขภาพ (${labsCount} รายการ)` : "ผลตรวจสุขภาพ";
+  }
+  if (item.type === "strength") {
+    const log = item.data as StrengthLog;
+    if (!log) return "เวทเทรนนิ่ง";
+    const routine = log.routineName || "เวทเทรนนิ่ง";
+    const dur = log.durationMin ? ` · ${log.durationMin} นาที` : "";
+    return `${routine}${dur}`;
+  }
+  if (item.type === "summary") {
+    const d = item.data as DailySummary & { coachMessage?: string; overallSummary?: string };
+    return truncate(d?.coachMessage ?? d?.overallSummary ?? "สรุปท้ายวัน", 60);
+  }
+  return "บันทึกข้อมูล";
 }
 
 function getTypeBadgeStyles(type: string): string {

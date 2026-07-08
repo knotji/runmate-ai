@@ -74,3 +74,42 @@ export function formatWorkoutTimelineTitle(input: WorkoutTimelineTitleInput): st
 export function getDayWorkoutAbsenceLabel(hasAnyData: boolean): string {
   return hasAnyData ? "ยังไม่มีการซ้อม" : "ยังไม่มีข้อมูล";
 }
+
+// ─── Timeline item subtitle ───────────────────────────────────────────────────
+
+export type TimelineItemSubtitleInput = {
+  type: string;
+  avgHR?: number | null;
+  calories?: number | null;
+  sleepScore?: number | null;
+  proteinG?: number | null;
+  caloriesKcal?: number | null;
+};
+
+/**
+ * Build the secondary subtitle line for a compact timeline item row.
+ *
+ * workout → "HR N · N kcal"
+ * sleep   → "คะแนน N"
+ * meal    → "โปรตีน Ng · N kcal"
+ * others  → "" (no subtitle)
+ */
+export function getTimelineItemSubtitle(input: TimelineItemSubtitleInput): string {
+  const { type } = input;
+  if (type === "workout") {
+    const parts: string[] = [];
+    if (input.avgHR != null) parts.push(`HR ${Math.round(input.avgHR)}`);
+    if (input.calories != null) parts.push(`${Math.round(input.calories)} kcal`);
+    return parts.join(" · ");
+  }
+  if (type === "sleep") {
+    return input.sleepScore != null ? `คะแนน ${input.sleepScore}` : "";
+  }
+  if (type === "meal") {
+    const parts: string[] = [];
+    if (input.proteinG != null) parts.push(`โปรตีน ${Math.round(input.proteinG)}g`);
+    if (input.caloriesKcal != null) parts.push(`${Math.round(input.caloriesKcal)} kcal`);
+    return parts.join(" · ");
+  }
+  return "";
+}
