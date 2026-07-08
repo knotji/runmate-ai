@@ -305,7 +305,7 @@ test.describe("Coach Intelligence UX & Guardrails Polish", () => {
     });
 
     await gotoApp(page, "/");
-    await page.getByText("ทำไมวันนี้แนะนำแบบนี้?").click();
+    await page.getByText("ดูเหตุผล").first().click();
 
     await expect(page.getByText("นอนเฉลี่ย 5.5 ชม. ยังควรเพิ่ม")).toBeVisible();
     await expect(page.getByText("โหลดสัปดาห์ 49 กม. สูงพอสมควร")).toBeVisible();

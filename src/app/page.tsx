@@ -354,8 +354,33 @@ export default function TodayPage() {
         const dr = buildDailyReadiness(coachCtx);
         return (
           <div className="space-y-1.5">
-            <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--color-text-soft)]">สัญญาณวันนี้</p>
-            <ReadinessSignalBars signals={dr.signals} />
+            <details className="group" data-testid="signals-details">
+              <summary className="list-none cursor-pointer">
+                <div className="flex items-center gap-2 px-1">
+                  <div className="flex flex-1 flex-wrap items-center gap-2.5">
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--color-text-soft)]">สัญญาณวันนี้</span>
+                    {dr.signals.map((signal) => (
+                      <span key={signal.key} className="flex items-center gap-1">
+                        <span className="text-[13px] leading-none">{signal.icon}</span>
+                        <span className={`text-[10px] font-bold ${
+                          signal.tone === "good" ? "text-[var(--color-success)]" :
+                          signal.tone === "warn" ? "text-amber-600" :
+                          signal.tone === "bad" ? "text-red-500" :
+                          "text-slate-400"
+                        }`}>{signal.value}</span>
+                      </span>
+                    ))}
+                  </div>
+                  <span className="shrink-0 text-[10px] font-semibold text-[var(--color-text-soft)]">
+                    <span className="group-open:hidden">ดูสัญญาณทั้งหมด ⌄</span>
+                    <span className="hidden group-open:inline">ซ่อน ⌄</span>
+                  </span>
+                </div>
+              </summary>
+              <div className="mt-1.5">
+                <ReadinessSignalBars signals={dr.signals} />
+              </div>
+            </details>
             {dr.sleepAdvice && (
               <p className="px-1 text-[11px] text-amber-600 leading-snug">💡 {dr.sleepAdvice}</p>
             )}
@@ -435,7 +460,7 @@ export default function TodayPage() {
               onClick={() => setShowReasons((v) => !v)}
               className="mt-0.5 flex w-full items-center justify-center gap-1 text-[11px] font-semibold text-[var(--color-text-soft)] transition-colors hover:text-[var(--foreground)]"
             >
-              <span>{showReasons ? "ซ่อนเหตุผล" : "ทำไมวันนี้แนะนำแบบนี้?"}</span>
+              <span>{showReasons ? "ซ่อนเหตุผล" : "ดูเหตุผล"}</span>
               <span className={`transition-transform duration-200 ${showReasons ? "rotate-180" : ""}`}>⌄</span>
             </button>
             {showReasons && (
@@ -1727,30 +1752,6 @@ function TodaySnapshotCard({
         </p>
       )}
 
-      {/* Compact factor bars */}
-      {!loading && recSys && (
-        <div className="space-y-1.5 rounded-2xl bg-white/35 px-2.5 py-2">
-          {([
-            { key: "recovery" as const, title: "ฟื้นตัว" },
-            { key: "load" as const, title: "โหลดซ้อม" },
-            { key: "sleep" as const, title: "การนอน" },
-            { key: "fuel" as const, title: "พลังงาน" },
-          ] as const).map(({ key, title }) => (
-            <FactorBar
-              key={key}
-              title={title}
-              score={recSys.axes[key].score}
-              label={getRecoveryAxisLabel(key, recSys.axes[key].score)}
-              tone={getRecoveryAxisCoachingTone(key, recSys.axes[key].score, {
-                hasActivePain: !!(coachCtx?.activePain),
-                recoveryScore: recSys.axes.recovery.score,
-                sleepScore: recSys.axes.sleep.score,
-                loadScore: recSys.axes.load.score,
-              })}
-            />
-          ))}
-        </div>
-      )}
 
       {/* Coaching interpretation line — driven by shared guardrail */}
       {!loading && recSys && (() => {
@@ -1837,7 +1838,7 @@ function TodaySnapshotCard({
 
       {/* Details: full /100 values, coverage, missing, explanation */}
       {!loading && recSys && (
-        <details className="group cursor-pointer">
+        <details className="group cursor-pointer" data-testid="recovery-details">
           <summary className="list-none inline-flex items-center gap-1 rounded-full px-1 py-0.5 text-[11px] font-bold text-[var(--color-text-soft)] transition-colors hover:text-[var(--primary)]">
             <span className="group-open:hidden">ดูรายละเอียด Recovery</span>
             <span className="hidden group-open:inline">ซ่อนรายละเอียด</span>
@@ -1845,6 +1846,29 @@ function TodaySnapshotCard({
           </summary>
 
           <div className="mt-2 space-y-3 cursor-default text-xs">
+            {/* Factor bars — compact visual summary */}
+            <div className="space-y-1.5 rounded-2xl bg-white/35 px-2.5 py-2" data-testid="factor-bars">
+              {([
+                { key: "recovery" as const, title: "ฟื้นตัว" },
+                { key: "load" as const, title: "โหลดซ้อม" },
+                { key: "sleep" as const, title: "การนอน" },
+                { key: "fuel" as const, title: "พลังงาน" },
+              ] as const).map(({ key, title }) => (
+                <FactorBar
+                  key={key}
+                  title={title}
+                  score={recSys.axes[key].score}
+                  label={getRecoveryAxisLabel(key, recSys.axes[key].score)}
+                  tone={getRecoveryAxisCoachingTone(key, recSys.axes[key].score, {
+                    hasActivePain: !!(coachCtx?.activePain),
+                    recoveryScore: recSys.axes.recovery.score,
+                    sleepScore: recSys.axes.sleep.score,
+                    loadScore: recSys.axes.load.score,
+                  })}
+                />
+              ))}
+            </div>
+
             {/* Axis rows with /100 */}
             <div className="space-y-1.5">
               {([
