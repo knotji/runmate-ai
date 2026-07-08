@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildTrainingPaceBands,
   getAllowedPaceBandsForReadiness,
+  getTodayDisplayPaceKeys,
   secPerKmToPaceDisplay,
   formatPaceRange,
 } from "@/lib/training/trainingPaceBands";
@@ -114,5 +115,50 @@ describe("formatPaceRange", () => {
   it("formats a range correctly", () => {
     const result = formatPaceRange({ minSecPerKm: 370, maxSecPerKm: 410 });
     expect(result).toBe("6:10/km – 6:50/km");
+  });
+});
+
+// ─── getTodayDisplayPaceKeys ───────────────────────────────────────────────────
+
+describe("getTodayDisplayPaceKeys — Today page only shows full bands on full training days", () => {
+  const allAllowed = ["easy", "long", "tempo", "interval"] as const;
+  const yellowAllowed = ["easy", "long", "tempo"] as const;
+  const easyAllowed = ["easy", "long"] as const;
+
+  it("green + build → shows all allowed bands (full training day)", () => {
+    const result = getTodayDisplayPaceKeys([...allAllowed], "green", "build");
+    expect(result).toEqual(["easy", "long", "tempo", "interval"]);
+  });
+
+  it("green + moderate → shows all allowed bands (full training day)", () => {
+    const result = getTodayDisplayPaceKeys([...allAllowed], "green", "moderate");
+    expect(result).toEqual(["easy", "long", "tempo", "interval"]);
+  });
+
+  it("yellow + moderate → shows Easy only, not Tempo or Long (caution day)", () => {
+    // getAllowedPaceBandsForReadiness returns ["easy","long","tempo"] for yellow+moderate
+    // but Today page must NOT show Tempo on caution days
+    const result = getTodayDisplayPaceKeys([...yellowAllowed], "yellow", "moderate");
+    expect(result).toEqual(["easy"]);
+    expect(result).not.toContain("tempo");
+    expect(result).not.toContain("long");
+  });
+
+  it("green + easy (high load) → shows Easy only, not Long/Tempo", () => {
+    // green + high load → loadTarget="easy" → allowedKeys=["easy","long"]
+    // Today should show only Easy since it's not a full training day
+    const result = getTodayDisplayPaceKeys([...easyAllowed], "green", "easy");
+    expect(result).toEqual(["easy"]);
+    expect(result).not.toContain("long");
+  });
+
+  it("pain_risk / empty allowedKeys → returns empty (handled by caller to show rest card)", () => {
+    const result = getTodayDisplayPaceKeys([], "pain_risk", "rest");
+    expect(result).toHaveLength(0);
+  });
+
+  it("red band / empty allowedKeys → returns empty", () => {
+    const result = getTodayDisplayPaceKeys([], "red", "walk");
+    expect(result).toHaveLength(0);
   });
 });

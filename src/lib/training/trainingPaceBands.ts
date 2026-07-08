@@ -85,6 +85,29 @@ export function getAllowedPaceBandsForReadiness({
 }
 
 /**
+ * Filters allowed pace bands down to what the Today page should display.
+ *
+ * Today shows the full allowed set only on genuine full-training days
+ * (green band + build or moderate load). On all caution/recovery/easy
+ * days the card shows Easy only, because showing Tempo/Interval alongside
+ * a recovery recommendation creates contradictory guidance.
+ *
+ * The Race page always shows all four bands — use getAllowedPaceBandsForReadiness
+ * directly and let the caller mark non-allowed rows as visually muted.
+ */
+export function getTodayDisplayPaceKeys(
+  allowedKeys: PaceBandKey[],
+  band: string,
+  loadTarget: string,
+): PaceBandKey[] {
+  const isFullTrainingDay =
+    band === "green" && (loadTarget === "build" || loadTarget === "moderate");
+  if (isFullTrainingDay) return allowedKeys;
+  if (allowedKeys.includes("easy")) return ["easy"];
+  return allowedKeys.slice(0, 1);
+}
+
+/**
  * Formats a PaceRange as "M:SS – M:SS/km".
  */
 export function formatPaceRange(range: PaceRange): string {

@@ -14,7 +14,7 @@ import { getTodayReadiness, getTodayPlannedWorkout, getReadinessCategoryLabel, c
 import { buildRunMateRecoverySystem, getAxisTone, getRecoveryAxisCoachingTone, formatAxisScore, getRecoveryAxisLabel, getOverallDisplayStatus } from "@/lib/recoverySystem";
 import { buildDailyReadiness } from "@/lib/readiness/dailyReadiness";
 import { buildReadinessExplanation } from "@/lib/readiness/readinessExplanation";
-import { buildTrainingPaceBands, getAllowedPaceBandsForReadiness, formatPaceRange } from "@/lib/training/trainingPaceBands";
+import { buildTrainingPaceBands, getAllowedPaceBandsForReadiness, getTodayDisplayPaceKeys, formatPaceRange } from "@/lib/training/trainingPaceBands";
 import type { PaceBandKey } from "@/lib/training/trainingPaceTypes";
 import { ReadinessSignalBars } from "@/components/ReadinessSignalBars";
 import { getTodayTrainingGuardrail } from "@/lib/trainingGuardrails";
@@ -1800,22 +1800,29 @@ function TodaySnapshotCard({
         });
         if (!paceBands) return null;
         const allowedKeys = getAllowedPaceBandsForReadiness({ bands: paceBands, dailyReadiness });
-        // Rest/pain/walk day: no pace chasing, but show easy range as optional movement guide
+        // Rest/pain/walk day: no pace chasing — show context-aware message
         if (allowedKeys.length === 0) {
+          const isPainRisk = dailyReadiness.band === "pain_risk";
           return (
             <div className="rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface-muted)] px-3 py-2" data-testid="today-pace-card">
               <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--label-color)]">ช่วงเพซวันนี้</p>
-              <p className="mt-1 text-sm font-semibold text-[var(--status-rest)]">วันนี้ไม่ต้องไล่ pace</p>
+              <p className="mt-1 text-sm font-semibold text-[var(--status-rest)]">
+                {isPainRisk ? "วันนี้ยังไม่ควรใช้ pace เป็นเป้า" : "วันนี้ไม่ต้องไล่ pace"}
+              </p>
               <p className="mt-0.5 text-[10px] text-[var(--color-text-muted)] leading-snug">
-                ถ้าจะขยับ: Easy เบา ๆ {formatPaceRange(paceBands.easy)} หรือเดินเร็ว
+                {isPainRisk
+                  ? "ให้ใช้อาการเจ็บและความรู้สึกนำก่อน"
+                  : `ถ้าจะขยับ: เดินเร็ว · mobility · Easy เบา ๆ ${formatPaceRange(paceBands.easy)}`}
               </p>
             </div>
           );
         }
-        // Recovery/easy day: show only Easy pace + safety tip
-        const isRecoveryDay = dailyReadiness.loadTarget === "easy" || dailyReadiness.loadTarget === "walk" || dailyReadiness.loadTarget === "rest";
-        const displayKeys: PaceBandKey[] = isRecoveryDay ? (allowedKeys.includes("easy") ? ["easy"] : [allowedKeys[0]]) : allowedKeys;
+        // Filter to only what's appropriate for Today (full set only on green+build/moderate)
+        const displayKeys = getTodayDisplayPaceKeys(allowedKeys, dailyReadiness.band, dailyReadiness.loadTarget);
         if (displayKeys.length === 0) return null;
+        const isFullTrainingDay =
+          dailyReadiness.band === "green" &&
+          (dailyReadiness.loadTarget === "build" || dailyReadiness.loadTarget === "moderate");
         const LABELS: Record<PaceBandKey, string> = { easy: "Easy", long: "Long", tempo: "Tempo", interval: "Interval" };
         return (
           <div className="rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface-muted)] px-3 py-2" data-testid="today-pace-card">
@@ -1828,9 +1835,9 @@ function TodaySnapshotCard({
                 </span>
               ))}
             </div>
-            {isRecoveryDay && (
+            {!isFullTrainingDay && (
               <p className="mt-1 text-[10px] text-[var(--color-text-muted)] leading-snug">
-                ถ้า HR ลอยหรือรู้สึกหนัก ให้ช้าลงได้
+                วันนี้ไม่ต้องไล่ pace ให้ HR/RPE นำ ถ้ารู้สึกหนักให้ช้าลงได้
               </p>
             )}
           </div>
