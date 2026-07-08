@@ -433,7 +433,6 @@ export default function ReportPage() {
             onToggleOlderDays={() => setShowOlderDays((value) => !value)}
             items={items}
             raceResultsByDate={raceResultsByDate}
-            proteinTarget={pTarget}
             onDeleteItem={handleDeleteItem}
             onEditItem={setEditingMeal}
             onDeleteRaceResult={handleDeleteRaceResult}
@@ -684,7 +683,7 @@ function formatDayActivitySummary(day: import("@/lib/reportSummary").DailyReport
   if (day.runKm != null && day.runKm > 0) return `🏃 ${day.runKm} กม.`;
   if (day.strengthMins != null && day.strengthMins > 0) return `💪 เวท ${safeStrengthMins(day.strengthMins)} นาที`;
   if (day.walkMins != null && day.walkMins > 0) return `เดิน ${day.walkMins} นาที`;
-  if (day.hasRestWorkout) return "Recovery";
+  if (day.hasRestWorkout) return "วันฟื้นตัว";
   return null;
 }
 
@@ -869,7 +868,6 @@ function FullHistoryDetails({
   activeFilter,
   onFilterChange,
   items,
-  proteinTarget,
   onDeleteItem,
   onEditItem,
   deletingKey,
@@ -883,7 +881,6 @@ function FullHistoryDetails({
   onToggleOlderDays: () => void;
   items: LocalHistoryItem[];
   raceResultsByDate: Map<string, RaceResult[]>;
-  proteinTarget: number;
   onDeleteItem: (item: LocalHistoryItem) => void;
   onEditItem: (item: LocalHistoryItem) => void;
   onDeleteRaceResult: (result: RaceResult) => void;
@@ -1189,87 +1186,6 @@ function formatItemDateTime(item: LocalHistoryItem): string {
   }
   const time = formatBangkokTime(item.createdAt);
   return time ? `${formattedDate} ${time} น.` : formattedDate;
-}
-
-function getItemShortSummary(item: LocalHistoryItem): string {
-  if (item.type === "sleep") {
-    const ext = (item.data as SleepAnalysis)?.extracted ?? {};
-    const rawDur = getSleepDurationRaw(item);
-    const durStr = rawDur ? formatSleepDuration(rawDur) : "";
-    const scoreStr = ext.sleepScore != null ? ` (คะแนน ${ext.sleepScore})` : "";
-    return `นอน ${durStr}${scoreStr}`.trim() || "บันทึกการนอน";
-  }
-  if (item.type === "workout") {
-    const ext = (item.data as WorkoutAnalysis)?.extracted ?? {};
-    const coach = (item.data as WorkoutAnalysis)?.coach ?? {};
-    const isSwim = isSwimWorkout(ext);
-    const kindLabel = isSwim
-      ? (isSwimRecovery(coach.workoutSummary, coach.coachNote) ? "Recovery Swim" : "ว่ายน้ำ")
-      : ext.workoutKind === "outdoor_run" ? "วิ่งเอาท์ดอร์"
-      : ext.workoutKind === "treadmill" ? "วิ่งเทรดมิล"
-      : ext.workoutKind === "walk" ? "เดิน"
-      : ext.workoutKind === "cycling" ? "ปั่นจักรยาน"
-      : ext.workoutKind === "strength" ? "เวท"
-      : "ออกกำลังกาย";
-    const parts = [kindLabel];
-    if (isSwim && ext.distanceM != null) parts.push(formatSwimDistance(ext.distanceM));
-    else if (!isSwim && ext.distanceKm != null) parts.push(`${formatDecimal(ext.distanceKm)} กม.`);
-    if (ext.duration) parts.push(formatDuration(ext.duration));
-    return parts.join(" · ");
-  }
-  if (item.type === "meal") {
-    const d = extractMealData(item);
-    const isQuickProtein = isQuickProteinMeal(item.data);
-    const n = normalizeMealNutrition(d);
-    const normalizedSlot = normalizeMealSlot(item, item.recordedAt || item.createdAt);
-    const label = isQuickProtein ? "Quick log" : getMealSlotLabel(normalizedSlot);
-    const foodNames = isQuickProtein
-      ? "บันทึกโปรตีนด่วน"
-      : d.detectedFoods?.map((f) => f.name).filter(Boolean).join(", ") || d?.extracted?.detectedFood || "อาหาร";
-    
-    const macroParts = [];
-    if (n.proteinG != null) macroParts.push(`โปรตีน ${Math.round(n.proteinG)}g`);
-    if (n.caloriesKcal != null) macroParts.push(`${Math.round(n.caloriesKcal)} kcal`);
-    
-    const macroStr = macroParts.length > 0 ? ` (${macroParts.join(" · ")})` : "";
-    return `${label}: ${truncate(foodNames, 45)}${macroStr}`;
-  }
-  if (item.type === "pain") {
-    const painLog = item.data as PainLog;
-    if (!painLog) return "บันทึกอาการเจ็บ";
-    const isResolved = isResolvedPainItem(item);
-    const loc = painLog.painLocation || "อาการเจ็บ";
-    const side = painLog.painSide && painLog.painSide !== "unknown"
-      ? ` (${painLog.painSide === "left" ? "ซ้าย" : painLog.painSide === "right" ? "ขวา" : painLog.painSide === "both" ? "ทั้งสองข้าง" : painLog.painSide})`
-      : "";
-    if (isResolved) return `หายแล้ว: ${loc}${side}`;
-    return `เจ็บ ${loc}${side} · ระดับ ${painLog.painLevel}/10`;
-  }
-  if (item.type === "body") {
-    const ext = (item.data as BodyCompositionAnalysis)?.extracted ?? {};
-    const parts = [];
-    if (ext.weightKg != null) parts.push(`น้ำหนัก ${formatDecimal(ext.weightKg)} กก.`);
-    if (ext.bodyFatPercent != null) parts.push(`ไขมัน ${formatPercent(ext.bodyFatPercent)}`);
-    if (ext.skeletalMuscleKg != null) parts.push(`กล้ามเนื้อ ${formatDecimal(ext.skeletalMuscleKg)} กก.`);
-    return parts.length > 0 ? parts.join(" · ") : "บันทึกร่างกาย";
-  }
-  if (item.type === "health_check") {
-    const d = item.data as HealthCheckAnalysis;
-    const labsCount = Object.keys(d.labs || {}).length;
-    return labsCount > 0 ? `ผลตรวจสุขภาพ (${labsCount} รายการ)` : "ผลตรวจสุขภาพ";
-  }
-  if (item.type === "strength") {
-    const log = item.data as StrengthLog;
-    if (!log) return "เวทเทรนนิ่ง";
-    const routine = log.routineName || "เวทเทรนนิ่ง";
-    const dur = log.durationMin ? ` · ${log.durationMin} นาที` : "";
-    return `${routine}${dur}`;
-  }
-  if (item.type === "summary") {
-    const d = item.data as DailySummary & { coachMessage?: string; overallSummary?: string };
-    return truncate(d?.coachMessage ?? d?.overallSummary ?? "สรุปท้ายวัน", 60);
-  }
-  return "บันทึกข้อมูล";
 }
 
 function renderDetailCard(

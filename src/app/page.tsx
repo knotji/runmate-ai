@@ -81,7 +81,7 @@ function buildClientTodayFallback(ctx: CoachContext | null): DailyCoachInsight {
       todayReadiness: readiness,
       readinessLabel: label,
       readinessNote,
-      workoutRec: latestWorkout.kind === "race" ? "Recovery หลัง Race วันนี้" : latestWorkout.kind === "run" ? `ฟื้นตัวหลังวิ่ง${formatKm(latestWorkout.distanceKm) ? ` ${formatKm(latestWorkout.distanceKm)} กม.` : ""}` : "Recovery หลังซ้อมวันนี้",
+      workoutRec: latestWorkout.kind === "race" ? "วันนี้แข่งจบแล้ว" : "วันนี้ซ้อมพอแล้ว",
       workoutTarget: "ไม่ต้องซ้อมเพิ่ม · เน้นฟื้นตัว",
       weekSummary: weekParts.length ? weekParts.join(" / ") : "ยังมีข้อมูลสัปดาห์นี้ไม่มาก",
       keyObservation: latestWorkout.label,
@@ -795,15 +795,18 @@ function PostWorkoutFocusContent({ insight, context }: { insight: DailyCoachInsi
   const hasLatestSleep = context.sleep7d.length > 0;
   const isUsingLatestSleepBecauseTodayMissing = !hasSleepToday && hasLatestSleep;
 
-  // Build a concise reason line for post-workout
-  const reasonParts = [];
-  if (context.recoverySystem) {
-    const { recovery, load } = context.recoverySystem.axes;
-    if (load.score >= 70) reasonParts.push("Load สูง");
-    reasonParts.push(`ฟื้นตัว${getRecoveryAxisLabel("recovery", recovery.score)}`);
-    reasonParts.push("วันนี้ไม่ต้องซ้อมเพิ่ม");
-  }
-  const reasonLine = reasonParts.join(" · ") || "ซ้อมวันนี้แล้ว · เน้นฟื้นตัว";
+  // Build a clear subtext: what was completed + don't train more
+  const workoutCompletedText = (() => {
+    if (!workout) return "ซ้อมวันนี้จบแล้ว";
+    if (workout.kind === "race") return "วิ่งแข่งวันนี้จบแล้ว";
+    if (workout.kind === "run") {
+      const distance = formatKm(workout.distanceKm);
+      return distance ? `วิ่งไปแล้ว ${distance} กม.` : "วิ่งวันนี้จบแล้ว";
+    }
+    if (workout.kind === "strength") return "เวทวันนี้จบแล้ว";
+    return "ซ้อมวันนี้จบแล้ว";
+  })();
+  const reasonLine = `${workoutCompletedText} — ไม่ต้องซ้อมเพิ่ม เน้นฟื้นตัว เติมน้ำ/โปรตีน และนอนให้ดี`;
 
   return (
     <div className="space-y-3">
@@ -903,23 +906,11 @@ function PostWorkoutFocusContent({ insight, context }: { insight: DailyCoachInsi
 }
 
 function buildPostWorkoutTitle(workout: TodayCompletedWorkoutSummary | null, insight: DailyCoachInsight, context?: CoachContext | null): string {
-  if (context && context.todayWorkouts.length > 1) {
-    const kinds = context.todayWorkouts.map(w => w.kind);
-    if (kinds.includes("run") && kinds.includes("strength")) {
-      return "หลังออกกำลังกายวันนี้";
-    }
-  }
-  if (!workout) return insight.workoutRec || "Recovery หลังซ้อมวันนี้";
-  if (workout.kind === "race") return "Recovery หลัง Race วันนี้";
-  if (workout.kind === "run") {
-    const distance = formatKm(workout.distanceKm);
-    return distance
-      ? `ฟื้นตัวหลังวิ่ง ${distance} กม.`
-      : "Recovery หลังวิ่งวันนี้";
-  }
-  if (workout.kind === "strength") return "ฟื้นตัวหลังเวทวันนี้";
-  if (workout.kind === "walk") return "ฟื้นตัวหลังเดินวันนี้";
-  return "พักฟื้นหลังซ้อมวันนี้";
+  if (!workout) return insight.workoutRec || "วันนี้ซ้อมพอแล้ว";
+  if (workout.kind === "race") return "วันนี้แข่งจบแล้ว";
+  // All completed workout types get the same clear "done for the day" headline
+  if (context && context.todayWorkouts.length > 1) return "วันนี้ซ้อมพอแล้ว";
+  return "วันนี้ซ้อมพอแล้ว";
 }
 
 

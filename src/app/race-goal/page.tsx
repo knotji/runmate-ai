@@ -628,7 +628,12 @@ function PaceBandsCard({ goal, coachContext }: { goal: RaceGoal; coachContext: C
           );
         })}
       </div>
-      {dr && allowedKeys.length < 4 && (
+      {coachContext?.hasWorkoutToday && (
+        <p className="mt-2 text-[10px] font-semibold text-[var(--color-text-muted)] leading-snug">
+          ✅ วันนี้ซ้อมจบแล้ว — ตารางนี้ใช้เป็น reference สำหรับวันถัดไป
+        </p>
+      )}
+      {!coachContext?.hasWorkoutToday && dr && allowedKeys.length < 4 && (
         <p className="mt-2 text-[10px] text-[var(--color-text-muted)] leading-snug">
           💡 วันนี้เหมาะกับ {allowedKeys.map((k) => BAND_LABELS[k]).join(" · ")} เท่านั้น ตามสภาพร่างกาย
         </p>
