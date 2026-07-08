@@ -619,7 +619,10 @@ function PaceBandsCard({ goal, coachContext }: { goal: RaceGoal; coachContext: C
           const allowed = allowedKeys.includes(key);
           return (
             <div key={key} className={`flex items-center justify-between gap-2 rounded-xl px-3 py-1.5 ${allowed ? "bg-[var(--primary-soft)]" : "bg-[var(--surface-muted)] opacity-50"}`}>
-              <span className="text-[11px] font-semibold text-[var(--foreground)]">{BAND_LABELS[key]}</span>
+              <span className="flex items-center gap-1.5">
+                <span className="text-[11px] font-semibold text-[var(--foreground)]">{BAND_LABELS[key]}</span>
+                {!allowed && dr && <span className="text-[10px] text-[var(--color-text-muted)]">· ไว้วันพร้อม</span>}
+              </span>
               <span className="text-[11px] font-bold text-[var(--primary-strong)] tabular-nums">{formatPaceRange(range)}</span>
             </div>
           );
