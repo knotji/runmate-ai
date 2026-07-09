@@ -4,6 +4,7 @@
 
 import type { RunMateRecoverySystem } from "./recoverySystem";
 import type { PainRecoveryStatus } from "./painRecovery";
+import type { SickRiskLevel } from "@/types/sick";
 
 export type TrainingGuardrailTone = "neutral" | "success" | "caution" | "warning" | "danger";
 export type TrainingIntensity = "rest" | "walk" | "mobility" | "recovery" | "easy" | "normal" | "quality";
@@ -63,8 +64,71 @@ export function getTodayTrainingGuardrail(
   recSys: RunMateRecoverySystem | null,
   hasActivePain: boolean,
   painRecoveryStatus?: PainRecoveryStatus,
+  sickRiskLevel?: SickRiskLevel,
 ): TrainingGuardrail {
-  // ── Pain checks always run first, regardless of recovery data ──────────────
+  // ── Sick-day checks run first — illness overrides everything ───────────────
+
+  // ── 0a. Sick hard stop (fever / chest / GI / heavy fatigue / severe) ───────
+  if (sickRiskLevel === "hard_stop") {
+    return {
+      tone: "danger",
+      canRun: false,
+      avoidRun: true,
+      canDoHardWorkout: false,
+      recommendedIntensity: "rest",
+      allowedActivities: ["พัก", "ดื่มน้ำให้พอ", "นอนให้พอ", "Mobility เบามาก (ถ้าไม่มีไข้/เวียนหัว)"],
+      blockedActivities: ["วิ่ง", "Easy run", "Long run", ...HARD_BLOCKED, "เวท", "เวทหนัก"],
+      reason: "ป่วย / อาการที่ต้องพักเต็มวัน",
+      shortThaiCopy: "วันนี้พักก่อน ร่างกายกำลังสู้กับอาการป่วย",
+      detailThaiCopy:
+        "มีอาการที่ต้องพัก (ไข้/แน่นหน้าอก/อ่อนเพลียมาก/ท้องเสีย/เวียนหัว) วันนี้งดซ้อม เน้นพัก ดื่มน้ำ นอนให้พอ ถ้าอาการไม่ดีขึ้นหรือแย่ลงควรพบแพทย์",
+      shortEnglishCopy: "Rest — sick day",
+      adjustedWorkoutLabel: "พักเต็มวัน / Sick Day",
+      shouldAdjustPlannedWorkout: true,
+    };
+  }
+
+  // ── 0b. Sick mild above-neck only (no fever / chest / GI / heavy fatigue) ──
+  if (sickRiskLevel === "mild") {
+    return {
+      tone: "caution",
+      canRun: false,
+      avoidRun: true,
+      canDoHardWorkout: false,
+      recommendedIntensity: "walk",
+      allowedActivities: ["เดินเบา ๆ 10–20 นาที (ถ้าไหว)", "Mobility เบา", "พัก"],
+      blockedActivities: ["วิ่ง", "Tempo", "Intervals", "Long run", "Race pace", "เวทหนัก"],
+      reason: "มีอาการเหนือคอเล็กน้อย",
+      shortThaiCopy: "วันนี้ลดความหนักไว้ก่อน มีอาการเหนือคอเล็กน้อย",
+      detailThaiCopy:
+        "มีอาการเหนือคอเล็กน้อยและไม่มีไข้ ถ้าจะขยับให้เดินเบา ๆ หรือ mobility 10–20 นาทีเท่านั้น หยุดทันทีถ้าอาการแย่ลงระหว่างขยับ",
+      shortEnglishCopy: "Light movement only — mild upper symptoms",
+      adjustedWorkoutLabel: "เดินเบา ๆ / Mobility",
+      shouldAdjustPlannedWorkout: true,
+    };
+  }
+
+  // ── 0c. Sick caution (sick with unclear/moderate symptoms) ──────────────────
+  if (sickRiskLevel === "caution") {
+    return {
+      tone: "warning",
+      canRun: false,
+      avoidRun: true,
+      canDoHardWorkout: false,
+      recommendedIntensity: "rest",
+      allowedActivities: ["พัก", "เดินเบา ๆ (ถ้าไหว)", "ดื่มน้ำให้พอ"],
+      blockedActivities: ["วิ่ง", "Tempo", "Intervals", "Long run", ...HARD_BLOCKED],
+      reason: "ไม่สบาย",
+      shortThaiCopy: "ร่างกายส่งสัญญาณไม่สบาย วันนี้ลดความหนักหรือพักเลย",
+      detailThaiCopy:
+        "ร่างกายไม่อยู่ในสภาพซ้อมได้ปกติ วันนี้ให้พักหรือเดินเบา ๆ ถ้าไหว ฟังร่างกายเป็นหลัก",
+      shortEnglishCopy: "Rest or very light movement — not feeling well",
+      adjustedWorkoutLabel: "พัก / Sick Day",
+      shouldAdjustPlannedWorkout: true,
+    };
+  }
+
+  // ── Pain checks run next, regardless of recovery data ──────────────────────
 
   // ── 1. Active pain ─────────────────────────────────────────────────────────
   if (hasActivePain) {
@@ -358,6 +422,14 @@ export function getTodayTrainingGuardrail(
 export type SuggestedChip = { label: string; emoji?: string };
 
 export function getGuardrailSuggestedChips(guardrail: TrainingGuardrail): SuggestedChip[] {
+  if (guardrail.avoidRun && (guardrail.reason.includes("ป่วย") || guardrail.reason.includes("ไม่สบาย") || guardrail.reason.includes("อาการเหนือคอ"))) {
+    return [
+      { label: "วันนี้ยังวิ่งได้ไหม" },
+      { label: "ป่วยควรกินยาอะไร" },
+      { label: "ป่วยแล้วฟื้นตัวเร็วขึ้นได้ยังไง" },
+      { label: "กลับมาซ้อมได้เมื่อไร" },
+    ];
+  }
   if (guardrail.avoidRun && guardrail.tone === "danger" && guardrail.reason.includes("เจ็บ")) {
     return [
       { label: "วันนี้ควรหยุดวิ่งไหม" },

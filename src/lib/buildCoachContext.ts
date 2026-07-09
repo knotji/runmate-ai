@@ -20,6 +20,8 @@ import { calculateRunMateReadiness, type ReadinessV2Result } from "@/lib/readine
 import { buildRunMateRecoverySystem, type RunMateRecoverySystem } from "@/lib/recoverySystem";
 import { buildRunMateRecoveryLoop, type RunMateRecoveryLoop } from "@/lib/recoveryLoop";
 import { getPainRecoveryStatus, derivePainRecoveryInput, isPainRecoveryStatus, type PainRecoveryStatus } from "@/lib/painRecovery";
+import { getIllnessRiskLevel, getIllnessTrainingDecision, deriveSickLogFlags } from "@/lib/health/illnessGuardrail";
+import type { SickLog, SickRiskLevel, SickSymptom, SickSeverity } from "@/types/sick";
 
 export type DayWorkoutSummary = {
   date: string;
@@ -127,6 +129,10 @@ export type CoachContext = {
   readinessV2: ReadinessV2Result | null;
   recoverySystem: RunMateRecoverySystem;
   recoveryLoop: RunMateRecoveryLoop;
+  // Sick-day guardrail
+  latestSick: SickLog | null;
+  activeSick: boolean;
+  sickRiskLevel: SickRiskLevel;
 };
 
 export type NutritionDaySummary = {
@@ -266,7 +272,7 @@ export function buildCoachContext(): CoachContext {
 
 export async function buildCoachContextFromSupabase(): Promise<CoachContext> {
   const [historyResult, profileResult, raceResult, completedRaceResult] = await Promise.all([
-    loadHistoryItems(["sleep", "workout", "body", "meal", "pain", "strength", "health_check"]),
+    loadHistoryItems(["sleep", "workout", "body", "meal", "pain", "strength", "health_check", "sick"]),
     loadProfileFromSupabase(),
     loadActiveRaceGoalAndPlan(),
     loadRaceResults(5),
@@ -573,6 +579,38 @@ export function buildCoachContextFromData(input: {
       : false,
   });
 
+  // Sick-day logs — today's only, most recent first
+  const sickItems = items
+    .filter((i) => i.type === "sick")
+    .filter((i) => getHistoryItemDateKey(i) === today)
+    .sort(compareHistoryByEventDateDesc);
+  const latestSick: SickLog | null = (() => {
+    const item = sickItems[0];
+    if (!item) return null;
+    const d = item.data as Partial<SickLog> | null;
+    if (!d) return null;
+    const healthStatus = (d.healthStatus === "normal" || d.healthStatus === "fatigue" || d.healthStatus === "sick") ? d.healthStatus : "sick";
+    const symptoms: SickSymptom[] = Array.isArray(d.symptoms) ? d.symptoms as SickSymptom[] : [];
+    const severity = (d.severity === "mild" || d.severity === "moderate" || d.severity === "severe") ? d.severity as SickSeverity : undefined;
+    const flags = deriveSickLogFlags(symptoms, severity);
+    const riskLevel = getIllnessRiskLevel({ healthStatus, symptoms, severity });
+    const trainingDecision = getIllnessTrainingDecision(riskLevel);
+    return {
+      date: getHistoryItemDateKey(item),
+      createdAt: item.createdAt,
+      healthStatus,
+      symptoms,
+      severity,
+      note: typeof d.note === "string" ? d.note : undefined,
+      ...flags,
+      riskLevel,
+      trainingDecision,
+      source: "manual" as const,
+    };
+  })();
+  const activeSick = latestSick !== null && latestSick.healthStatus !== "normal";
+  const sickRiskLevel: SickRiskLevel = latestSick?.riskLevel ?? "none";
+
   const ctx: CoachContext = {
     profile: input.profile,
     raceGoal: input.raceGoal,
@@ -664,6 +702,9 @@ export function buildCoachContextFromData(input: {
     }),
     recoverySystem: null as unknown as RunMateRecoverySystem,
     recoveryLoop: null as unknown as RunMateRecoveryLoop,
+    latestSick,
+    activeSick,
+    sickRiskLevel,
   };
 
   ctx.recoverySystem = buildRunMateRecoverySystem(ctx);

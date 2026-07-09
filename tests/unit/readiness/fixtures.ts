@@ -89,6 +89,9 @@ export function makeCtx(overrides?: Partial<CoachContext>): CoachContext {
     readinessV2: null,
     recoverySystem: makeRecoverySys(),
     recoveryLoop: {} as CoachContext["recoveryLoop"],
+    latestSick: null,
+    activeSick: false,
+    sickRiskLevel: "none",
   };
   return { ...base, ...overrides };
 }

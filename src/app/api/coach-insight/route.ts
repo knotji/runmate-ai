@@ -226,6 +226,11 @@ function normalizeCoachContext(value: unknown): CoachContext {
     readinessV2: isRecord(raw.readinessV2) ? raw.readinessV2 as CoachContext["readinessV2"] : null,
     recoverySystem: null as unknown as RunMateRecoverySystem,
     recoveryLoop: null as unknown as RunMateRecoveryLoop,
+    latestSick: isRecord(raw.latestSick) ? raw.latestSick as CoachContext["latestSick"] : null,
+    activeSick: Boolean(raw.activeSick),
+    sickRiskLevel: (raw.sickRiskLevel === "mild" || raw.sickRiskLevel === "caution" || raw.sickRiskLevel === "hard_stop")
+      ? raw.sickRiskLevel
+      : "none",
   };
 
   context.recoverySystem = isRecord(raw.recoverySystem)

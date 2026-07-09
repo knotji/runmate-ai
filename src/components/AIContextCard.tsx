@@ -398,6 +398,9 @@ const emptyContext: CoachContext = {
   readinessV2: null,
   recoverySystem: null as unknown as RunMateRecoverySystem,
   recoveryLoop: null as unknown as RunMateRecoveryLoop,
+  latestSick: null,
+  activeSick: false,
+  sickRiskLevel: "none" as const,
 };
 
 
