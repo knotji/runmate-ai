@@ -1082,9 +1082,14 @@ function UploadEmptyGuide({
             ไฟล์ต้นฉบับใช้เพื่อวิเคราะห์ครั้งนี้เท่านั้น Report จะเก็บเฉพาะข้อมูลที่สรุปแล้ว และ Coach Chat ใช้ Report เป็นบริบท
           </p>
           {type === "body" ? (
-            <Link href="/pain" className="inline-flex rounded-full bg-white px-3 py-1.5 text-[11px] font-bold text-[var(--primary)] shadow-sm">
-              มีอาการเจ็บ? บันทึกที่หน้า &quot;เจ็บ&quot;
-            </Link>
+            <div className="flex flex-wrap gap-2">
+              <Link href="/pain" className="inline-flex rounded-full bg-white px-3 py-1.5 text-[11px] font-bold text-[var(--primary)] shadow-sm">
+                มีอาการเจ็บ? บันทึกที่หน้า &quot;เจ็บ&quot;
+              </Link>
+              <Link href="/sick" className="inline-flex rounded-full bg-white px-3 py-1.5 text-[11px] font-bold text-[var(--primary)] shadow-sm">
+                ไม่สบาย? บันทึกอาการ
+              </Link>
+            </div>
           ) : null}
         </div>
       </details>
