@@ -100,7 +100,7 @@ export async function POST(request: Request) {
     const result = await Promise.race([aiPromise, timeoutPromise]);
     const guarded = applyCautionFactorsGuard(
       applyLowRecoverySleepGuard(
-        applyPostWorkoutRecoveryGuard(applyTodayPainGuard(normalizeInsight(result.data, ctx), ctx), ctx),
+        applyPostWorkoutRecoveryGuard(applyTodayPainGuard(applySickDayGuard(normalizeInsight(result.data, ctx), ctx), ctx), ctx),
         ctx,
       ),
       ctx,
@@ -361,6 +361,26 @@ function buildUserPrompt(ctx: CoachContext): string {
   const thaiBuddhistDate = formatThaiBuddhistDate();
   lines.push(`วันนี้ (Bangkok, Asia/Bangkok UTC+7): ${thaiDayName} ${ctx.todayDate} (${thaiBuddhistDate}) — ใช้วันนี้เป็นข้อมูลอ้างอิง อย่าอนุมานวันจาก UTC`);
 
+  if (ctx.activeSick) {
+    lines.push(`\nSick-day status: activeSick=true, riskLevel=${ctx.sickRiskLevel}`);
+    if (ctx.latestSick) {
+      const s = ctx.latestSick;
+      lines.push(`- healthStatus: ${s.healthStatus}, symptoms: [${(s.symptoms ?? []).join(", ")}]${s.severity ? `, severity: ${s.severity}` : ""}`);
+      if (s.fever) lines.push(`- FEVER: true — rest is mandatory, see doctor if high or persistent`);
+      if (s.chestSymptoms) lines.push(`- chestSymptoms: true — rest mandatory, see doctor`);
+      if (s.giSymptoms) lines.push(`- giSymptoms: true — rest mandatory, rehydrate`);
+      if (s.heavyFatigue) lines.push(`- heavyFatigue: true — rest mandatory`);
+      if (s.note) lines.push(`- note: ${s.note}`);
+    }
+    if (ctx.sickRiskLevel === "hard_stop") {
+      lines.push("- TRAINING RULE: hard_stop — do NOT recommend any exercise. Rest, hydration, sleep only.");
+    } else if (ctx.sickRiskLevel === "caution") {
+      lines.push("- TRAINING RULE: caution — rest or minimal movement only. No structured training.");
+    } else if (ctx.sickRiskLevel === "mild") {
+      lines.push("- TRAINING RULE: mild above-neck — very light walk or mobility only (10–20 min). Stop if symptoms worsen.");
+    }
+  }
+
   if (ctx.painRecoveryStatus && ctx.painRecoveryStatus !== "cleared_normal") {
     lines.push(`\nPain recovery status: ${ctx.painRecoveryStatus}`);
     lines.push(`- ห้ามแนะนำ tempo, intervals, race pace, progression run, speed work, fartlek, หรือวิ่งยาวหนักจนกว่า pain recovery status จะเป็น cleared_normal`);
@@ -598,6 +618,45 @@ function applyCautionFactorsGuard(insight: DailyCoachInsight, ctx: CoachContext)
       };
     }
   }
+  return insight;
+}
+
+function applySickDayGuard(insight: DailyCoachInsight, ctx: CoachContext): DailyCoachInsight {
+  if (!ctx.activeSick) return insight;
+  const riskLevel = ctx.sickRiskLevel;
+
+  if (riskLevel === "hard_stop") {
+    return {
+      ...insight,
+      workoutRec: "วันนี้พักก่อน ร่างกายกำลังสู้กับอาการป่วย",
+      workoutTarget: "พักเต็มวัน · งดออกกำลังกาย · ดื่มน้ำและนอนให้พอ",
+      keyObservation: ctx.latestSick?.fever ? "มีไข้ — พักและดูอาการ" : "ป่วย — งดซ้อม",
+      coachMessage: ctx.latestSick?.fever
+        ? "ร่างกายมีไข้อยู่ วันนี้งดซ้อมหนักก่อนนะครับ เน้นพัก ดื่มน้ำเยอะ ๆ และนอนให้พอ ถ้าไข้สูงหรือไม่ลดควรพบแพทย์"
+        : "ร่างกายกำลังป่วยอยู่ วันนี้งดซ้อมก่อนครับ เน้นพัก ดื่มน้ำ และนอนให้พอ",
+    };
+  }
+
+  if (riskLevel === "mild") {
+    return {
+      ...insight,
+      workoutRec: "มีอาการเหนือคอเล็กน้อย — เดินเบา ๆ ได้ถ้าต้องการ",
+      workoutTarget: "เดินเบา ๆ หรือ mobility 10–20 นาที · หยุดถ้าอาการแย่ลง",
+      keyObservation: "มีอาการเหนือคอ (ไม่มีไข้)",
+      coachMessage: "มีอาการเหนือคอเล็กน้อยแต่ไม่มีไข้ ถ้าจะขยับตัวให้เดินเบา ๆ หรือ mobility ไม่เกิน 20 นาที และหยุดทันทีถ้าอาการแย่ลงนะครับ",
+    };
+  }
+
+  if (riskLevel === "caution") {
+    return {
+      ...insight,
+      workoutRec: "ร่างกายส่งสัญญาณไม่สบาย — พักก่อน",
+      workoutTarget: "พักหรือขยับเบา ๆ · ไม่มีแผนซ้อมหนัก",
+      keyObservation: "ร่างกายไม่สบาย",
+      coachMessage: "ร่างกายส่งสัญญาณไม่สบายวันนี้ วันนี้ลดความหนักไว้ก่อนครับ ถ้าจะขยับให้เบามาก ๆ และฟังร่างกายเป็นหลัก",
+    };
+  }
+
   return insight;
 }
 
