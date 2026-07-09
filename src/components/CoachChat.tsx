@@ -187,6 +187,15 @@ export function CoachChat() {
     return () => window.removeEventListener("runmate:coach-current-pain-changed", handleCurrentPainChange);
   }, []);
 
+  useEffect(() => {
+    function handleClearChatEvent() {
+      messages.forEach((message) => revokeObjectUrl(message.imageUrl));
+      setMessages([]);
+    }
+    window.addEventListener("runmate:clear-coach-chat", handleClearChatEvent);
+    return () => window.removeEventListener("runmate:clear-coach-chat", handleClearChatEvent);
+  }, [messages]);
+
   function revokeObjectUrl(url: string | null | undefined) {
     if (!url?.startsWith("blob:")) return;
     URL.revokeObjectURL(url);

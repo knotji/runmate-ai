@@ -110,6 +110,9 @@ test("2. Very low sleep alone does not trigger danger tone on factor bars", asyn
 
   await gotoApp(page, "/");
 
+  // Factor bars are inside the recovery-details collapse (v0.2.2) — expand first
+  await page.locator('[data-testid="recovery-details"]').locator("summary").first().click();
+
   const sleepBar = page.getByTestId("today-factor-bar").filter({ hasText: "การนอน" });
   await expect(sleepBar).toBeVisible();
   const tone = await sleepBar.getAttribute("data-tone");
@@ -127,6 +130,9 @@ test("3. High load score uses warning tone on factor bar", async ({ page }) => {
   }
 
   await gotoApp(page, "/");
+
+  // Factor bars are inside the recovery-details collapse (v0.2.2) — expand first
+  await page.locator('[data-testid="recovery-details"]').locator("summary").first().click();
 
   const loadBar = page.getByTestId("today-factor-bar").filter({ hasText: "โหลดซ้อม" });
   await expect(loadBar).toBeVisible();
@@ -164,6 +170,9 @@ test("5. Active pain enables danger tone on recovery/sleep bars", async ({ page 
   state.history.push(makePainRecord(today, "pain-active", 5));
 
   await gotoApp(page, "/");
+
+  // Factor bars are inside the recovery-details collapse (v0.2.2) — expand first
+  await page.locator('[data-testid="recovery-details"]').locator("summary").first().click();
 
   const sleepBar = page.getByTestId("today-factor-bar").filter({ hasText: "การนอน" });
   await expect(sleepBar).toBeVisible();
@@ -219,6 +228,9 @@ test("6. Full fuel score shows success tone", async ({ page }) => {
   }
 
   await gotoApp(page, "/");
+
+  // Factor bars are inside the recovery-details collapse (v0.2.2) — expand first
+  await page.locator('[data-testid="recovery-details"]').locator("summary").first().click();
 
   const fuelBar = page.getByTestId("today-factor-bar").filter({ hasText: "พลังงาน" });
   await expect(fuelBar).toBeVisible();

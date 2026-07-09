@@ -189,19 +189,18 @@ test("Explanation toggle shows ซ่อนเหตุผล when expanded and 
 
   await gotoApp(page, "/");
 
-  // Collapsed state shows original question text
-  await expect(page.getByText("ทำไมวันนี้แนะนำแบบนี้?")).toBeVisible();
+  // Collapsed state shows "ดูเหตุผล" (renamed from "ทำไมวันนี้แนะนำแบบนี้?" in v0.2.2)
+  await expect(page.getByText("ดูเหตุผล").first()).toBeVisible();
 
   // Click to expand
-  await page.getByText("ทำไมวันนี้แนะนำแบบนี้?").click();
+  await page.getByText("ดูเหตุผล").first().click();
 
-  // Expanded state shows ซ่อนเหตุผล
-  await expect(page.getByText("ซ่อนเหตุผล")).toBeVisible();
-  await expect(page.getByText("ทำไมวันนี้แนะนำแบบนี้?")).toHaveCount(0);
+  // Expanded state shows ซ่อนเหตุผล (there may be a second ดูเหตุผล button elsewhere — check count >= 1 via toBeVisible)
+  await expect(page.getByText("ซ่อนเหตุผล").first()).toBeVisible();
 
   // Click again to collapse
   await page.getByText("ซ่อนเหตุผล").click();
-  await expect(page.getByText("ทำไมวันนี้แนะนำแบบนี้?")).toBeVisible();
+  await expect(page.getByText("ดูเหตุผล").first()).toBeVisible();
 });
 
 test("Hero pre-workout has only one secondary details toggle visible", async ({ page }) => {
@@ -232,14 +231,14 @@ test("Hero pre-workout has only one secondary details toggle visible", async ({ 
   // Old "ดูเหตุผลและข้อแนะนำเพิ่มเติม" toggle must NOT appear (merged into outer toggle)
   await expect(page.getByText("ดูเหตุผลและข้อแนะนำเพิ่มเติม")).toHaveCount(0);
 
-  // Single secondary control: "ทำไมวันนี้แนะนำแบบนี้?" visible and clickable
-  await expect(page.getByText("ทำไมวันนี้แนะนำแบบนี้?")).toBeVisible();
+  // Single secondary control: "ดูเหตุผล" visible and clickable (renamed in v0.2.2)
+  await expect(page.getByText("ดูเหตุผล").first()).toBeVisible();
 
   // CTA still prominent
   await expect(page.getByRole("link", { name: "บันทึกกิจกรรมวันนี้" })).toBeVisible();
 
   // Clicking the toggle opens the reasons section
-  await page.getByText("ทำไมวันนี้แนะนำแบบนี้?").click();
+  await page.getByText("ดูเหตุผล").first().click();
   await expect(page.getByText("ซ่อนเหตุผล")).toBeVisible();
   await expect(page.getByText("เหตุผลของคำแนะนำวันนี้")).toBeVisible();
 });
@@ -349,9 +348,10 @@ test("Post-workout recommendation uses recovery wording and avoids suggesting du
 
   await gotoApp(page, "/");
 
-  // Title uses recovery wording: "ฟื้นตัวหลังวิ่ง 5 km" or "หลังซ้อมวันนี้ควรทำอะไรต่อ"
+  // Post-workout section header
   await expect(page.getByText("หลังซ้อมวันนี้ควรทำอะไรต่อ")).toBeVisible();
-  await expect(page.getByText("ฟื้นตัวหลังวิ่ง 5 กม.")).toBeVisible();
+  // Workout completion title (buildPostWorkoutTitle returns "วันนี้ซ้อมพอแล้ว" for single workouts)
+  await expect(page.getByText("วันนี้ซ้อมพอแล้ว")).toBeVisible();
 
   // Recovery note is inside "ดูสิ่งที่ควรทำต่อ" accordion — expand first
   await page.getByText("ดูสิ่งที่ควรทำต่อ").click();
@@ -422,10 +422,13 @@ test("Report page shows updated readiness labels and disclaimers", async ({ page
   await expect(page.getByText("ความพร้อม", { exact: true }).first()).toBeVisible();
 
   // Expanded Sleep Detail shows the warning disclaimer
+  // full-history-details is a <details> — open it, then find the sleep CompactHistoryItemRow and expand it
   await page.getByTestId("full-history-details").evaluate((el) => {
     (el as HTMLDetailsElement).open = true;
   });
-  await page.getByRole("button", { name: "รายละเอียด" }).first().click();
+  const sleepCompactItem = page.locator('[data-testid="report-compact-item"]').filter({ hasText: "นอน" }).first();
+  await expect(sleepCompactItem).toBeVisible({ timeout: 5000 });
+  await sleepCompactItem.getByRole("button", { name: "ดู" }).click();
   await expect(page.getByText("* Readiness เป็นคะแนนความพร้อมจากข้อมูล recovery ของวันนั้น ไม่ใช่คะแนนสรุปทั้งวัน")).toBeVisible();
 });
 

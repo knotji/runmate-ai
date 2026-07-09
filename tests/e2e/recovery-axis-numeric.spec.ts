@@ -47,6 +47,9 @@ test("Today factor bars show the four axis title labels", async ({ page }) => {
 
   await gotoApp(page, "/");
 
+  // Factor bars are inside the recovery-details collapse (v0.2.2 UX) — expand first
+  await page.locator('[data-testid="recovery-details"]').locator("summary").first().click();
+
   await expect(page.getByTestId("today-factor-bar")).toHaveCount(4);
   await expect(page.getByText("ฟื้นตัว", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("โหลดซ้อม", { exact: true }).first()).toBeVisible();
@@ -67,11 +70,14 @@ test("Today axis grid does not render old combined text-only format", async ({ p
 
 // ─── Factor bars always visible, no Daily Check chip ─────────────────────────
 
-test("Today recovery factor bars are visible without expanding accordion", async ({ page }) => {
+test("Today recovery factor bars are visible inside recovery accordion", async ({ page }) => {
   const state = await installMockBackend(page);
   state.history.push(makeSleepRecord(bangkokDateKey(), "sleep-ring-1"));
 
   await gotoApp(page, "/");
+
+  // Factor bars are inside the recovery-details collapse (v0.2.2 UX) — expand first
+  await page.locator('[data-testid="recovery-details"]').locator("summary").first().click();
 
   await expect(page.getByTestId("today-factor-bar")).toHaveCount(4);
   await expect(page.getByText("ฟื้นตัว", { exact: true }).first()).toBeVisible();
@@ -79,7 +85,7 @@ test("Today recovery factor bars are visible without expanding accordion", async
   await expect(page.getByText("การนอน", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("พลังงาน", { exact: true }).first()).toBeVisible();
 
-  // Daily Check chip must NOT be visible in the overview card
+  // Daily Check chip must NOT be visible
   await expect(page.getByText(/Daily check/)).toHaveCount(0);
 });
 

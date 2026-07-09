@@ -114,6 +114,8 @@ test.describe("Pain page — status selector UI", () => {
     // No active pain guardrail should appear
     await page.waitForTimeout(1500);
     await expect(page.getByText("ยังมีอาการเจ็บวันนี้")).toHaveCount(0);
+    // ReadinessSignalBars is inside signals-details collapse — expand first
+    await page.locator('[data-testid="signals-details"]').locator("summary").first().click();
     await expect(page.getByTestId("readiness-signal-bars")).toBeVisible({ timeout: 10000 });
   });
 });

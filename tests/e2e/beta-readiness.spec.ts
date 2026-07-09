@@ -105,7 +105,13 @@ test("Settings: changelog section shows recent updates", async ({ page }) => {
 
   await gotoApp(page, "/settings");
 
+  // Latest version preview is visible without expanding
+  await expect(page.getByTestId("release-notes-preview").getByText("v0.2")).toBeVisible();
+
+  // Expand to see full history including v0.1.0 Beta
+  await page.getByTestId("release-notes-toggle").click();
   await expect(page.getByText("v0.1.0 Beta")).toBeVisible();
+
   // At least one changelog item should be visible
   const text = await page.locator("body").textContent();
   const hasChangelog = text?.includes("insight") || text?.includes("recovery") || text?.includes("Today");

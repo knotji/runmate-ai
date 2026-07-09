@@ -1,7 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { gotoApp, installMockBackend } from "./helpers/app";
 import { bangkokDateKey } from "./helpers/testData";
-import { reportDayByDate } from "./helpers/selectors";
 
 test("Strength workout image upload, review, and save flow", async ({ page }) => {
   const today = bangkokDateKey();
@@ -97,11 +96,12 @@ test("Strength workout image upload, review, and save flow", async ({ page }) =>
 
   // Verify in Report logs
   await gotoApp(page, "/logs");
+  // "รายการทั้งหมด" is the full-history-details summary — click to expand
   await page.getByText("รายการทั้งหมด").click();
-  const reportDay = reportDayByDate(page, today);
-  await expect(reportDay).toBeVisible();
-  
-  // Today starts expanded by default — no toggle click needed
-  await expect(reportDay.getByText("เวท").first()).toBeVisible();
-  await expect(reportDay.getByText("Squats, Push-ups, Plank")).toBeVisible();
+  // Find the strength workout compact item by its title and expand it
+  const workoutItem = page.locator('[data-testid="report-compact-item"]').filter({ hasText: "เวท" }).first();
+  await expect(workoutItem).toBeVisible({ timeout: 5000 });
+  // Expand the compact row to see exercise details
+  await workoutItem.getByRole("button", { name: "ดู" }).click();
+  await expect(workoutItem.getByText("Squats, Push-ups, Plank")).toBeVisible();
 });

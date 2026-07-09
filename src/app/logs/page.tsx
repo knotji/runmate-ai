@@ -213,6 +213,11 @@ export default function ReportPage() {
   const olderDays = filteredDays.slice(7);
   const visibleDays = showOlderDays ? filteredDays : recentDays;
 
+  function setDeleteStatusWithAutoClear(msg: string) {
+    setDeleteStatus(msg);
+    if (msg) setTimeout(() => setDeleteStatus(""), 3000);
+  }
+
   async function handleDeleteItem(item: LocalHistoryItem) {
     const confirmed = window.confirm("ลบรายการนี้?\n\nรายการนี้จะถูกลบออกจาก Report และจะไม่ถูกใช้เป็นบริบทให้ Coach อีก");
     if (!confirmed) return;
@@ -221,11 +226,11 @@ export default function ReportPage() {
     try {
       const result = await deleteHistoryItem(item.id);
       if (!result.ok) {
-        setDeleteStatus(result.error ? `ลบไม่สำเร็จ: ${result.error}` : "ลบไม่สำเร็จ ลองใหม่อีกครั้ง");
+        setDeleteStatusWithAutoClear(result.error ? `ลบไม่สำเร็จ: ${result.error}` : "ลบไม่สำเร็จ ลองใหม่อีกครั้ง");
         return;
       }
       setItems((current) => current.filter((next) => next.id !== item.id));
-      setDeleteStatus("ลบรายการแล้ว");
+      setDeleteStatusWithAutoClear("ลบรายการแล้ว");
     } finally {
       setDeletingKey(null);
     }
@@ -240,11 +245,11 @@ export default function ReportPage() {
     try {
       const response = await deleteRaceResult(result.id);
       if (!response.ok) {
-        setDeleteStatus(response.error ? `ลบไม่สำเร็จ: ${response.error}` : "ลบไม่สำเร็จ ลองใหม่อีกครั้ง");
+        setDeleteStatusWithAutoClear(response.error ? `ลบไม่สำเร็จ: ${response.error}` : "ลบไม่สำเร็จ ลองใหม่อีกครั้ง");
         return;
       }
       setRaceResults((current) => current.filter((next) => next.id !== result.id));
-      setDeleteStatus("ลบรายการแล้ว");
+      setDeleteStatusWithAutoClear("ลบรายการแล้ว");
     } finally {
       setDeletingKey(null);
     }
@@ -252,6 +257,12 @@ export default function ReportPage() {
 
   return (
     <AppShell title="บันทึกของเรา" subtitle="Report · ข้อมูลจาก Upload ที่โค้ชใช้เป็นบริบท">
+      {/* Delete status rendered at top level so it shows even after last item is deleted */}
+      {deleteStatus ? (
+        <section className={`rounded-2xl px-4 py-3 text-xs font-semibold ${deleteStatus.startsWith("ลบไม่สำเร็จ") ? "bg-red-50 text-red-600" : "bg-[var(--primary-soft)] text-[var(--color-success)]"}`}>
+          {deleteStatus}
+        </section>
+      ) : null}
       {loading ? (
         <section className="card p-5 text-sm text-[var(--color-text-soft)]">กำลังโหลดข้อมูล...</section>
       ) : error ? (
@@ -298,12 +309,6 @@ export default function ReportPage() {
             exportStatus={exportStatus}
             onExport={() => void handleExportJson()}
           />
-
-          {deleteStatus ? (
-            <section className={`rounded-2xl px-4 py-3 text-xs font-semibold ${deleteStatus.startsWith("ลบไม่สำเร็จ") ? "bg-red-50 text-red-600" : "bg-[var(--primary-soft)] text-[var(--color-success)]"}`}>
-              {deleteStatus}
-            </section>
-          ) : null}
 
           {/* Calendar views — ordered: summary cards → insight → goal → daily rows */}
           <div

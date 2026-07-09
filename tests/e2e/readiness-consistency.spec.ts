@@ -131,7 +131,7 @@ test("Chip and explanation panel show the same readiness score — no 74 vs 65 m
   await expect(page.locator(".rounded-full").filter({ hasText: /^74 Readiness/ }).first()).toBeVisible();
 
   // Open explanation panel
-  await page.getByText("ทำไมวันนี้แนะนำแบบนี้?").click();
+  await page.getByText("ดูเหตุผล").first().click();
 
   // Explanation must show 74 — not 65 or any other score
   await expect(page.getByText(/Readiness วันนี้ 74\/100/)).toBeVisible();
@@ -175,7 +175,7 @@ test("Explanation shows Readiness ล่าสุด when no today sleep", async
   await expect(page.locator(".rounded-full").filter({ hasText: /Readiness ล่าสุด/ }).first()).toBeVisible();
 
   // Open explanation panel
-  await page.getByText("ทำไมวันนี้แนะนำแบบนี้?").click();
+  await page.getByText("ดูเหตุผล").first().click();
 
   // Explanation says "Readiness ล่าสุด" not "Readiness วันนี้"
   await expect(page.getByText(/Readiness ล่าสุด 70\/100/)).toBeVisible();

@@ -108,9 +108,11 @@ test("Report shows correct heading copy for 7 Day Overview and Weekly Review", a
   await expect(page.getByText("แนวโน้ม Recovery 7 วัน")).toBeVisible();
   await expect(page.getByText("ประเมินความพร้อมและแนวโน้มการฟื้นตัวสะสม")).toBeVisible();
 
-  // Old copy must NOT appear
+  // Old copy must NOT appear as weekly-review section heading
   await expect(page.getByText("ภาพรวมสัปดาห์ล่าสุด")).toHaveCount(0);
-  await expect(page.getByText("สรุปสัปดาห์นี้")).toHaveCount(0);
+  // "สรุปสัปดาห์นี้" still exists as a period-summary label — only verify it's not inside the weekly review card
+  const weeklyReviewCard = page.locator("section").filter({ hasText: "แนวโน้ม Recovery 7 วัน" }).first();
+  await expect(weeklyReviewCard.getByText("สรุปสัปดาห์นี้")).toHaveCount(0);
 });
 
 // ─── Phase 3+4: Today readiness fallback labels ───────────────────────────────

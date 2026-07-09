@@ -120,8 +120,8 @@ test("Polish consistency: Today recommendation decision, Coach readiness, Race s
   // Test 1: Today Page shows clear primary recommendation
   await gotoApp(page, "/");
 
-  // Decision card is inside "ทำไมวันนี้แนะนำแบบนี้?" accordion — expand it
-  await page.getByText("ทำไมวันนี้แนะนำแบบนี้?").click();
+  // Decision card is inside "ดูเหตุผล" accordion — expand it
+  await page.getByText("ดูเหตุผล").first().click();
   await expect(page.getByText("วันนี้เลือกอย่างใดอย่างหนึ่งก่อน")).toBeVisible();
   // With readiness 60, decision card explanation should contain "Fair", and MUST NOT contain "Good"
   await expect(page.getByText(/readiness ยัง Fair/)).toBeVisible();
@@ -176,7 +176,8 @@ test("Polish consistency: Today recommendation decision, Coach readiness, Race s
   });
 
   await gotoApp(page, "/");
-  await expect(page.getByText("ฟื้นตัวหลังเวทวันนี้").first()).toBeVisible();
+  // buildPostWorkoutTitle returns "วันนี้ซ้อมพอแล้ว" for all single workouts (v0.2.2 simplification)
+  await expect(page.getByText("วันนี้ซ้อมพอแล้ว").first()).toBeVisible();
   await expect(page.locator("body")).not.toContainText("หลังวิ่งวันนี้แล้ว");
 
   // Test 6: Upload page helper copy matches tab context (texts inside "อ่านอะไรได้บ้าง?" accordion)

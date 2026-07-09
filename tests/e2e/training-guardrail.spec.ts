@@ -234,6 +234,9 @@ test("Guardrail 4: critical combined (low rec + very low sleep + high load) → 
 
   await gotoApp(page, "/");
 
+  // Factor bars are inside recovery-details collapse (v0.2.2) — expand first
+  await page.locator('[data-testid="recovery-details"]').locator("summary").first().click();
+
   // Factor bars visible
   await expect(page.getByTestId("today-factor-bar").first()).toBeVisible();
 

@@ -1,7 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { gotoApp, installMockBackend } from "./helpers/app";
 import { bangkokDateKey, formatThaiBuddhistDate } from "./helpers/testData";
-import { reportDayByDate } from "./helpers/selectors";
 
 test("suggested date is not applied until the user confirms it", async ({ page }) => {
   const today = bangkokDateKey();
@@ -26,6 +25,7 @@ test("suggested date is not applied until the user confirms it", async ({ page }
 
   await gotoApp(page, "/logs");
   await page.getByText("รายการทั้งหมด").click();
-  await expect(reportDayByDate(page, yesterday)).toBeVisible();
-  await expect(reportDayByDate(page, today)).toHaveCount(0);
+  // Verify the sleep saved under yesterday's date key (not today)
+  await expect(page.locator(`[data-testid="report-compact-item"][data-date-key="${yesterday}"]`).first()).toBeVisible({ timeout: 5000 });
+  await expect(page.locator(`[data-testid="report-compact-item"][data-date-key="${today}"]`)).toHaveCount(0);
 });

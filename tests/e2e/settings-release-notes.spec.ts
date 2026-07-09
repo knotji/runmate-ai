@@ -9,8 +9,8 @@ test.describe("Settings — release notes collapsible", () => {
     const section = page.getByTestId("release-notes-section");
     await expect(section).toBeVisible({ timeout: 10000 });
     await expect(section).toContainText("ประวัติอัปเดต");
-    await expect(section).toContainText("v0.1.3");
-    await expect(section).toContainText("Coach Clarity");
+    await expect(section).toContainText("v0.2");
+    await expect(section).toContainText("Goal-Aware Personal Running + Health Coach");
   });
 
   test("older versions are hidden by default", async ({ page }) => {
