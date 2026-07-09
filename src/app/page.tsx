@@ -35,6 +35,7 @@ import type { DailyCoachInsight } from "@/types/ai";
 const TODAY_INSIGHT_CLIENT_TIMEOUT_MS = 18000;
 
 function getRecommendedSubtype(insight: DailyCoachInsight | null, ctx: CoachContext | null): "run" | "strength" | "walk" | "other" {
+  if (ctx && (ctx.sickRiskLevel === "hard_stop" || ctx.sickRiskLevel === "caution" || ctx.sickRiskLevel === "mild")) return "walk";
   if (ctx && (ctx.latestPain || ctx.recentPainLogs?.length)) {
     const p = ctx.latestPain ?? ctx.recentPainLogs[0];
     if (p.hasActivePain && (p.riskLevel === "high" || p.riskLevel === "medium")) return "walk";
@@ -86,6 +87,22 @@ function buildClientTodayFallback(ctx: CoachContext | null): DailyCoachInsight {
       weekSummary: weekParts.length ? weekParts.join(" / ") : "ยังมีข้อมูลสัปดาห์นี้ไม่มาก",
       keyObservation: latestWorkout.label,
       coachMessage: "วันนี้มีข้อมูลซ้อมแล้ว ระบบใช้คำแนะนำสำรองให้เน้นฟื้นตัว เติมน้ำ กินโปรตีนกับคาร์บพอประมาณ และนอนให้พอครับ",
+    };
+  }
+
+  if (ctx?.activeSick) {
+    const sickRisk = ctx.sickRiskLevel;
+    return {
+      todayReadiness: readiness,
+      readinessLabel: label,
+      readinessNote,
+      workoutRec: sickRisk === "hard_stop" ? "วันนี้พักก่อน ร่างกายกำลังสู้กับอาการป่วย" : "วันนี้ลดความหนักไว้ก่อน",
+      workoutTarget: sickRisk === "hard_stop" ? "พักเต็มวัน · ไม่ต้องออกกำลังกาย" : "เดินเบา ๆ หรือ mobility เบา · ฟังร่างกายเป็นหลัก",
+      weekSummary: weekParts.length ? weekParts.join(" / ") : "ยังมีข้อมูลสัปดาห์นี้ไม่มาก",
+      keyObservation: sickRisk === "hard_stop" ? "ร่างกายป่วย — งดซ้อม" : "มีอาการไม่สบาย",
+      coachMessage: sickRisk === "hard_stop"
+        ? "ร่างกายกำลังป่วยอยู่ วันนี้งดซ้อมหนักก่อนนะครับ เน้นพัก ดื่มน้ำ และนอนให้พอ"
+        : "มีอาการไม่สบาย วันนี้ลดความหนักไว้ก่อน ถ้าจะขยับตัวให้เดินเบา ๆ หรือ mobility แทน",
     };
   }
 
@@ -1755,7 +1772,7 @@ function TodaySnapshotCard({
 
       {/* Coaching interpretation line — driven by shared guardrail */}
       {!loading && recSys && (() => {
-        const guardrail = getTodayTrainingGuardrail(recSys, !!(coachCtx?.activePain), coachCtx?.painRecoveryStatus);
+        const guardrail = getTodayTrainingGuardrail(recSys, !!(coachCtx?.activePain), coachCtx?.painRecoveryStatus, coachCtx?.sickRiskLevel);
         if (guardrail.tone === "neutral" || guardrail.tone === "success") return null;
 
         const bgColor = guardrail.tone === "danger" ? "" : "rounded-2xl bg-[#fff8ed]/80 px-3 py-2 space-y-1.5";

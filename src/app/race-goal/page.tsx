@@ -568,6 +568,16 @@ function TodayWorkoutCard({ workout, coachContext }: { workout: WeekWorkout; coa
           ⚠️ {guardrail.shortThaiCopy}
         </div>
       )}
+      {coachContext?.activeSick && (
+        <div
+          data-testid="sick-day-race-banner"
+          className={`mt-3 rounded-xl px-3 py-2.5 text-xs leading-5 font-medium border ${coachContext.sickRiskLevel === "hard_stop" ? "bg-red-50 text-red-700 border-red-200" : "bg-amber-50 text-amber-700 border-amber-200"}`}
+        >
+          {coachContext.sickRiskLevel === "hard_stop"
+            ? "🔴 วันนี้พักก่อน — อาการป่วยสำคัญกว่าแผนซ้อม พักให้หาย แล้วค่อยกลับมาซ้อม"
+            : "🟡 วันนี้ลดความหนักไว้ก่อน — มีอาการไม่สบาย ถ้าจะขยับให้เบามากและฟังร่างกาย"}
+        </div>
+      )}
       {!painBlocked && coachContext && (() => {
         const dr = buildDailyReadiness(coachContext);
         const isHardWorkout = /interval|tempo|ซ้อมเร็ว|long run|วิ่งยาว|race pace/i.test(workout.workoutType);
