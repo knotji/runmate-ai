@@ -13,6 +13,8 @@ import type { RaceResult } from "@/types/race";
 import type { UserProfile } from "@/types/profile";
 import type { PainLog } from "@/types/pain";
 import type { StrengthLog } from "@/types/strength";
+import type { SickLog } from "@/types/sick";
+import { SICK_SYMPTOM_LABELS } from "@/types/sick";
 import { safeStrengthMins } from "@/lib/reportDaySummary";
 import {
   formatDistanceKm,
@@ -59,7 +61,7 @@ import { getTimelineItemSubtitle, type TimelineItemSubtitleInput } from "@/lib/r
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-type ReportFilter = "all" | "workout" | "meal" | "sleep" | "pain";
+type ReportFilter = "all" | "workout" | "meal" | "sleep" | "pain" | "sick";
 
 export default function ReportPage() {
   const [items, setItems] = useState<LocalHistoryItem[]>([]);
@@ -206,6 +208,9 @@ export default function ReportPage() {
     }
     if (activeFilter === "pain") {
       return day.items.some((i) => i.type === "pain");
+    }
+    if (activeFilter === "sick") {
+      return day.items.some((i) => i.type === "sick");
     }
     return true;
   });
@@ -917,6 +922,9 @@ function FullHistoryDetails({
       if (activeFilter === "pain") {
         return item.type === "pain";
       }
+      if (activeFilter === "sick") {
+        return item.type === "sick";
+      }
       return true;
     });
     return [...list].sort((a, b) => Date.parse(b.recordedAt || b.createdAt) - Date.parse(a.recordedAt || a.createdAt));
@@ -1067,6 +1075,7 @@ function getMappedTypeName(item: LocalHistoryItem): string {
   if (item.type === "meal") return "food";
   if (item.type === "health_check") return "health";
   if (item.type === "strength") return "workout";
+  if (item.type === "sick") return "sick";
   return item.type; // sleep, workout, pain, body, summary
 }
 
@@ -1075,6 +1084,7 @@ function getTypeBadgeLabel(type: string): string {
   if (type === "food") return "อาหาร";
   if (type === "sleep") return "นอน";
   if (type === "pain") return "เจ็บ";
+  if (type === "sick") return "ไม่สบาย";
   if (type === "summary") return "สรุป";
   if (type === "body") return "ร่างกาย";
   if (type === "health") return "สุขภาพ";
@@ -1151,6 +1161,15 @@ function getTimelineItemTitle(item: LocalHistoryItem): string {
     if (ext.skeletalMuscleKg != null) parts.push(`กล้ามเนื้อ ${formatDecimal(ext.skeletalMuscleKg)} กก.`);
     return parts.length > 0 ? parts.join(" · ") : "บันทึกร่างกาย";
   }
+  if (item.type === "sick") {
+    const log = item.data as SickLog;
+    if (!log) return "บันทึกอาการสุขภาพ";
+    if (log.healthStatus === "normal") return "สุขภาพปกติ";
+    if (log.healthStatus === "fatigue") return "เพลีย/อ่อนเพลีย";
+    const symptomLabels = (log.symptoms ?? []).slice(0, 3).map((s) => SICK_SYMPTOM_LABELS[s] ?? s).join(", ");
+    const riskLabel = log.riskLevel === "hard_stop" ? "🔴 งดซ้อม" : log.riskLevel === "mild" ? "🟡 ลดโหลด" : "🟡 ไม่สบาย";
+    return symptomLabels ? `${riskLabel} · ${symptomLabels}` : riskLabel;
+  }
   if (item.type === "health_check") {
     const d = item.data as HealthCheckAnalysis;
     const labsCount = Object.keys(d.labs || {}).length;
@@ -1175,6 +1194,7 @@ function getTypeBadgeStyles(type: string): string {
   if (type === "workout") return "bg-emerald-50 text-emerald-700 border border-emerald-100";
   if (type === "food") return "bg-orange-50 text-orange-700 border border-orange-100";
   if (type === "pain") return "bg-red-50 text-red-700 border border-red-100";
+  if (type === "sick") return "bg-amber-50 text-amber-700 border border-amber-200";
   if (type === "body") return "bg-purple-50 text-purple-700 border border-purple-100";
   if (type === "health") return "bg-blue-50 text-blue-700 border border-blue-100";
   return "bg-slate-50 text-slate-700 border border-slate-100";
@@ -1212,6 +1232,9 @@ function renderDetailCard(
   if (item.type === "pain") {
     return <PainDetail item={item} meta={painMetaById.get(item.id)} onDelete={onDeleteItem} deleting={deletingKey === item.id} />;
   }
+  if (item.type === "sick") {
+    return <SickDetail item={item} onDelete={onDeleteItem} deleting={deletingKey === item.id} />;
+  }
   if (item.type === "body") {
     return <BodyDetail item={item} onDelete={onDeleteItem} deleting={deletingKey === item.id} />;
   }
@@ -1242,6 +1265,7 @@ function FilterPills({
           { id: "meal", label: "อาหาร" },
           { id: "sleep", label: "นอน" },
           { id: "pain", label: "เจ็บ" },
+          { id: "sick", label: "ไม่สบาย" },
         ] as const
       ).map((f) => (
         <button
@@ -1488,6 +1512,7 @@ function DayCard({
   const latestBodies = bodies.slice(0, 1);
   const hasMultipleBodies = bodies.length > 1;
   const pains = day.items.filter((i) => i.type === "pain");
+  const sicks = day.items.filter((i) => i.type === "sick");
   const strengths = day.items.filter((i) => i.type === "strength");
   const painMetaById = buildPainDisplayMeta(pains);
   const latestSleepDuration = getLatestSleepDuration(dedupedSleeps);
@@ -1536,6 +1561,11 @@ function DayCard({
                   }
                   if (pains.length > 0) {
                     badgeElements.push(<Badge icon="🩹" label={isResolvedPainItem(pains[0]) ? "หายแล้ว" : `เจ็บ ${getPainLevel(pains[0])}/10`} color={isResolvedPainItem(pains[0]) ? "green" : "red"} key="pain" />);
+                  }
+                  if (sicks.length > 0) {
+                    const sick = sicks[0].data as SickLog | null;
+                    const sickLabel = sick?.riskLevel === "hard_stop" ? "ป่วย" : sick?.healthStatus === "fatigue" ? "เพลีย" : "ไม่สบาย";
+                    badgeElements.push(<Badge icon="🤒" label={sickLabel} color="yellow" key="sick" />);
                   }
                   return badgeElements.slice(0, 4);
                 })()}
@@ -2165,6 +2195,72 @@ function PainDetail({ item, meta, onDelete, deleting }: { item: LocalHistoryItem
   );
 }
 
+function SickDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; onDelete: (item: LocalHistoryItem) => void; deleting: boolean }) {
+  const log = item.data as SickLog | null;
+  if (!log) return null;
+
+  const SEVERITY_LABELS: Record<string, string> = { mild: "เบา", moderate: "ปานกลาง", severe: "หนัก" };
+  const RISK_LABELS: Record<string, string> = { none: "ปกติ", mild: "ลดโหลด", caution: "ระวัง", hard_stop: "งดซ้อม" };
+
+  const cardBg = log.riskLevel === "hard_stop" ? "bg-red-50 border-red-200" : log.riskLevel === "none" ? "bg-slate-50 border-slate-200" : "bg-amber-50 border-amber-200";
+  const riskTagBg = log.riskLevel === "hard_stop" ? "bg-red-100 text-red-700" : log.riskLevel === "none" ? "bg-slate-100 text-slate-600" : "bg-amber-100 text-amber-700";
+
+  return (
+    <div className={`rounded-2xl border p-3 space-y-2.5 ${cardBg}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wide text-slate-500">🤒 สุขภาพวันนี้</p>
+          <h4 className="mt-1 text-base font-bold text-[var(--foreground)]">
+            {log.healthStatus === "normal" ? "ปกติ" : log.healthStatus === "fatigue" ? "เพลีย" : "ไม่สบาย / ป่วย"}
+          </h4>
+        </div>
+        <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${riskTagBg}`}>
+          {RISK_LABELS[log.riskLevel]}
+        </span>
+      </div>
+
+      {(log.symptoms ?? []).length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {(log.symptoms ?? []).map((s) => (
+            <span key={s} className="rounded-full bg-white/60 px-2 py-0.5 text-[10px] text-slate-600 font-medium">
+              {SICK_SYMPTOM_LABELS[s] ?? s}
+            </span>
+          ))}
+          {log.severity && (
+            <span className="rounded-full bg-white/60 px-2 py-0.5 text-[10px] text-slate-600 font-medium">
+              ความรุนแรง: {SEVERITY_LABELS[log.severity] ?? log.severity}
+            </span>
+          )}
+        </div>
+      )}
+
+      {log.note && (
+        <p className="rounded-xl bg-white/65 px-3 py-2 text-xs leading-5 text-slate-600">{log.note}</p>
+      )}
+
+      {log.riskLevel !== "none" && (
+        <p className="rounded-xl bg-white/65 px-3 py-2 text-xs font-semibold leading-5 text-[var(--foreground)]">
+          {log.riskLevel === "hard_stop" ? "งดออกกำลังกาย เน้นพัก ดื่มน้ำ และนอนให้พอ" : "ลดความหนักไว้ก่อน ฟังร่างกายเป็นหลัก"}
+        </p>
+      )}
+
+      <div className="flex flex-wrap gap-1.5 text-[10px] text-slate-500">
+        {log.fever && <span className="rounded-full bg-red-100/70 px-2 py-0.5 text-red-600 font-semibold">มีไข้</span>}
+        {log.chestSymptoms && <span className="rounded-full bg-red-100/70 px-2 py-0.5 text-red-600 font-semibold">อาการที่หน้าอก</span>}
+        {log.giSymptoms && <span className="rounded-full bg-amber-100/70 px-2 py-0.5 text-amber-700 font-semibold">ระบบย่อยอาหาร</span>}
+        {log.aboveNeckOnly && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-slate-600 font-semibold">เหนือคอเท่านั้น</span>}
+      </div>
+
+      <div className="flex gap-2 pt-0.5">
+        <Link href="/sick" className="rounded-full bg-white/70 px-3 py-1.5 text-xs font-bold text-[var(--recovery-blue)] hover:bg-white">
+          อัปเดตอาการ
+        </Link>
+      </div>
+      <DeleteRecordButton onDelete={() => onDelete(item)} loading={deleting} />
+    </div>
+  );
+}
+
 function StrengthDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; onDelete: (item: LocalHistoryItem) => void; deleting: boolean }) {
   const log = item.data as StrengthLog;
   if (!log) return null;
@@ -2247,12 +2343,13 @@ function DeleteRecordButton({ onDelete, loading = false }: { onDelete: () => voi
   );
 }
 
-function Badge({ icon, label, color }: { icon?: string; label: string; color?: "green" | "blue" | "orange" | "red" }) {
+function Badge({ icon, label, color }: { icon?: string; label: string; color?: "green" | "blue" | "orange" | "red" | "yellow" }) {
   const bg =
     color === "green" ? "bg-[var(--primary-soft)] text-[var(--color-success)]"
     : color === "blue" ? "bg-blue-50 text-blue-700"
     : color === "orange" ? "bg-orange-50 text-orange-700"
     : color === "red" ? "bg-red-50 text-red-700"
+    : color === "yellow" ? "bg-amber-50 text-amber-700"
     : "bg-slate-100 text-slate-600";
   return (
     <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold ${bg}`}>
