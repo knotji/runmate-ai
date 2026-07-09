@@ -106,7 +106,7 @@ test("Settings: changelog section shows recent updates", async ({ page }) => {
   await gotoApp(page, "/settings");
 
   // Latest version preview is visible without expanding
-  await expect(page.getByTestId("release-notes-preview").getByText("v0.2")).toBeVisible();
+  await expect(page.getByTestId("release-notes-preview").getByText("v0.2.2")).toBeVisible();
 
   // Expand to see full history including v0.1.0 Beta
   await page.getByTestId("release-notes-toggle").click();

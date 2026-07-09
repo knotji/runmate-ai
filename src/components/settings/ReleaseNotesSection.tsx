@@ -11,8 +11,8 @@ export function ReleaseNotesSection() {
           <p className="font-bold uppercase tracking-[0.15em] text-[var(--label-color)]">ประวัติอัปเดต</p>
           {!expanded && (
             <div className="mt-1.5" data-testid="release-notes-preview">
-              <p className="font-semibold text-[var(--foreground)]">v0.2</p>
-              <p className="mt-0.5 text-[var(--muted-text)]">Goal-Aware Personal Running + Health Coach</p>
+              <p className="font-semibold text-[var(--foreground)]">v0.2.2</p>
+              <p className="mt-0.5 text-[var(--muted-text)]">อ่านง่ายขึ้น บันทึกมั่นใจขึ้น</p>
             </div>
           )}
         </div>
@@ -28,6 +28,18 @@ export function ReleaseNotesSection() {
 
       {expanded && (
         <div className="mt-3 space-y-4" data-testid="release-notes-expanded">
+          <div>
+            <p className="font-semibold text-[var(--foreground)]">v0.2.2 — อ่านง่ายขึ้น บันทึกมั่นใจขึ้น</p>
+            <ul className="mt-1.5 space-y-1 leading-5">
+              <li>· Today ย่อ signal bars ไว้ใน Recovery — หน้าจอสะอาดขึ้น เห็นสิ่งสำคัญก่อน</li>
+              <li>· ปุ่ม &ldquo;ดูเหตุผล&rdquo; สั้นลง — แสดงเหตุผลคำแนะนำวันนี้ได้เร็วขึ้น</li>
+              <li>· ชื่อสรุปหลัง workout กระชับขึ้น — เข้าใจทันทีว่าวันนี้ซ้อมเพียงพอหรือยัง</li>
+              <li>· ลบแชทโค้ชอัตโนมัติเมื่อลบข้อมูล — ไม่เห็นคำตอบเก่าที่ไม่ตรงกับข้อมูลใหม่</li>
+              <li>· แจ้งสถานะการลบข้อมูลชัดขึ้น — ข้อความ &ldquo;ลบสำเร็จ&rdquo; หายเองใน 3 วินาที</li>
+              <li>· Report รายการกระชับ — สลับ ดู/ย่อ ได้ต่อรายการ</li>
+              <li>· ทดสอบอัตโนมัติ 277 กรณีผ่านทั้งหมด — มั่นใจทุกฟีเจอร์ทำงานถูกต้อง</li>
+            </ul>
+          </div>
           <div>
             <p className="font-semibold text-[var(--foreground)]">v0.2 — Goal-Aware Coach</p>
             <ul className="mt-1.5 space-y-1 leading-5">
