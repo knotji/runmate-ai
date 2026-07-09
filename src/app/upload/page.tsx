@@ -86,6 +86,9 @@ export default function UploadPage() {
   const [raceDuplicateConfirm, setRaceDuplicateConfirm] = useState<{ workout: WorkoutAnalysis; match: RaceMatch } | null>(null);
   // Meal logs are additive; this ref blocks concurrent saves rather than deduping by day.
   const isSavingMealRef = useRef(false);
+  // Increment to force-remount form components after a successful save, resetting their internal state.
+  const [walkResetKey, setWalkResetKey] = useState(0);
+  const [healthCheckResetKey, setHealthCheckResetKey] = useState(0);
 
   const router = useRouter();
 
@@ -229,6 +232,9 @@ export default function UploadPage() {
     if (overrideType === "sleep") {
       void buildCoachContextFromSupabase().then((context) => setCoachContext(context));
     }
+    if (overrideType === "health_check") {
+      setHealthCheckResetKey((k) => k + 1);
+    }
     return saved;
   }
 
@@ -237,8 +243,9 @@ export default function UploadPage() {
       const savedItem = await store({ data: workout }, "workout");
       setResult({ data: workout });
       setWorkoutSavedItem(savedItem);
+      setWalkResetKey((k) => k + 1);
     } catch {
-      // error is set inside store()
+      // error is set inside store(); form data preserved for retry
     }
   }
 
@@ -353,6 +360,8 @@ export default function UploadPage() {
       }
       await store({ data: nextMeal }, "meal");
       setResult(null);
+      setManualMealText("");
+      setImageMealText("");
     } finally {
       isSavingMealRef.current = false;
     }
@@ -420,6 +429,8 @@ export default function UploadPage() {
         });
       }
       setResult(null);
+      setManualMealText("");
+      setImageMealText("");
       return;
     }
 
@@ -469,6 +480,8 @@ export default function UploadPage() {
     }
     setSaveStatus("saved");
     setResult(null);
+    setManualMealText("");
+    setImageMealText("");
     invalidateCoachCache();
   }
 
@@ -748,6 +761,7 @@ export default function UploadPage() {
         {type === "health_check" ? (
           <>
             <HealthCheckUploader
+              key={healthCheckResetKey}
               saving={saveStatus === "saving"}
               onResult={(healthCheck) => {
                 setResult({ data: healthCheck });
@@ -820,6 +834,7 @@ export default function UploadPage() {
           <div className="space-y-4">
             <SelectedDateBadge dateKey={selectedDateKey} />
             <ManualWorkoutLogForm
+              key={walkResetKey}
               subtype="walk"
               saving={saveStatus === "saving"}
               onSave={handleManualWorkoutSave}
@@ -880,16 +895,19 @@ export default function UploadPage() {
           <SelectedDateBadge dateKey={selectedDateKey} />
           <ReportSavedNote saveStatus={saveStatus} />
           <SleepResultCard result={(result as { data: SleepAnalysis }).data} />
-          {saveStatus === "idle" && (
+          {(saveStatus === "idle" || saveStatus === "saving") && (
             <div className="card p-4 flex items-center justify-between gap-3 mt-4">
               <p className="text-sm font-semibold text-[var(--muted-text)]">กดยืนยันเพื่อบันทึก Sleep</p>
-              <button
+              <LoadingButton
                 type="button"
+                loading={saveStatus === "saving"}
+                loadingText="กำลังบันทึก..."
+                disabled={saveStatus === "saving"}
                 onClick={() => void store(result)}
-                className="rounded-full bg-[#17201d] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#2c3d38]"
+                className="rounded-full bg-[#17201d] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#2c3d38] disabled:opacity-60"
               >
                 บันทึกผลการนอน
-              </button>
+              </LoadingButton>
             </div>
           )}
         </>
@@ -2117,6 +2135,7 @@ function OtherWorkoutForm({
     // Text-only: save locally without hitting the API
     if (!hasImages) {
       onSave(buildOtherWorkoutFallback(trimmed, defaultDate));
+      setNote("");
       setSubmitting(false);
       return;
     }
@@ -2164,10 +2183,14 @@ function OtherWorkoutForm({
 
       const result = (await res.json()) as unknown;
       onResult(result);
+      setNote("");
+      setFiles([]);
     } catch {
       if (hasNote) {
         // Has a note: fall back to local save from note text
         onSave(buildOtherWorkoutFallback(trimmed, defaultDate));
+        setNote("");
+        setFiles([]);
       } else {
         // Image-only with no note: can't fall back, ask user to retry
         setError("วิเคราะห์รูปไม่สำเร็จ ลองอัปโหลดใหม่หรือพิมพ์รายละเอียดกิจกรรมแทน");
