@@ -414,13 +414,20 @@ export default function TodayPage() {
         );
       })()}
 
+      {/* Hard-stop sick card — shown prominently above recommendation when active */}
+      {coachCtx?.sickRiskLevel === "hard_stop" && <SickDayEntryCard coachCtx={coachCtx} />}
+
       {/* 2. วันนี้ควรทำอะไร — coach prescription */}
       <section className="rounded-3xl bg-[var(--surface)]/92 border border-[var(--border-warm)]/55 shadow-[0_12px_32px_rgba(72,82,72,0.055)] overflow-hidden">
         <div className="flex">
           <div className="w-1 shrink-0 rounded-l-3xl bg-gradient-to-b from-[var(--primary)]/85 via-[var(--primary)]/55 to-[var(--recovery-blue)]/45" />
           <div className="flex-1 px-4 pt-3.5 pb-4 space-y-3.5">
-        <p className="text-xs font-semibold uppercase tracking-widest text-[var(--label-color)]">
-          {hasWorkoutToday ? (coachCtx?.todayWorkouts.some((w) => w.kind === "strength") ? "หลังเวทวันนี้ควรทำอะไรต่อ" : "หลังซ้อมวันนี้ควรทำอะไรต่อ") : "วันนี้ควรทำอะไร"}
+        <p className="text-xs font-semibold uppercase tracking-widest text-[var(--label-color)]" data-testid="recommendation-section-title">
+          {hasWorkoutToday
+            ? (coachCtx?.todayWorkouts.some((w) => w.kind === "strength") ? "หลังเวทวันนี้ควรทำอะไรต่อ" : "หลังซ้อมวันนี้ควรทำอะไรต่อ")
+            : coachCtx?.sickRiskLevel === "hard_stop"
+            ? "วันนี้ควรพักและฟื้นตัว"
+            : "วันนี้ควรทำอะไร"}
         </p>
 
         {loading && (
@@ -466,9 +473,15 @@ export default function TodayPage() {
           </div>
         )}
 
-        <Link href="/upload" className="btn-primary block w-full py-2.5 text-center text-sm font-bold shadow-[0_8px_20px_rgba(79,138,120,0.15)]">
-          {hasWorkoutToday ? "อัปเดตข้อมูลวันนี้" : "บันทึกกิจกรรมวันนี้"}
-        </Link>
+        {!hasWorkoutToday && coachCtx?.sickRiskLevel === "hard_stop" ? (
+          <Link href="/sick" data-testid="primary-cta" className="btn-primary block w-full py-2.5 text-center text-sm font-bold shadow-[0_8px_20px_rgba(79,138,120,0.15)]">
+            อัปเดตอาการวันนี้
+          </Link>
+        ) : (
+          <Link href="/upload" data-testid="primary-cta" className="btn-primary block w-full py-2.5 text-center text-sm font-bold shadow-[0_8px_20px_rgba(79,138,120,0.15)]">
+            {hasWorkoutToday ? "อัปเดตข้อมูลวันนี้" : "บันทึกกิจกรรมวันนี้"}
+          </Link>
+        )}
 
         {insight && !hasWorkoutToday && (
           <div>
@@ -578,8 +591,8 @@ export default function TodayPage() {
         }
       })()}
 
-      {/* Sick Day entry point — always rendered once context loads */}
-      {coachCtx && <SickDayEntryCard coachCtx={coachCtx} />}
+      {/* Sick Day entry point — non-hard-stop variants stay here; hard-stop shown earlier */}
+      {coachCtx && coachCtx.sickRiskLevel !== "hard_stop" && <SickDayEntryCard coachCtx={coachCtx} />}
 
       {(() => {
         if (!coachCtx) return null;
@@ -589,13 +602,17 @@ export default function TodayPage() {
 
         return (
           <>
-            <p className="mt-1 px-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--color-text-soft)]">อาหารวันนี้</p>
+            <p className="mt-1 px-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--color-text-soft)]" data-testid="food-section-label">
+              {coachCtx.sickRiskLevel === "hard_stop" ? "มื้อถัดไปสำหรับวันที่ไม่สบาย" : "อาหารวันนี้"}
+            </p>
             <details className="group rounded-3xl border border-[var(--color-border-soft)] bg-[var(--surface)]/68 px-4 py-3 shadow-[0_6px_18px_rgba(72,82,72,0.035)] cursor-pointer">
               <summary className="flex list-none items-center justify-between gap-3 text-sm font-semibold text-[var(--foreground)]">
                 <div>
                   <p className="text-sm font-bold text-[var(--foreground)]">อาหารและพลังงานวันนี้</p>
                   <p className="text-xs text-[var(--muted-text)] font-medium mt-0.5">
-                    {fuelScore >= 80 ? "พลังงานวันนี้โอเค (คาร์บ/โปรตีนเพียงพอ)" : `พลังงานวันนี้ ${Math.round(fuelScore)}/100 · ควรรองรับเพิ่มเติม`}
+                    {coachCtx.sickRiskLevel === "hard_stop"
+                      ? "เน้นย่อยง่าย เติมน้ำ และไม่มัน"
+                      : fuelScore >= 80 ? "พลังงานวันนี้โอเค (คาร์บ/โปรตีนเพียงพอ)" : `พลังงานวันนี้ ${Math.round(fuelScore)}/100 · ควรรองรับเพิ่มเติม`}
                   </p>
                 </div>
                 <div className="flex items-center gap-1 text-[11px] text-[var(--primary)] font-bold shrink-0">

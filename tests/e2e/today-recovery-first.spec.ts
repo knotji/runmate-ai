@@ -186,3 +186,35 @@ test("Today: quick actions dock shows ป่วย chip linking to /sick", async
   await expect(sickChip).toBeVisible();
   await expect(sickChip).toHaveAttribute("href", "/sick");
 });
+
+// ─── Sick Day Today polish (hard-stop state) ──────────────────────────────────
+
+test("Today: hard-stop sick card appears above recommendation section", async ({ page }) => {
+  const state = await installMockBackend(page);
+  state.history.push(makeSickRecord(bangkokDateKey(), "sick-hs", ["fever"], "moderate"));
+  await gotoApp(page, "/");
+
+  const cardBox = await page.getByTestId("sick-day-entry-card").boundingBox();
+  const titleBox = await page.getByTestId("recommendation-section-title").boundingBox();
+  expect(cardBox).not.toBeNull();
+  expect(titleBox).not.toBeNull();
+  if (cardBox && titleBox) {
+    expect(cardBox.y).toBeLessThan(titleBox.y);
+  }
+});
+
+test("Today: recommendation title shows วันนี้ควรพักและฟื้นตัว when hard-stop", async ({ page }) => {
+  const state = await installMockBackend(page);
+  state.history.push(makeSickRecord(bangkokDateKey(), "sick-hs2", ["fever"], "moderate"));
+  await gotoApp(page, "/");
+  await expect(page.getByTestId("recommendation-section-title")).toHaveText("วันนี้ควรพักและฟื้นตัว");
+});
+
+test("Today: primary CTA routes to /sick when hard-stop", async ({ page }) => {
+  const state = await installMockBackend(page);
+  state.history.push(makeSickRecord(bangkokDateKey(), "sick-hs3", ["fever"], "moderate"));
+  await gotoApp(page, "/");
+  const cta = page.getByTestId("primary-cta");
+  await expect(cta).toHaveText("อัปเดตอาการวันนี้");
+  await expect(cta).toHaveAttribute("href", "/sick");
+});
