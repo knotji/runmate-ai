@@ -1,8 +1,10 @@
 import { test, expect } from "@playwright/test";
+import { gotoApp, installMockBackend } from "./helpers/app";
 
 test.describe("Sick Day logging page", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/sick");
+    await installMockBackend(page);
+    await gotoApp(page, "/sick");
   });
 
   test("renders status picker with three options", async ({ page }) => {
