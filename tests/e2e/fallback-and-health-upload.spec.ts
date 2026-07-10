@@ -93,8 +93,8 @@ test.describe("Health Check Upload and Today Fallback/Timeout", () => {
     // Navigate to Today page
     await page.goto("/");
 
-    // Check loading indicator shows "รอข้อมูลล่าสุด"
-    await expect(page.getByText("รอข้อมูลล่าสุด")).toBeVisible();
+    // Check loading indicator shows กำลังประเมินข้อมูลล่าสุด…
+    await expect(page.getByText("กำลังประเมินข้อมูลล่าสุด")).toBeVisible();
 
     // Today page should immediately render local fallback recommendations while loading
     await expect(page.getByText("วันนี้เน้นฟื้นตัวเบา ๆ")).toBeVisible();

@@ -235,7 +235,9 @@ test("Today: signal row shows sick pill when hard-stop", async ({ page }) => {
   const state = await installMockBackend(page);
   state.history.push(makeSickRecord(bangkokDateKey(), "sick-hs5", ["fever"], "moderate"));
   await gotoApp(page, "/");
-  await expect(page.getByText("ป่วย · ควรพัก")).toBeVisible();
+  const circles = page.getByTestId("signal-circles");
+  await expect(circles).toBeVisible();
+  await expect(circles).toContainText("ป่วย");
 });
 
 test("Today: recovery loop section is collapsed by default", async ({ page }) => {

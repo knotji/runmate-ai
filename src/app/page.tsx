@@ -17,6 +17,9 @@ import { buildReadinessExplanation } from "@/lib/readiness/readinessExplanation"
 import { buildTrainingPaceBands, getAllowedPaceBandsForReadiness, getTodayDisplayPaceKeys, formatPaceRange } from "@/lib/training/trainingPaceBands";
 import type { PaceBandKey } from "@/lib/training/trainingPaceTypes";
 import { ReadinessSignalBars } from "@/components/ReadinessSignalBars";
+import { ReadinessGauge, type GaugeStatus } from "@/components/ReadinessGauge";
+import { TodaySignalCircles } from "@/components/TodaySignalCircles";
+import { getGaugeStatus } from "@/lib/readiness/gaugeStatus";
 import { getTodayTrainingGuardrail } from "@/lib/trainingGuardrails";
 import { createHistoryItem, loadHistoryItems, saveHistoryItems } from "@/lib/cloudHistory";
 import { loadActiveRaceGoalAndPlan } from "@/lib/raceStorage";
@@ -376,23 +379,10 @@ export default function TodayPage() {
                 <div className="flex items-center gap-2 px-1">
                   <div className="flex flex-1 flex-wrap items-center gap-2.5">
                     <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--color-text-soft)]">สัญญาณวันนี้</span>
-                    {dr.signals.map((signal) => (
-                      <span key={signal.key} className="flex items-center gap-1">
-                        <span className="text-[13px] leading-none">{signal.icon}</span>
-                        <span className={`text-[10px] font-bold ${
-                          signal.tone === "good" ? "text-[var(--color-success)]" :
-                          signal.tone === "warn" ? "text-amber-600" :
-                          signal.tone === "bad" ? "text-red-500" :
-                          "text-slate-400"
-                        }`}>{signal.label} · {signal.value}</span>
-                      </span>
-                    ))}
-                    {coachCtx.sickRiskLevel === "hard_stop" && (
-                      <span className="flex items-center gap-1">
-                        <span className="text-[13px] leading-none">🔴</span>
-                        <span className="text-[10px] font-bold text-red-500">ป่วย · ควรพัก</span>
-                      </span>
-                    )}
+                    <TodaySignalCircles
+                      signals={dr.signals}
+                      sickHardStop={coachCtx.sickRiskLevel === "hard_stop"}
+                    />
                   </div>
                   <span className="shrink-0 text-[10px] font-semibold text-[var(--color-text-soft)]">
                     <span className="group-open:hidden">ดูสัญญาณทั้งหมด ⌄</span>
@@ -1735,6 +1725,17 @@ function buildTodaySnapshotCoachHeadline(
   return "ฟื้นตัวพอใช้ คุมเบาไว้ก่อน";
 }
 
+function getGaugeHeadline(
+  score: number | null,
+  ctx: CoachContext | null | undefined,
+  hasWorkoutToday: boolean
+): string {
+  if (hasWorkoutToday) return "ซ้อมวันนี้เสร็จแล้ว";
+  if (ctx?.sickRiskLevel === "hard_stop") return "วันนี้ควรพักก่อน";
+  if (score == null) return "กำลังประเมิน…";
+  return buildTodaySnapshotCoachHeadline(score, ctx);
+}
+
 function TodaySnapshotCard({
   insight,
   readinessScore,
@@ -1776,46 +1777,36 @@ function TodaySnapshotCard({
   const dailyReadiness = coachCtx ? buildDailyReadiness(coachCtx) : null;
   const readinessExplanation = dailyReadiness ? buildReadinessExplanation(dailyReadiness) : null;
 
+  const gaugeStatus: GaugeStatus = getGaugeStatus(readinessScore, coachCtx);
+  const gaugeHeadline = getGaugeHeadline(readinessScore, coachCtx, hasWorkoutToday ?? false);
+  const chipLabel = hasSleepToday ? displayStatus.label : `ล่าสุด · ${displayStatus.label}`;
+
   return (
     <section className="health-score-card px-4 pt-4 pb-3 space-y-2.5">
       <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--label-color)]">ภาพรวมวันนี้</p>
 
-      {/* Big score + readiness chip row */}
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          {loading && (
-            <div className="text-5xl font-black text-slate-100 leading-none tabular-nums select-none">--</div>
-          )}
-          {!loading && readinessScore != null && insight && (
-            <>
-              <div className="flex items-end gap-1.5">
-                <span className="text-5xl font-black text-[var(--foreground)] leading-[0.88] tabular-nums tracking-[-0.035em]">{readinessScore}</span>
-                <span className="pb-1 text-sm font-bold text-[var(--color-text-soft)] tracking-[-0.01em]">/ 100</span>
-              </div>
-              <p className="mt-2 text-[15px] font-black text-[var(--foreground)] leading-snug tracking-[-0.01em]">
-                {buildTodaySnapshotCoachHeadline(readinessScore, coachCtx)}
-              </p>
-            </>
-          )}
-        </div>
-        <div className="shrink-0 pt-1 flex flex-col items-end gap-1.5">
-          {loading && (
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-400">รอข้อมูลล่าสุด</span>
-          )}
-          {!loading && readinessScore != null && insight && (
-            <span className={`rounded-full px-2.5 py-1 text-[11px] font-black shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] ${readinessChipClass(readinessScore, displayStatus.label)}`}>
-              {readinessScore} Readiness {hasSleepToday ? displayStatus.label : `ล่าสุด · ${displayStatus.label}`}
-            </span>
-          )}
-          {!loading && isFallback && (
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-500 font-semibold">
-              ใช้ข้อมูลล่าสุด
-            </span>
-          )}
-        </div>
-      </div>
+      {/* Circular gauge hero */}
+      {!loading && readinessScore != null && insight && (
+        <ReadinessGauge
+          score={readinessScore}
+          label={chipLabel}
+          status={gaugeStatus}
+          headlineTh={gaugeHeadline}
+          chipClassName={readinessChipClass(readinessScore, displayStatus.label)}
+        />
+      )}
+      {loading && (
+        <ReadinessGauge score={null} label="" status="unknown" headlineTh="กำลังประเมิน…" loading />
+      )}
 
-      {/* One-line axis summary */}
+      {/* Fallback indicator */}
+      {!loading && isFallback && (
+        <span className="inline-block rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-500 font-semibold">
+          ใช้ข้อมูลล่าสุด
+        </span>
+      )}
+
+      {/* One-line axis summary — kept as separate element for today-overview-reason testid */}
       {!loading && (
         <p className="text-[11px] font-medium text-[var(--color-text-soft)] leading-tight" data-testid="today-overview-reason">{axisSummaryLine}</p>
       )}

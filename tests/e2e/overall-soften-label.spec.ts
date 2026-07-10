@@ -172,7 +172,7 @@ test.describe("Readiness Label Softening with Caution Axes", () => {
     await expect(page.getByText("80 Readiness Excellent")).toHaveCount(0);
 
     // Check that the background color class is Blue (bg-[#e7f0fa]) instead of Green
-    const chip = page.locator("span:has-text('Readiness')").first();
+    const chip = page.locator("span.rounded-full").filter({ hasText: /Readiness/ }).first();
     await expect(chip).toHaveClass(/bg-\[#e7f0fa\]/);
 
     // Moderate caution: heavy card NOT shown, soft note shown instead
@@ -266,7 +266,7 @@ test.describe("Readiness Label Softening with Caution Axes", () => {
     await expect(page.getByText("85 Readiness Excellent")).toBeVisible();
 
     // Check that background is Green (bg-[#eef7f0])
-    const chip = page.locator("span:has-text('Readiness')").first();
+    const chip = page.locator("span.rounded-full").filter({ hasText: /Readiness/ }).first();
     await expect(chip).toHaveClass(/bg-\[#eef7f0\]/);
 
     // No Caution Note banner
