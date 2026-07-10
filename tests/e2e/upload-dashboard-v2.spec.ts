@@ -81,4 +81,14 @@ test.describe("Upload Dashboard v2", () => {
     await expect(section.getByTestId("upload-input-panel")).toBeVisible();
     await expect(section.getByTestId("other-workout-section")).toBeVisible();
   });
+
+  test("type selector shows ป่วย chip that links to /sick", async ({ page }) => {
+    await installMockBackend(page);
+    await gotoApp(page, "/upload");
+    const selector = page.getByTestId("upload-type-selector");
+    const sickChip = selector.getByRole("link", { name: "ป่วย" });
+    await expect(sickChip).toBeVisible();
+    await sickChip.click();
+    await expect(page).toHaveURL(/\/sick/);
+  });
 });

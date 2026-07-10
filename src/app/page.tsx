@@ -531,6 +531,7 @@ export default function TodayPage() {
             { href: "/upload?type=meal", icon: "🍱", label: "อาหาร" },
             { href: `/upload?type=workout&subtype=${getRecommendedSubtype(insight, coachCtx)}`, icon: "🏃", label: "ซ้อม" },
             { href: "/pain", icon: "🩹", label: "เจ็บ" },
+            { href: "/sick", icon: "🤒", label: "ป่วย" },
             { href: "#end-of-day-summary", icon: "📋", label: "สรุปวัน" },
           ].map(({ href, icon, label }) => (
             <Link key={href} href={href} className="flex-1 flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-2 text-center transition active:scale-[0.98] hover:bg-[var(--surface)]/80">
@@ -576,6 +577,9 @@ export default function TodayPage() {
           );
         }
       })()}
+
+      {/* Sick Day entry point — always rendered once context loads */}
+      {coachCtx && <SickDayEntryCard coachCtx={coachCtx} />}
 
       {(() => {
         if (!coachCtx) return null;
@@ -2264,6 +2268,77 @@ function EndOfDaySummaryCard({
         สรุปท้ายวัน
       </LoadingButton>
     </section>
+  );
+}
+
+// ─── Sick Day Entry Card ───────────────────────────────────────────────────────
+
+function SickDayEntryCard({ coachCtx }: { coachCtx: CoachContext }) {
+  const hasSickToday = coachCtx.activeSick;
+  const isHardStop = hasSickToday && coachCtx.sickRiskLevel === "hard_stop";
+
+  if (isHardStop) {
+    return (
+      <div
+        data-testid="sick-day-entry-card"
+        className="flex items-start justify-between gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3"
+      >
+        <div className="min-w-0 flex-1 space-y-0.5">
+          <p className="text-sm font-bold text-red-800">🔴 วันนี้ควรพักก่อน</p>
+          <p className="text-xs leading-5 text-red-700">
+            มีอาการที่ไม่เหมาะกับการซ้อม เช่น ไข้ หนาวสั่น หายใจลำบาก หรืออาเจียน
+          </p>
+        </div>
+        <Link
+          href="/sick"
+          className="shrink-0 rounded-xl border border-red-200 bg-white px-3 py-1.5 text-xs font-bold text-red-700"
+        >
+          ดู/อัปเดตอาการ
+        </Link>
+      </div>
+    );
+  }
+
+  if (hasSickToday) {
+    return (
+      <div
+        data-testid="sick-day-entry-card"
+        className="flex items-start justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3"
+      >
+        <div className="min-w-0 flex-1 space-y-0.5">
+          <p className="text-sm font-bold text-amber-800">🟡 วันนี้มีอาการป่วย</p>
+          <p className="text-xs leading-5 text-amber-700">
+            RunMate จะใช้ข้อมูลนี้เพื่อปรับคำแนะนำซ้อมวันนี้
+          </p>
+        </div>
+        <Link
+          href="/sick"
+          className="shrink-0 rounded-xl border border-amber-200 bg-white px-3 py-1.5 text-xs font-bold text-amber-700"
+        >
+          อัปเดตอาการ
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      data-testid="sick-day-entry-card"
+      className="flex items-start justify-between gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3"
+    >
+      <div className="min-w-0 flex-1 space-y-0.5">
+        <p className="text-sm font-semibold text-[var(--foreground)]">วันนี้ไม่สบาย?</p>
+        <p className="text-xs leading-5 text-[var(--muted-text)]">
+          บันทึกอาการป่วย เพื่อให้ RunMate ปรับคำแนะนำซ้อมให้ปลอดภัยขึ้น
+        </p>
+      </div>
+      <Link
+        href="/sick"
+        className="shrink-0 rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-1.5 text-xs font-bold text-[var(--muted-text)]"
+      >
+        แจ้งว่าป่วย
+      </Link>
+    </div>
   );
 }
 

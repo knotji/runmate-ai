@@ -114,3 +114,75 @@ test("Upload page has no horizontal overflow on mobile viewport", async ({ page 
   const hasOverflow = await page.evaluate(() => document.body.scrollWidth > document.body.clientWidth);
   expect(hasOverflow).toBe(false);
 });
+
+// ─── Sick Day discovery ───────────────────────────────────────────────────────
+
+function makeSickRecord(dateKey: string, id: string, symptoms: string[], severity: string) {
+  return {
+    id,
+    user_id: "00000000-0000-4000-8000-000000000001",
+    type: "sick",
+    created_at: `${dateKey}T10:00:00.000Z`,
+    data: {
+      date: dateKey,
+      createdAt: `${dateKey}T10:00:00.000Z`,
+      healthStatus: "sick",
+      symptoms,
+      severity,
+      source: "manual",
+    },
+  };
+}
+
+test("Today: shows วันนี้ไม่สบาย? entry card when no sick log exists", async ({ page }) => {
+  const state = await installMockBackend(page);
+  state.history.push(makeSleepRecord(bangkokDateKey(), "sleep-1"));
+  await gotoApp(page, "/");
+  await expect(page.getByTestId("sick-day-entry-card")).toBeVisible();
+  await expect(page.getByText("วันนี้ไม่สบาย?")).toBeVisible();
+  await expect(page.getByRole("link", { name: "แจ้งว่าป่วย" })).toBeVisible();
+});
+
+test("Today: แจ้งว่าป่วย link navigates to /sick", async ({ page }) => {
+  const state = await installMockBackend(page);
+  state.history.push(makeSleepRecord(bangkokDateKey(), "sleep-1"));
+  await gotoApp(page, "/");
+  await expect(page.getByRole("link", { name: "แจ้งว่าป่วย" })).toBeVisible();
+  await page.getByRole("link", { name: "แจ้งว่าป่วย" }).click();
+  await expect(page).toHaveURL(/\/sick/);
+});
+
+test("Today: shows วันนี้มีอาการป่วย when sick (non-hard-stop) log exists", async ({ page }) => {
+  const state = await installMockBackend(page);
+  // sore_throat + mild = above-neck only = "mild" risk, not hard_stop
+  state.history.push(makeSickRecord(bangkokDateKey(), "sick-1", ["sore_throat"], "mild"));
+  await gotoApp(page, "/");
+  await expect(page.getByText("วันนี้มีอาการป่วย")).toBeVisible();
+  await expect(page.getByRole("link", { name: "อัปเดตอาการ" })).toBeVisible();
+});
+
+test("Today: shows วันนี้ควรพักก่อน when hard-stop sick log exists", async ({ page }) => {
+  const state = await installMockBackend(page);
+  // fever = hard_stop
+  state.history.push(makeSickRecord(bangkokDateKey(), "sick-1", ["fever"], "moderate"));
+  await gotoApp(page, "/");
+  await expect(page.getByText("วันนี้ควรพักก่อน")).toBeVisible();
+  await expect(page.getByRole("link", { name: "ดู/อัปเดตอาการ" })).toBeVisible();
+});
+
+test("Today: bottom nav does not contain a Sick nav item", async ({ page }) => {
+  await installMockBackend(page);
+  await gotoApp(page, "/");
+  const nav = page.locator("nav");
+  // Should have Today, Upload, Race, Report, Coach — not ป่วย
+  await expect(nav.getByText("Today")).toBeVisible();
+  await expect(nav.getByText("ป่วย")).not.toBeVisible();
+});
+
+test("Today: quick actions dock shows ป่วย chip linking to /sick", async ({ page }) => {
+  await installMockBackend(page);
+  await gotoApp(page, "/");
+  const sickChip = page.getByRole("link", { name: "ป่วย" }).first();
+  await expect(sickChip).toBeVisible();
+  await expect(sickChip).toHaveAttribute("href", "/sick");
+});

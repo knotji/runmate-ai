@@ -575,7 +575,7 @@ export default function UploadPage() {
       <section className="space-y-3 pb-[calc(96px+env(safe-area-inset-bottom))]" data-testid="upload-dashboard">
         <div className="space-y-2">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--label-color)]">เลือกประเภทข้อมูล</p>
-          <div className="grid grid-cols-3 gap-2 sm:grid-cols-5" data-testid="upload-type-selector">
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-6" data-testid="upload-type-selector">
             {UPLOAD_ORDER.map((item) => (
               <button
                 key={item}
@@ -591,6 +591,13 @@ export default function UploadPage() {
                 <span className="mt-1 block">{UPLOAD_LABELS[item]}</span>
               </button>
             ))}
+            <Link
+              href="/sick"
+              className="rounded-[18px] border border-[var(--border-warm)] bg-white/70 px-3 py-2.5 text-center text-xs font-bold text-[var(--muted-text)] transition-all hover:bg-[var(--primary-soft)]/60"
+            >
+              <span className="block text-base leading-none">🤒</span>
+              <span className="mt-1 block">ป่วย</span>
+            </Link>
           </div>
         </div>
 
