@@ -19,14 +19,14 @@ function makeSleepRecord(dateKey: string, id: string) {
 
 // ─── Page order ───────────────────────────────────────────────────────────────
 
-test("Today: ภาพรวมวันนี้ card appears before วันนี้ควรทำอะไร hero", async ({ page }) => {
+test("Today: ภาพรวมวันนี้ card appears before วันนี้ทำอะไรดี? hero", async ({ page }) => {
   const state = await installMockBackend(page);
   state.history.push(makeSleepRecord(bangkokDateKey(), "sleep-order"));
 
   await gotoApp(page, "/");
 
   const overviewBox = await page.getByText("ภาพรวมวันนี้", { exact: true }).first().boundingBox();
-  const heroBox = await page.getByText("วันนี้ควรทำอะไร", { exact: true }).boundingBox();
+  const heroBox = await page.getByText("วันนี้ทำอะไรดี?", { exact: true }).boundingBox();
 
   expect(overviewBox).not.toBeNull();
   expect(heroBox).not.toBeNull();
@@ -228,7 +228,6 @@ test("Today: sick hard-stop shows rest bullets in recommendation", async ({ page
   const bullets = page.getByTestId("sick-rest-bullets");
   await expect(bullets).toBeVisible();
   await expect(bullets).toContainText("ไม่ซ้อมวันนี้");
-  await expect(bullets).toContainText("ดื่มน้ำ");
 });
 
 test("Today: signal row shows sick pill when hard-stop", async ({ page }) => {

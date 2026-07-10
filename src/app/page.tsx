@@ -175,7 +175,6 @@ export default function TodayPage() {
   const [dailySummaryMessage, setDailySummaryMessage] = useState("");
   const [nextMealRec, setNextMealRec] = useState<NextMealRecommendation | null>(null);
   const [nextMealLoading, setNextMealLoading] = useState(false);
-  const [showReasons, setShowReasons] = useState(false);
 
 
   const requestNextMeal = useCallback(async () => {
@@ -382,6 +381,7 @@ export default function TodayPage() {
                     <TodaySignalCircles
                       signals={dr.signals}
                       sickHardStop={coachCtx.sickRiskLevel === "hard_stop"}
+                      hasActivePain={coachCtx.activePain ?? false}
                     />
                   </div>
                   <span className="shrink-0 text-[10px] font-semibold text-[var(--color-text-soft)]">
@@ -436,7 +436,7 @@ export default function TodayPage() {
             ? (coachCtx?.todayWorkouts.some((w) => w.kind === "strength") ? "หลังเวทวันนี้ควรทำอะไรต่อ" : "หลังซ้อมวันนี้ควรทำอะไรต่อ")
             : coachCtx?.sickRiskLevel === "hard_stop"
             ? "วันนี้ควรพักและฟื้นตัว"
-            : "วันนี้ควรทำอะไร"}
+            : "วันนี้ทำอะไรดี?"}
         </p>
 
         {loading && (
@@ -461,7 +461,7 @@ export default function TodayPage() {
         {insight && (
           hasWorkoutToday && coachCtx?.todayPrimaryWorkout
             ? <PostWorkoutFocusContent insight={insight} context={coachCtx} />
-            : <PreWorkoutFocusContent insight={insight} hasPace={hasPace} context={coachCtx} />
+            : <PreWorkoutFocusContent insight={insight} hasPace={hasPace} context={coachCtx} insightError={insightError} hasSleepToday={readinessCoverage.hasSleepToday} />
         )}
 
         {!insight && !loading && !insightError && !hasHistory && (
@@ -492,52 +492,6 @@ export default function TodayPage() {
           </Link>
         )}
 
-        {insight && !hasWorkoutToday && (
-          <div>
-            <button
-              type="button"
-              onClick={() => setShowReasons((v) => !v)}
-              className="mt-0.5 flex w-full items-center justify-center gap-1 text-[11px] font-semibold text-[var(--color-text-soft)] transition-colors hover:text-[var(--foreground)]"
-            >
-              <span>{showReasons ? "ซ่อนเหตุผล" : "ดูเหตุผล"}</span>
-              <span className={`transition-transform duration-200 ${showReasons ? "rotate-180" : ""}`}>⌄</span>
-            </button>
-            {showReasons && (
-              <div className="mt-3 rounded-2xl bg-slate-50 px-4 py-3 space-y-2">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">เหตุผลของคำแนะนำวันนี้</p>
-                {heroDecision && (
-                  <div className={`rounded-2xl border p-3.5 space-y-1.5 ${
-                    insightError ? "bg-amber-50/80 border-amber-200 text-amber-900" :
-                    heroDecision.type === "pain" ? "bg-red-50/80 border-red-200 text-red-900" :
-                    heroDecision.type === "caution" ? "bg-amber-50/80 border-amber-200 text-amber-900" :
-                    "bg-[#f5faf7] border-[var(--color-success-border)] text-[#1c472a]"
-                  }`}>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold uppercase tracking-wider">{heroDecision.title}</span>
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
-                        insightError ? "bg-amber-100 text-amber-700" :
-                        heroDecision.type === "pain" ? "bg-red-100 text-red-700" :
-                        heroDecision.type === "caution" ? "bg-amber-100 text-amber-700" :
-                        "bg-[var(--primary-soft)] text-[var(--color-success)]"
-                      }`}>
-                        {insightError ? "คำแนะนำสำรอง" : (heroDecision.type === "pain" ? "งดวิ่ง" : heroDecision.type === "caution" ? "ปรับลดโหลด" : "ตามแผน")}
-                      </span>
-                    </div>
-                    <p className="text-xs leading-relaxed">{heroDecision.body}</p>
-                  </div>
-                )}
-                <ul className="space-y-1">
-                  {buildTodayRecommendationReasons(coachCtx, insight, coachCtx?.readinessV2 ?? null, readinessCoverage.hasSleepToday).map((r, i) => (
-                    <li key={i} className="flex items-start gap-1.5 text-xs text-slate-600 leading-5">
-                      <span className="mt-0.5 shrink-0 text-[var(--primary)]">·</span>
-                      <span>{r}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        )}
           </div>
         </div>
       </section>
@@ -789,69 +743,97 @@ function PreWorkoutFocusContent({
   insight,
   hasPace,
   context,
+  insightError,
+  hasSleepToday,
 }: {
   insight: DailyCoachInsight;
   hasPace: boolean;
   context: CoachContext | null;
+  insightError: boolean;
+  hasSleepToday: boolean;
 }) {
-  const hasSleepToday = context ? context.sleep7d.some((s) => s.date === context.todayDate) : false;
   const hasLatestSleep = context ? context.sleep7d.length > 0 : false;
-  const isUsingLatestSleepBecauseTodayMissing = !hasSleepToday && hasLatestSleep;
+  const hasSleepTodayLocal = context ? context.sleep7d.some((s) => s.date === context.todayDate) : hasSleepToday;
+  const isUsingLatestSleepBecauseTodayMissing = !hasSleepTodayLocal && hasLatestSleep;
 
-  // Build a concise reason line — use getRecoveryAxisLabel for consistency with factor bars.
-  const reasonParts: string[] = [];
-  if (context?.recoverySystem) {
-    const { load, sleep, fuel } = context.recoverySystem.axes;
-    if (context.activePain) {
-      reasonParts.push("ยังมีอาการเจ็บ ควรเลี่ยงกดหนัก");
-    } else {
-      if (load.score >= 55) reasonParts.push(`Load ${getRecoveryAxisLabel("load", load.score)}`);
-      if (sleep.score < 66) reasonParts.push(`นอน${getRecoveryAxisLabel("sleep", sleep.score)}`);
-      if (fuel.score < 66) reasonParts.push(`พลังงาน${getRecoveryAxisLabel("fuel", fuel.score)}`);
-    }
-  }
-  const reasonLine = reasonParts.join(" · ") || "ร่างกายอยู่ในเกณฑ์ดี";
+  const heroDecision = context ? getDecisionCard(insight, context) : null;
 
   return (
     <div className="space-y-2.5">
-      {/* Coach insight line */}
-      {context && (
-        <p className="inline-flex rounded-full bg-[var(--primary-soft)]/70 px-2.5 py-1 text-[11px] font-black text-[var(--primary-strong)] leading-snug">
-          {buildHeroCoachInsight(insight, context)}
-        </p>
-      )}
-      {/* 1. Headline first */}
+      {/* 1. Headline */}
       <h2 className="line-clamp-2 text-[1.18rem] font-black leading-snug tracking-[-0.015em] text-[var(--foreground)]">{insight.workoutRec}</h2>
 
-      {/* Sick hard-stop: show action bullets instead of pace */}
-      {context?.sickRiskLevel === "hard_stop" && (
-        <ul className="space-y-1" data-testid="sick-rest-bullets">
-          {["ไม่ซ้อมวันนี้", "ดื่มน้ำ / กินย่อยง่าย / นอนให้พอ", "อัปเดตอาการเมื่อดีขึ้น"].map((item) => (
-            <li key={item} className="flex items-center gap-1.5 text-xs text-red-700 leading-5">
-              <span className="text-red-400 shrink-0">·</span>
-              <span>{item}</span>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {/* 2. Target plan line — hidden when sick hard-stop */}
-      {hasPace && context?.sickRiskLevel !== "hard_stop" && (
-        <span className="inline-block rounded-full border border-[var(--color-border-soft)] bg-[var(--surface-muted)]/80 px-2.5 py-1 text-[11px] font-bold text-[var(--color-text-muted)]">
+      {/* 2. Sick hard-stop compact badge — or pace target pill */}
+      {context?.sickRiskLevel === "hard_stop" ? (
+        <div data-testid="sick-rest-bullets">
+          <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-1 text-[11px] font-bold text-red-700">
+            <span>·</span>
+            <span>ไม่ซ้อมวันนี้</span>
+          </span>
+        </div>
+      ) : hasPace ? (
+        <span className="inline-block rounded-full border border-[var(--color-border-soft)] bg-[var(--surface-muted)]/80 px-2.5 py-1 text-[11px] font-bold text-[var(--color-text-muted)]" data-testid="pace-target-pill">
           {insight.workoutTarget}
         </span>
-      )}
+      ) : null}
 
-      {/* 3. Reason line */}
-      <p className="text-[11px] font-medium text-[var(--color-text-soft)] leading-snug">{reasonLine}</p>
+      {/* 3. Collapsed reasons — "ดูเหตุผล" / "ซ่อนเหตุผล" toggle via <details> */}
+      <details className="group" data-testid="hero-details">
+        <summary className="list-none cursor-pointer mt-0.5 flex w-full items-center justify-center gap-1 text-[11px] font-semibold text-[var(--color-text-soft)] transition-colors hover:text-[var(--foreground)]">
+          <span className="group-open:hidden">ดูเหตุผล</span>
+          <span className="hidden group-open:inline">ซ่อนเหตุผล</span>
+          <span className="transition-transform duration-200 group-open:rotate-180">⌄</span>
+        </summary>
 
-      {/* 4. Sleep Fallback note (if any) */}
-      {isUsingLatestSleepBecauseTodayMissing && (
-        <div className="rounded-2xl border border-[var(--color-info-soft)] bg-[var(--color-info-soft)] px-3 py-2 text-xs leading-relaxed text-[var(--color-info)] font-semibold">
-          ใช้ข้อมูลล่าสุดชั่วคราว — ยังไม่มีการนอนวันนี้
+        <div className="mt-3 rounded-2xl bg-slate-50 px-4 py-3 space-y-2">
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">เหตุผลของคำแนะนำวันนี้</p>
+
+          {/* Decision card */}
+          {heroDecision && (
+            <div className={`rounded-2xl border p-3.5 space-y-1.5 ${
+              insightError ? "bg-amber-50/80 border-amber-200 text-amber-900" :
+              heroDecision.type === "pain" ? "bg-red-50/80 border-red-200 text-red-900" :
+              heroDecision.type === "caution" ? "bg-amber-50/80 border-amber-200 text-amber-900" :
+              "bg-[#f5faf7] border-[var(--color-success-border)] text-[#1c472a]"
+            }`}>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold uppercase tracking-wider">{heroDecision.title}</span>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                  insightError ? "bg-amber-100 text-amber-700" :
+                  heroDecision.type === "pain" ? "bg-red-100 text-red-700" :
+                  heroDecision.type === "caution" ? "bg-amber-100 text-amber-700" :
+                  "bg-[var(--primary-soft)] text-[var(--color-success)]"
+                }`}>
+                  {insightError ? "คำแนะนำสำรอง" : (heroDecision.type === "pain" ? "งดวิ่ง" : heroDecision.type === "caution" ? "ปรับลดโหลด" : "ตามแผน")}
+                </span>
+              </div>
+              <p className="text-xs leading-relaxed">{heroDecision.body}</p>
+            </div>
+          )}
+
+          {/* Reason bullets */}
+          <ul className="space-y-1">
+            {buildTodayRecommendationReasons(context, insight, context?.readinessV2 ?? null, hasSleepToday).map((r, i) => (
+              <li key={i} className="flex items-start gap-1.5 text-xs text-slate-600 leading-5">
+                <span className="mt-0.5 shrink-0 text-[var(--primary)]">·</span>
+                <span>{r}</span>
+              </li>
+            ))}
+          </ul>
+
+          {/* Sleep fallback note */}
+          {isUsingLatestSleepBecauseTodayMissing && (
+            <div className="rounded-2xl border border-[var(--color-info-soft)] bg-[var(--color-info-soft)] px-3 py-2 text-xs leading-relaxed text-[var(--color-info)] font-semibold">
+              ใช้ข้อมูลล่าสุดชั่วคราว — ยังไม่มีการนอนวันนี้
+            </div>
+          )}
+
+          {/* Sick details copy */}
+          {context?.sickRiskLevel === "hard_stop" && (
+            <p className="text-xs text-slate-500 leading-relaxed">วันนี้ช่วยเป้าหมายด้วยการฟื้น ไม่ใช่การฝืน</p>
+          )}
         </div>
-      )}
-
+      </details>
     </div>
   );
 }
@@ -1736,6 +1718,17 @@ function getGaugeHeadline(
   return buildTodaySnapshotCoachHeadline(score, ctx);
 }
 
+function buildGaugeSubline(ctx: CoachContext | null | undefined, status: GaugeStatus): string | undefined {
+  if (ctx?.sickRiskLevel === "hard_stop") return "ป่วย · ควรพัก";
+  if (ctx?.activePain) return "เจ็บ · ลดโหลด";
+  const load = ctx?.recoverySystem?.axes?.load?.score ?? 0;
+  if (load >= 75) return "โหลดสูง";
+  if (status === "recovery") return "ฟื้นตัวก่อน";
+  if (status === "caution") return "คุมระดับไว้";
+  if (status === "fair") return "ระวังสะสมล้า";
+  return undefined;
+}
+
 function TodaySnapshotCard({
   insight,
   readinessScore,
@@ -1792,6 +1785,7 @@ function TodaySnapshotCard({
           label={chipLabel}
           status={gaugeStatus}
           headlineTh={gaugeHeadline}
+          sublineTh={buildGaugeSubline(coachCtx, gaugeStatus)}
           chipClassName={readinessChipClass(readinessScore, displayStatus.label)}
         />
       )}

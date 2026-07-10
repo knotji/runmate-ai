@@ -30,8 +30,9 @@ test.describe("Sleep Fallback UI and States", () => {
 
     await gotoApp(page, "/");
 
-    // Today should show "Readiness ล่าสุด"
-    await expect(page.getByText("Readiness ล่าสุด")).toBeVisible();
+    // Today should show "Readiness ล่าสุด" in the chip (use chip-specific locator to
+    // avoid strict-mode violation from the same text appearing in collapsed reason bullets)
+    await expect(page.locator("span.rounded-full").filter({ hasText: /Readiness ล่าสุด/ }).first()).toBeVisible();
 
     // Expand the Recovery System details to check axis texts
     await page.getByText("ดูรายละเอียด Recovery").click();
@@ -39,8 +40,8 @@ test.describe("Sleep Fallback UI and States", () => {
     // Sleep axis summary should explicitly say "ยังไม่มีการนอนวันนี้ · ใช้ข้อมูลล่าสุด"
     await expect(page.getByText("ยังไม่มีการนอนวันนี้ · ใช้ข้อมูลล่าสุด")).toBeVisible();
 
-    // Main recommendation card shows sleep fallback note inside the details accordion
-    await page.getByText("ใช้ข้อมูลล่าสุดชั่วคราว — ยังไม่มีการนอนวันนี้").first().waitFor({ state: "attached" });
+    // Sleep fallback note is inside the hero "ดูเหตุผล" details accordion — expand it first
+    await page.getByText("ดูเหตุผล").first().click();
     await expect(page.getByText("ใช้ข้อมูลล่าสุดชั่วคราว — ยังไม่มีการนอนวันนี้").first()).toBeVisible();
 
     // Used chips should include "ใช้การนอนล่าสุด"

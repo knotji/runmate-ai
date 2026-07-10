@@ -106,32 +106,34 @@ function SignalCircle({ icon, label, value, tone }: SignalCircleProps) {
 export type TodaySignalCirclesProps = {
   signals: TodaySignal[];
   sickHardStop?: boolean;
+  hasActivePain?: boolean;
 };
 
-export function TodaySignalCircles({ signals, sickHardStop }: TodaySignalCirclesProps) {
+export function TodaySignalCircles({ signals, sickHardStop, hasActivePain }: TodaySignalCirclesProps) {
+  // When sick hard-stop is active and there's no active pain, replace the pain
+  // signal with a sick signal so the circle count stays at 4.
+  const displaySignals = (sickHardStop && !hasActivePain)
+    ? signals.map((s) =>
+        s.key === "pain"
+          ? { key: "sick", label: "ป่วย", value: "ควรพัก", icon: "🔴", tone: "bad" as SignalTone }
+          : s
+      )
+    : signals;
+
   return (
     <div
       className="flex flex-wrap gap-2"
       data-testid="signal-circles"
     >
-      {signals.map((signal) => (
+      {displaySignals.map((signal) => (
         <SignalCircle
           key={signal.key}
           icon={signal.icon}
           label={signal.label}
           value={signal.value}
-          tone={signal.tone}
+          tone={signal.tone as SignalTone}
         />
       ))}
-
-      {sickHardStop && (
-        <SignalCircle
-          icon="🔴"
-          label="ป่วย"
-          value="ควรพัก"
-          tone="bad"
-        />
-      )}
     </div>
   );
 }

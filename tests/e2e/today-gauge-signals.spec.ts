@@ -87,7 +87,7 @@ test("Today: signal circles row is visible with 4 circles when no sick", async (
   await expect(page.getByTestId("signal-circle")).toHaveCount(4);
 });
 
-test("Today: sick hard-stop adds fifth sick circle to signal row", async ({ page }) => {
+test("Today: sick hard-stop shows ป่วย signal in circle row (replaces เจ็บ)", async ({ page }) => {
   const state = await installMockBackend(page);
   state.history.push(
     makeSickRecord(bangkokDateKey(), "sick-gauge-1", ["fever"], "moderate")
