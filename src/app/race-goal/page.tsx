@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { RaceCountdownCard } from "@/components/RaceCountdownCard";
@@ -200,6 +201,7 @@ export default function RaceGoalPage() {
         /* ── View mode: existing plan ── */
         <>
           <RaceCountdownCard goal={goal} phase={plan.currentPhase} />
+          {coachContext?.sickRiskLevel === "hard_stop" && <SickHardStopRaceAdvisory />}
           {selectedTodayWorkout ? <TodayWorkoutCard workout={normalizeForDisplay(selectedTodayWorkout)} coachContext={coachContext} /> : null}
           {goal ? <PaceBandsCard goal={goal} coachContext={coachContext} /> : null}
           {plan.weeklyPlan?.length ? <ActionableWeekCard workouts={plan.weeklyPlan.map(normalizeForDisplay)} coachContext={coachContext} /> : null}
@@ -513,6 +515,20 @@ function TodayWorkoutCompletedCard({ workout, completedKm }: { workout: WeekWork
   );
 }
 
+function SickHardStopRaceAdvisory() {
+  return (
+    <section className="rounded-2xl border border-red-200 bg-red-50 p-4 space-y-2" data-testid="sick-hard-stop-race-advisory">
+      <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-red-700">⚠️ วันนี้ไม่ใช้แผนซ้อม</p>
+      <p className="text-sm leading-6 text-red-800">
+        มีอาการป่วยที่ควรพักก่อน แผนซ้อมจะกลับมาดูอีกครั้งเมื่ออาการดีขึ้น
+      </p>
+      <Link href="/sick" className="inline-block rounded-xl bg-red-700 px-4 py-1.5 text-xs font-bold text-white">
+        ดู/อัปเดตอาการ
+      </Link>
+    </section>
+  );
+}
+
 function TodayWorkoutCard({ workout, coachContext }: { workout: WeekWorkout; coachContext: CoachContext | null }) {
   const todayRunKm = (coachContext?.todayWorkouts ?? [])
     .filter(w => w.kind === "run" || w.kind === "race")
@@ -646,6 +662,11 @@ function PaceBandsCard({ goal, coachContext }: { goal: RaceGoal; coachContext: C
       {!coachContext?.hasWorkoutToday && dr && allowedKeys.length < 4 && (
         <p className="mt-2 text-[10px] text-[var(--color-text-muted)] leading-snug">
           💡 วันนี้เหมาะกับ {allowedKeys.map((k) => BAND_LABELS[k]).join(" · ")} เท่านั้น ตามสภาพร่างกาย
+        </p>
+      )}
+      {coachContext?.sickRiskLevel === "hard_stop" && (
+        <p className="mt-2 text-[10px] font-semibold text-red-600 leading-snug" data-testid="pace-bands-sick-note">
+          🔴 วันนี้ยังไม่แนะนำให้ซ้อม — ดูเพซนี้เป็นข้อมูลอ้างอิงเมื่ออาการดีขึ้น
         </p>
       )}
       <p className="mt-2 text-[10px] text-[var(--color-text-muted)] leading-snug" data-testid="pace-bands-reference-note">

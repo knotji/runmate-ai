@@ -86,9 +86,17 @@ test.describe("Upload Dashboard v2", () => {
     await installMockBackend(page);
     await gotoApp(page, "/upload");
     const selector = page.getByTestId("upload-type-selector");
-    const sickChip = selector.getByRole("link", { name: "ป่วย" });
+    // chip now labelled อาการป่วย but still links to /sick
+    const sickChip = selector.getByRole("link", { name: "อาการป่วย" });
     await expect(sickChip).toBeVisible();
     await sickChip.click();
     await expect(page).toHaveURL(/\/sick/);
+  });
+
+  test("สุขภาพ category button shows สุขภาพ PDF label", async ({ page }) => {
+    await installMockBackend(page);
+    await gotoApp(page, "/upload");
+    // The UPLOAD_LABELS.health_check is "สุขภาพ PDF" — visible in the type selector
+    await expect(page.getByTestId("upload-type-selector")).toContainText("สุขภาพ PDF");
   });
 });

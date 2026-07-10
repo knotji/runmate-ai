@@ -44,6 +44,8 @@ test("Recovery Loop card is visible on Today page", async ({ page }) => {
 
   await gotoApp(page, "/");
 
+  // Expand the collapsed recovery-loop-details section first
+  await page.getByTestId("recovery-loop-details").locator("summary").click();
   await expect(page.getByTestId("recovery-loop-card")).toBeVisible();
 });
 
@@ -53,6 +55,7 @@ test("Recovery Loop card shows sleep need label", async ({ page }) => {
 
   await gotoApp(page, "/");
 
+  await page.getByTestId("recovery-loop-details").locator("summary").click();
   // Sleep need label always starts with "ควรนอน"
   await expect(page.getByText(/ควรนอน \d+(\.\d)?–\d+(\.\d)? ชม\./)).toBeVisible();
 });
@@ -79,6 +82,7 @@ test("Recovery Loop shows high Day Load with today run", async ({ page }) => {
 
   await gotoApp(page, "/");
 
+  await page.getByTestId("recovery-loop-details").locator("summary").click();
   const card = page.getByTestId("recovery-loop-card");
   // High or very_high load label should appear
   await expect(card.getByText(/สูงมาก|สูง/)).toBeVisible();
@@ -90,6 +94,7 @@ test("Recovery Loop tomorrow preview is visible", async ({ page }) => {
 
   await gotoApp(page, "/");
 
+  await page.getByTestId("recovery-loop-details").locator("summary").click();
   const card = page.getByTestId("recovery-loop-card");
   // Tomorrow preview headline always visible (not behind accordion)
   await expect(card.getByText(/พรุ่งนี้/)).toBeVisible();
@@ -103,11 +108,13 @@ test("Recovery Loop detail expands on ดูเหตุผล click", async ({ 
 
   await gotoApp(page, "/");
 
+  // Expand the outer recovery-loop-details section first
+  await page.getByTestId("recovery-loop-details").locator("summary").click();
   const card = page.getByTestId("recovery-loop-card");
   // Detail section hidden by default
   await expect(card.getByText("ซ่อนเหตุผล")).toHaveCount(0);
 
-  // Click to expand
+  // Click to expand inner details
   await card.getByText("ดูเหตุผล").click();
 
   // Now shows collapse label
@@ -135,6 +142,7 @@ test("Recovery Loop card shows sleep target before day load context", async ({ p
 
   await gotoApp(page, "/");
 
+  await page.getByTestId("recovery-loop-details").locator("summary").click();
   const card = page.getByTestId("recovery-loop-card");
   // Both elements exist
   const sleepEl = card.getByText(/ควรนอน \d/);

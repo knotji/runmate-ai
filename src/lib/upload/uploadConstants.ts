@@ -43,7 +43,7 @@ export const UPLOAD_LABELS: Record<UploadType, string> = {
   meal: "อาหาร",
   workout: "ซ้อม",
   body: "ร่างกาย",
-  health_check: "สุขภาพ",
+  health_check: "สุขภาพ PDF",
 };
 
 export const UPLOAD_ORDER: UploadType[] = ["sleep", "meal", "workout", "body", "health_check"];

@@ -38,6 +38,7 @@ import { buildWeeklyReview, type WeeklyReview } from "@/lib/weeklyReview";
 import { isSwimWorkout, isSwimRecovery, formatSwimDistance } from "@/lib/swimWorkout";
 import { buildWeeklyCoachTrendInsight } from "@/lib/trainingGuardrails";
 import { buildWeeklyInsightSummary } from "@/lib/report/weeklyInsightSummary";
+import { buildWeeklyNextAction } from "@/lib/report/weeklyNextAction";
 import { buildGoalProgressInsight } from "@/lib/report/goalProgressInsight";
 import { getRunMateReadinessLabel } from "@/lib/readinessV2";
 import { getRecoveryAxisLabel } from "@/lib/recoverySystem";
@@ -766,6 +767,13 @@ function RollingSevenDayInsight({
 }) {
   const preview = buildRollingInsightPreview(dashboard, review);
   const coachNote = buildRollingInsightCoachNote(dashboard, review);
+  const sickDaysThisWeek = items.filter(i => {
+    if (i.type !== "sick") return false;
+    return getHistoryItemDateKey(i) >= cutoff;
+  }).length;
+  const nextAction = review
+    ? buildWeeklyNextAction({ review, sickDaysThisWeek })
+    : null;
 
   return (
     <details className="group rounded-3xl border border-[var(--color-border-soft)] bg-[var(--surface)] p-4 shadow-sm" data-testid="rolling-insight">
@@ -776,6 +784,11 @@ function RollingSevenDayInsight({
             <p className="text-[9px] text-[var(--color-text-muted)] mt-0.5" data-testid="rolling-7-day-note">รวมข้อมูลย้อนหลัง 7 วัน แม้ข้ามสัปดาห์</p>
             <p className="mt-1 text-xs leading-5 text-[var(--color-text-muted)]">{preview}</p>
             {coachNote && <p className="mt-0.5 text-xs font-medium leading-5 text-[var(--primary-strong)]">{coachNote}</p>}
+            {nextAction && (
+              <p className="mt-1 text-xs font-bold leading-5 text-[var(--primary-strong)]" data-testid="weekly-next-action">
+                โฟกัสถัดไป: {nextAction}
+              </p>
+            )}
           </div>
           <span className="shrink-0 rounded-full bg-[var(--surface-muted)] px-3 py-1.5 text-[10px] font-bold text-[var(--primary)]">
             <span className="group-open:hidden">ดู insight เต็ม</span>

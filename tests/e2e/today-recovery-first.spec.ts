@@ -218,3 +218,31 @@ test("Today: primary CTA routes to /sick when hard-stop", async ({ page }) => {
   await expect(cta).toHaveText("อัปเดตอาการวันนี้");
   await expect(cta).toHaveAttribute("href", "/sick");
 });
+
+test("Today: sick hard-stop shows rest bullets in recommendation", async ({ page }) => {
+  const state = await installMockBackend(page);
+  state.history.push(makeSickRecord(bangkokDateKey(), "sick-hs4", ["fever"], "moderate"));
+  // Sleep record needed so hasSomeData=true → insight generated → PreWorkoutFocusContent renders
+  state.history.push(makeSleepRecord(bangkokDateKey(), "sleep-hs4"));
+  await gotoApp(page, "/");
+  const bullets = page.getByTestId("sick-rest-bullets");
+  await expect(bullets).toBeVisible();
+  await expect(bullets).toContainText("ไม่ซ้อมวันนี้");
+  await expect(bullets).toContainText("ดื่มน้ำ");
+});
+
+test("Today: signal row shows sick pill when hard-stop", async ({ page }) => {
+  const state = await installMockBackend(page);
+  state.history.push(makeSickRecord(bangkokDateKey(), "sick-hs5", ["fever"], "moderate"));
+  await gotoApp(page, "/");
+  await expect(page.getByText("ป่วย · ควรพัก")).toBeVisible();
+});
+
+test("Today: recovery loop section is collapsed by default", async ({ page }) => {
+  const state = await installMockBackend(page);
+  state.history.push(makeSleepRecord(bangkokDateKey(), "sleep-rl"));
+  await gotoApp(page, "/");
+  // The details element should exist with its summary text visible
+  await expect(page.getByTestId("recovery-loop-details")).toBeVisible();
+  await expect(page.getByTestId("recovery-loop-details")).toContainText("ฟื้นตัวยังไงคืนนี้");
+});

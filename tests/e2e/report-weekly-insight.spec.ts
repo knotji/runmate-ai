@@ -111,3 +111,23 @@ test("insight omits วิ่ง 7 วัน part when no runs in 7 days", async
   await expect(insight).not.toContainText("วิ่ง 7 วัน");
   await expect(insight).not.toContainText("Load");
 });
+
+// ─── โฟกัสถัดไป next action line ────────────────────────────────────────────
+
+test("report insight shows โฟกัสถัดไป next action line", async ({ page }) => {
+  const state = await installMockBackend(page);
+  const today = bangkokDateKey();
+  // Add runs (medium-high load) to trigger a meaningful next action
+  for (let i = 0; i < 4; i++) {
+    state.history.push(makeRun(bangkokDateKey(-i), `run-na-${i}`, 12, "outdoor_run"));
+  }
+  state.history.push(makeSleep(today, "sleep-na-1"));
+
+  await gotoApp(page, "/logs");
+
+  const insight = page.getByTestId("rolling-insight");
+  await expect(insight).toBeVisible();
+  // With moderate-high run volume, should show a next action
+  await expect(page.getByTestId("weekly-next-action")).toBeVisible();
+  await expect(page.getByTestId("weekly-next-action")).toContainText("โฟกัสถัดไป:");
+});

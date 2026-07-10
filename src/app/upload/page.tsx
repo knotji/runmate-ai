@@ -596,7 +596,7 @@ export default function UploadPage() {
               className="rounded-[18px] border border-[var(--border-warm)] bg-white/70 px-3 py-2.5 text-center text-xs font-bold text-[var(--muted-text)] transition-all hover:bg-[var(--primary-soft)]/60"
             >
               <span className="block text-base leading-none">🤒</span>
-              <span className="mt-1 block">ป่วย</span>
+              <span className="mt-1 block">อาการป่วย</span>
             </Link>
           </div>
         </div>

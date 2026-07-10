@@ -31,7 +31,14 @@ async function setupRacePlanWithTodayRun(
         id: GOAL_ID,
         race_name: raceName,
         race_date: raceDate,
-        race_distance: "21K",
+        race_distance: "Half Marathon",
+        goal_type: "finish",
+        target_time: "1:45:00",
+        current_longest_run_km: null,
+        training_days_per_week: null,
+        preferred_long_run_day: null,
+        injury_notes: null,
+        plan_preference: null,
         status: "active",
       }]),
     });
@@ -166,4 +173,46 @@ test("Race title with colons is cleaned in display", async ({ page }) => {
   await expect(page.getByText("ASICS META Time Trials Thailand 2026").first()).toBeVisible({ timeout: 10000 });
   // Raw colon-heavy version should not appear
   await expect(page.getByText("ASICS : META : Time : Trials Thailand 2026")).toHaveCount(0);
+});
+
+// ─── Sick hard-stop on Race page ──────────────────────────────────────────────
+
+function makeSickRecord(dateKey: string, id: string, symptoms: string[], severity: string) {
+  return {
+    id,
+    user_id: "00000000-0000-4000-8000-000000000001",
+    type: "sick",
+    created_at: `${dateKey}T10:00:00.000Z`,
+    data: {
+      date: dateKey,
+      createdAt: `${dateKey}T10:00:00.000Z`,
+      healthStatus: "sick",
+      symptoms,
+      severity,
+      source: "manual",
+    },
+  };
+}
+
+test("Race: sick hard-stop shows วันนี้ไม่ใช้แผนซ้อม advisory", async ({ page }) => {
+  const state = await installMockBackend(page);
+  const today = await setupRacePlanWithTodayRun(page, "Bangkok Marathon", 15);
+  state.history.push(makeSickRecord(today, "sick-race-1", ["fever"], "moderate"));
+
+  await gotoApp(page, "/race-goal");
+
+  await expect(page.getByTestId("sick-hard-stop-race-advisory")).toBeVisible({ timeout: 15000 });
+  await expect(page.getByText("วันนี้ไม่ใช้แผนซ้อม")).toBeVisible();
+  await expect(page.getByRole("link", { name: "ดู/อัปเดตอาการ" })).toBeVisible();
+});
+
+test("Race: sick hard-stop pace bands show sick note", async ({ page }) => {
+  const state = await installMockBackend(page);
+  const today = await setupRacePlanWithTodayRun(page, "Bangkok Marathon", 15);
+  state.history.push(makeSickRecord(today, "sick-race-2", ["fever"], "moderate"));
+
+  await gotoApp(page, "/race-goal");
+
+  await expect(page.getByTestId("pace-bands-sick-note")).toBeVisible({ timeout: 15000 });
+  await expect(page.getByText("วันนี้ยังไม่แนะนำให้ซ้อม")).toBeVisible();
 });

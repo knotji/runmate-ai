@@ -384,9 +384,15 @@ export default function TodayPage() {
                           signal.tone === "warn" ? "text-amber-600" :
                           signal.tone === "bad" ? "text-red-500" :
                           "text-slate-400"
-                        }`}>{signal.value}</span>
+                        }`}>{signal.label} · {signal.value}</span>
                       </span>
                     ))}
+                    {coachCtx.sickRiskLevel === "hard_stop" && (
+                      <span className="flex items-center gap-1">
+                        <span className="text-[13px] leading-none">🔴</span>
+                        <span className="text-[10px] font-bold text-red-500">ป่วย · ควรพัก</span>
+                      </span>
+                    )}
                   </div>
                   <span className="shrink-0 text-[10px] font-semibold text-[var(--color-text-soft)]">
                     <span className="group-open:hidden">ดูสัญญาณทั้งหมด ⌄</span>
@@ -401,14 +407,27 @@ export default function TodayPage() {
             {dr.sleepAdvice && (
               <p className="px-1 text-[11px] text-amber-600 leading-snug">💡 {dr.sleepAdvice}</p>
             )}
-            {/* 1c. Goal-aware strip — shown when goal profile is set */}
+            {/* 1c. Goal-aware strip — collapsed by default */}
             {goalProfile && (
-              <GoalAwareTodayStrip
-                goalProfile={goalProfile}
-                band={dr.band}
-                loadTarget={dr.loadTarget}
-                hasPain={coachCtx.activePain ?? false}
-              />
+              <details className="group" data-testid="goal-details">
+                <summary className="list-none cursor-pointer">
+                  <div className="flex items-center justify-between px-1">
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--color-text-soft)]">เป้าหมายวันนี้</span>
+                    <span className="text-[10px] text-[var(--color-text-soft)]">
+                      <span className="group-open:hidden">ดู ⌄</span>
+                      <span className="hidden group-open:inline">ซ่อน ⌄</span>
+                    </span>
+                  </div>
+                </summary>
+                <div className="mt-1.5">
+                  <GoalAwareTodayStrip
+                    goalProfile={goalProfile}
+                    band={dr.band}
+                    loadTarget={dr.loadTarget}
+                    hasPain={coachCtx.activePain ?? false}
+                  />
+                </div>
+              </details>
             )}
           </div>
         );
@@ -533,8 +552,21 @@ export default function TodayPage() {
         </div>
       </section>
 
-      {/* 3. Recovery Loop — คืนนี้ควรฟื้นตัวยังไง */}
-      {coachCtx && <RecoveryLoopCard coachCtx={coachCtx} />}
+      {/* 3. Recovery Loop — collapsed by default to reduce clutter */}
+      {coachCtx && (
+        <details className="group" data-testid="recovery-loop-details">
+          <summary className="list-none cursor-pointer">
+            <div className="flex items-center justify-between px-1 py-1">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--color-text-soft)]">ฟื้นตัวยังไงคืนนี้</span>
+              <span className="text-[10px] text-[var(--color-text-soft)]">
+                <span className="group-open:hidden">ดู ⌄</span>
+                <span className="hidden group-open:inline">ซ่อน ⌄</span>
+              </span>
+            </div>
+          </summary>
+          <RecoveryLoopCard coachCtx={coachCtx} />
+        </details>
+      )}
 
       {/* Quick Actions Dock — compact, above strength card */}
       <div className="rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface-muted)]/85 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.45)]">
@@ -801,8 +833,20 @@ function PreWorkoutFocusContent({
       {/* 1. Headline first */}
       <h2 className="line-clamp-2 text-[1.18rem] font-black leading-snug tracking-[-0.015em] text-[var(--foreground)]">{insight.workoutRec}</h2>
 
-      {/* 2. Target plan line */}
-      {hasPace && (
+      {/* Sick hard-stop: show action bullets instead of pace */}
+      {context?.sickRiskLevel === "hard_stop" && (
+        <ul className="space-y-1" data-testid="sick-rest-bullets">
+          {["ไม่ซ้อมวันนี้", "ดื่มน้ำ / กินย่อยง่าย / นอนให้พอ", "อัปเดตอาการเมื่อดีขึ้น"].map((item) => (
+            <li key={item} className="flex items-center gap-1.5 text-xs text-red-700 leading-5">
+              <span className="text-red-400 shrink-0">·</span>
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {/* 2. Target plan line — hidden when sick hard-stop */}
+      {hasPace && context?.sickRiskLevel !== "hard_stop" && (
         <span className="inline-block rounded-full border border-[var(--color-border-soft)] bg-[var(--surface-muted)]/80 px-2.5 py-1 text-[11px] font-bold text-[var(--color-text-muted)]">
           {insight.workoutTarget}
         </span>
