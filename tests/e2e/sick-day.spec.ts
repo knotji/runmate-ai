@@ -8,9 +8,9 @@ test.describe("Sick Day logging page", () => {
   });
 
   test("renders status picker with three options", async ({ page }) => {
-    await expect(page.getByText("ปกติ")).toBeVisible();
-    await expect(page.getByText("เพลีย")).toBeVisible();
-    await expect(page.getByText("ไม่สบาย / ป่วย")).toBeVisible();
+    await expect(page.getByText("ปกติ", { exact: true })).toBeVisible();
+    await expect(page.getByText("เพลีย", { exact: true })).toBeVisible();
+    await expect(page.getByText("ไม่สบาย / ป่วย", { exact: true })).toBeVisible();
   });
 
   test("symptom section hidden when status is normal", async ({ page }) => {
@@ -126,6 +126,6 @@ test.describe("Sick Day logging page", () => {
     await page.getByRole("button", { name: "คอ / จมูก" }).click();
     await page.getByRole("button", { name: "ไอ / หน้าอก" }).click();
     await expect(page.getByRole("button", { name: "เจ็บคอ" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "ไอ" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "ไอ", exact: true })).toBeVisible();
   });
 });
