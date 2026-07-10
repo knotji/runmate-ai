@@ -54,6 +54,18 @@ describe("hasHardStopSymptoms", () => {
   it("returns false for empty symptoms list", () => {
     expect(hasHardStopSymptoms([])).toBe(false);
   });
+
+  it("returns true for chills", () => {
+    expect(hasHardStopSymptoms(["chills"])).toBe(true);
+  });
+
+  it("returns true for breathing_difficulty", () => {
+    expect(hasHardStopSymptoms(["breathing_difficulty"])).toBe(true);
+  });
+
+  it("returns true for gi_vomiting", () => {
+    expect(hasHardStopSymptoms(["gi_vomiting"])).toBe(true);
+  });
 });
 
 // ── isMildAboveNeckOnly ───────────────────────────────────────────────────────
@@ -171,5 +183,23 @@ describe("buildSickLog", () => {
     const symptoms: SickSymptom[] = ["gi_nausea"];
     const log = buildSickLog({ ...base, healthStatus: "sick", symptoms });
     expect(log.giSymptoms).toBe(true);
+  });
+
+  it("derives chestSymptoms from breathing_difficulty", () => {
+    const log = buildSickLog({ ...base, healthStatus: "sick", symptoms: ["breathing_difficulty"] });
+    expect(log.chestSymptoms).toBe(true);
+    expect(log.riskLevel).toBe("hard_stop");
+  });
+
+  it("derives giSymptoms from gi_vomiting", () => {
+    const log = buildSickLog({ ...base, healthStatus: "sick", symptoms: ["gi_vomiting"] });
+    expect(log.giSymptoms).toBe(true);
+    expect(log.riskLevel).toBe("hard_stop");
+  });
+
+  it("sets hard_stop for chills", () => {
+    const log = buildSickLog({ ...base, healthStatus: "sick", symptoms: ["chills"] });
+    expect(log.riskLevel).toBe("hard_stop");
+    expect(log.trainingDecision).toBe("rest_only");
   });
 });

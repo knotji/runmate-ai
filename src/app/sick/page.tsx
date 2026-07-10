@@ -6,7 +6,7 @@ import { LoadingButton } from "@/components/LoadingButton";
 import { createHistoryItem, saveHistoryItems } from "@/lib/cloudHistory";
 import { todayBangkokDateKey } from "@/lib/date";
 import { buildSickLog } from "@/lib/health/illnessGuardrail";
-import { ALL_SICK_SYMPTOMS, SICK_SYMPTOM_LABELS } from "@/types/sick";
+import { SYMPTOM_GROUPS, SICK_SYMPTOM_LABELS } from "@/types/sick";
 import type { SickSymptom, SickSeverity, SickHealthStatus } from "@/types/sick";
 
 // ── status choices ────────────────────────────────────────────────────────────
@@ -30,6 +30,7 @@ const SEVERITY_OPTIONS: { value: SickSeverity; label: string }[] = [
 export default function SickPage() {
   const [healthStatus, setHealthStatus] = useState<SickHealthStatus>("normal");
   const [symptoms, setSymptoms] = useState<SickSymptom[]>([]);
+  const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
   const [severity, setSeverity] = useState<SickSeverity>("mild");
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
@@ -39,10 +40,23 @@ export default function SickPage() {
   const isSick = healthStatus === "sick";
   const needsSymptomOrNote = isSick && symptoms.length === 0 && !note.trim();
 
+  function toggleGroup(groupId: string) {
+    const group = SYMPTOM_GROUPS.find((g) => g.id === groupId);
+    if (!group) return;
+    if (selectedGroups.includes(groupId)) {
+      setSelectedGroups((prev) => prev.filter((g) => g !== groupId));
+      setSymptoms((prev) => prev.filter((s) => !group.symptoms.includes(s)));
+    } else {
+      setSelectedGroups((prev) => [...prev, groupId]);
+    }
+    setSaved(false);
+  }
+
   function toggleSymptom(sym: SickSymptom) {
     setSymptoms((prev) =>
       prev.includes(sym) ? prev.filter((s) => s !== sym) : [...prev, sym]
     );
+    setSaved(false);
   }
 
   async function handleSave() {
@@ -68,6 +82,7 @@ export default function SickPage() {
         setSaved(true);
         // Reset form on success
         setSymptoms([]);
+        setSelectedGroups([]);
         setNote("");
         setSeverity("mild");
       }
@@ -111,28 +126,56 @@ export default function SickPage() {
         {/* Symptom section — shown only when sick */}
         {isSick && (
           <>
-            {/* Symptom chips */}
+            {/* Group picker */}
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--label-color)] mb-2">
-                อาการ
+              <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--label-color)] mb-1">
+                อาการอยู่ตรงไหนบ้าง
               </p>
-              <div className="flex flex-wrap gap-2">
-                {ALL_SICK_SYMPTOMS.map((sym) => (
+              <p className="text-xs text-[var(--muted-text)] mb-2">
+                เลือกกลุ่มอาการก่อน แล้วเลือกอาการที่ตรงที่สุด
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {SYMPTOM_GROUPS.map((group) => (
                   <button
-                    key={sym}
+                    key={group.id}
                     type="button"
-                    onClick={() => { toggleSymptom(sym); setSaved(false); }}
+                    onClick={() => toggleGroup(group.id)}
                     className={[
-                      "rounded-full px-3 py-1.5 text-xs font-semibold border transition-colors",
-                      symptoms.includes(sym)
-                        ? "bg-red-100 border-red-300 text-red-700"
-                        : "bg-[var(--surface-muted)] border-[var(--border)] text-[var(--muted-text)]",
+                      "rounded-xl px-2 py-2 text-xs font-semibold border transition-colors text-center leading-tight",
+                      selectedGroups.includes(group.id)
+                        ? "border-[var(--primary)] bg-[var(--primary-soft)] text-[var(--foreground)]"
+                        : "border-[var(--border)] bg-[var(--surface)] text-[var(--muted-text)]",
                     ].join(" ")}
                   >
-                    {SICK_SYMPTOM_LABELS[sym]}
+                    {group.label}
                   </button>
                 ))}
               </div>
+
+              {/* Symptom chips for selected groups */}
+              {selectedGroups.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  {SYMPTOM_GROUPS.filter((g) => selectedGroups.includes(g.id)).map((group) => (
+                    <div key={group.id} className="flex flex-wrap gap-2">
+                      {group.symptoms.map((sym) => (
+                        <button
+                          key={sym}
+                          type="button"
+                          onClick={() => toggleSymptom(sym)}
+                          className={[
+                            "rounded-full px-3 py-1.5 text-xs font-semibold border transition-colors",
+                            symptoms.includes(sym)
+                              ? "bg-red-100 border-red-300 text-red-700"
+                              : "bg-[var(--surface-muted)] border-[var(--border)] text-[var(--muted-text)]",
+                          ].join(" ")}
+                        >
+                          {SICK_SYMPTOM_LABELS[sym]}
+                        </button>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Severity */}

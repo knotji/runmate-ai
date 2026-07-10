@@ -11,9 +11,12 @@ const ABOVE_NECK_SYMPTOMS: SickSymptom[] = [
 // Symptoms that always trigger hard stop
 const HARD_STOP_SYMPTOMS: SickSymptom[] = [
   "chest_tightness",
+  "breathing_difficulty",
   "fever",
+  "chills",
   "gi_nausea",
   "gi_diarrhea",
+  "gi_vomiting",
   "dizziness",
   "heavy_fatigue",
 ];
@@ -66,8 +69,9 @@ export function deriveSickLogFlags(symptoms: SickSymptom[], severity?: SickSever
     fever: symptoms.includes("fever"),
     chestSymptoms:
       symptoms.includes("chest_tightness") ||
+      symptoms.includes("breathing_difficulty") ||
       (symptoms.includes("cough") && (severity === "moderate" || severity === "severe")),
-    giSymptoms: symptoms.includes("gi_nausea") || symptoms.includes("gi_diarrhea"),
+    giSymptoms: symptoms.includes("gi_nausea") || symptoms.includes("gi_diarrhea") || symptoms.includes("gi_vomiting"),
     heavyFatigue: symptoms.includes("heavy_fatigue") || severity === "severe",
     aboveNeckOnly: isMildAboveNeckOnly(symptoms, severity),
   };
