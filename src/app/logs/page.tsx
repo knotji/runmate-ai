@@ -35,6 +35,8 @@ import { getHistoryItemDateKey, getBangkokDateKey, dateKeyToRecordedAt, todayBan
 import { normalizeMealSlot, getMealSlotLabel, getMealSlotIcon, getMealSlotOrder } from "@/lib/mealSlots";
 import { getMealSourceInfo, isQuickProteinMeal } from "@/lib/mealSource";
 import { buildWeeklyReview, type WeeklyReview } from "@/lib/weeklyReview";
+import { buildHrZones } from "@/lib/hr/hrZones";
+import { parseHrValue } from "@/lib/hrValidation";
 import { isSwimWorkout, isSwimRecovery, formatSwimDistance } from "@/lib/swimWorkout";
 import { buildWeeklyCoachTrendInsight } from "@/lib/trainingGuardrails";
 import { buildWeeklyInsightSummary } from "@/lib/report/weeklyInsightSummary";
@@ -190,7 +192,15 @@ export default function ReportPage() {
   const dashboardCutoff = dateKeyBefore(7);
   const todayDateKey = todayBangkokDateKey();
   const yesterdayDateKey = yesterdayBangkokDateKey();
-  const weeklyReview = items.length > 0 ? buildWeeklyReview(items, todayDateKey) : null;
+  const easyHrCapForReview = buildHrZones({
+    method: profile?.hrZoneMethod ?? null,
+    maxHr: profile?.maxHr ?? null,
+    restingHr: profile?.normalRestingHr ?? null,
+    aerobicThresholdHr: profile?.aerobicThresholdHr ?? null,
+    anaerobicThresholdHr: profile?.anaerobicThresholdHr ?? null,
+    manualEasyCapHr: parseHrValue(profile?.easyHrCap) ?? null,
+  })?.easyCapBpm ?? null;
+  const weeklyReview = items.length > 0 ? buildWeeklyReview(items, todayDateKey, easyHrCapForReview) : null;
 
   // Calendar summaries — display only, do not affect recovery/coach logic
   const weekSummary = items.length > 0 ? buildCalendarWeekSummary(items, calendarWeek, todayDateKey) : null;

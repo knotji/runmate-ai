@@ -21,7 +21,7 @@ type Status = { tone: "idle" | "good" | "warn" | "bad"; text: string };
 const SECTION_KEYS: Record<string, (keyof UserProfile)[]> = {
   basic: ["displayName", "birthDate"],
   goal: ["mainGoal", "targetDistance", "goalPriority"],
-  baseline: ["currentLevel", "currentLongestRunKm", "weeklyMileageKm", "runningDaysPerWeek", "weeklyTrainingDays", "easyPace", "easyHrCap", "maxHr"],
+  baseline: ["currentLevel", "currentLongestRunKm", "weeklyMileageKm", "runningDaysPerWeek", "weeklyTrainingDays", "easyPace", "easyHrCap", "maxHr", "hrZoneMethod", "aerobicThresholdHr", "anaerobicThresholdHr"],
   training: ["preferredLongRunDay", "strengthTrainingDaysPerWeek", "preferredRunTime", "preferredTrainingDays", "availableTrainingDays"],
   injury: ["injuryHistory", "injuryNotes", "currentPainNotes", "riskNotes"],
   sleep: ["averageSleepHours", "normalSleepScore", "normalEnergyScore", "normalRestingHr", "normalHrv", "recoveryRules", "sleepNotes"],
@@ -37,6 +37,22 @@ const SECTION_KEYS: Record<string, (keyof UserProfile)[]> = {
 
 const TODAY = todayBangkokDateKey();
 const IS_DEV = process.env.NODE_ENV === "development";
+
+const HR_ZONE_METHOD_LABELS: Record<string, string> = {
+  auto: "อัตโนมัติ",
+  hrr: "Heart Rate Reserve",
+  at_ant: "AT/AnT HR",
+  max_hr: "Max HR",
+  manual: "ตั้งเอง",
+};
+
+const HR_ZONE_METHOD_HELP: Record<string, string> = {
+  auto: "ใช้ข้อมูลที่มีอยู่เลือกวิธีคำนวณที่แม่นที่สุดให้อัตโนมัติ",
+  hrr: "ใช้ Max HR และ Resting HR เฉลี่ย เพื่อคำนวณโซนหัวใจแบบส่วนตัว",
+  at_ant: "เหมาะถ้า Samsung Health มีค่า AT/AnT เช่น AT 146, AnT 172",
+  max_hr: "ใช้เมื่อไม่มีข้อมูลอื่น อาจไม่แม่นเท่า HRR หรือ AT/AnT",
+  manual: "กำหนด Easy HR cap เอง เช่น 145 bpm",
+};
 
 function getEasyHrNumber(val: string | undefined | null): number | null {
   if (!val) return null;
@@ -108,9 +124,11 @@ export function ProfileSetupForm({
     maxHr: profile.maxHr,
     ltHr: profile.lactateThresholdHr,
     easyHrCap: profile.easyHrCap,
+    aerobicThresholdHr: profile.aerobicThresholdHr,
+    anaerobicThresholdHr: profile.anaerobicThresholdHr,
   });
 
-  const renderFieldIssues = (fieldName: "restingHr" | "maxHr" | "ltHr" | "easyHrCap") => {
+  const renderFieldIssues = (fieldName: "restingHr" | "maxHr" | "ltHr" | "easyHrCap" | "aerobicThresholdHr" | "anaerobicThresholdHr") => {
     const issues = hrValidationIssues.filter((issue) => issue.field === fieldName);
     if (issues.length === 0) return null;
     return (
@@ -149,6 +167,8 @@ export function ProfileSetupForm({
       maxHr: profile.maxHr,
       ltHr: profile.lactateThresholdHr,
       easyHrCap: profile.easyHrCap,
+      aerobicThresholdHr: profile.aerobicThresholdHr,
+      anaerobicThresholdHr: profile.anaerobicThresholdHr,
     }).filter((issue) => issue.severity === "error");
 
     const sectionFields = SECTION_KEYS[section] || [];
@@ -157,6 +177,8 @@ export function ProfileSetupForm({
       if (err.field === "maxHr" && sectionFields.includes("maxHr")) return true;
       if (err.field === "ltHr" && sectionFields.includes("lactateThresholdHr")) return true;
       if (err.field === "easyHrCap" && sectionFields.includes("easyHrCap")) return true;
+      if (err.field === "aerobicThresholdHr" && sectionFields.includes("aerobicThresholdHr")) return true;
+      if (err.field === "anaerobicThresholdHr" && sectionFields.includes("anaerobicThresholdHr")) return true;
       return false;
     });
 
@@ -248,6 +270,8 @@ export function ProfileSetupForm({
       maxHr: profile.maxHr,
       ltHr: profile.lactateThresholdHr,
       easyHrCap: profile.easyHrCap,
+      aerobicThresholdHr: profile.aerobicThresholdHr,
+      anaerobicThresholdHr: profile.anaerobicThresholdHr,
     })) {
       setStatus({ tone: "bad", text: "กรุณาแก้ไขข้อผิดพลาดในข้อมูลอัตราการเต้นของหัวใจก่อนบันทึก" });
       return;
@@ -576,6 +600,17 @@ export function ProfileSetupForm({
                 )}
               </div>
             </div>
+            <div className="rounded-xl bg-slate-50 px-3 py-2.5">
+              <p className="text-[11px] text-slate-400">โซนหัวใจ / Easy HR</p>
+              <p className="text-sm font-semibold text-[var(--foreground)]">
+                {HR_ZONE_METHOD_LABELS[profile.hrZoneMethod ?? "auto"]}
+              </p>
+              {(profile.aerobicThresholdHr != null || profile.anaerobicThresholdHr != null) && (
+                <p className="mt-0.5 text-[10px] leading-tight text-slate-400">
+                  AT {profile.aerobicThresholdHr ?? "—"} · AnT {profile.anaerobicThresholdHr ?? "—"}
+                </p>
+              )}
+            </div>
           </div>
         )}
         renderEditable={() => (
@@ -613,6 +648,40 @@ export function ProfileSetupForm({
                 <label className="text-xs font-semibold text-slate-500">Max HR <span className="font-normal text-slate-400">bpm</span></label>
                 <NumberInput placeholder="เช่น 188" value={profile.maxHr} onChange={(v) => update("maxHr", v)} />
                 {renderFieldIssues("maxHr")}
+              </div>
+            </div>
+
+            <div className="space-y-2 rounded-xl border border-[var(--border-warm)] p-3">
+              <div className="space-y-0.5">
+                <label className="text-xs font-semibold text-slate-500">โซนหัวใจ / Easy HR</label>
+                <p className="text-[10px] text-slate-400">ใช้กำหนดว่า easy/recovery วันนี้ควรเบาแค่ไหน</p>
+              </div>
+              <select
+                className="control"
+                aria-label="วิธีคำนวณโซนหัวใจ"
+                value={profile.hrZoneMethod ?? "auto"}
+                onChange={(e) => update("hrZoneMethod", e.target.value as UserProfile["hrZoneMethod"])}
+              >
+                <option value="auto">อัตโนมัติ</option>
+                <option value="hrr">Heart Rate Reserve</option>
+                <option value="at_ant">AT/AnT HR</option>
+                <option value="max_hr">Max HR</option>
+                <option value="manual">ตั้งเอง</option>
+              </select>
+              <p className="text-[10px] leading-snug text-slate-400">
+                {HR_ZONE_METHOD_HELP[profile.hrZoneMethod ?? "auto"]}
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-500">AT (Aerobic) <span className="font-normal text-slate-400">bpm</span></label>
+                  <NumberInput placeholder="เช่น 146" value={profile.aerobicThresholdHr} onChange={(v) => update("aerobicThresholdHr", v)} />
+                  {renderFieldIssues("aerobicThresholdHr")}
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-500">AnT (Anaerobic) <span className="font-normal text-slate-400">bpm</span></label>
+                  <NumberInput placeholder="เช่น 172" value={profile.anaerobicThresholdHr} onChange={(v) => update("anaerobicThresholdHr", v)} />
+                  {renderFieldIssues("anaerobicThresholdHr")}
+                </div>
               </div>
             </div>
           </>

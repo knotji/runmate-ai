@@ -15,6 +15,7 @@ import { buildRunMateRecoverySystem, getAxisTone, getRecoveryAxisCoachingTone, f
 import { buildDailyReadiness } from "@/lib/readiness/dailyReadiness";
 import { buildReadinessExplanation } from "@/lib/readiness/readinessExplanation";
 import { buildTrainingPaceBands, getAllowedPaceBandsForReadiness, getTodayDisplayPaceKeys, formatPaceRange } from "@/lib/training/trainingPaceBands";
+import { buildHrGuidanceForContext } from "@/lib/hr/buildHrGuidance";
 import type { PaceBandKey } from "@/lib/training/trainingPaceTypes";
 import { ReadinessSignalBars } from "@/components/ReadinessSignalBars";
 import { ReadinessGauge, type GaugeStatus } from "@/components/ReadinessGauge";
@@ -1859,6 +1860,14 @@ function TodaySnapshotCard({
         });
         if (!paceBands) return null;
         const allowedKeys = getAllowedPaceBandsForReadiness({ bands: paceBands, dailyReadiness });
+        const { hrZones, easyCap } = buildHrGuidanceForContext(coachCtx);
+        const sickHardStop = coachCtx.sickRiskLevel === "hard_stop";
+        const hrCapLine = (() => {
+          if (!hrZones) return null;
+          if (sickHardStop) return "วันนี้ไม่ใช้ HR เป็นเป้าซ้อม — พักก่อน";
+          if (easyCap) return easyCap.displayTh;
+          return null;
+        })();
         // Rest/pain/walk day: no pace chasing — show context-aware message
         if (allowedKeys.length === 0) {
           const isPainRisk = dailyReadiness.band === "pain_risk";
@@ -1873,6 +1882,11 @@ function TodaySnapshotCard({
                   ? "ให้ใช้อาการเจ็บและความรู้สึกนำก่อน"
                   : `ถ้าจะขยับ: เดินเร็ว · mobility · Easy เบา ๆ ${formatPaceRange(paceBands.easy)}`}
               </p>
+              {hrCapLine && (
+                <p className="mt-1 text-[10px] font-semibold text-[var(--foreground)] leading-snug" data-testid="today-hr-cap-line">
+                  {hrCapLine}
+                </p>
+              )}
             </div>
           );
         }
@@ -1894,6 +1908,11 @@ function TodaySnapshotCard({
                 </span>
               ))}
             </div>
+            {hrCapLine && (
+              <p className="mt-1 text-[10px] font-semibold text-[var(--foreground)] leading-snug" data-testid="today-hr-cap-line">
+                {hrCapLine}
+              </p>
+            )}
             {!isFullTrainingDay && (
               <p className="mt-1 text-[10px] text-[var(--color-text-muted)] leading-snug">
                 วันนี้ไม่ต้องไล่ pace ให้ HR/RPE นำ ถ้ารู้สึกหนักให้ช้าลงได้

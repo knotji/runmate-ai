@@ -3,10 +3,12 @@ export type HrValidationInput = {
   maxHr?: number | string | null;
   ltHr?: number | string | null;
   easyHrCap?: number | string | null;
+  aerobicThresholdHr?: number | string | null;
+  anaerobicThresholdHr?: number | string | null;
 };
 
 export type HrValidationIssue = {
-  field: "restingHr" | "maxHr" | "ltHr" | "easyHrCap" | "general";
+  field: "restingHr" | "maxHr" | "ltHr" | "easyHrCap" | "aerobicThresholdHr" | "anaerobicThresholdHr" | "general";
   severity: "warning" | "error";
   message: string;
 };
@@ -39,7 +41,7 @@ export function validateHrValues(input: HrValidationInput): HrValidationIssue[] 
   // 1. Parsing and syntax check
   const parseAndCheck = (
     val: number | string | null | undefined,
-    field: "restingHr" | "maxHr" | "ltHr" | "easyHrCap",
+    field: "restingHr" | "maxHr" | "ltHr" | "easyHrCap" | "aerobicThresholdHr" | "anaerobicThresholdHr",
     label: string
   ): number | undefined => {
     if (val === null || val === undefined || String(val).trim() === "") {
@@ -60,6 +62,8 @@ export function validateHrValues(input: HrValidationInput): HrValidationIssue[] 
   const maxHr = parseAndCheck(input.maxHr, "maxHr", "Max HR");
   const ltHr = parseAndCheck(input.ltHr, "ltHr", "LT HR");
   const easyHrCap = parseAndCheck(input.easyHrCap, "easyHrCap", "Easy HR cap");
+  const aerobicThresholdHr = parseAndCheck(input.aerobicThresholdHr, "aerobicThresholdHr", "AT");
+  const anaerobicThresholdHr = parseAndCheck(input.anaerobicThresholdHr, "anaerobicThresholdHr", "AnT");
 
   // 2. Range validation
   if (restingHr !== undefined) {
@@ -80,6 +84,13 @@ export function validateHrValues(input: HrValidationInput): HrValidationIssue[] 
         message: "Max HR ควรอยู่ประมาณ 120–230 bpm",
       });
     }
+    if (maxHr >= 205) {
+      issues.push({
+        field: "maxHr",
+        severity: "warning",
+        message: "ค่านี้สูงมาก ถ้าไม่ได้วัดจริง อาจทำให้โซนเพี้ยน",
+      });
+    }
   }
 
   if (ltHr !== undefined) {
@@ -98,6 +109,26 @@ export function validateHrValues(input: HrValidationInput): HrValidationIssue[] 
         field: "easyHrCap",
         severity: "warning",
         message: "Easy HR cap ควรอยู่ประมาณ 90–180 bpm",
+      });
+    }
+  }
+
+  if (aerobicThresholdHr !== undefined) {
+    if (aerobicThresholdHr < 90 || aerobicThresholdHr > 190) {
+      issues.push({
+        field: "aerobicThresholdHr",
+        severity: "warning",
+        message: "AT ควรอยู่ประมาณ 90–190 bpm",
+      });
+    }
+  }
+
+  if (anaerobicThresholdHr !== undefined) {
+    if (anaerobicThresholdHr < 95 || anaerobicThresholdHr > 210) {
+      issues.push({
+        field: "anaerobicThresholdHr",
+        severity: "warning",
+        message: "AnT ควรอยู่ประมาณ 95–210 bpm",
       });
     }
   }
@@ -139,6 +170,26 @@ export function validateHrValues(input: HrValidationInput): HrValidationIssue[] 
         field: "maxHr",
         severity: "error",
         message: "Max HR ควรสูงกว่า Resting HR",
+      });
+    }
+  }
+
+  if (aerobicThresholdHr !== undefined && anaerobicThresholdHr !== undefined) {
+    if (anaerobicThresholdHr < aerobicThresholdHr + 5) {
+      issues.push({
+        field: "anaerobicThresholdHr",
+        severity: "error",
+        message: "AnT ควรสูงกว่า AT อย่างน้อย 5 bpm",
+      });
+    }
+  }
+
+  if (anaerobicThresholdHr !== undefined && maxHr !== undefined) {
+    if (anaerobicThresholdHr >= maxHr) {
+      issues.push({
+        field: "anaerobicThresholdHr",
+        severity: "error",
+        message: "AnT ควรต่ำกว่า Max HR",
       });
     }
   }

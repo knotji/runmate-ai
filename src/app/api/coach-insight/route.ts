@@ -10,6 +10,7 @@ import { getCoachCautionFactors } from "@/lib/coachCautionFactors";
 import { buildRunMateRecoverySystem, type RunMateRecoverySystem } from "@/lib/recoverySystem";
 import { buildRunMateRecoveryLoop, type RunMateRecoveryLoop } from "@/lib/recoveryLoop";
 import { getPainRecoveryStatus, derivePainRecoveryInput, isPainRecoveryStatus } from "@/lib/painRecovery";
+import { buildHrGuidanceForContext } from "@/lib/hr/buildHrGuidance";
 
 const FALLBACK: DailyCoachInsight = {
   todayReadiness: 70,
@@ -392,6 +393,24 @@ function buildUserPrompt(ctx: CoachContext): string {
       lines.push(`- สถานะ: กำลังฟื้นตัว — easy run สั้น ๆ ทำได้ถ้าไม่เจ็บ แต่ยังไม่ควรกด pace`);
     } else if (ctx.painRecoveryStatus === "cleared_light") {
       lines.push(`- สถานะ: easy run ได้แล้ว — แต่ยังไม่ใช่วัน hard session`);
+    }
+  }
+
+  {
+    const { hrZones, easyCap } = buildHrGuidanceForContext(ctx);
+    if (hrZones) {
+      lines.push(`\nHR zone guidance วันนี้:`);
+      lines.push(`- Method: ${hrZones.method}`);
+      if (hrZones.easyCapBpm != null) {
+        lines.push(`- Easy HR cap (normal): ${hrZones.easyCapBpm} bpm`);
+      }
+      if (ctx.sickRiskLevel === "hard_stop") {
+        lines.push(`- HR target disabled today (sick hard-stop) — ห้ามแนะนำ HR เป็นเป้าซ้อม วันนี้พักก่อน`);
+      } else if (easyCap) {
+        lines.push(`- Easy HR cap (today, adjusted): ${easyCap.adjustedCapBpm} bpm — เหตุผล: ${easyCap.reasonTh}`);
+        if (easyCap.cautionTh) lines.push(`- Caution: ${easyCap.cautionTh}`);
+      }
+      lines.push(`- Rule: ถ้า HR กับ pace ขัดกันในวัน easy/recovery ให้ยึด HR เป็นหลัก, pace เป็นแค่กรอบอ้างอิง`);
     }
   }
 
@@ -975,4 +994,8 @@ const SYSTEM_PROMPT = `คุณคือ RunMate AI โค้ชวิ่งส
 - วันที่ (Bangkok time) ให้ใช้ตามที่ระบุในข้อมูล user อย่าอนุมานวันจาก UTC เพราะ Asia/Bangkok คือ UTC+7
 - เมื่อพูดถึงวันปัจจุบัน ให้ใช้ "วันนี้" เสมอ ห้ามใช้ "วันนั้น" เพื่อหมายถึงวันนี้
 - Pain recovery status: ถ้า status คือ active_pain/recent_pain/improving/cleared_light ห้ามแนะนำ tempo, intervals, race pace, progression run, speed work, fartlek หรือ hard session ใด ๆ จนกว่า status จะถึง cleared_normal
-- ถ้า pain recovery status ระบุใน user data ให้ยึด status นั้นเป็นหลักแทนการประเมินเอง`;
+- ถ้า pain recovery status ระบุใน user data ให้ยึด status นั้นเป็นหลักแทนการประเมินเอง
+- HR zone guidance: pace เป็นแค่กรอบอ้างอิง ถ้าผู้ใช้ถาม "easy HR เท่าไร" ให้ตอบ easy HR cap วันนี้พร้อมเหตุผล ถ้าถาม "pace เท่าไร" ให้ตอบทั้ง pace และ HR cap คู่กัน ถ้า HR กับ pace ขัดกันในวัน easy/recovery ให้ยึด HR เป็นหลัก
+- ถ้า sick hard-stop ใช้งานอยู่ ห้ามแนะนำ HR target เพื่อการซ้อมเด็ดขาด ให้บอกว่าวันนี้พักก่อน
+- ถ้า Max HR ดูสูงผิดปกติ (เช่น >= 205) อย่าเชื่อค่านั้นแบบไม่มีเงื่อนไข ให้บอกว่าอาจทำให้โซนเพี้ยนถ้าไม่ได้วัดจริง
+- ห้ามวินิจฉัยทางการแพทย์จากข้อมูล HR — เป็นเพียง training guidance เท่านั้น`;

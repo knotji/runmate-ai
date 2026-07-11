@@ -42,6 +42,9 @@ type ProfileRow = {
   lactate_threshold_hr: number | null;
   vo2max: number | null;
   average_cadence: number | null;
+  hr_zone_method: string | null;
+  aerobic_threshold_hr: number | null;
+  anaerobic_threshold_hr: number | null;
 
   preferred_training_days: string[] | null;
   available_training_days: string | null;
@@ -201,6 +204,9 @@ function profileToRow(profile: UserProfile, userId: string): Partial<ProfileRow>
     lactate_threshold_hr: cleanInt(profile.lactateThresholdHr),
     vo2max: cleanNumber(profile.vo2max),
     average_cadence: cleanInt(profile.averageCadence),
+    hr_zone_method: cleanText(profile.hrZoneMethod),
+    aerobic_threshold_hr: cleanInt(profile.aerobicThresholdHr),
+    anaerobic_threshold_hr: cleanInt(profile.anaerobicThresholdHr),
 
     preferred_training_days: cleanArray(profile.preferredTrainingDays),
     available_training_days: cleanText(profile.availableTrainingDays),
@@ -286,6 +292,9 @@ function rowToProfile(row: ProfileRow): UserProfile {
     lactateThresholdHr: row.lactate_threshold_hr ?? undefined,
     vo2max: row.vo2max ?? undefined,
     averageCadence: row.average_cadence ?? undefined,
+    hrZoneMethod: (row.hr_zone_method as UserProfile["hrZoneMethod"]) ?? undefined,
+    aerobicThresholdHr: row.aerobic_threshold_hr ?? undefined,
+    anaerobicThresholdHr: row.anaerobic_threshold_hr ?? undefined,
 
     preferredTrainingDays: row.preferred_training_days ?? undefined,
     availableTrainingDays: row.available_training_days ?? undefined,

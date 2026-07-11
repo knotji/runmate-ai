@@ -69,7 +69,7 @@ function readSleepHoursFromItem(item: LocalHistoryItem): number | null {
   return null;
 }
 
-export function buildWeeklyReview(items: LocalHistoryItem[], todayDateKey: string): WeeklyReview {
+export function buildWeeklyReview(items: LocalHistoryItem[], todayDateKey: string, easyHrCapBpm?: number | null): WeeklyReview {
   // Build the 7-day window [cutoff, todayDateKey]
   const cutoffMs = Date.parse(`${todayDateKey}T00:00:00+07:00`) - 6 * 86_400_000;
   const cutoffDate = new Date(cutoffMs).toISOString().slice(0, 10);
@@ -96,6 +96,18 @@ export function buildWeeklyReview(items: LocalHistoryItem[], todayDateKey: strin
     if (km != null) runningKmTotal += km;
   }
   const runCount = new Set(runItems.map((i) => getHistoryItemDateKey(i))).size;
+
+  // ─── Easy HR cap adherence (only when both a cap and workout HR data exist) ──
+  const runAvgHrs: number[] = [];
+  for (const item of runItems) {
+    const d = item.data as Record<string, unknown> | null;
+    const ext = (d?.extracted ?? d ?? {}) as Record<string, unknown>;
+    const hr = toFinite(ext.avgHR);
+    if (hr != null && hr > 0) runAvgHrs.push(hr);
+  }
+  const overCapRatio = easyHrCapBpm != null && runAvgHrs.length > 0
+    ? runAvgHrs.filter((hr) => hr > easyHrCapBpm).length / runAvgHrs.length
+    : null;
 
   // ─── Strength ─────────────────────────────────────────────────────────────
   const strengthItems = window.filter((i) => {
@@ -186,6 +198,7 @@ export function buildWeeklyReview(items: LocalHistoryItem[], todayDateKey: strin
   if (avgReadiness != null && avgReadiness >= 70) highlights.push(`Readiness เฉลี่ย ${readinessLabel(avgReadiness)}`);
   if (resolvedPainCount > 0 && activePainDays === 0) highlights.push("อาการเจ็บหายแล้ว — กลับมาซ้อมได้");
   if (mealCount >= 10) highlights.push(`บันทึกอาหาร ${mealCount} มื้อ`);
+  if (overCapRatio != null && overCapRatio <= 0.2) highlights.push("Easy ส่วนใหญ่คุม HR ได้ดี");
   if (highlights.length === 0 && (runCount > 0 || strengthCount > 0)) {
     highlights.push("มีการเคลื่อนไหวสัปดาห์นี้");
   }
@@ -199,6 +212,9 @@ export function buildWeeklyReview(items: LocalHistoryItem[], todayDateKey: strin
     cautions.push("ซ้อมหนักแต่นอนน้อย — ความเสี่ยง overtraining สูงขึ้น");
   }
   if (runningKmTotal > 60) cautions.push(`โหลดสูงมาก ${Math.round(runningKmTotal)} km — พักให้พอ`);
+  if (overCapRatio != null && overCapRatio > 0.5) {
+    cautions.push("หลายรอบ HR สูงเกิน easy cap อาจทำให้ recovery ช้าลง");
+  }
 
   // ─── Next focus ───────────────────────────────────────────────────────────
   const nextFocus: string[] = [];

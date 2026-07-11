@@ -48,6 +48,9 @@ export type UserProfile = {
   lactateThresholdHr?: number;
   vo2max?: number;
   averageCadence?: number;
+  hrZoneMethod?: "auto" | "hrr" | "at_ant" | "max_hr" | "manual";
+  aerobicThresholdHr?: number;
+  anaerobicThresholdHr?: number;
 
   // Training Preferences
   preferredTrainingDays?: string[];

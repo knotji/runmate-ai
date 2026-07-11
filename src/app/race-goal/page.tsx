@@ -14,6 +14,7 @@ import { PAIN_RECOVERY_COPY, type PainRecoveryStatus } from "@/lib/painRecovery"
 import { getTodayTrainingGuardrail } from "@/lib/trainingGuardrails";
 import { buildDailyReadiness } from "@/lib/readiness/dailyReadiness";
 import { buildTrainingPaceBands, getAllowedPaceBandsForReadiness, formatPaceRange } from "@/lib/training/trainingPaceBands";
+import { buildHrGuidanceForContext } from "@/lib/hr/buildHrGuidance";
 import type { PaceBandKey } from "@/lib/training/trainingPaceTypes";
 
 import { loadHistoryItems } from "@/lib/cloudHistory";
@@ -635,6 +636,13 @@ function PaceBandsCard({ goal, coachContext }: { goal: RaceGoal; coachContext: C
 
   const allKeys: PaceBandKey[] = ["easy", "long", "tempo", "interval"];
 
+  const { hrZones, easyCap } = buildHrGuidanceForContext(coachContext);
+  const sickHardStop = coachContext?.sickRiskLevel === "hard_stop";
+  const hrCapLine = (() => {
+    if (!hrZones || sickHardStop) return null;
+    return easyCap ? easyCap.displayTh : null;
+  })();
+
   return (
     <section className="rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface)] px-4 py-3" data-testid="pace-bands-card">
       <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--label-color)]">ช่วงเพซซ้อมของคุณ</p>
@@ -643,11 +651,19 @@ function PaceBandsCard({ goal, coachContext }: { goal: RaceGoal; coachContext: C
         {allKeys.map((key) => {
           const range = bands[key];
           const allowed = allowedKeys.includes(key);
+          const showHrCap = hrCapLine && (key === "easy" || key === "long");
           return (
             <div key={key} className={`flex items-center justify-between gap-2 rounded-xl px-3 py-1.5 ${allowed ? "bg-[var(--primary-soft)]" : "bg-[var(--surface-muted)] opacity-50"}`}>
-              <span className="flex items-center gap-1.5">
-                <span className="text-[11px] font-semibold text-[var(--foreground)]">{BAND_LABELS[key]}</span>
-                {!allowed && dr && <span className="text-[10px] text-[var(--color-text-muted)]">· ไว้วันพร้อม</span>}
+              <span className="flex flex-col gap-0.5">
+                <span className="flex items-center gap-1.5">
+                  <span className="text-[11px] font-semibold text-[var(--foreground)]">{BAND_LABELS[key]}</span>
+                  {!allowed && dr && <span className="text-[10px] text-[var(--color-text-muted)]">· ไว้วันพร้อม</span>}
+                </span>
+                {showHrCap && (
+                  <span className="text-[10px] text-[var(--color-text-muted)]" data-testid="race-hr-cap-line">
+                    {hrCapLine}
+                  </span>
+                )}
               </span>
               <span className="text-[11px] font-bold text-[var(--primary-strong)] tabular-nums">{formatPaceRange(range)}</span>
             </div>
