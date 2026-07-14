@@ -10,16 +10,18 @@ export default function CoachPage() {
         <div className="flex items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-extrabold text-[var(--foreground)]">โค้ชพร้อมช่วยวันนี้</h2>
-            <p className="mt-0.5 text-xs text-[var(--muted-text)]">ใช้ข้อมูล Report เป็นพื้นหลัง · อัปเดตทุกครั้งที่บันทึกข้อมูล</p>
+            <p className="mt-0.5 text-sm text-[var(--muted-text)]">ใช้ข้อมูล Report เป็นพื้นหลัง · อัปเดตทุกครั้งที่บันทึกข้อมูล</p>
           </div>
           <Link href="/pain" className="btn-danger-soft shrink-0 px-3 py-2 text-xs font-bold">
             แจ้งเจ็บ
           </Link>
         </div>
-        <p className="mt-1.5 text-[11px] text-[var(--color-text-soft)]">แชตนี้ไม่บันทึกเข้า Report อัตโนมัติ · ถ้าต้องการบันทึกข้อมูลใหม่ ไปที่ Upload</p>
-        <a href="#coach-chat" className="mt-2.5 btn-primary block py-2 text-center text-sm font-bold">
-          ลองถามโค้ช
-        </a>
+        <div className="mt-2 flex items-center justify-between gap-3">
+          <p className="text-xs text-[var(--color-text-soft)]">แชตนี้ไม่บันทึกเข้า Report อัตโนมัติ · ถ้าต้องการบันทึกข้อมูลใหม่ ไปที่ Upload</p>
+          <a href="#coach-chat" className="shrink-0 rounded-full border border-[var(--primary)]/40 bg-[var(--primary-soft)] px-3 py-1.5 text-xs font-bold text-[var(--primary-strong)]">
+            ลองถามโค้ช
+          </a>
+        </div>
       </section>
       <CoachContextDashboard />
       <CoachChat />

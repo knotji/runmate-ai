@@ -38,7 +38,7 @@ export function DataQualityNote({
   // Custom meal note
   if (source === "meal") {
     return (
-      <div className="bg-slate-50/80 text-slate-500 border border-slate-100/60 rounded-2xl p-3 text-xs leading-5">
+      <div className="bg-[var(--surface-muted)] text-[var(--color-text-muted)] border border-[var(--border-warm)] rounded-2xl p-3 text-xs leading-5">
         ℹ️ แคลอรีและสารอาหารเป็นค่าประมาณ กรุณาตรวจทานก่อนบันทึก
       </div>
     );
@@ -47,7 +47,7 @@ export function DataQualityNote({
   // Custom health check note
   if (source === "health_check") {
     return (
-      <div className={isLow || hasUnclear ? "bg-amber-50 text-amber-800 border border-amber-100 rounded-2xl p-3 text-xs leading-5" : "bg-slate-50/80 text-slate-500 border border-slate-100/60 rounded-2xl p-3 text-xs leading-5"}>
+      <div className={isLow || hasUnclear ? "bg-[var(--color-warning-soft)] text-[var(--color-warning)] border border-[var(--color-warning-border)] rounded-2xl p-3 text-xs leading-5" : "bg-[var(--surface-muted)] text-[var(--color-text-muted)] border border-[var(--border-warm)] rounded-2xl p-3 text-xs leading-5"}>
         {isLow || hasUnclear
           ? "⚠️ ข้อมูลบางส่วนอาจอ่านไม่ชัด กรุณาตรวจทานก่อนใช้ประกอบคำแนะนำ"
           : "ℹ️ ข้อมูลที่อ่านได้อาจคลาดเคลื่อน กรุณาตรวจทานก่อนบันทึก"}
@@ -61,10 +61,10 @@ export function DataQualityNote({
       .filter(Boolean);
 
     return (
-      <div className="bg-amber-50 text-amber-800 border border-amber-100 rounded-2xl p-3 text-xs leading-5">
+      <div className="bg-[var(--color-warning-soft)] text-[var(--color-warning)] border border-[var(--color-warning-border)] rounded-2xl p-3 text-xs leading-5">
         ⚠️ มีบางค่าที่อ่านไม่ชัด กรุณาตรวจทานเป็นพิเศษก่อนบันทึก
         {fieldsToShow.length > 0 && (
-          <span className="block mt-0.5 text-amber-700/80 font-medium">
+          <span className="block mt-0.5 text-[var(--color-warning)]/80 font-medium">
             เช่น: {fieldsToShow.slice(0, 4).join(", ")}
           </span>
         )}
@@ -81,7 +81,7 @@ export function DataQualityNote({
   }
 
   return (
-    <div className="bg-slate-50/80 text-slate-500 border border-slate-100/60 rounded-2xl p-3 text-xs leading-5">
+    <div className="bg-[var(--surface-muted)] text-[var(--color-text-muted)] border border-[var(--border-warm)] rounded-2xl p-3 text-xs leading-5">
       ℹ️ {genericText}
     </div>
   );

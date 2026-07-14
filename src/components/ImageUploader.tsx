@@ -246,7 +246,7 @@ export function ImageUploader({
         className={`flex min-h-[96px] cursor-pointer flex-col items-center justify-center gap-2 rounded-[22px] border border-dashed px-4 py-4 text-center transition-colors ${
           files.length > 0
             ? "border-[var(--primary)] bg-[var(--primary-soft)]/20"
-            : "border-[var(--border-warm)] bg-white/70 hover:border-[var(--primary)]/60 hover:bg-[var(--surface)]"
+            : "border-[var(--border-warm)] bg-[var(--surface)]/70 hover:border-[var(--primary)]/60 hover:bg-[var(--surface)]"
         }`}
       >
         <input
@@ -289,7 +289,7 @@ export function ImageUploader({
       {files.length > 0 && (
         <div className="grid grid-cols-4 gap-2 mt-2" data-testid="upload-thumbnails-grid">
           {files.map((file, idx) => (
-            <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-[var(--border-warm)] bg-slate-100">
+            <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-[var(--border-warm)] bg-[var(--surface-muted)]">
               <img
                 src={previews[idx] || ""}
                 alt={`Selected preview ${idx + 1}`}

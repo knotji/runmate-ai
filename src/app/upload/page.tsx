@@ -132,7 +132,7 @@ function SelectedDateBadge({ dateKey }: { dateKey: string }) {
     <div className="flex items-center gap-2 text-xs font-semibold text-[var(--muted-text)] bg-[var(--surface-muted)] border border-[var(--color-border-soft)] rounded-2xl px-3.5 py-2 my-2 w-fit">
       <span>จะบันทึกเป็นวันที่: {formatThaiShortDate(dateKey)}</span>
       {!isToday && (
-        <span className="rounded-full bg-amber-50 text-amber-700 px-2 py-0.5 text-[10px] font-bold">
+        <span className="rounded-full bg-[var(--color-warning-soft)] text-[var(--color-warning)] px-2 py-0.5 text-[10px] font-bold">
           บันทึกย้อนหลัง
         </span>
       )}
@@ -957,7 +957,7 @@ export default function UploadPage() {
 
             {intakeFallbackNotice && (
               <p
-                className="rounded-2xl bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700"
+                className="rounded-2xl bg-[var(--color-warning-soft)] px-3 py-2 text-xs font-semibold text-[var(--color-warning)]"
                 data-testid="intake-fallback-notice"
               >
                 ไม่แน่ใจว่าเป็นข้อมูลประเภทไหน กรุณาเลือกประเภทเอง — ไฟล์/ข้อความที่ใส่ไว้จะถูกใช้ต่อ ไม่ต้องอัปโหลดใหม่
@@ -1050,14 +1050,14 @@ export default function UploadPage() {
         )}
 
         <div className="card-soft flex items-start gap-3 px-4 py-3" data-testid="upload-type-summary">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white text-xl shadow-sm">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--surface)] text-xl shadow-sm">
             {selectedMeta.icon}
           </div>
           <div className="min-w-0 flex-1">
             <h2 className="text-lg font-bold text-[var(--foreground)]">{selectedMeta.title}</h2>
             <p className="mt-1 text-sm leading-6 text-[var(--muted-text)]">{selectedMeta.copy}</p>
             {selectedMeta.caution ? (
-              <p className="mt-2 inline-flex rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-700">
+              <p className="mt-2 inline-flex rounded-full bg-[var(--color-warning-soft)] px-2.5 py-1 text-[11px] font-bold text-[var(--color-warning)]">
                 {selectedMeta.caution}
               </p>
             ) : null}
@@ -1070,14 +1070,14 @@ export default function UploadPage() {
               <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--color-text-soft)]">วันที่ของข้อมูล</p>
               <p className="mt-0.5 text-xs text-[var(--muted-text)]">{formatThaiShortDate(selectedDateKey)}</p>
             </div>
-            <div className="flex shrink-0 rounded-2xl bg-white/80 p-1 text-xs font-bold shadow-sm">
+            <div className="flex shrink-0 rounded-2xl bg-[var(--surface)]/80 p-1 text-xs font-bold shadow-sm">
               <button
                 type="button"
                 onClick={() => {
                   setDateSelectionMode("today");
                   setSelectedDateKey(todayBangkokDateKey());
                 }}
-                className={`rounded-xl px-2.5 py-1.5 transition-colors ${dateSelectionMode === "today" ? "bg-[var(--foreground)] text-white" : "text-[var(--muted-text)]"}`}
+                className={`rounded-xl px-2.5 py-1.5 transition-colors ${dateSelectionMode === "today" ? "bg-[var(--primary)] text-[#0b1220]" : "text-[var(--muted-text)]"}`}
               >
                 วันนี้
               </button>
@@ -1087,14 +1087,14 @@ export default function UploadPage() {
                   setDateSelectionMode("yesterday");
                   setSelectedDateKey(yesterdayBangkokDateKey());
                 }}
-                className={`rounded-xl px-2.5 py-1.5 transition-colors ${dateSelectionMode === "yesterday" ? "bg-[var(--foreground)] text-white" : "text-[var(--muted-text)]"}`}
+                className={`rounded-xl px-2.5 py-1.5 transition-colors ${dateSelectionMode === "yesterday" ? "bg-[var(--primary)] text-[#0b1220]" : "text-[var(--muted-text)]"}`}
               >
                 เมื่อวาน
               </button>
               <button
                 type="button"
                 onClick={() => setDateSelectionMode("custom")}
-                className={`rounded-xl px-2.5 py-1.5 transition-colors ${dateSelectionMode === "custom" ? "bg-[var(--foreground)] text-white" : "text-[var(--muted-text)]"}`}
+                className={`rounded-xl px-2.5 py-1.5 transition-colors ${dateSelectionMode === "custom" ? "bg-[var(--primary)] text-[#0b1220]" : "text-[var(--muted-text)]"}`}
               >
                 เลือกวันที่
               </button>
@@ -1130,7 +1130,7 @@ export default function UploadPage() {
                     setMealSlotConflict(null);
                     setManualMealError("");
                   }}
-                  className={`rounded-xl px-3 py-2 text-sm font-bold transition-colors ${mealInputMode === mode ? "bg-white text-[#17201d] shadow-sm" : "text-[var(--muted-text)]"}`}
+                  className={`rounded-xl px-3 py-2 text-sm font-bold transition-colors ${mealInputMode === mode ? "bg-[var(--surface)] text-[var(--foreground)] shadow-sm" : "text-[var(--muted-text)]"}`}
                 >
                   {label}
                 </button>
@@ -1142,7 +1142,7 @@ export default function UploadPage() {
                   key={m}
                   type="button"
                   onClick={() => setMealType(m)}
-                  className={`rounded-full px-3 py-1.5 text-sm font-semibold transition-colors ${mealType === m ? "bg-[var(--primary)] text-white" : "bg-[var(--surface-muted)] text-[var(--muted-text)] hover:bg-[var(--primary-soft)]"}`}
+                  className={`rounded-full px-3 py-1.5 text-sm font-semibold transition-colors ${mealType === m ? "bg-[var(--primary)] text-[#0b1220]" : "bg-[var(--surface-muted)] text-[var(--muted-text)] hover:bg-[var(--primary-soft)]"}`}
                 >
                   {MEAL_TYPE_LABELS[m]}
                 </button>
@@ -1167,7 +1167,7 @@ export default function UploadPage() {
                     setSaveStatus("idle");
                     setSaveFeedback("");
                   }}
-                  className={`rounded-full px-3 py-1.5 text-sm font-semibold transition-colors ${workoutSubtype === sub ? "bg-[var(--primary)] text-white" : "bg-[var(--surface-muted)] text-[var(--muted-text)] hover:bg-[var(--primary-soft)]"}`}
+                  className={`rounded-full px-3 py-1.5 text-sm font-semibold transition-colors ${workoutSubtype === sub ? "bg-[var(--primary)] text-[#0b1220]" : "bg-[var(--surface-muted)] text-[var(--muted-text)] hover:bg-[var(--primary-soft)]"}`}
                 >
                   {sub === "run" ? "วิ่ง" : sub === "strength" ? "เวท" : sub === "walk" ? "เดิน" : "อื่น ๆ"}
                 </button>
@@ -1188,7 +1188,7 @@ export default function UploadPage() {
                       setSaveFeedback("");
                     }}
                     className={`rounded-xl px-3 py-2 text-sm font-bold transition-colors ${
-                      strengthInputMode === mode ? "bg-white text-[#17201d] shadow-sm" : "text-[var(--muted-text)]"
+                      strengthInputMode === mode ? "bg-[var(--surface)] text-[var(--foreground)] shadow-sm" : "text-[var(--muted-text)]"
                     }`}
                   >
                     {mode === "image" ? "🖼️ อัปโหลดรูป" : "📝 บันทึกด้วยตัวเอง"}
@@ -1253,7 +1253,7 @@ export default function UploadPage() {
             >
               {type === "meal" && (
                 <div className="space-y-1.5 my-3" data-testid="meal-image-text-container">
-                  <label htmlFor="meal-image-text" className="text-xs font-bold uppercase tracking-wide text-slate-400">เพิ่มเติม</label>
+                  <label htmlFor="meal-image-text" className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-soft)]">เพิ่มเติม</label>
                   <textarea
                     id="meal-image-text"
                     className="control min-h-[80px]"
@@ -1333,18 +1333,18 @@ export default function UploadPage() {
                   setSelectedDateKey(suggestedDateKey);
                   setDateSelectionMode("custom");
                 }}
-                className="rounded-full bg-white border border-amber-300 px-3.5 py-1.5 text-xs font-bold text-amber-700 hover:bg-amber-100 transition shadow-sm"
+                className="rounded-full bg-[var(--surface)] border border-[var(--color-warning-border)] px-3.5 py-1.5 text-xs font-bold text-[var(--color-warning)] hover:bg-[var(--color-warning-soft)] transition shadow-sm"
               >
                 ใช้วันที่นี้
               </button>
             ) : (
-              <span className="rounded-full bg-amber-200/80 px-3 py-1.5 text-xs font-bold text-amber-800">
+              <span className="rounded-full bg-[var(--color-warning-soft)] px-3 py-1.5 text-xs font-bold text-[var(--color-warning)]">
                 จะบันทึกเป็นวันที่: {formatDateKeyToThaiBE(selectedDateKey)}
               </span>
             )}
           </div>
           {isConfidenceLow && (
-            <p className="text-xs text-amber-800 leading-relaxed font-medium">
+            <p className="text-xs text-[var(--color-warning)] leading-relaxed font-medium">
               ⚠️ วันที่ที่อ่านได้อาจคลาดเคลื่อน กรุณาตรวจทานก่อนใช้
             </p>
           )}
@@ -1365,7 +1365,7 @@ export default function UploadPage() {
                 loadingText="กำลังบันทึก..."
                 disabled={saveStatus === "saving"}
                 onClick={() => void store(result)}
-                className="rounded-full bg-[#17201d] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#2c3d38] disabled:opacity-60"
+                className="rounded-full bg-[var(--primary)] px-5 py-2.5 text-sm font-bold text-[#0b1220] transition hover:bg-[var(--primary-strong)] disabled:opacity-60"
               >
                 บันทึกผลการนอน
               </LoadingButton>
@@ -1644,7 +1644,7 @@ function HealthCheckUploader({
 
   return (
     <div className="space-y-3 rounded-[22px] bg-[var(--surface-muted)]/70 p-3">
-      <p className="rounded-2xl bg-white/75 px-3 py-2 text-xs leading-5 text-slate-500">
+      <p className="rounded-2xl bg-[var(--surface)]/75 px-3 py-2 text-xs leading-5 text-[var(--color-text-muted)]">
         ระบบจะอ่านเฉพาะค่าที่จำเป็น และบันทึกเป็นสรุปสำหรับโค้ช
       </p>
 
@@ -1652,7 +1652,7 @@ function HealthCheckUploader({
         className={`flex min-h-[112px] cursor-pointer flex-col items-center justify-center gap-2 rounded-[22px] border border-dashed px-4 py-5 text-center transition-colors ${
           file
             ? "border-[var(--primary)] bg-[var(--primary-soft)]"
-            : "border-[var(--border-warm)] bg-white/70 hover:border-[var(--primary)]/60 hover:bg-[var(--surface)]"
+            : "border-[var(--border-warm)] bg-[var(--surface)]/70 hover:border-[var(--primary)]/60 hover:bg-[var(--surface)]"
         }`}
         aria-label="อัปโหลดไฟล์ผลตรวจสุขภาพ"
         tabIndex={0}
@@ -1699,7 +1699,7 @@ function HealthCheckUploader({
         )}
       </label>
 
-      {error ? <p className="rounded-xl bg-red-50 p-3 text-xs font-semibold text-red-600">{error}</p> : null}
+      {error ? <p className="rounded-xl bg-[var(--color-danger-soft)] p-3 text-xs font-semibold text-[var(--color-danger)]">{error}</p> : null}
       
       <LoadingButton
         type="button"
@@ -1711,7 +1711,7 @@ function HealthCheckUploader({
       >
         {file ? "วิเคราะห์ผลตรวจสุขภาพ" : "เลือก PDF ก่อนวิเคราะห์"}
       </LoadingButton>
-      <p className="text-xs leading-5 text-slate-400">
+      <p className="text-xs leading-5 text-[var(--color-text-soft)]">
         คำแนะนำจากผลตรวจเป็นแนวทางทั่วไป ไม่ใช่การวินิจฉัยหรือการรักษา หากมีค่าผิดปกติควรปรึกษาแพทย์
       </p>
     </div>
@@ -1778,28 +1778,28 @@ function HealthCheckReviewCard({
   return (
     <section className="card space-y-4 p-5">
       <div>
-        <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#6f8fa6]">Health Check Review</p>
+        <p className="text-xs font-bold uppercase tracking-[0.22em] text-[var(--label-color)]">Health Check Review</p>
         <h2 className="mt-2 text-xl font-bold text-[var(--foreground)]">ตรวจทานก่อนบันทึก</h2>
-        <p className="mt-1 text-xs leading-5 text-slate-500">
+        <p className="mt-1 text-xs leading-5 text-[var(--color-text-muted)]">
           ระบบบันทึกเฉพาะค่าที่สรุปแล้ว ไม่บันทึกไฟล์ PDF ต้นฉบับหรือข้อความดิบ
         </p>
         <SelectedDateBadge dateKey={selectedDateKey} />
       </div>
 
-      <div className="rounded-2xl bg-blue-50 p-4 space-y-3">
+      <div className="rounded-2xl bg-[var(--color-info-soft)] p-4 space-y-3">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h3 className="font-bold text-[#17201d] text-base">ผลตรวจสุขภาพล่าสุด</h3>
-            <p className="mt-0.5 text-xs text-[#42677f] font-semibold">ใช้เพื่อช่วยปรับคำแนะนำอาหารและไลฟ์สไตล์</p>
-            <p className="mt-0.5 text-[11px] text-slate-500">{healthCheck.checkupDate ?? "ไม่พบวันที่ตรวจ"}</p>
+            <h3 className="font-bold text-[var(--foreground)] text-base">ผลตรวจสุขภาพล่าสุด</h3>
+            <p className="mt-0.5 text-xs text-[var(--recovery-blue)] font-semibold">ใช้เพื่อช่วยปรับคำแนะนำอาหารและไลฟ์สไตล์</p>
+            <p className="mt-0.5 text-[11px] text-[var(--color-text-muted)]">{healthCheck.checkupDate ?? "ไม่พบวันที่ตรวจ"}</p>
           </div>
-          <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-[#42677f]">{healthCheck.confidence ?? "low"}</span>
+          <span className="rounded-full bg-[var(--surface)] px-2.5 py-1 text-[11px] font-bold text-[var(--recovery-blue)]">{healthCheck.confidence ?? "low"}</span>
         </div>
 
         <div className="mt-4 space-y-3">
           {/* ควรระวัง */}
-          <div className="rounded-xl bg-white/70 p-3 ring-1 ring-slate-100">
-            <p className="text-xs font-bold text-amber-800">⚠️ ควรระวัง</p>
+          <div className="rounded-xl bg-[var(--surface)]/70 p-3 ring-1 ring-[var(--border-warm)]">
+            <p className="text-xs font-bold text-[var(--color-warning)]">⚠️ ควรระวัง</p>
             {warningLabs.length > 0 ? (
               <ul className="mt-1.5 list-disc pl-4 space-y-1 text-sm text-[var(--foreground)]">
                 {warningLabs.map(([key, lab]) => (
@@ -1807,15 +1807,15 @@ function HealthCheckReviewCard({
                 ))}
               </ul>
             ) : (
-              <p className="mt-1.5 text-sm text-slate-600 font-medium">ยังไม่พบค่าที่ต้องระวังเด่น ๆ จากข้อมูลที่อ่านได้</p>
+              <p className="mt-1.5 text-sm text-[var(--color-text-muted)] font-medium">ยังไม่พบค่าที่ต้องระวังเด่น ๆ จากข้อมูลที่อ่านได้</p>
             )}
           </div>
 
           {/* อยู่ในเกณฑ์ */}
-          <div className="rounded-xl bg-white/70 p-3 ring-1 ring-slate-100">
-            <p className="text-xs font-bold text-emerald-800">✅ อยู่ในเกณฑ์</p>
+          <div className="rounded-xl bg-[var(--surface)]/70 p-3 ring-1 ring-[var(--border-warm)]">
+            <p className="text-xs font-bold text-[var(--color-success)]">✅ อยู่ในเกณฑ์</p>
             {normalLabs.length > 0 ? (
-              <p className="mt-1.5 text-sm text-slate-700 leading-relaxed font-medium">
+              <p className="mt-1.5 text-sm text-[var(--foreground)] leading-relaxed font-medium">
                 {normalLabs.map(([key, lab]) => {
                   const categoryNames: Record<string, string> = {
                     fbs: "น้ำตาล (FBS)",
@@ -1836,15 +1836,15 @@ function HealthCheckReviewCard({
                 }).join(" · ")}
               </p>
             ) : (
-              <p className="mt-1.5 text-sm text-slate-500 italic">ไม่มีข้อมูลค่าอ้างอิงที่เป็นปกติ</p>
+              <p className="mt-1.5 text-sm text-[var(--color-text-muted)] italic">ไม่มีข้อมูลค่าอ้างอิงที่เป็นปกติ</p>
             )}
           </div>
 
           {/* โภชนาการที่เหมาะ */}
-          <div className="rounded-xl bg-white/70 p-3 ring-1 ring-slate-100">
-            <p className="text-xs font-bold text-[#42677f]">🥗 โภชนาการที่เหมาะ</p>
+          <div className="rounded-xl bg-[var(--surface)]/70 p-3 ring-1 ring-[var(--border-warm)]">
+            <p className="text-xs font-bold text-[var(--recovery-blue)]">🥗 โภชนาการที่เหมาะ</p>
             {(healthCheck.foodGuidance?.prefer?.length || healthCheck.foodGuidance?.limit?.length) ? (
-              <ul className="mt-1.5 list-disc pl-4 space-y-1 text-sm text-slate-700 font-medium">
+              <ul className="mt-1.5 list-disc pl-4 space-y-1 text-sm text-[var(--foreground)] font-medium">
                 {healthCheck.foodGuidance.prefer?.map((item, idx) => (
                   <li key={`pref-${idx}`}>เพิ่ม/เน้น {item}</li>
                 ))}
@@ -1853,7 +1853,7 @@ function HealthCheckReviewCard({
                 ))}
               </ul>
             ) : (
-              <p className="mt-1.5 text-sm text-slate-500 italic">ไม่มีข้อมูลคำแนะนำโภชนาการ</p>
+              <p className="mt-1.5 text-sm text-[var(--color-text-muted)] italic">ไม่มีข้อมูลคำแนะนำโภชนาการ</p>
             )}
           </div>
         </div>
@@ -1863,14 +1863,14 @@ function HealthCheckReviewCard({
         </div>
 
         {isMissingLabs && (
-          <div className="mt-3 rounded-2xl bg-blue-100/50 px-3 py-2 text-xs leading-5 text-slate-600">
+          <div className="mt-3 rounded-2xl bg-[var(--color-info-soft)] px-3 py-2 text-xs leading-5 text-[var(--color-text-muted)]">
             ℹ️ ยังไม่มีค่าบางรายการ เช่น HbA1c หรือ eGFR หากต้องการให้คำแนะนำแม่นขึ้น สามารถเพิ่มผลตรวจรอบถัดไปได้
           </div>
         )}
 
         {allLabs.length > 0 ? (
-          <details className="mt-4 border-t border-slate-200/60 pt-3">
-            <summary className="cursor-pointer text-xs font-bold text-[#42677f] hover:underline focus:outline-none select-none">
+          <details className="mt-4 border-t border-[var(--border-warm)] pt-3">
+            <summary className="cursor-pointer text-xs font-bold text-[var(--recovery-blue)] hover:underline focus:outline-none select-none">
               ดูค่าตรวจทั้งหมด ({allLabs.length} รายการ)
             </summary>
             <div className="mt-3 grid grid-cols-2 gap-2">
@@ -1882,7 +1882,7 @@ function HealthCheckReviewCard({
         ) : null}
       </div>
 
-      <p className="rounded-2xl bg-slate-50 p-3 text-xs leading-5 text-slate-500">
+      <p className="rounded-2xl bg-[var(--surface-muted)] p-3 text-xs leading-5 text-[var(--color-text-muted)]">
         {healthCheck.disclaimer || "ข้อมูลนี้ใช้เพื่อช่วยปรับคำแนะนำอาหารและไลฟ์สไตล์ ไม่ใช่การวินิจฉัยโรค หากมีค่าผิดปกติควรปรึกษาแพทย์"}
       </p>
 
@@ -1898,7 +1898,7 @@ function HealthCheckReviewCard({
           <LoadingButton type="button" className="btn-primary py-3 text-sm" loading={saving} loadingText="กำลังบันทึก..." onClick={onSave}>
             บันทึกเข้า Report
           </LoadingButton>
-          <button type="button" disabled={saving} className="rounded-full bg-slate-50 py-3 text-sm font-bold text-slate-500 disabled:opacity-50" onClick={onCancel}>
+          <button type="button" disabled={saving} className="rounded-full bg-[var(--surface-muted)] py-3 text-sm font-bold text-[var(--color-text-muted)] disabled:opacity-50" onClick={onCancel}>
             ยกเลิก
           </button>
         </div>
@@ -1910,15 +1910,15 @@ function HealthCheckReviewCard({
 
 function HealthLabMetric({ lab }: { lab: LabValue }) {
   const color =
-    lab.status === "high" ? "text-amber-700" :
-    lab.status === "low" ? "text-blue-700" :
-    lab.status === "borderline" ? "text-amber-600" :
+    lab.status === "high" ? "text-[var(--color-warning)]" :
+    lab.status === "low" ? "text-[var(--color-info)]" :
+    lab.status === "borderline" ? "text-[var(--color-warning)]" :
     "text-[var(--foreground)]";
   return (
-    <div className="rounded-2xl bg-slate-50 p-3">
-      <p className="text-xs text-slate-400">{lab.label}</p>
+    <div className="rounded-2xl bg-[var(--surface-muted)] p-3">
+      <p className="text-xs text-[var(--color-text-soft)]">{lab.label}</p>
       <p className={`mt-1 font-bold ${color}`}>{formatHealthLabValue(lab)}</p>
-      {lab.ref ? <p className="mt-1 text-[11px] text-slate-400">ref {lab.ref}</p> : null}
+      {lab.ref ? <p className="mt-1 text-[11px] text-[var(--color-text-soft)]">ref {lab.ref}</p> : null}
     </div>
   );
 }
@@ -1942,24 +1942,24 @@ function RaceResultConfirmCard({
   onCancel: () => void;
 }) {
   return (
-    <section className="card space-y-3 border border-[#d9e8df] bg-[#f5faf7] p-5">
+    <section className="card space-y-3 border border-[var(--color-success-border)] bg-[var(--color-success-soft)] p-5">
       <div>
-        <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#6f8fa6]">Race Result</p>
+        <p className="text-xs font-bold uppercase tracking-[0.22em] text-[var(--label-color)]">Race Result</p>
         <h2 className="mt-2 text-xl font-bold text-[var(--foreground)]">ผลวิ่งนี้ตรงกับวัน Race Goal</h2>
-        <p className="mt-1 text-sm leading-6 text-slate-600">
+        <p className="mt-1 text-sm leading-6 text-[var(--color-text-muted)]">
           {match.goal.raceName} · {match.goal.raceDistance} · {match.workoutDate}
         </p>
       </div>
-      <p className="text-sm text-slate-600">ต้องการบันทึกผลวิ่งนี้เป็น Race Result หรือเก็บเป็น Workout ปกติ?</p>
+      <p className="text-sm text-[var(--color-text-muted)]">ต้องการบันทึกผลวิ่งนี้เป็น Race Result หรือเก็บเป็น Workout ปกติ?</p>
       <div className="my-2">
         <DataQualityNote source="race_result" />
       </div>
       {!match.distanceMatches ? (
-        <p className="rounded-2xl bg-amber-50 p-3 text-xs leading-5 text-amber-700">
+        <p className="rounded-2xl bg-[var(--color-warning-soft)] p-3 text-xs leading-5 text-[var(--color-warning)]">
           ระยะทางอาจไม่ตรงกับระยะ race แบบเป๊ะ ๆ ระบบยังให้บันทึกได้ แต่แนะนำตรวจผลก่อนกดบันทึก
         </p>
       ) : null}
-      {error ? <p className="rounded-2xl bg-red-50 p-3 text-xs font-semibold text-red-600">{error}</p> : null}
+      {error ? <p className="rounded-2xl bg-[var(--color-danger-soft)] p-3 text-xs font-semibold text-[var(--color-danger)]">{error}</p> : null}
       <div className="space-y-2">
         <LoadingButton className="btn-primary w-full py-3 text-sm" type="button" loading={saving} loadingText="กำลังบันทึก..." onClick={() => onSaveRace(workout)}>
           บันทึกเป็น Race Result
@@ -1967,7 +1967,7 @@ function RaceResultConfirmCard({
         <LoadingButton className="btn-secondary w-full py-3 text-sm" type="button" loading={saving} loadingText="กำลังบันทึก..." onClick={() => onWorkoutOnly(workout)}>
           เก็บเป็น Workout ปกติ
         </LoadingButton>
-        <button className="w-full rounded-full py-2.5 text-sm text-slate-400" type="button" disabled={saving} onClick={onCancel}>
+        <button className="w-full rounded-full py-2.5 text-sm text-[var(--color-text-soft)]" type="button" disabled={saving} onClick={onCancel}>
           ยกเลิก
         </button>
       </div>
@@ -1989,14 +1989,14 @@ function RaceDuplicateWarnCard({
   onCancel: () => void;
 }) {
   return (
-    <section className="card space-y-3 border border-amber-200 bg-amber-50 p-5">
+    <section className="card space-y-3 border border-[var(--color-warning-border)] bg-[var(--color-warning-soft)] p-5">
       <div>
-        <p className="text-xs font-bold uppercase tracking-[0.22em] text-amber-600">บันทึกซ้ำ?</p>
+        <p className="text-xs font-bold uppercase tracking-[0.22em] text-[var(--color-warning)]">บันทึกซ้ำ?</p>
         <h2 className="mt-2 text-xl font-bold text-[var(--foreground)]">รายการนี้ดูเหมือนบันทึกแล้ว</h2>
-        <p className="mt-1 text-sm leading-6 text-slate-600">
+        <p className="mt-1 text-sm leading-6 text-[var(--color-text-muted)]">
           มีผลแข่งระยะนี้ในวันเดียวกันอยู่แล้ว ต้องการบันทึกซ้ำอีกครั้งไหม?
         </p>
-        <p className="mt-1 text-xs text-slate-500">{match.goal.raceName} · {match.goal.raceDistance} · {match.workoutDate}</p>
+        <p className="mt-1 text-xs text-[var(--color-text-muted)]">{match.goal.raceName} · {match.goal.raceDistance} · {match.workoutDate}</p>
       </div>
       <div className="space-y-2">
         <LoadingButton
@@ -2009,7 +2009,7 @@ function RaceDuplicateWarnCard({
           บันทึกซ้ำ
         </LoadingButton>
         <button
-          className="w-full rounded-full py-2.5 text-sm text-slate-400"
+          className="w-full rounded-full py-2.5 text-sm text-[var(--color-text-soft)]"
           type="button"
           disabled={saving}
           onClick={onCancel}
@@ -2035,14 +2035,14 @@ function ManualMealLogForm({
   onAnalyze: () => void;
 }) {
   return (
-    <div className="space-y-4 rounded-2xl bg-slate-50/80 p-4">
+    <div className="space-y-4 rounded-2xl bg-[var(--surface-muted)] p-4">
       <div>
         <h3 className="text-base font-bold text-[var(--foreground)]">พิมพ์เมนูเอง</h3>
-        <p className="mt-1 text-xs leading-5 text-slate-500">ประเมินจากข้อความที่กรอก อาจคลาดเคลื่อนได้</p>
+        <p className="mt-1 text-xs leading-5 text-[var(--color-text-muted)]">ประเมินจากข้อความที่กรอก อาจคลาดเคลื่อนได้</p>
       </div>
 
       <label className="block space-y-1.5">
-        <span className="text-xs font-bold uppercase tracking-wide text-slate-400">พิมพ์เมนูของมื้อนี้</span>
+        <span className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-soft)]">พิมพ์เมนูของมื้อนี้</span>
         <textarea
           className="control min-h-[96px]"
           placeholder="เช่น ข้าวเหนียว 1 ห่อ + ไก่แดง 2 ไม้ + กาแฟดำไม่หวาน"
@@ -2051,7 +2051,7 @@ function ManualMealLogForm({
         />
       </label>
 
-      {error ? <p className="rounded-xl bg-red-50 p-3 text-xs font-semibold text-red-600">{error}</p> : null}
+      {error ? <p className="rounded-xl bg-[var(--color-danger-soft)] p-3 text-xs font-semibold text-[var(--color-danger)]">{error}</p> : null}
 
       <LoadingButton
         type="button"
@@ -2138,10 +2138,10 @@ function MealReviewCard({
   return (
     <section className="card space-y-4 p-5">
       <div>
-        <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#6f8fa6]">Meal Review</p>
+        <p className="text-xs font-bold uppercase tracking-[0.22em] text-[var(--label-color)]">Meal Review</p>
         <h2 className="mt-2 text-xl font-bold text-[var(--foreground)]">ตรวจโภชนาการก่อนบันทึก</h2>
         {isTextEstimate ? (
-          <span className="mt-2 inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-600">
+          <span className="mt-2 inline-flex rounded-full bg-[var(--surface-muted)] px-2.5 py-1 text-[11px] font-bold text-[var(--color-text-muted)]">
             กรอกจากข้อความ
           </span>
         ) : null}
@@ -2149,7 +2149,7 @@ function MealReviewCard({
 
         {/* ช่วงเวลาของมื้อนี้ */}
         <div className="space-y-1.5 my-3">
-          <span className="text-[11px] font-bold uppercase tracking-wide text-slate-400">ช่วงเวลาของมื้อนี้</span>
+          <span className="text-[11px] font-bold uppercase tracking-wide text-[var(--color-text-soft)]">ช่วงเวลาของมื้อนี้</span>
           <div className="flex flex-wrap gap-1.5">
             {(["breakfast", "lunch", "dinner", "snack", "other"] as MealSlot[]).map((slot) => {
               const label = getMealSlotLabel(slot);
@@ -2168,8 +2168,8 @@ function MealReviewCard({
                   }}
                   className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors flex items-center gap-1 ${
                     isSelected
-                      ? "bg-[var(--primary)] text-white shadow-sm font-bold"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                      ? "bg-[var(--primary)] text-[#0b1220] shadow-sm font-bold"
+                      : "bg-[var(--surface-muted)] text-[var(--color-text-muted)] hover:bg-[var(--surface-muted)]"
                   }`}
                 >
                   <span>{icon}</span> <span>{label}</span>
@@ -2178,7 +2178,7 @@ function MealReviewCard({
             })}
           </div>
         </div>
-        <p className="mt-1 text-xs leading-5 text-amber-700">
+        <p className="mt-1 text-xs leading-5 text-[var(--color-warning)]">
           {isTextEstimate
             ? "ตัวเลขโภชนาการเป็นการประเมินคร่าว ๆ จากข้อความที่กรอก อาจคลาดเคลื่อนได้"
             : "ตัวเลขโภชนาการเป็นการประเมินคร่าว ๆ จากรูปอาหาร อาจคลาดเคลื่อนได้"}
@@ -2196,17 +2196,17 @@ function MealReviewCard({
                   onChange={(event) => updateFoodName(index, event.target.value)}
                   placeholder="เช่น ไข่ต้ม"
                 />
-                <div className="flex shrink-0 items-center gap-1.5 rounded-2xl bg-slate-100 px-1.5 py-1">
+                <div className="flex shrink-0 items-center gap-1.5 rounded-2xl bg-[var(--surface-muted)] px-1.5 py-1">
                   <button
                     type="button"
                     aria-label="ลดจำนวน"
                     data-testid={`meal-food-qty-minus-${index}`}
                     onClick={() => updateFoodQuantity(index, -1)}
-                    className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-sm font-bold text-slate-600 shadow-sm"
+                    className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--surface)] text-sm font-bold text-[var(--color-text-muted)] shadow-sm"
                   >
                     −
                   </button>
-                  <span className="w-6 text-center text-sm font-bold text-slate-700" data-testid={`meal-food-qty-${index}`}>
+                  <span className="w-6 text-center text-sm font-bold text-[var(--foreground)]" data-testid={`meal-food-qty-${index}`}>
                     {food.quantity ?? 1}
                   </span>
                   <button
@@ -2214,18 +2214,18 @@ function MealReviewCard({
                     aria-label="เพิ่มจำนวน"
                     data-testid={`meal-food-qty-plus-${index}`}
                     onClick={() => updateFoodQuantity(index, 1)}
-                    className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-sm font-bold text-slate-600 shadow-sm"
+                    className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--surface)] text-sm font-bold text-[var(--color-text-muted)] shadow-sm"
                   >
                     +
                   </button>
                 </div>
-                {food.unit ? <span className="shrink-0 text-xs font-semibold text-slate-500">{food.unit}</span> : null}
+                {food.unit ? <span className="shrink-0 text-xs font-semibold text-[var(--color-text-muted)]">{food.unit}</span> : null}
                 <button
                   type="button"
                   aria-label="ลบรายการนี้"
                   data-testid={`meal-food-remove-${index}`}
                   onClick={() => removeFoodItem(index)}
-                  className="shrink-0 text-xs font-bold text-slate-400 hover:text-slate-600"
+                  className="shrink-0 text-xs font-bold text-[var(--color-text-soft)] hover:text-[var(--color-text-muted)]"
                 >
                   ✕
                 </button>
@@ -2247,7 +2247,7 @@ function MealReviewCard({
             <NutritionInput label="Fiber g" placeholder="เช่น 5" value={meal.nutrition.fiberG} onChange={(value) => updateNutrition("fiberG", value)} />
           </div>
           {cannotEstimateNutrition ? (
-            <p className="rounded-2xl bg-amber-50 p-3 text-xs font-semibold leading-5 text-amber-700">
+            <p className="rounded-2xl bg-[var(--color-warning-soft)] p-3 text-xs font-semibold leading-5 text-[var(--color-warning)]">
               อ่านอาหารได้ แต่ประเมินโภชนาการไม่ได้ชัดเจน คุณกรอกเองได้
             </p>
           ) : null}
@@ -2265,7 +2265,7 @@ function MealReviewCard({
         <button type="button" className="btn-secondary py-3 text-sm" onClick={() => setEditing((value) => !value)}>
           แก้ไข
         </button>
-        <button type="button" disabled={saving} className="rounded-full bg-slate-50 py-3 text-sm font-bold text-slate-500 disabled:opacity-50" onClick={onCancel}>
+        <button type="button" disabled={saving} className="rounded-full bg-[var(--surface-muted)] py-3 text-sm font-bold text-[var(--color-text-muted)] disabled:opacity-50" onClick={onCancel}>
           ยกเลิก
         </button>
       </div>
@@ -2290,10 +2290,10 @@ function NutritionInput({
 }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-xs font-semibold text-slate-500">{label}</span>
+      <span className="mb-1 block text-xs font-semibold text-[var(--color-text-muted)]">{label}</span>
       <input className="control" type="number" inputMode="decimal" placeholder={placeholder} value={value ?? ""} onChange={(event) => onChange(event.target.value)} />
       {range ? (
-        <span className="mt-1 block text-[11px] leading-4 text-slate-400">
+        <span className="mt-1 block text-[11px] leading-4 text-[var(--color-text-soft)]">
           ประเมินจากช่วง {formatNutritionRange(range.min, range.max, unit)}
         </span>
       ) : null}
@@ -2308,19 +2308,19 @@ function MealReviewSummary({ meal, profile, context }: { meal: MealAnalysis; pro
   const target = buildNutritionTargetSummary({ profile, context, meal });
   const isTextEstimate = meal.inputMode === "text";
   return (
-    <div className="space-y-3 rounded-2xl bg-slate-50 p-4">
+    <div className="space-y-3 rounded-2xl bg-[var(--surface-muted)] p-4">
       <div>
-        <p className="text-xs font-semibold text-slate-400">
+        <p className="text-xs font-semibold text-[var(--color-text-soft)]">
           {getMealSlotLabel(meal.mealSlot || normalizeMealSlot(meal.mealType, meal.createdAt))}
         </p>
         <p className="text-lg font-bold text-[var(--foreground)]">{foods}</p>
         {isTextEstimate && meal.originalMealText ? (
-          <p className="mt-1 text-xs leading-5 text-slate-500">จากข้อความ: {meal.originalMealText}</p>
+          <p className="mt-1 text-xs leading-5 text-[var(--color-text-muted)]">จากข้อความ: {meal.originalMealText}</p>
         ) : null}
       </div>
       <DataQualityNote confidence={meal.confidence} unclearFields={meal.unclearFields} source="meal" compact />
       {meal.errorLikeMessage ? (
-        <p className="rounded-2xl bg-amber-50 p-3 text-xs font-semibold leading-5 text-amber-700">{meal.errorLikeMessage}</p>
+        <p className="rounded-2xl bg-[var(--color-warning-soft)] p-3 text-xs font-semibold leading-5 text-[var(--color-warning)]">{meal.errorLikeMessage}</p>
       ) : null}
       <div className="grid grid-cols-2 gap-2">
         <ReviewMetric label="Calories" value={formatCalories(meal.nutrition.caloriesKcal)} />
@@ -2328,19 +2328,19 @@ function MealReviewSummary({ meal, profile, context }: { meal: MealAnalysis; pro
         <ReviewMetric label="Carbs" value={formatMacro(meal.nutrition.carbsG)} />
         <ReviewMetric label="Fat" value={formatMacro(meal.nutrition.fatG)} />
       </div>
-      <div className="rounded-2xl bg-white p-3 text-xs leading-5 text-slate-600">
+      <div className="rounded-2xl bg-[var(--surface)] p-3 text-xs leading-5 text-[var(--color-text-muted)]">
         <p className="font-bold text-[var(--foreground)]">Runner fuel check</p>
         <p>Protein progress: {target.proteinProgressPct != null ? `${target.proteinProgressPct}%` : "-"}{target.proteinTargetG != null ? ` / target ${target.proteinTargetG} g` : ""}</p>
         <p>Carb adequacy ({target.dayType} day): {target.carbAdequacy}{target.carbTargetG != null ? ` / target ${target.carbTargetG} g` : ""}</p>
         <p>{target.recoveryFuelNote}</p>
       </div>
       {!hasAnyNutrition(meal) && meal.detectedFoods.length > 0 ? (
-        <p className="rounded-2xl bg-amber-50 p-3 text-xs font-semibold leading-5 text-amber-700">
+        <p className="rounded-2xl bg-[var(--color-warning-soft)] p-3 text-xs font-semibold leading-5 text-[var(--color-warning)]">
           อ่านอาหารได้ แต่ประเมินโภชนาการไม่ได้ชัดเจน คุณกรอกเองได้
         </p>
       ) : null}
-      <p className="text-sm leading-6 text-slate-700">{meal.trainingFit?.coachNote ?? ""}</p>
-      <p className="text-xs text-slate-500">
+      <p className="text-sm leading-6 text-[var(--foreground)]">{meal.trainingFit?.coachNote ?? ""}</p>
+      <p className="text-xs text-[var(--color-text-muted)]">
         {CONFIDENCE_LABELS[meal.confidence ?? "low"]} · ตัวเลขเป็นการประเมินคร่าว ๆ จาก{isTextEstimate ? "ข้อความที่กรอก" : "รูปอาหาร"}
       </p>
     </div>
@@ -2349,8 +2349,8 @@ function MealReviewSummary({ meal, profile, context }: { meal: MealAnalysis; pro
 
 function ReviewMetric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl bg-white p-3">
-      <p className="text-xs text-slate-400">{label}</p>
+    <div className="rounded-xl bg-[var(--surface)] p-3">
+      <p className="text-xs text-[var(--color-text-soft)]">{label}</p>
       <p className="mt-1 font-bold text-[var(--foreground)]">{value}</p>
     </div>
   );
@@ -2392,7 +2392,7 @@ function BodySaveBar({
           )}
         </>
       )}
-      <p className="text-center text-xs text-slate-400">บันทึกเฉพาะข้อมูลที่สรุปแล้ว รูปต้นฉบับไม่ถูกเก็บ</p>
+      <p className="text-center text-xs text-[var(--color-text-soft)]">บันทึกเฉพาะข้อมูลที่สรุปแล้ว รูปต้นฉบับไม่ถูกเก็บ</p>
     </section>
   );
 }
@@ -2561,26 +2561,26 @@ function MealSlotConflictCard({
   return (
     <section className="card space-y-4 p-5">
       <div>
-        <p className="text-xs font-bold uppercase tracking-[0.22em] text-amber-500">มื้อซ้ำ</p>
+        <p className="text-xs font-bold uppercase tracking-[0.22em] text-[var(--color-warning)]">มื้อซ้ำ</p>
         <h2 className="mt-2 text-xl font-bold text-[var(--foreground)]">วันนี้มีมื้อ{mealLabel}อยู่แล้ว</h2>
-        <p className="mt-1 text-sm text-slate-500">ต้องการทำอะไรกับรูปนี้?</p>
+        <p className="mt-1 text-sm text-[var(--color-text-muted)]">ต้องการทำอะไรกับรูปนี้?</p>
       </div>
-      <div className="rounded-xl bg-slate-50 px-3 py-2.5">
-        <p className="text-[11px] text-slate-400 mb-0.5">ที่บันทึกไว้</p>
+      <div className="rounded-xl bg-[var(--surface-muted)] px-3 py-2.5">
+        <p className="text-[11px] text-[var(--color-text-soft)] mb-0.5">ที่บันทึกไว้</p>
         <p className="text-sm font-semibold text-[var(--foreground)]">{existingFoods}</p>
       </div>
       <div className="space-y-2">
         <LoadingButton type="button" className="btn-primary w-full py-3 text-sm" onClick={onMerge} loading={saving} loadingText="กำลังบันทึก...">
           เพิ่มเข้าเมื้อเดิม
         </LoadingButton>
-        <p className="text-center text-[11px] text-slate-400">รวมอาหารและโภชนาการเข้าด้วยกัน</p>
+        <p className="text-center text-[11px] text-[var(--color-text-soft)]">รวมอาหารและโภชนาการเข้าด้วยกัน</p>
         <LoadingButton type="button" className="btn-secondary w-full py-3 text-sm" onClick={onReplace} loading={saving} loadingText="กำลังบันทึก...">
           แทนที่ข้อมูลเดิม
         </LoadingButton>
-        <LoadingButton type="button" className="w-full rounded-full bg-slate-50 py-3 text-sm font-bold text-slate-600" onClick={onSeparate} loading={saving} loadingText="กำลังบันทึก...">
+        <LoadingButton type="button" className="w-full rounded-full bg-[var(--surface-muted)] py-3 text-sm font-bold text-[var(--color-text-muted)]" onClick={onSeparate} loading={saving} loadingText="กำลังบันทึก...">
           บันทึกเป็นมื้อใหม่
         </LoadingButton>
-        <button type="button" className="w-full pt-1 text-xs text-slate-400" onClick={onCancel} disabled={saving}>
+        <button type="button" className="w-full pt-1 text-xs text-[var(--color-text-soft)]" onClick={onCancel} disabled={saving}>
           ยกเลิก
         </button>
       </div>
@@ -2746,14 +2746,14 @@ function OtherWorkoutForm({
   const isLoading = submitting || saving;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 pt-2 card p-5 bg-white" data-testid="other-workout-form">
+    <form onSubmit={handleSubmit} className="space-y-4 pt-2 card p-5 bg-[var(--surface)]" data-testid="other-workout-form">
       <div>
         <h3 className="text-lg font-bold text-[var(--foreground)]">บันทึกกิจกรรมอื่น ๆ</h3>
-        <p className="text-xs text-slate-500">พิมพ์รายละเอียด หรือแนบรูปสรุปกิจกรรมอย่างน้อย 1 อย่าง</p>
+        <p className="text-xs text-[var(--color-text-muted)]">พิมพ์รายละเอียด หรือแนบรูปสรุปกิจกรรมอย่างน้อย 1 อย่าง</p>
       </div>
 
       <div className="space-y-1.5">
-        <label htmlFor="owf-note" className="text-xs font-bold uppercase tracking-wide text-slate-400">
+        <label htmlFor="owf-note" className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-soft)]">
           กิจกรรมวันนี้
         </label>
         <textarea
@@ -2767,7 +2767,7 @@ function OtherWorkoutForm({
 
       {/* Optional image upload */}
       <div className="space-y-1.5">
-        <p className="text-xs font-bold uppercase tracking-wide text-slate-400">รูปสรุปจากแอป (ถ้ามี)</p>
+        <p className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-soft)]">รูปสรุปจากแอป (ถ้ามี)</p>
         {files.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {files.map((f, i) => (
@@ -2780,7 +2780,7 @@ function OtherWorkoutForm({
                 <button
                   type="button"
                   onClick={() => removeFile(i)}
-                  className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-slate-700 text-white text-[10px] font-bold"
+                  className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--surface-muted)] text-[var(--foreground)] text-[10px] font-bold"
                   aria-label="ลบรูป"
                 >
                   ×
@@ -2812,7 +2812,7 @@ function OtherWorkoutForm({
         <p className="text-[10px] text-[var(--muted-text)]">สูงสุด 4 รูป · ถ้าไม่มีรูป กรอกรายละเอียดในช่องด้านบนแทนได้เลย</p>
       </div>
 
-      {error && <p className="text-xs font-semibold text-red-600 bg-red-50 p-2.5 rounded-xl">{error}</p>}
+      {error && <p className="text-xs font-semibold text-[var(--color-danger)] bg-[var(--color-danger-soft)] p-2.5 rounded-xl">{error}</p>}
 
       <LoadingButton
         type="submit"
@@ -2893,22 +2893,22 @@ function ManualWorkoutLogForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 pt-2 card p-5 bg-white">
+    <form onSubmit={handleSubmit} className="space-y-4 pt-2 card p-5 bg-[var(--surface)]">
       <div>
         <h3 className="text-lg font-bold text-[var(--foreground)]">
           {subtype === "walk" ? "บันทึกกิจกรรมเดิน" : "บันทึกกิจกรรมอื่น ๆ"}
         </h3>
-        <p className="text-xs text-slate-500">กรอกข้อมูลการซ้อมและบันทึกตรงเข้า Supabase</p>
+        <p className="text-xs text-[var(--color-text-muted)]">กรอกข้อมูลการซ้อมและบันทึกตรงเข้า Supabase</p>
       </div>
 
       <div className="space-y-1.5">
-        <label htmlFor="mwlf-date" className="text-xs font-bold uppercase tracking-wide text-slate-400">วันที่</label>
+        <label htmlFor="mwlf-date" className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-soft)]">วันที่</label>
         <input id="mwlf-date" type="date" className="control" value={defaultDate} required disabled />
       </div>
 
       {subtype === "other" && (
         <div className="space-y-1.5">
-          <label htmlFor="mwlf-type" className="text-xs font-bold uppercase tracking-wide text-slate-400">ประเภทการออกกำลังกาย</label>
+          <label htmlFor="mwlf-type" className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-soft)]">ประเภทการออกกำลังกาย</label>
           <input
             id="mwlf-type"
             type="text"
@@ -2923,7 +2923,7 @@ function ManualWorkoutLogForm({
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
-          <label htmlFor="mwlf-duration" className="text-xs font-bold uppercase tracking-wide text-slate-400">เวลา (นาที)</label>
+          <label htmlFor="mwlf-duration" className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-soft)]">เวลา (นาที)</label>
           <input
             id="mwlf-duration"
             type="number"
@@ -2936,7 +2936,7 @@ function ManualWorkoutLogForm({
           />
         </div>
         <div className="space-y-1.5">
-          <label htmlFor="mwlf-distance" className="text-xs font-bold uppercase tracking-wide text-slate-400">ระยะทาง (กม. ถ้ามี)</label>
+          <label htmlFor="mwlf-distance" className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-soft)]">ระยะทาง (กม. ถ้ามี)</label>
           <input
             id="mwlf-distance"
             type="number"
@@ -2952,7 +2952,7 @@ function ManualWorkoutLogForm({
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
-          <label htmlFor="mwlf-hr" className="text-xs font-bold uppercase tracking-wide text-slate-400">HR เฉลี่ย (bpm ถ้ามี)</label>
+          <label htmlFor="mwlf-hr" className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-soft)]">HR เฉลี่ย (bpm ถ้ามี)</label>
           <input
             id="mwlf-hr"
             type="number"
@@ -2964,7 +2964,7 @@ function ManualWorkoutLogForm({
           />
         </div>
         <div className="space-y-1.5">
-          <label htmlFor="mwlf-calories" className="text-xs font-bold uppercase tracking-wide text-slate-400">แคลอรี (kcal ถ้ามี)</label>
+          <label htmlFor="mwlf-calories" className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-soft)]">แคลอรี (kcal ถ้ามี)</label>
           <input
             id="mwlf-calories"
             type="number"
@@ -2978,7 +2978,7 @@ function ManualWorkoutLogForm({
       </div>
 
       <div className="space-y-1.5">
-        <label htmlFor="mwlf-notes" className="text-xs font-bold uppercase tracking-wide text-slate-400">บันทึกเพิ่มเติม</label>
+        <label htmlFor="mwlf-notes" className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-soft)]">บันทึกเพิ่มเติม</label>
         <textarea
           id="mwlf-notes"
           className="control min-h-[80px]"
@@ -2988,7 +2988,7 @@ function ManualWorkoutLogForm({
         />
       </div>
 
-      {error && <p className="text-xs font-semibold text-red-600 bg-red-50 p-2.5 rounded-xl">{error}</p>}
+      {error && <p className="text-xs font-semibold text-[var(--color-danger)] bg-[var(--color-danger-soft)] p-2.5 rounded-xl">{error}</p>}
 
       <LoadingButton type="submit" loading={saving} loadingText="กำลังบันทึก..." className="btn-primary w-full py-3 text-sm font-bold">
         บันทึกกิจกรรม

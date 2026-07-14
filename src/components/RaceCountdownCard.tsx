@@ -23,7 +23,7 @@ export function RaceCountdownCard({ goal, phase }: { goal?: RaceGoal | null; pha
             </span>
           </div>
         </div>
-        <div className={`shrink-0 rounded-2xl px-4 py-3 text-center min-w-[72px] ${racePassed ? "bg-[var(--surface-muted)]" : raceToday ? "bg-amber-100" : "bg-[var(--primary-soft)]"}`}>
+        <div className={`shrink-0 rounded-2xl px-4 py-3 text-center min-w-[72px] ${racePassed ? "bg-[var(--surface-muted)]" : raceToday ? "bg-[var(--color-warning-soft)]" : "bg-[var(--primary-soft)]"}`}>
           {racePassed ? (
             <>
               <p className="text-2xl">🏅</p>
@@ -31,8 +31,8 @@ export function RaceCountdownCard({ goal, phase }: { goal?: RaceGoal | null; pha
             </>
           ) : raceToday ? (
             <>
-              <p className="text-2xl font-bold text-amber-600">🏁</p>
-              <p className="mt-0.5 text-xs font-bold text-amber-600">วันนี้!</p>
+              <p className="text-2xl font-bold text-[var(--color-warning)]">🏁</p>
+              <p className="mt-0.5 text-xs font-bold text-[var(--color-warning)]">วันนี้!</p>
             </>
           ) : (
             <>

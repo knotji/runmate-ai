@@ -138,7 +138,7 @@ export function ProfileSetupForm({
           <p
             key={idx}
             className={`text-xs font-semibold ${
-              issue.severity === "error" ? "text-red-500" : "text-amber-500"
+              issue.severity === "error" ? "text-[var(--color-danger)]" : "text-[var(--color-warning)]"
             }`}
           >
             {issue.severity === "error" ? "🛑 " : "⚠️ "} {issue.message}
@@ -353,7 +353,7 @@ export function ProfileSetupForm({
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--label-color)]">Runner Profile</p>
           <h2 className="mt-1 text-xl font-bold text-[var(--foreground)]">ตั้งค่าเริ่มต้น</h2>
-          <p className="mt-1 text-sm leading-6 text-slate-500">
+          <p className="mt-1 text-sm leading-6 text-[var(--color-text-muted)]">
             ข้อมูลนี้จะช่วยให้โค้ชวางแผนซ้อมได้เหมาะกับคุณ
           </p>
         </div>
@@ -367,7 +367,7 @@ export function ProfileSetupForm({
         />
 
         <div>
-          <label className="mb-1 block text-xs font-semibold text-slate-500">วันเกิด</label>
+          <label className="mb-1 block text-xs font-semibold text-[var(--color-text-muted)]">วันเกิด</label>
           <input
             className="control"
             type="date"
@@ -375,9 +375,9 @@ export function ProfileSetupForm({
             value={profile.birthDate ?? ""}
             onChange={(e) => handleBirthDate(e.target.value)}
           />
-          {birthDateError && <p className="mt-1 text-xs text-red-500">{birthDateError}</p>}
+          {birthDateError && <p className="mt-1 text-xs text-[var(--color-danger)]">{birthDateError}</p>}
           {computedAge != null && (
-            <p className="mt-1 text-xs text-slate-400">อายุประมาณ {computedAge} ปี</p>
+            <p className="mt-1 text-xs text-[var(--color-text-soft)]">อายุประมาณ {computedAge} ปี</p>
           )}
         </div>
 
@@ -403,14 +403,14 @@ export function ProfileSetupForm({
           onChange={(e) => { update("injuryHistory", e.target.value); update("injuryNotes", e.target.value); }}
         />
         <div>
-          <p className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-500">สไตล์โค้ช</p>
+          <p className="mb-1 text-xs font-bold uppercase tracking-wide text-[var(--color-text-muted)]">สไตล์โค้ช</p>
           <div className="grid grid-cols-2 gap-2">
             {(["friendly", "direct", "gentle", "strict"] as const).map((t) => (
               <button
                 key={t}
                 type="button"
                 onClick={() => update("coachingTone", t)}
-                className={`rounded-2xl border py-2 text-sm font-semibold ${profile.coachingTone === t ? "border-[var(--foreground)] bg-[var(--foreground)] text-white" : "border-slate-200 text-slate-600"}`}
+                className={`rounded-2xl border py-2 text-sm font-semibold ${profile.coachingTone === t ? "border-[var(--primary)] bg-[var(--primary)] text-[#0b1220]" : "border-[var(--border-warm)] text-[var(--color-text-muted)]"}`}
               >
                 {toneLabel(t)}
               </button>
@@ -433,7 +433,7 @@ export function ProfileSetupForm({
       <div>
         <p className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--label-color)]">Runner Profile</p>
         <h2 className="mt-1 text-xl font-bold text-[var(--foreground)]">โปรไฟล์นักวิ่ง</h2>
-        <p className="mt-1 text-sm leading-6 text-slate-500">
+        <p className="mt-1 text-sm leading-6 text-[var(--color-text-muted)]">
           ข้อมูลนี้ช่วยให้โค้ชวางแผนซ้อมได้เหมาะกับคุณ
         </p>
       </div>
@@ -464,7 +464,7 @@ export function ProfileSetupForm({
               onChange={(e) => update("displayName", e.target.value)}
             />
             <div>
-              <label className="mb-1 block text-xs font-semibold text-slate-500">วันเกิด</label>
+              <label className="mb-1 block text-xs font-semibold text-[var(--color-text-muted)]">วันเกิด</label>
               <input
                 className="control"
                 type="date"
@@ -472,9 +472,9 @@ export function ProfileSetupForm({
                 value={profile.birthDate ?? ""}
                 onChange={(e) => handleBirthDate(e.target.value)}
               />
-              {birthDateError && <p className="mt-1 text-xs text-red-500">{birthDateError}</p>}
+              {birthDateError && <p className="mt-1 text-xs text-[var(--color-danger)]">{birthDateError}</p>}
               {computedAge != null && (
-                <p className="mt-1 text-xs text-slate-400">อายุประมาณ {computedAge} ปี</p>
+                <p className="mt-1 text-xs text-[var(--color-text-soft)]">อายุประมาณ {computedAge} ปี</p>
               )}
             </div>
           </>
@@ -493,8 +493,8 @@ export function ProfileSetupForm({
         isSaved={savedSections.goal}
         renderReadonly={() => (
           <div className="space-y-2">
-            <div className="rounded-xl bg-slate-50 px-3 py-2.5">
-              <p className="text-[11px] text-slate-400">เป้าหมายหลักตอนนี้</p>
+            <div className="rounded-xl bg-[var(--surface-muted)] px-3 py-2.5">
+              <p className="text-[11px] text-[var(--color-text-soft)]">เป้าหมายหลักตอนนี้</p>
               <p className="text-sm font-semibold text-[var(--foreground)] leading-relaxed whitespace-pre-wrap">{profile.mainGoal || "ยังไม่มีเป้าหมายระยะยาว"}</p>
             </div>
             <div className="grid grid-cols-2 gap-2">
@@ -505,7 +505,7 @@ export function ProfileSetupForm({
         )}
         renderEditable={() => (
           <>
-            <p className="text-xs text-slate-400 -mt-1">บอก AI ว่าคุณอยากพัฒนาตัวเองไปทางไหนในระยะยาว</p>
+            <p className="text-xs text-[var(--color-text-soft)] -mt-1">บอก AI ว่าคุณอยากพัฒนาตัวเองไปทางไหนในระยะยาว</p>
             <textarea
               className="control min-h-20"
               placeholder="เช่น อยากจบมาราธอนแบบปลอดภัย หรืออยากวิ่ง 10K ให้ดีขึ้น"
@@ -513,14 +513,14 @@ export function ProfileSetupForm({
               onChange={(e) => update("mainGoal", e.target.value)}
             />
             <div>
-              <p className="mb-1 text-xs font-semibold text-slate-500">ระยะที่อยากไปให้ถึง</p>
+              <p className="mb-1 text-xs font-semibold text-[var(--color-text-muted)]">ระยะที่อยากไปให้ถึง</p>
               <div className="flex flex-wrap gap-2">
                 {(["5K", "10K", "Half Marathon", "Full Marathon", "Custom"] as const).map((d) => (
                   <button
                     key={d}
                     type="button"
                     onClick={() => update("targetDistance", d)}
-                    className={`rounded-full border px-3 py-1 text-xs font-semibold ${profile.targetDistance === d ? "border-[var(--foreground)] bg-[var(--foreground)] text-white" : "border-slate-200 text-slate-600"}`}
+                    className={`rounded-full border px-3 py-1 text-xs font-semibold ${profile.targetDistance === d ? "border-[var(--primary)] bg-[var(--primary)] text-[#0b1220]" : "border-[var(--border-warm)] text-[var(--color-text-muted)]"}`}
                   >
                     {d}
                   </button>
@@ -528,14 +528,14 @@ export function ProfileSetupForm({
               </div>
             </div>
             <div>
-              <p className="mb-1 text-xs font-semibold text-slate-500">สิ่งที่ให้ความสำคัญที่สุด</p>
+              <p className="mb-1 text-xs font-semibold text-[var(--color-text-muted)]">สิ่งที่ให้ความสำคัญที่สุด</p>
               <div className="grid grid-cols-2 gap-2">
                 {(["finish", "time", "injury_free", "consistency", "fitness"] as const).map((g) => (
                   <button
                     key={g}
                     type="button"
                     onClick={() => update("goalPriority", g)}
-                    className={`rounded-2xl border py-2 text-xs font-semibold ${profile.goalPriority === g ? "border-[var(--foreground)] bg-[var(--foreground)] text-white" : "border-slate-200 text-slate-600"}`}
+                    className={`rounded-2xl border py-2 text-xs font-semibold ${profile.goalPriority === g ? "border-[var(--primary)] bg-[var(--primary)] text-[#0b1220]" : "border-[var(--border-warm)] text-[var(--color-text-muted)]"}`}
                   >
                     {priorityLabel(g)}
                   </button>
@@ -559,8 +559,8 @@ export function ProfileSetupForm({
         isSaved={savedSections.baseline}
         renderReadonly={() => (
           <div className="space-y-2">
-            <div className="rounded-xl bg-slate-50 px-3 py-2.5">
-              <p className="text-[11px] text-slate-400">ระดับนักวิ่ง</p>
+            <div className="rounded-xl bg-[var(--surface-muted)] px-3 py-2.5">
+              <p className="text-[11px] text-[var(--color-text-soft)]">ระดับนักวิ่ง</p>
               <p className="text-sm font-semibold text-[var(--foreground)]">{profile.currentLevel || "ยังไม่ได้ระบุ"}</p>
             </div>
             <div className="grid grid-cols-3 gap-2">
@@ -568,11 +568,11 @@ export function ProfileSetupForm({
               <StatCard label="km/สัปดาห์" value={profile.weeklyMileageKm != null ? `${profile.weeklyMileageKm} km` : "—"} />
               <StatCard label="วัน/สัปดาห์" value={(profile.runningDaysPerWeek ?? profile.weeklyTrainingDays) != null ? `${profile.runningDaysPerWeek ?? profile.weeklyTrainingDays} วัน` : "—"} />
             </div>
-            <div className="rounded-xl bg-slate-50 px-3 py-2.5">
-              <p className="text-[11px] text-slate-400">Easy pace</p>
+            <div className="rounded-xl bg-[var(--surface-muted)] px-3 py-2.5">
+              <p className="text-[11px] text-[var(--color-text-soft)]">Easy pace</p>
               <p className="text-sm font-semibold text-[var(--foreground)]">
                 {profile.easyPace
-                  ? <>{profile.easyPace}<span className="ml-1 text-xs font-normal text-slate-400">นาที/กม.</span></>
+                  ? <>{profile.easyPace}<span className="ml-1 text-xs font-normal text-[var(--color-text-soft)]">นาที/กม.</span></>
                   : "ยังไม่ได้ระบุ"}
               </p>
             </div>
@@ -589,13 +589,13 @@ export function ProfileSetupForm({
                   })()
                 }
               />
-              <div className="rounded-xl bg-slate-50 px-3 py-2.5">
-                <p className="text-[11px] text-slate-400">Max HR</p>
+              <div className="rounded-xl bg-[var(--surface-muted)] px-3 py-2.5">
+                <p className="text-[11px] text-[var(--color-text-soft)]">Max HR</p>
                 <p className="text-sm font-semibold text-[var(--foreground)]">
                   {profile.maxHr != null ? formatBpm(profile.maxHr) : "ยังไม่มีข้อมูล"}
                 </p>
                 {profile.maxHr != null && (
-                  <p className="mt-0.5 text-[10px] leading-tight text-slate-400">
+                  <p className="mt-0.5 text-[10px] leading-tight text-[var(--color-text-soft)]">
                     observed max จากประวัติ ไม่ใช่ max จริงทางสรีรวิทยา
                   </p>
                 )}
@@ -619,37 +619,37 @@ export function ProfileSetupForm({
         )}
         renderEditable={() => (
           <>
-            <p className="text-xs text-slate-400">ข้อมูลนี้ช่วยให้ AI ประเมิน pace, HR และระดับซ้อมที่เหมาะกับคุณ</p>
+            <p className="text-xs text-[var(--color-text-soft)]">ข้อมูลนี้ช่วยให้ AI ประเมิน pace, HR และระดับซ้อมที่เหมาะกับคุณ</p>
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-500">ระดับนักวิ่ง</label>
+              <label className="text-xs font-semibold text-[var(--color-text-muted)]">ระดับนักวิ่ง</label>
               <input className="control" placeholder="เช่น นักวิ่งระดับกลาง, วิ่ง 10K ได้" value={profile.currentLevel ?? ""} onChange={(e) => update("currentLevel", e.target.value)} />
             </div>
             <div className="grid grid-cols-3 gap-2">
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-500">วิ่งไกลสุด <span className="font-normal text-slate-400">km</span></label>
+                <label className="text-xs font-semibold text-[var(--color-text-muted)]">วิ่งไกลสุด <span className="font-normal text-[var(--color-text-soft)]">km</span></label>
                 <NumberInput placeholder="เช่น 15.7" value={profile.currentLongestRunKm} onChange={(v) => update("currentLongestRunKm", v)} />
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-500">รวม/สัปดาห์ <span className="font-normal text-slate-400">km</span></label>
+                <label className="text-xs font-semibold text-[var(--color-text-muted)]">รวม/สัปดาห์ <span className="font-normal text-[var(--color-text-soft)]">km</span></label>
                 <NumberInput placeholder="เช่น 36.7" value={profile.weeklyMileageKm} onChange={(v) => update("weeklyMileageKm", v)} />
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-500">วัน/สัปดาห์</label>
+                <label className="text-xs font-semibold text-[var(--color-text-muted)]">วัน/สัปดาห์</label>
                 <NumberInput placeholder="เช่น 5" value={profile.runningDaysPerWeek ?? profile.weeklyTrainingDays} onChange={(v) => { update("runningDaysPerWeek", v); update("weeklyTrainingDays", v); }} />
               </div>
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-500">Easy pace <span className="font-normal text-slate-400">นาที/กม.</span></label>
+              <label className="text-xs font-semibold text-[var(--color-text-muted)]">Easy pace <span className="font-normal text-[var(--color-text-soft)]">นาที/กม.</span></label>
               <input className="control" placeholder="เช่น 7:00–8:00 /km" value={profile.easyPace ?? ""} onChange={(e) => update("easyPace", e.target.value)} />
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-500">Easy HR cap <span className="font-normal text-slate-400">bpm</span></label>
+                <label className="text-xs font-semibold text-[var(--color-text-muted)]">Easy HR cap <span className="font-normal text-[var(--color-text-soft)]">bpm</span></label>
                 <input className="control" placeholder="เช่น 140–145 bpm" value={profile.easyHrCap ?? ""} onChange={(e) => update("easyHrCap", e.target.value)} />
                 {renderFieldIssues("easyHrCap")}
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-500">Max HR <span className="font-normal text-slate-400">bpm</span></label>
+                <label className="text-xs font-semibold text-[var(--color-text-muted)]">Max HR <span className="font-normal text-[var(--color-text-soft)]">bpm</span></label>
                 <NumberInput placeholder="เช่น 188" value={profile.maxHr} onChange={(v) => update("maxHr", v)} />
                 {renderFieldIssues("maxHr")}
               </div>
@@ -727,7 +727,7 @@ export function ProfileSetupForm({
                 <input className="control" placeholder="เช่น อาทิตย์" value={profile.preferredLongRunDay ?? ""} onChange={(e) => update("preferredLongRunDay", e.target.value)} />
               </SrcField>
               <div className="space-y-1">
-                <span className="text-xs font-semibold text-slate-500">Strength วัน/สัปดาห์</span>
+                <span className="text-xs font-semibold text-[var(--color-text-muted)]">Strength วัน/สัปดาห์</span>
                 <NumberInput
                   placeholder="Strength วัน/สัปดาห์"
                   value={profile.strengthTrainingDaysPerWeek}
@@ -736,14 +736,14 @@ export function ProfileSetupForm({
               </div>
             </div>
             <div>
-              <p className="mb-1 text-xs font-semibold text-slate-500">เวลาวิ่งที่ชอบ</p>
+              <p className="mb-1 text-xs font-semibold text-[var(--color-text-muted)]">เวลาวิ่งที่ชอบ</p>
               <div className="flex flex-wrap gap-2">
                 {(["morning", "evening", "night", "flexible"] as const).map((t) => (
                   <button
                     key={t}
                     type="button"
                     onClick={() => update("preferredRunTime", t)}
-                    className={`rounded-full border px-3 py-1 text-xs font-semibold ${profile.preferredRunTime === t ? "border-[var(--foreground)] bg-[var(--foreground)] text-white" : "border-slate-200 text-slate-600"}`}
+                    className={`rounded-full border px-3 py-1 text-xs font-semibold ${profile.preferredRunTime === t ? "border-[var(--primary)] bg-[var(--primary)] text-[#0b1220]" : "border-[var(--border-warm)] text-[var(--color-text-muted)]"}`}
                   >
                     {runTimeLabel(t)}
                   </button>
@@ -778,16 +778,16 @@ export function ProfileSetupForm({
         isSaved={savedSections.injury}
         renderReadonly={() => (
           <div className="space-y-2">
-            <div className="rounded-xl bg-slate-50 px-3 py-2.5">
-              <p className="text-[11px] text-slate-400">ประวัติบาดเจ็บ</p>
+            <div className="rounded-xl bg-[var(--surface-muted)] px-3 py-2.5">
+              <p className="text-[11px] text-[var(--color-text-soft)]">ประวัติบาดเจ็บ</p>
               <p className="text-sm font-semibold text-[var(--foreground)] leading-relaxed whitespace-pre-wrap">{profile.injuryHistory || profile.injuryNotes || "—"}</p>
             </div>
-            <div className="rounded-xl bg-slate-50 px-3 py-2.5">
-              <p className="text-[11px] text-slate-400">อาการปัจจุบัน</p>
+            <div className="rounded-xl bg-[var(--surface-muted)] px-3 py-2.5">
+              <p className="text-[11px] text-[var(--color-text-soft)]">อาการปัจจุบัน</p>
               <p className="text-sm font-semibold text-[var(--foreground)] leading-relaxed whitespace-pre-wrap">{profile.currentPainNotes || "—"}</p>
             </div>
-            <div className="rounded-xl bg-slate-50 px-3 py-2.5">
-              <p className="text-[11px] text-slate-400">สิ่งที่ต้องระวัง</p>
+            <div className="rounded-xl bg-[var(--surface-muted)] px-3 py-2.5">
+              <p className="text-[11px] text-[var(--color-text-soft)]">สิ่งที่ต้องระวัง</p>
               <p className="text-sm font-semibold text-[var(--foreground)] leading-relaxed whitespace-pre-wrap">{profile.riskNotes || "—"}</p>
             </div>
           </div>
@@ -795,7 +795,7 @@ export function ProfileSetupForm({
         renderEditable={() => (
           <>
             <div className="space-y-1">
-              <span className="text-xs font-semibold text-slate-500">ประวัติบาดเจ็บ</span>
+              <span className="text-xs font-semibold text-[var(--color-text-muted)]">ประวัติบาดเจ็บ</span>
               <textarea
                 className="control min-h-16"
                 placeholder="ประวัติบาดเจ็บ เช่น เข่า, ข้อเท้า, เอ็น"
@@ -804,7 +804,7 @@ export function ProfileSetupForm({
               />
             </div>
             <div className="space-y-1">
-              <span className="text-xs font-semibold text-slate-500">อาการปัจจุบัน (ถ้ามี)</span>
+              <span className="text-xs font-semibold text-[var(--color-text-muted)]">อาการปัจจุบัน (ถ้ามี)</span>
               <textarea
                 className="control min-h-14"
                 placeholder="อาการปัจจุบัน (ถ้ามี)"
@@ -813,7 +813,7 @@ export function ProfileSetupForm({
               />
             </div>
             <div className="space-y-1">
-              <span className="text-xs font-semibold text-slate-500">สิ่งที่ต้องระวัง (ถ้ามี)</span>
+              <span className="text-xs font-semibold text-[var(--color-text-muted)]">สิ่งที่ต้องระวัง (ถ้ามี)</span>
               <textarea
                 className="control min-h-14"
                 placeholder="สิ่งที่ต้องระวัง เช่น เพิ่ง recover, หมอห้ามวิ่งเร็ว"
@@ -846,8 +846,8 @@ export function ProfileSetupForm({
               <StatCard label="Resting HR" value={formatBpm(profile.normalRestingHr)} />
               <StatCard label="HRV ปกติ" value={profile.normalHrv ? String(profile.normalHrv) : "—"} />
             </div>
-            <div className="rounded-xl bg-slate-50 px-3 py-2.5">
-              <p className="text-[11px] text-slate-400">กฎ Recovery</p>
+            <div className="rounded-xl bg-[var(--surface-muted)] px-3 py-2.5">
+              <p className="text-[11px] text-[var(--color-text-soft)]">กฎ Recovery</p>
               <p className="text-sm font-semibold text-[var(--foreground)] leading-relaxed whitespace-pre-wrap">{profile.recoveryRules || profile.sleepNotes || "—"}</p>
             </div>
           </div>
@@ -900,25 +900,25 @@ export function ProfileSetupForm({
           const foodPrefs = parseFoodPreferences(profile.foodPreferences);
           const hasAny = foodPrefs.avoids || profile.allergiesOrRestrictions || foodPrefs.likes || foodPrefs.spicy || (foodPrefs.convenience && foodPrefs.convenience.length > 0) || foodPrefs.budget || (foodPrefs.goals && foodPrefs.goals.length > 0);
           if (!hasAny) {
-            return <p className="text-sm text-slate-500 italic">ไม่มีข้อมูลความชอบอาหาร</p>;
+            return <p className="text-sm text-[var(--color-text-muted)] italic">ไม่มีข้อมูลความชอบอาหาร</p>;
           }
           return (
             <div className="space-y-2">
               {foodPrefs.avoids && (
-                <div className="rounded-xl bg-slate-50 px-3 py-2.5">
-                  <p className="text-[11px] text-slate-400">ไม่กิน / เลี่ยงอาหาร</p>
+                <div className="rounded-xl bg-[var(--surface-muted)] px-3 py-2.5">
+                  <p className="text-[11px] text-[var(--color-text-soft)]">ไม่กิน / เลี่ยงอาหาร</p>
                   <p className="text-sm font-semibold text-[var(--foreground)]">{foodPrefs.avoids}</p>
                 </div>
               )}
               {profile.allergiesOrRestrictions && (
-                <div className="rounded-xl bg-slate-50 px-3 py-2.5">
-                  <p className="text-[11px] text-slate-400 font-semibold text-red-600">แพ้อาหาร</p>
-                  <p className="text-sm font-bold text-red-600">{profile.allergiesOrRestrictions}</p>
+                <div className="rounded-xl bg-[var(--surface-muted)] px-3 py-2.5">
+                  <p className="text-[11px] text-[var(--color-text-soft)] font-semibold text-[var(--color-danger)]">แพ้อาหาร</p>
+                  <p className="text-sm font-bold text-[var(--color-danger)]">{profile.allergiesOrRestrictions}</p>
                 </div>
               )}
               {foodPrefs.likes && (
-                <div className="rounded-xl bg-slate-50 px-3 py-2.5">
-                  <p className="text-[11px] text-slate-400">ชอบอาหารแบบไหน</p>
+                <div className="rounded-xl bg-[var(--surface-muted)] px-3 py-2.5">
+                  <p className="text-[11px] text-[var(--color-text-soft)]">ชอบอาหารแบบไหน</p>
                   <p className="text-sm font-semibold text-[var(--foreground)]">{foodPrefs.likes}</p>
                 </div>
               )}
@@ -927,14 +927,14 @@ export function ProfileSetupForm({
                 <StatCard label="งบประมาณต่อมื้อ" value={foodPrefs.budget || "—"} />
               </div>
               {foodPrefs.convenience && foodPrefs.convenience.length > 0 && (
-                <div className="rounded-xl bg-slate-50 px-3 py-2.5">
-                  <p className="text-[11px] text-slate-400">ความสะดวกของมื้ออาหาร</p>
+                <div className="rounded-xl bg-[var(--surface-muted)] px-3 py-2.5">
+                  <p className="text-[11px] text-[var(--color-text-soft)]">ความสะดวกของมื้ออาหาร</p>
                   <p className="text-sm font-semibold text-[var(--foreground)]">{foodPrefs.convenience.join(", ")}</p>
                 </div>
               )}
               {foodPrefs.goals && foodPrefs.goals.length > 0 && (
-                <div className="rounded-xl bg-slate-50 px-3 py-2.5">
-                  <p className="text-[11px] text-slate-400">เป้าหมายอาหาร</p>
+                <div className="rounded-xl bg-[var(--surface-muted)] px-3 py-2.5">
+                  <p className="text-[11px] text-[var(--color-text-soft)]">เป้าหมายอาหาร</p>
                   <p className="text-sm font-semibold text-[var(--foreground)]">{foodPrefs.goals.join(", ")}</p>
                 </div>
               )}
@@ -962,10 +962,10 @@ export function ProfileSetupForm({
 
           return (
             <div className="space-y-4">
-              <p className="text-xs text-slate-400">ช่วยให้โค้ชแนะนำมื้ออาหารที่เข้ากับชีวิตจริงมากขึ้น</p>
+              <p className="text-xs text-[var(--color-text-soft)]">ช่วยให้โค้ชแนะนำมื้ออาหารที่เข้ากับชีวิตจริงมากขึ้น</p>
               
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-500">ไม่กิน / เลี่ยงอาหาร</label>
+                <label className="text-xs font-semibold text-[var(--color-text-muted)]">ไม่กิน / เลี่ยงอาหาร</label>
                 <input
                   className="control"
                   placeholder="เช่น เครื่องใน, นมวัว, อาหารทะเล"
@@ -975,7 +975,7 @@ export function ProfileSetupForm({
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-500">แพ้อาหาร</label>
+                <label className="text-xs font-semibold text-[var(--color-text-muted)]">แพ้อาหาร</label>
                 <input
                   className="control"
                   placeholder="เช่น ถั่ว, กุ้ง, นม"
@@ -985,7 +985,7 @@ export function ProfileSetupForm({
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-500">ชอบอาหารแบบไหน</label>
+                <label className="text-xs font-semibold text-[var(--color-text-muted)]">ชอบอาหารแบบไหน</label>
                 <input
                   className="control"
                   placeholder="เช่น อาหารไทย, ตามสั่ง, สุกี้, ปลา"
@@ -995,14 +995,14 @@ export function ProfileSetupForm({
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-500 block">กินเผ็ดได้ไหม</label>
+                <label className="text-xs font-semibold text-[var(--color-text-muted)] block">กินเผ็ดได้ไหม</label>
                 <div className="flex gap-2">
                   {(["ไม่เผ็ด", "เผ็ดน้อย", "เผ็ดได้"] as const).map((s) => (
                     <button
                       key={s}
                       type="button"
                       onClick={() => updateField("spicy", s)}
-                      className={`flex-1 rounded-2xl border py-2 text-sm font-semibold transition ${foodPrefs.spicy === s ? "border-[var(--foreground)] bg-[var(--foreground)] text-white" : "border-slate-200 text-slate-600 bg-white hover:bg-slate-50"}`}
+                      className={`flex-1 rounded-2xl border py-2 text-sm font-semibold transition ${foodPrefs.spicy === s ? "border-[var(--primary)] bg-[var(--primary)] text-[#0b1220]" : "border-[var(--border-warm)] text-[var(--color-text-muted)] bg-[var(--surface)] hover:bg-[var(--surface-muted)]"}`}
                     >
                       {s}
                     </button>
@@ -1011,7 +1011,7 @@ export function ProfileSetupForm({
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-500 block">ความสะดวกของมื้ออาหาร</label>
+                <label className="text-xs font-semibold text-[var(--color-text-muted)] block">ความสะดวกของมื้ออาหาร</label>
                 <div className="flex flex-wrap gap-2">
                   {["ร้านตามสั่ง", "7-11", "food court", "ทำเอง", "delivery"].map((item) => {
                     const isChecked = (foodPrefs.convenience ?? []).includes(item);
@@ -1020,7 +1020,7 @@ export function ProfileSetupForm({
                         key={item}
                         type="button"
                         onClick={() => handleCheckbox("convenience", item, !isChecked)}
-                        className={`rounded-full border px-4 py-1.5 text-xs font-semibold transition ${isChecked ? "border-[var(--foreground)] bg-[var(--foreground)] text-white" : "border-slate-200 text-slate-600 bg-white hover:bg-slate-50"}`}
+                        className={`rounded-full border px-4 py-1.5 text-xs font-semibold transition ${isChecked ? "border-[var(--primary)] bg-[var(--primary)] text-[#0b1220]" : "border-[var(--border-warm)] text-[var(--color-text-muted)] bg-[var(--surface)] hover:bg-[var(--surface-muted)]"}`}
                       >
                         {item}
                       </button>
@@ -1030,14 +1030,14 @@ export function ProfileSetupForm({
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-500 block">งบต่อมื้อ</label>
+                <label className="text-xs font-semibold text-[var(--color-text-muted)] block">งบต่อมื้อ</label>
                 <div className="flex gap-2">
                   {(["ประหยัด", "ปานกลาง", "ไม่จำกัดมาก"] as const).map((b) => (
                     <button
                       key={b}
                       type="button"
                       onClick={() => updateField("budget", b)}
-                      className={`flex-1 rounded-2xl border py-2 text-sm font-semibold transition ${foodPrefs.budget === b ? "border-[var(--foreground)] bg-[var(--foreground)] text-white" : "border-slate-200 text-slate-600 bg-white hover:bg-slate-50"}`}
+                      className={`flex-1 rounded-2xl border py-2 text-sm font-semibold transition ${foodPrefs.budget === b ? "border-[var(--primary)] bg-[var(--primary)] text-[#0b1220]" : "border-[var(--border-warm)] text-[var(--color-text-muted)] bg-[var(--surface)] hover:bg-[var(--surface-muted)]"}`}
                     >
                       {b}
                     </button>
@@ -1046,7 +1046,7 @@ export function ProfileSetupForm({
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-500 block">เป้าหมายอาหาร</label>
+                <label className="text-xs font-semibold text-[var(--color-text-muted)] block">เป้าหมายอาหาร</label>
                 <div className="flex flex-wrap gap-2">
                   {["ลดพุง", "เพิ่มกล้าม", "วิ่งดีขึ้น", "คุมไขมัน", "กินง่ายไม่เครียด"].map((item) => {
                     const isChecked = (foodPrefs.goals ?? []).includes(item);
@@ -1055,7 +1055,7 @@ export function ProfileSetupForm({
                         key={item}
                         type="button"
                         onClick={() => handleCheckbox("goals", item, !isChecked)}
-                        className={`rounded-full border px-4 py-1.5 text-xs font-semibold transition ${isChecked ? "border-[var(--foreground)] bg-[var(--foreground)] text-white" : "border-slate-200 text-slate-600 bg-white hover:bg-slate-50"}`}
+                        className={`rounded-full border px-4 py-1.5 text-xs font-semibold transition ${isChecked ? "border-[var(--primary)] bg-[var(--primary)] text-[#0b1220]" : "border-[var(--border-warm)] text-[var(--color-text-muted)] bg-[var(--surface)] hover:bg-[var(--surface-muted)]"}`}
                       >
                         {item}
                       </button>
@@ -1092,9 +1092,9 @@ export function ProfileSetupForm({
                 <StatCard label="ความละเอียดคำตอบ" value={profile.responseDetail ? detailLabel(profile.responseDetail) : "—"} />
                 <StatCard label="ภาษา" value={profile.language ? langLabel(profile.language) : "—"} />
               </div>
-              <div className="rounded-2xl border border-slate-100 bg-[#f8fafc] p-4">
+              <div className="rounded-2xl border border-[var(--border-warm)] bg-[var(--surface-muted)] p-4">
                 <p className="text-xs font-bold uppercase tracking-wider text-[var(--label-color)]">ตัวอย่างโค้ชของคุณ</p>
-                <p className="mt-2 text-sm leading-relaxed text-slate-700 italic">“{previewText}”</p>
+                <p className="mt-2 text-sm leading-relaxed text-[var(--foreground)] italic">“{previewText}”</p>
               </div>
             </div>
           );
@@ -1109,14 +1109,14 @@ export function ProfileSetupForm({
           return (
             <>
               <div>
-                <p className="mb-1 text-xs font-semibold text-slate-500">สไตล์การพูด</p>
+                <p className="mb-1 text-xs font-semibold text-[var(--color-text-muted)]">สไตล์การพูด</p>
                 <div className="grid grid-cols-2 gap-2">
                   {(["friendly", "direct", "gentle", "strict"] as const).map((t) => (
                     <button
                       key={t}
                       type="button"
                       onClick={() => update("coachingTone", t)}
-                      className={`rounded-2xl border py-2 text-sm font-semibold ${profile.coachingTone === t ? "border-[var(--foreground)] bg-[var(--foreground)] text-white" : "border-slate-200 text-slate-600"}`}
+                      className={`rounded-2xl border py-2 text-sm font-semibold ${profile.coachingTone === t ? "border-[var(--primary)] bg-[var(--primary)] text-[#0b1220]" : "border-[var(--border-warm)] text-[var(--color-text-muted)]"}`}
                     >
                       {toneLabel(t)}
                     </button>
@@ -1124,14 +1124,14 @@ export function ProfileSetupForm({
                 </div>
               </div>
               <div>
-                <p className="mb-1 text-xs font-semibold text-slate-500">ความละเอียดคำตอบ</p>
+                <p className="mb-1 text-xs font-semibold text-[var(--color-text-muted)]">ความละเอียดคำตอบ</p>
                 <div className="flex gap-2">
                   {(["short", "medium", "detailed"] as const).map((d) => (
                     <button
                       key={d}
                       type="button"
                       onClick={() => update("responseDetail", d)}
-                      className={`flex-1 rounded-2xl border py-2 text-sm font-semibold ${profile.responseDetail === d ? "border-[var(--foreground)] bg-[var(--foreground)] text-white" : "border-slate-200 text-slate-600"}`}
+                      className={`flex-1 rounded-2xl border py-2 text-sm font-semibold ${profile.responseDetail === d ? "border-[var(--primary)] bg-[var(--primary)] text-[#0b1220]" : "border-[var(--border-warm)] text-[var(--color-text-muted)]"}`}
                     >
                       {detailLabel(d)}
                     </button>
@@ -1139,23 +1139,23 @@ export function ProfileSetupForm({
                 </div>
               </div>
               <div>
-                <p className="mb-1 text-xs font-semibold text-slate-500">ภาษา</p>
+                <p className="mb-1 text-xs font-semibold text-[var(--color-text-muted)]">ภาษา</p>
                 <div className="flex gap-2">
                   {(["th", "en", "mixed"] as const).map((l) => (
                     <button
                       key={l}
                       type="button"
                       onClick={() => update("language", l)}
-                      className={`flex-1 rounded-2xl border py-2 text-sm font-semibold ${profile.language === l ? "border-[var(--foreground)] bg-[var(--foreground)] text-white" : "border-slate-200 text-slate-600"}`}
+                      className={`flex-1 rounded-2xl border py-2 text-sm font-semibold ${profile.language === l ? "border-[var(--primary)] bg-[var(--primary)] text-[#0b1220]" : "border-[var(--border-warm)] text-[var(--color-text-muted)]"}`}
                     >
                       {langLabel(l)}
                     </button>
                   ))}
                 </div>
               </div>
-              <div className="rounded-2xl border border-slate-100 bg-[#f8fafc] p-4">
+              <div className="rounded-2xl border border-[var(--border-warm)] bg-[var(--surface-muted)] p-4">
                 <p className="text-xs font-bold uppercase tracking-wider text-[var(--label-color)]">ตัวอย่างโค้ชของคุณ</p>
-                <p className="mt-2 text-sm leading-relaxed text-slate-700 italic">“{previewText}”</p>
+                <p className="mt-2 text-sm leading-relaxed text-[var(--foreground)] italic">“{previewText}”</p>
               </div>
             </>
           );
@@ -1178,12 +1178,12 @@ export function ProfileSetupForm({
               <StatCard label="ส่วนสูง" value={profile.heightCm != null ? `${profile.heightCm} cm` : "—"} />
               <StatCard label="น้ำหนัก" value={profile.weightKg != null ? `${profile.weightKg} kg` : "—"} />
             </div>
-            <div className="rounded-xl bg-slate-50 px-3 py-2.5">
-              <p className="text-[11px] text-slate-400">ตารางงาน</p>
+            <div className="rounded-xl bg-[var(--surface-muted)] px-3 py-2.5">
+              <p className="text-[11px] text-[var(--color-text-soft)]">ตารางงาน</p>
               <p className="text-sm font-semibold text-[var(--foreground)]">{profile.workSchedule || "—"}</p>
             </div>
-            <div className="rounded-xl bg-slate-50 px-3 py-2.5">
-              <p className="text-[11px] text-slate-400">Timezone</p>
+            <div className="rounded-xl bg-[var(--surface-muted)] px-3 py-2.5">
+              <p className="text-[11px] text-[var(--color-text-soft)]">Timezone</p>
               <p className="text-sm font-semibold text-[var(--foreground)]">{profile.timezone || "—"}</p>
             </div>
             <div className="grid grid-cols-3 gap-2">
@@ -1191,16 +1191,16 @@ export function ProfileSetupForm({
               <StatCard label="VO2max" value={profile.vo2max != null ? String(profile.vo2max) : "—"} />
               <StatCard label="Cadence" value={profile.averageCadence != null ? `${profile.averageCadence} spm` : "—"} />
             </div>
-            <div className="rounded-xl bg-slate-50 px-3 py-2.5">
-              <p className="text-[11px] text-slate-400">อุปกรณ์ที่มี</p>
+            <div className="rounded-xl bg-[var(--surface-muted)] px-3 py-2.5">
+              <p className="text-[11px] text-[var(--color-text-soft)]">อุปกรณ์ที่มี</p>
               <p className="text-sm font-semibold text-[var(--foreground)]">
                 {Array.isArray(profile.availableEquipment)
                   ? profile.availableEquipment.join(", ")
                   : profile.availableEquipment || "—"}
               </p>
             </div>
-            <div className="rounded-xl bg-slate-50 px-3 py-2.5">
-              <p className="text-[11px] text-slate-400">เป้าหมายโภชนาการ</p>
+            <div className="rounded-xl bg-[var(--surface-muted)] px-3 py-2.5">
+              <p className="text-[11px] text-[var(--color-text-soft)]">เป้าหมายโภชนาการ</p>
               <p className="text-sm font-semibold text-[var(--foreground)] leading-relaxed whitespace-pre-wrap">{nutritionGoalLabel(profile.nutritionGoal) || "—"}</p>
             </div>
             <div className="grid grid-cols-2 gap-2">
@@ -1215,19 +1215,19 @@ export function ProfileSetupForm({
         )}
         renderEditable={() => (
           <>
-            <p className="text-xs text-slate-400">ฟิลด์เสริมสำหรับ AI ที่ต้องการข้อมูลเพิ่มเติม</p>
+            <p className="text-xs text-[var(--color-text-soft)]">ฟิลด์เสริมสำหรับ AI ที่ต้องการข้อมูลเพิ่มเติม</p>
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
-                <span className="text-xs font-semibold text-slate-500">ส่วนสูง (cm)</span>
+                <span className="text-xs font-semibold text-[var(--color-text-muted)]">ส่วนสูง (cm)</span>
                 <NumberInput placeholder="สูง (cm)" value={profile.heightCm} onChange={(v) => update("heightCm", v)} />
               </div>
               <div className="space-y-1">
-                <span className="text-xs font-semibold text-slate-500">น้ำหนัก (kg)</span>
+                <span className="text-xs font-semibold text-[var(--color-text-muted)]">น้ำหนัก (kg)</span>
                 <NumberInput placeholder="หนัก (kg)" value={profile.weightKg} onChange={(v) => update("weightKg", v)} />
               </div>
             </div>
             <div className="space-y-1">
-              <span className="text-xs font-semibold text-slate-500">ตารางงาน</span>
+              <span className="text-xs font-semibold text-[var(--color-text-muted)]">ตารางงาน</span>
               <input
                 className="control"
                 placeholder="ตารางงาน เช่น ทำงานวันธรรมดา เลิก 18:00"
@@ -1236,7 +1236,7 @@ export function ProfileSetupForm({
               />
             </div>
             <div className="space-y-1">
-              <span className="text-xs font-semibold text-slate-500">Timezone</span>
+              <span className="text-xs font-semibold text-[var(--color-text-muted)]">Timezone</span>
               <input
                 className="control"
                 placeholder="Timezone เช่น Asia/Bangkok"
@@ -1246,21 +1246,21 @@ export function ProfileSetupForm({
             </div>
             <div className="grid grid-cols-3 gap-2">
               <div className="space-y-1">
-                <span className="text-xs font-semibold text-slate-500">LT HR</span>
+                <span className="text-xs font-semibold text-[var(--color-text-muted)]">LT HR</span>
                 <NumberInput placeholder="LT HR" value={profile.lactateThresholdHr} onChange={(v) => update("lactateThresholdHr", v)} />
                 {renderFieldIssues("ltHr")}
               </div>
               <div className="space-y-1">
-                <span className="text-xs font-semibold text-slate-500">VO2max</span>
+                <span className="text-xs font-semibold text-[var(--color-text-muted)]">VO2max</span>
                 <NumberInput placeholder="VO2max" value={profile.vo2max} onChange={(v) => update("vo2max", v)} />
               </div>
               <div className="space-y-1">
-                <span className="text-xs font-semibold text-slate-500">Cadence spm</span>
+                <span className="text-xs font-semibold text-[var(--color-text-muted)]">Cadence spm</span>
                 <NumberInput placeholder="Cadence spm" value={profile.averageCadence} onChange={(v) => update("averageCadence", v)} />
               </div>
             </div>
             <div className="space-y-1">
-              <span className="text-xs font-semibold text-slate-500">อุปกรณ์ที่มี</span>
+              <span className="text-xs font-semibold text-[var(--color-text-muted)]">อุปกรณ์ที่มี</span>
               <textarea
                 className="control min-h-14"
                 placeholder="อุปกรณ์ที่มี เช่น treadmill, track, foam roller"
@@ -1269,7 +1269,7 @@ export function ProfileSetupForm({
               />
             </div>
             <div className="space-y-1">
-              <span className="text-xs font-semibold text-slate-500">เป้าหมายโภชนาการ</span>
+              <span className="text-xs font-semibold text-[var(--color-text-muted)]">เป้าหมายโภชนาการ</span>
               <select
                 className="control min-h-14"
                 value={profile.nutritionGoal ?? ""}
@@ -1282,44 +1282,44 @@ export function ProfileSetupForm({
                 <option value="weight_control">Weight control / คุมน้ำหนักแบบไม่เสียแรงซ้อม</option>
               </select>
             </div>
-            <div className="rounded-2xl bg-[#e7efea] p-3 text-xs leading-5 text-slate-600 space-y-1">
+            <div className="rounded-2xl bg-[var(--color-success-soft)] p-3 text-xs leading-5 text-[var(--color-text-muted)] space-y-1">
               <p>ระบบคำนวณเป้าหมายโปรตีนและคาร์บจากน้ำหนักล่าสุดและรูปแบบการซ้อม คุณแก้เองได้เสมอ</p>
               {suggestedNutrition != null ? (
-                <p className="text-slate-500">คำนวณจากน้ำหนักล่าสุด {profile.weightKg} kg · protein {suggestedNutrition.proteinMultiplier} g/kg/day · ค่าแนะนำเบื้องต้นสำหรับการซ้อมและ recovery</p>
+                <p className="text-[var(--color-text-muted)]">คำนวณจากน้ำหนักล่าสุด {profile.weightKg} kg · protein {suggestedNutrition.proteinMultiplier} g/kg/day · ค่าแนะนำเบื้องต้นสำหรับการซ้อมและ recovery</p>
               ) : (
-                <p className="text-slate-500">หากยังไม่ใส่น้ำหนัก สามารถกรอกเองได้ หรือกดวิเคราะห์จากประวัติเพื่อให้ระบบดึงค่าจากประวัติ body composition</p>
+                <p className="text-[var(--color-text-muted)]">หากยังไม่ใส่น้ำหนัก สามารถกรอกเองได้ หรือกดวิเคราะห์จากประวัติเพื่อให้ระบบดึงค่าจากประวัติ body composition</p>
               )}
               {nutritionFromHistory && (
-                <p className="text-[#42677f] font-semibold">คำนวณจากประวัติ body composition อัตโนมัติ · แก้ได้ตลอด</p>
+                <p className="text-[var(--recovery-blue)] font-semibold">คำนวณจากประวัติ body composition อัตโนมัติ · แก้ได้ตลอด</p>
               )}
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
-                <span className="text-xs font-semibold text-slate-500">Protein target (g/day)</span>
+                <span className="text-xs font-semibold text-[var(--color-text-muted)]">Protein target (g/day)</span>
                 <NumberInput
                   placeholder={suggestedNutrition != null ? String(suggestedNutrition.proteinTargetG) : suggestedProtein != null ? String(suggestedProtein) : "เช่น 90"}
                   value={profile.proteinTargetG}
                   onChange={(v) => update("proteinTargetG", v)}
                 />
-                <p className="text-[11px] text-slate-400">แนะนำจากน้ำหนักประมาณ {suggestedNutrition?.proteinMultiplier ?? 1.6} g/kg/day</p>
+                <p className="text-[11px] text-[var(--color-text-soft)]">แนะนำจากน้ำหนักประมาณ {suggestedNutrition?.proteinMultiplier ?? 1.6} g/kg/day</p>
               </div>
               <div className="space-y-1">
-                <span className="text-xs font-semibold text-slate-500">Carb rest day (g)</span>
+                <span className="text-xs font-semibold text-[var(--color-text-muted)]">Carb rest day (g)</span>
                 <NumberInput placeholder={suggestedNutrition != null ? String(suggestedNutrition.carbTargetRestDayG) : "เช่น 150"} value={profile.carbTargetRestDayG} onChange={(v) => update("carbTargetRestDayG", v)} />
               </div>
               <div className="space-y-1">
-                <span className="text-xs font-semibold text-slate-500">Carb easy day (g)</span>
+                <span className="text-xs font-semibold text-[var(--color-text-muted)]">Carb easy day (g)</span>
                 <NumberInput placeholder={suggestedNutrition != null ? String(suggestedNutrition.carbTargetEasyDayG) : "เช่น 200"} value={profile.carbTargetEasyDayG} onChange={(v) => update("carbTargetEasyDayG", v)} />
               </div>
               <div className="space-y-1">
-                <span className="text-xs font-semibold text-slate-500">Carb hard/race day (g)</span>
+                <span className="text-xs font-semibold text-[var(--color-text-muted)]">Carb hard/race day (g)</span>
                 <NumberInput placeholder={suggestedNutrition != null ? String(suggestedNutrition.carbTargetHardDayG) : "เช่น 260"} value={profile.carbTargetHardDayG} onChange={(v) => update("carbTargetHardDayG", v)} />
               </div>
             </div>
-            <p className="text-[11px] text-slate-400 leading-4">คำนวณตามประเภทวันซ้อม: วันพัก / easy / hard หรือ race day</p>
+            <p className="text-[11px] text-[var(--color-text-soft)] leading-4">คำนวณตามประเภทวันซ้อม: วันพัก / easy / hard หรือ race day</p>
 
             <div className="space-y-1">
-              <span className="text-xs font-semibold text-slate-500">กาแฟ/คาเฟอีน</span>
+              <span className="text-xs font-semibold text-[var(--color-text-muted)]">กาแฟ/คาเฟอีน</span>
               <input
                 className="control"
                 placeholder="กาแฟ/คาเฟอีน เช่น กาแฟเช้า 1 แก้ว"
@@ -1328,7 +1328,7 @@ export function ProfileSetupForm({
               />
             </div>
             <div className="space-y-1">
-              <span className="text-xs font-semibold text-slate-500">อาหารเสริม</span>
+              <span className="text-xs font-semibold text-[var(--color-text-muted)]">อาหารเสริม</span>
               <input
                 className="control"
                 placeholder="อาหารเสริม เช่น โปรตีน, วิตามิน D"
@@ -1341,7 +1341,7 @@ export function ProfileSetupForm({
       />
 
       {loadingCloud && (
-        <p className="text-center text-xs text-slate-400">กำลังโหลดโปรไฟล์…</p>
+        <p className="text-center text-xs text-[var(--color-text-soft)]">กำลังโหลดโปรไฟล์…</p>
       )}
 
       {status.text ? (
@@ -1353,17 +1353,17 @@ export function ProfileSetupForm({
       </LoadingButton>
 
       {IS_DEV && (
-        <div className="rounded-2xl border border-dashed border-slate-200">
+        <div className="rounded-2xl border border-dashed border-[var(--border-warm)]">
           <button
             type="button"
             onClick={() => setDevOpen((o) => !o)}
             className="flex w-full items-center justify-between px-4 py-2 text-left"
           >
-            <span className="text-xs font-mono text-slate-400">Developer tools</span>
-            <span className="text-slate-300 text-sm">{devOpen ? "−" : "+"}</span>
+            <span className="text-xs font-mono text-[var(--color-text-soft)]">Developer tools</span>
+            <span className="text-[var(--color-text-soft)] text-sm">{devOpen ? "−" : "+"}</span>
           </button>
           {devOpen && (
-            <div className="space-y-2 border-t border-dashed border-slate-200 px-4 pb-3 pt-2">
+            <div className="space-y-2 border-t border-dashed border-[var(--border-warm)] px-4 pb-3 pt-2">
               <div className="flex gap-2">
                 <button type="button" className="btn-secondary flex-1 py-2 text-xs" onClick={devSaveToSupabase}>
                   บันทึกไป Supabase
@@ -1372,7 +1372,7 @@ export function ProfileSetupForm({
                   โหลดจาก Supabase
                 </button>
               </div>
-              {devStatus && <p className="text-xs font-mono text-slate-500">{devStatus}</p>}
+              {devStatus && <p className="text-xs font-mono text-[var(--color-text-muted)]">{devStatus}</p>}
             </div>
           )}
         </div>
@@ -1476,10 +1476,10 @@ function NumberInput({ placeholder, value, onChange }: { placeholder: string; va
 }
 
 function statusClass(tone: Status["tone"]) {
-  if (tone === "good") return "bg-green-50 text-green-700";
-  if (tone === "warn") return "bg-amber-50 text-amber-700";
-  if (tone === "bad") return "bg-red-50 text-red-700";
-  return "bg-slate-50 text-slate-600";
+  if (tone === "good") return "bg-[var(--color-success-soft)] text-[var(--color-success)]";
+  if (tone === "warn") return "bg-[var(--color-warning-soft)] text-[var(--color-warning)]";
+  if (tone === "bad") return "bg-[var(--color-danger-soft)] text-[var(--color-danger)]";
+  return "bg-[var(--surface-muted)] text-[var(--color-text-muted)]";
 }
 
 

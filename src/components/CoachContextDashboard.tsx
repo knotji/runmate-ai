@@ -34,7 +34,7 @@ export function CoachContextDashboard() {
   if (loading) {
     return (
       <div className="flex h-24 items-center justify-center rounded-3xl border border-[var(--border-warm)] bg-[var(--surface-muted)]">
-        <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#e4d8c8] border-t-[var(--primary)]" />
+        <div className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--border-warm)] border-t-[var(--primary)]" />
       </div>
     );
   }
@@ -69,20 +69,32 @@ export function CoachContextDashboard() {
   const stanceColor = !coachingState || coachingState === "push" || coachingState === "maintain"
     ? "text-[var(--status-ready)]"
     : coachingState === "easy"
-    ? "text-[#9b742c]"
+    ? "text-[var(--color-warning)]"
     : "text-[var(--status-rest)]";
 
   const scoreBg = !coachingState || coachingState === "push" || coachingState === "maintain"
     ? "bg-[var(--primary-soft)]"
     : coachingState === "easy"
-    ? "bg-[#fff6df]"
-    : "bg-[#fff0ee]";
+    ? "bg-[var(--color-warning-soft)]"
+    : "bg-[var(--color-danger-soft)]";
 
   const scoreTextColor = !coachingState || coachingState === "push" || coachingState === "maintain"
     ? "text-[var(--primary-strong)]"
     : coachingState === "easy"
-    ? "text-[#9b742c]"
+    ? "text-[var(--color-warning)]"
     : "text-[var(--status-rest)]";
+
+  const scoreRing = !coachingState || coachingState === "push" || coachingState === "maintain"
+    ? "border-[var(--color-success)]"
+    : coachingState === "easy"
+    ? "border-[var(--color-warning)]"
+    : "border-[var(--color-danger)]";
+
+  const scoreGlow = !coachingState || coachingState === "push" || coachingState === "maintain"
+    ? "rgba(82,209,124,0.35)"
+    : coachingState === "easy"
+    ? "rgba(255,182,72,0.35)"
+    : "rgba(255,107,107,0.35)";
 
   const guardrail = getTodayTrainingGuardrail(recSys, context.activePain, context.painRecoveryStatus);
   const suggestedChips = getGuardrailSuggestedChips(guardrail);
@@ -90,14 +102,14 @@ export function CoachContextDashboard() {
   const hasUsefulData = context.sleep7d.length > 0 || context.workouts7d.length > 0 ||
     context.recentPainLogs.length > 0 || Boolean(context.raceGoal);
 
-  const guardrailMsgBg = guardrail.tone === "danger" ? "bg-[#fff0ee]"
-    : guardrail.tone === "warning" ? "bg-[#fff8ed]/80"
+  const guardrailMsgBg = guardrail.tone === "danger" ? "bg-[var(--color-danger-soft)]"
+    : guardrail.tone === "warning" ? "bg-[var(--color-warning-soft)]"
     : guardrail.tone === "caution" ? "bg-[var(--surface-muted)]"
     : guardrail.tone === "success" ? "bg-[var(--primary-soft)]"
     : "bg-[var(--surface-muted)]";
 
   const guardrailMsgColor = guardrail.tone === "danger" ? "text-[var(--status-rest)]"
-    : guardrail.tone === "warning" ? "text-[#9b742c]"
+    : guardrail.tone === "warning" ? "text-[var(--color-warning)]"
     : guardrail.tone === "caution" ? "text-[var(--muted-text)]"
     : guardrail.tone === "success" ? "text-[var(--primary-strong)]"
     : "text-[var(--muted-text)]";
@@ -111,9 +123,13 @@ export function CoachContextDashboard() {
           <p className={`mt-1 text-base font-extrabold ${stanceColor}`}>{stanceLabel}</p>
         </div>
         {score != null && (
-          <div className={`shrink-0 rounded-2xl px-3 py-2 text-center min-w-[56px] ${scoreBg}`}>
+          <div
+            data-testid="coach-score-badge"
+            className={`shrink-0 flex h-16 w-16 flex-col items-center justify-center rounded-full border-2 ${scoreRing} ${scoreBg}`}
+            style={{ boxShadow: `0 0 12px ${scoreGlow}` }}
+          >
             <p className={`text-xl font-extrabold leading-none ${scoreTextColor}`}>{score}</p>
-            <p className="mt-0.5 text-[10px] text-[var(--muted-text)]">{runmateLabel ?? "Fair"}</p>
+            <p className="mt-0.5 text-[9px] text-[var(--muted-text)]">{runmateLabel ?? "Fair"}</p>
           </div>
         )}
       </div>
@@ -160,12 +176,12 @@ export function CoachContextDashboard() {
         <p className="mt-2.5 text-xs text-[var(--muted-text)]">ยังมีข้อมูลไม่มาก ลองอัปโหลด Report เพิ่ม</p>
       ) : null}
 
-      {/* Suggested question chips */}
-      {hasUsefulData && (
+      {/* Suggested question chips — capped to 2 here; the full interactive set lives in CoachChat below */}
+      {hasUsefulData && suggestedChips.length > 0 && (
         <div className="mt-2.5">
           <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--label-color)]">คำถามที่เหมาะกับวันนี้</p>
           <div className="flex flex-wrap gap-1.5">
-            {suggestedChips.map((chip) => (
+            {suggestedChips.slice(0, 2).map((chip) => (
               <span
                 key={chip.label}
                 className="rounded-full border border-rm-border bg-rm-surface px-2.5 py-1 text-xs font-semibold text-rm-text cursor-default"

@@ -1,45 +1,46 @@
 @import "tailwindcss";
 
 :root {
-  --background: #fbf7ef;
-  --foreground: #2f332f;
-  --surface: #fffdf8;
-  --surface-muted: #faf6ee;
-  --border-warm: #e4d8c8;
-  --primary: #5f8f7a;
-  --primary-strong: #4f8a78;
-  --primary-soft: #e7f0e9;
-  --recovery-blue: #6e9fb5;
-  --recovery-soft: #eaf4f7;
-  --status-ready: #4f8a64;
-  --status-caution: #c79a3b;
-  --status-rest: #b85c5c;
-  --muted-text: #6f756d;
+  /* ─── Night Pace — dark athletic theme ─────────────────────────────────── */
+  --background: #14171a;
+  --foreground: #f2f4f3;
+  --surface: #1e2226;
+  --surface-muted: #191c1f;
+  --border-warm: #2c3238;
+  --primary: #4f9dff;
+  --primary-strong: #2f7fe0;
+  --primary-soft: #1c2a3a;
+  --recovery-blue: #4dd0c4;
+  --recovery-soft: #16302d;
+  --status-ready: #52d17c;
+  --status-caution: #ffb648;
+  --status-rest: #ff6b6b;
+  --muted-text: #9aa3a8;
   --muted-blue: var(--recovery-blue);
-  --soft-green: #d7eadc;
+  --soft-green: #1c3324;
 
   /* Semantic color tokens */
-  --color-warning: #c79a3b;
-  --color-warning-soft: #fef3cd;
-  --color-danger: #b85c5c;
-  --color-danger-soft: #fde8e8;
-  --color-success: #4f8a64;
-  --color-success-soft: #e2f0e7;
-  --color-info: #6e9fb5;
-  --color-info-soft: #e3f2f8;
+  --color-warning: #ffb648;
+  --color-warning-soft: #3a2f16;
+  --color-danger: #ff6b6b;
+  --color-danger-soft: #3a1e1e;
+  --color-success: #52d17c;
+  --color-success-soft: #17301f;
+  --color-info: #4dd0c4;
+  --color-info-soft: #16302d;
 
-  /* Border tokens — pre-computed rgba so Chrome < 111 (no color-mix) still works */
-  --color-border: rgba(228, 216, 200, 0.72);
-  --color-border-soft: rgba(228, 216, 200, 0.45);
-  --color-warning-border: rgba(199, 154, 59, 0.30);
-  --color-success-border: rgba(79, 138, 100, 0.30);
-  --color-info-border: rgba(110, 159, 181, 0.30);
-  --color-danger-border: rgba(184, 92, 92, 0.30);
+  /* Border tokens — translucent white hairlines read cleanly on a dark ground */
+  --color-border: rgba(255, 255, 255, 0.14);
+  --color-border-soft: rgba(255, 255, 255, 0.08);
+  --color-warning-border: rgba(255, 182, 72, 0.35);
+  --color-success-border: rgba(82, 209, 124, 0.32);
+  --color-info-border: rgba(77, 208, 196, 0.32);
+  --color-danger-border: rgba(255, 107, 107, 0.32);
 
   /* Text tokens */
   --color-text: var(--foreground);
   --color-text-muted: var(--muted-text);
-  --color-text-soft: #9ca8a0;
+  --color-text-soft: #6f767c;
 
   /* Radius tokens */
   --radius-card: 20px;
@@ -48,44 +49,44 @@
   --radius-input: 14px;
   --radius-chip: 999px;
 
-  /* Shadow tokens */
-  --shadow-card: 0 18px 45px rgba(72, 82, 72, 0.07);
-  --shadow-soft: 0 4px 16px rgba(72, 82, 72, 0.06);
-  --shadow-floating: 0 10px 24px rgba(79, 138, 120, 0.18);
+  /* Shadow tokens — deeper black shadows plus a faint accent glow on floaters */
+  --shadow-card: 0 18px 45px rgba(0, 0, 0, 0.45);
+  --shadow-soft: 0 4px 16px rgba(0, 0, 0, 0.35);
+  --shadow-floating: 0 10px 24px rgba(79, 157, 255, 0.28);
 
   /* Spacing tokens */
   --space-card: 1.25rem;
   --space-card-sm: 1rem;
 
   /* Danger action tokens */
-  --color-danger-tint: #fff0ee;
-  --color-danger-tint-hover: #ffe5e1;
+  --color-danger-tint: #2a1414;
+  --color-danger-tint-hover: #351818;
 
-  /* Section label blue-gray */
-  --label-color: #6f8fa6;
+  /* Section label — light azure eyebrow, readable on dark ground */
+  --label-color: #8fb8d9;
 
-  /* ─── RunMate v0.2 — Calm Runner Coach tokens ────────────────────────────
+  /* ─── RunMate v0.2 — Night Pace tokens ────────────────────────────────────
      New semantic layer for the v0.2 design system. Existing --background /
      --primary / --color-* tokens above are kept as-is for backward
      compatibility; these --rm-* tokens are the source of truth going
      forward and are mapped close to the legacy values where they overlap. */
-  --rm-bg: #f7f3ea;
-  --rm-surface: #fffdf8;
-  --rm-surface-soft: #fbf6ec;
-  --rm-border: #e8ded0;
-  --rm-text: #1f2a24;
-  --rm-text-muted: #6f7b73;
-  --rm-primary: #5b947e;
-  --rm-primary-strong: #2f5d50;
-  --rm-primary-soft: #e4efe9;
-  --rm-caution: #d89a3d;
-  --rm-caution-soft: #f7e4bf;
-  --rm-stop: #c96a6a;
-  --rm-stop-soft: #f6dada;
-  --rm-recovery: #6f9fb8;
-  --rm-recovery-soft: #ddebf2;
-  --rm-neutral: #a89c8d;
-  --rm-neutral-soft: #efe8de;
+  --rm-bg: #14171a;
+  --rm-surface: #1e2226;
+  --rm-surface-soft: #191c1f;
+  --rm-border: #2c3238;
+  --rm-text: #f2f4f3;
+  --rm-text-muted: #9aa3a8;
+  --rm-primary: #4f9dff;
+  --rm-primary-strong: #2f7fe0;
+  --rm-primary-soft: #1c2a3a;
+  --rm-caution: #ffb648;
+  --rm-caution-soft: #3a2f16;
+  --rm-stop: #ff6b6b;
+  --rm-stop-soft: #3a1e1e;
+  --rm-recovery: #4dd0c4;
+  --rm-recovery-soft: #16302d;
+  --rm-neutral: #8a939b;
+  --rm-neutral-soft: #24292e;
 }
 
 @theme inline {
@@ -125,9 +126,9 @@ body {
   min-height: 100vh;
   overflow-x: hidden;
   background:
-    radial-gradient(circle at top left, rgba(95, 143, 122, 0.18), transparent 32rem),
-    radial-gradient(circle at 100% 10%, rgba(139, 184, 200, 0.14), transparent 28rem),
-    linear-gradient(180deg, #fbf7ef 0%, #f4efe5 48%, #eef5f1 100%);
+    radial-gradient(circle at top left, rgba(79, 157, 255, 0.14), transparent 32rem),
+    radial-gradient(circle at 100% 10%, rgba(77, 208, 196, 0.10), transparent 28rem),
+    linear-gradient(180deg, #14171a 0%, #17191c 48%, #15181b 100%);
   color: var(--foreground);
   font-family: var(--font-noto-thai), Arial, sans-serif;
   font-weight: 400;
@@ -171,10 +172,10 @@ textarea {
 .btn-primary {
   border-radius: 999px;
   background: linear-gradient(180deg, var(--primary) 0%, var(--primary-strong) 100%);
-  color: #fffdf8;
+  color: #0b1220;
   padding: 0.85rem 1.1rem;
   font-weight: 700;
-  box-shadow: 0 10px 24px rgba(79, 138, 120, 0.18);
+  box-shadow: 0 10px 24px rgba(79, 157, 255, 0.28);
   transition: transform 150ms ease, box-shadow 150ms ease, opacity 150ms ease;
 }
 
@@ -303,11 +304,12 @@ textarea {
 
 /* Metric display */
 .metric-value {
+  font-family: var(--font-display), var(--font-noto-thai), sans-serif;
   font-size: 2rem;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1;
   color: var(--foreground);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
 }
 .metric-label {
   font-size: 0.7rem;
@@ -321,22 +323,22 @@ textarea {
 .health-score-card {
   background:
     linear-gradient(145deg,
-      rgba(95, 143, 122, 0.09) 0%,
-      rgba(255, 253, 248, 0.94) 40%,
-      rgba(234, 244, 247, 0.10) 100%);
-  border: 1px solid rgba(228, 216, 200, 0.58);
+      rgba(79, 157, 255, 0.10) 0%,
+      rgba(30, 34, 38, 0.94) 40%,
+      rgba(77, 208, 196, 0.08) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.10);
   border-radius: var(--radius-card);
   box-shadow:
-    0 10px 32px rgba(72, 82, 72, 0.08),
-    0 2px 8px rgba(95, 143, 122, 0.05);
+    0 10px 32px rgba(0, 0, 0, 0.40),
+    0 2px 8px rgba(79, 157, 255, 0.08);
 }
 
 .ring-panel {
   display: flex;
   flex-direction: column;
   align-items: center;
-  background: rgba(255, 253, 248, 0.70);
-  border: 1px solid rgba(228, 216, 200, 0.38);
+  background: rgba(30, 34, 38, 0.70);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
   padding: 0.5rem 0.25rem 0.5rem;
 }
@@ -372,9 +374,10 @@ textarea {
 
 /* ─── RunMate v0.2 — Typography scale ───────────────────────────────────── */
 .rm-page-title {
+  font-family: var(--font-display), var(--font-noto-thai), sans-serif;
   font-size: 1.75rem;
   line-height: 1.25;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--rm-text);
   letter-spacing: -0.01em;
 }
@@ -408,10 +411,11 @@ textarea {
   color: var(--rm-text-muted);
 }
 .rm-metric {
+  font-family: var(--font-display), var(--font-noto-thai), sans-serif;
   font-size: 2.75rem;
   line-height: 1;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  font-weight: 700;
+  letter-spacing: -0.01em;
   color: var(--rm-text);
 }
 

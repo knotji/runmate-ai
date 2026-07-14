@@ -144,7 +144,7 @@ test.describe("Report history timestamps", () => {
     const row = page.locator(`[data-testid="report-compact-item"][data-date-key="${todayKey}"]`).first();
     await expect(row).toBeVisible();
     // Type badge
-    await expect(row.locator(".text-orange-700")).toBeVisible(); // food badge
+    await expect(row.locator('[class*="color-warning"]').first()).toBeVisible(); // food badge
     // Expand
     await row.getByRole("button", { name: "ดู" }).click();
     await expect(row.getByTestId("compact-item-details")).toBeVisible();

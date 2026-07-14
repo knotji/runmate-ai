@@ -375,11 +375,11 @@ function PainPageContent() {
               {riskLabel(result.riskLevel)}
             </span>
           </div>
-          <div className="rounded-xl bg-white/60 px-3 py-2.5">
+          <div className="rounded-xl bg-[var(--surface)]/60 px-3 py-2.5">
             <p className="text-[11px] text-rm-muted/80">ผลกระทบต่อการซ้อม</p>
             <p className="text-sm font-semibold text-rm-text">{impactLabel(result.trainingImpact)}</p>
           </div>
-          <p className="text-sm leading-6 text-slate-700">{result.coachAdvice}</p>
+          <p className="text-sm leading-6 text-[var(--foreground)]">{result.coachAdvice}</p>
           {result.redFlags.length > 0 && (
             <div className="rounded-xl bg-rm-stop-soft px-3 py-2.5 space-y-1">
               <p className="text-xs font-bold text-rm-stop">สัญญาณที่ควรระวัง</p>
@@ -539,7 +539,7 @@ function PainPageContent() {
                 step={1}
                 value={painLevel}
                 onChange={(e) => setPainLevel(Number(e.target.value))}
-                className="w-full accent-[#42677f]"
+                className="w-full accent-[var(--recovery-blue)]"
                 title="ระดับความเจ็บปวด 0-10"
                 aria-label="ระดับความเจ็บปวด"
               />

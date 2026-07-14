@@ -301,7 +301,7 @@ export function GoalSetupSection() {
                   className={`w-full text-left rounded-2xl border px-4 py-3 transition-all ${
                     active
                       ? "border-[var(--primary-strong)] bg-[var(--primary-soft)]/40"
-                      : "border-[var(--border-warm)] bg-white/70 hover:bg-[var(--primary-soft)]/20"
+                      : "border-[var(--border-warm)] bg-[var(--surface)]/70 hover:bg-[var(--primary-soft)]/20"
                   }`}
                   data-testid={`primary-goal-${goal}`}
                 >
@@ -345,7 +345,7 @@ export function GoalSetupSection() {
                       ? "border-[var(--primary-strong)] bg-[var(--primary-soft)]/40"
                       : disabled
                       ? "border-[var(--border-warm)] bg-[var(--surface-muted)] opacity-40 cursor-not-allowed"
-                      : "border-[var(--border-warm)] bg-white/70 hover:bg-[var(--primary-soft)]/20"
+                      : "border-[var(--border-warm)] bg-[var(--surface)]/70 hover:bg-[var(--primary-soft)]/20"
                   }`}
                   data-testid={`secondary-goal-${goal}`}
                 >
@@ -386,7 +386,7 @@ export function GoalSetupSection() {
                   className={`w-full text-left rounded-2xl border px-4 py-3 transition-all ${
                     active
                       ? "border-[var(--primary-strong)] bg-[var(--primary-soft)]/40"
-                      : "border-[var(--border-warm)] bg-white/70 hover:bg-[var(--primary-soft)]/20"
+                      : "border-[var(--border-warm)] bg-[var(--surface)]/70 hover:bg-[var(--primary-soft)]/20"
                   }`}
                   data-testid={`guardrail-goal-${goal}`}
                 >
@@ -426,7 +426,7 @@ export function GoalSetupSection() {
                     value={raceDistanceKm}
                     onChange={(e) => setRaceDistanceKm(e.target.value)}
                     placeholder="42.195"
-                    className="mt-1 w-full rounded-xl border border-[var(--border-warm)] bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+                    className="mt-1 w-full rounded-xl border border-[var(--border-warm)] bg-[var(--surface)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
                   />
                 </label>
                 <label className="block">
@@ -435,7 +435,7 @@ export function GoalSetupSection() {
                     type="date"
                     value={raceDate}
                     onChange={(e) => setRaceDate(e.target.value)}
-                    className="mt-1 w-full rounded-xl border border-[var(--border-warm)] bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+                    className="mt-1 w-full rounded-xl border border-[var(--border-warm)] bg-[var(--surface)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
                   />
                 </label>
                 <label className="block">
@@ -445,7 +445,7 @@ export function GoalSetupSection() {
                     value={raceTargetTime}
                     onChange={(e) => setRaceTargetTime(e.target.value)}
                     placeholder="3:30:00"
-                    className="mt-1 w-full rounded-xl border border-[var(--border-warm)] bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+                    className="mt-1 w-full rounded-xl border border-[var(--border-warm)] bg-[var(--surface)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
                   />
                 </label>
               </div>
@@ -470,7 +470,7 @@ export function GoalSetupSection() {
                       className={`rounded-xl border px-3 py-2 text-xs font-semibold transition-all ${
                         active
                           ? "border-[var(--primary-strong)] bg-[var(--primary-soft)]/40 text-[var(--primary-strong)]"
-                          : "border-[var(--border-warm)] bg-white/70 text-[var(--foreground)] hover:bg-[var(--primary-soft)]/20"
+                          : "border-[var(--border-warm)] bg-[var(--surface)]/70 text-[var(--foreground)] hover:bg-[var(--primary-soft)]/20"
                       }`}
                     >
                       {label}
@@ -501,7 +501,7 @@ export function GoalSetupSection() {
                   step="0.5"
                   min="4"
                   max="12"
-                  className="mt-1 w-full rounded-xl border border-[var(--border-warm)] bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+                  className="mt-1 w-full rounded-xl border border-[var(--border-warm)] bg-[var(--surface)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
                 />
               </label>
               <label className="block">
@@ -519,7 +519,7 @@ export function GoalSetupSection() {
                   placeholder="4"
                   min="1"
                   max="7"
-                  className="mt-1 w-full rounded-xl border border-[var(--border-warm)] bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+                  className="mt-1 w-full rounded-xl border border-[var(--border-warm)] bg-[var(--surface)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
                 />
               </label>
             </div>
@@ -534,7 +534,7 @@ export function GoalSetupSection() {
           </div>
 
           {error && (
-            <p className="rounded-2xl bg-red-50 px-4 py-3 text-xs font-semibold text-red-600">{error}</p>
+            <p className="rounded-2xl bg-[var(--color-danger-soft)] px-4 py-3 text-xs font-semibold text-[var(--color-danger)]">{error}</p>
           )}
 
           <div className="flex gap-2">

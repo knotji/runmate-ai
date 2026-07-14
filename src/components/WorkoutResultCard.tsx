@@ -27,10 +27,10 @@ export function WorkoutResultCard({ result }: { result: WorkoutAnalysis }) {
 
   return (
     <section className="card p-5">
-      <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#6f8fa6]">Workout Result</p>
+      <p className="text-xs font-bold uppercase tracking-[0.22em] text-[var(--label-color)]">Workout Result</p>
       <h2 className="mt-2 text-xl font-bold">{formatSummaryText(result.coach.workoutSummary)}</h2>
       {ext.mergedFromMultipleImages && (
-        <p className="mt-1 text-xs text-slate-500">รวมข้อมูลจากหลายภาพแล้ว</p>
+        <p className="mt-1 text-xs text-[var(--color-text-muted)]">รวมข้อมูลจากหลายภาพแล้ว</p>
       )}
       <div className="mt-3">
         <DataQualityNote confidence={result.confidence} unclearFields={result.unclearFields} source="workout" />
@@ -78,10 +78,10 @@ function SwimResultCard({ result }: { result: WorkoutAnalysis }) {
 
   return (
     <section className="card p-5">
-      <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#6f8fa6]">{eyebrow}</p>
+      <p className="text-xs font-bold uppercase tracking-[0.22em] text-[var(--label-color)]">{eyebrow}</p>
       <h2 className="mt-2 text-xl font-bold">{formatSummaryText(result.coach.workoutSummary)}</h2>
       {ext.mergedFromMultipleImages && (
-        <p className="mt-1 text-xs text-slate-500">รวมข้อมูลจากหลายภาพแล้ว</p>
+        <p className="mt-1 text-xs text-[var(--color-text-muted)]">รวมข้อมูลจากหลายภาพแล้ว</p>
       )}
       <div className="mt-3">
         <DataQualityNote confidence={result.confidence} unclearFields={result.unclearFields} source="workout" />
@@ -121,17 +121,17 @@ function StrengthResultCard({ result }: { result: WorkoutAnalysis }) {
 
   return (
     <section className="card p-5">
-      <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#6f8fa6]">🏋️ เวท / Strength</p>
+      <p className="text-xs font-bold uppercase tracking-[0.22em] text-[var(--label-color)]">🏋️ เวท / Strength</p>
       <h2 className="mt-2 text-xl font-bold">{formatSummaryText(result.coach.workoutSummary)}</h2>
       {ext.mergedFromMultipleImages && (
-        <p className="mt-1 text-xs text-slate-500">รวมข้อมูลจากหลายภาพแล้ว</p>
+        <p className="mt-1 text-xs text-[var(--color-text-muted)]">รวมข้อมูลจากหลายภาพแล้ว</p>
       )}
 
       {/* Data quality note */}
       <div className="mt-3">
         <DataQualityNote confidence={result.confidence} unclearFields={result.unclearFields} source="workout" />
         {result.confidence === "low" && (
-          <p className="mt-1 text-xs text-amber-700 leading-relaxed">
+          <p className="mt-1 text-xs text-[var(--color-warning)] leading-relaxed">
             ⚠️ ข้อมูลจากรูปเวทอาจอ่านได้ไม่ครบ เช่น ท่า จำนวนเซ็ต หรือน้ำหนักที่ใช้ กรุณาตรวจทานก่อนบันทึก
           </p>
         )}
@@ -151,20 +151,20 @@ function StrengthResultCard({ result }: { result: WorkoutAnalysis }) {
 
       {/* Muscle groups */}
       {muscleGroupsText && (
-        <div className="mt-3 rounded-xl bg-slate-50 px-3 py-2">
-          <p className="text-xs font-semibold text-slate-500 mb-0.5">กล้ามเนื้อหลัก</p>
-          <p className="text-sm font-bold text-[#17201d]">{muscleGroupsText}</p>
+        <div className="mt-3 rounded-xl bg-[var(--surface-muted)] px-3 py-2">
+          <p className="text-xs font-semibold text-[var(--color-text-muted)] mb-0.5">กล้ามเนื้อหลัก</p>
+          <p className="text-sm font-bold text-[var(--foreground)]">{muscleGroupsText}</p>
         </div>
       )}
 
       {/* Exercises list */}
       {ext.exercises && ext.exercises.length > 0 && (
-        <div className="mt-3 rounded-xl bg-slate-50 px-3 py-2 space-y-1">
-          <p className="text-xs font-semibold text-slate-500 mb-1">ท่าออกกำลังกาย</p>
+        <div className="mt-3 rounded-xl bg-[var(--surface-muted)] px-3 py-2 space-y-1">
+          <p className="text-xs font-semibold text-[var(--color-text-muted)] mb-1">ท่าออกกำลังกาย</p>
           {ext.exercises.map((ex, i) => (
             <div key={i} className="flex items-center justify-between text-xs">
-              <span className="font-semibold text-slate-700">{ex.name}</span>
-              <span className="text-slate-500 font-medium">
+              <span className="font-semibold text-[var(--foreground)]">{ex.name}</span>
+              <span className="text-[var(--color-text-muted)] font-medium">
                 {[
                   ex.sets ? `${ex.sets} เซ็ต` : null,
                   ex.reps ? `× ${ex.reps}` : null,

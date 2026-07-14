@@ -132,13 +132,13 @@ export function StrengthWorkoutCard({
     return (
       <section className="card p-5 space-y-4">
         <div>
-          <h2 className="text-lg font-bold text-[#17201d]">แก้ไข: {editingRoutine.name}</h2>
-          <p className="text-xs text-slate-500">ปรับเปลี่ยนแผนสำหรับบันทึกใช้ในครั้งถัดไป</p>
+          <h2 className="text-lg font-bold text-[var(--foreground)]">แก้ไข: {editingRoutine.name}</h2>
+          <p className="text-xs text-[var(--color-text-muted)]">ปรับเปลี่ยนแผนสำหรับบันทึกใช้ในครั้งถัดไป</p>
         </div>
 
         <div className="space-y-3">
           <div>
-            <label className="text-xs font-semibold text-slate-500 mb-1 block">คำอธิบาย</label>
+            <label className="text-xs font-semibold text-[var(--color-text-muted)] mb-1 block">คำอธิบาย</label>
             <input
               className="control"
               value={editingRoutine.description}
@@ -148,7 +148,7 @@ export function StrengthWorkoutCard({
 
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="text-xs font-semibold text-slate-500 mb-1 block">วอร์ม (นาที)</label>
+              <label className="text-xs font-semibold text-[var(--color-text-muted)] mb-1 block">วอร์ม (นาที)</label>
               <input
                 type="number"
                 className="control"
@@ -157,7 +157,7 @@ export function StrengthWorkoutCard({
               />
             </div>
             <div>
-              <label className="text-xs font-semibold text-slate-500 mb-1 block">คูลดาวน์ (นาที)</label>
+              <label className="text-xs font-semibold text-[var(--color-text-muted)] mb-1 block">คูลดาวน์ (นาที)</label>
               <input
                 type="number"
                 className="control"
@@ -168,9 +168,9 @@ export function StrengthWorkoutCard({
           </div>
 
           <div className="space-y-2.5">
-            <label className="text-xs font-bold text-slate-500 block">ท่าออกกำลังกาย</label>
+            <label className="text-xs font-bold text-[var(--color-text-muted)] block">ท่าออกกำลังกาย</label>
             {editingRoutine.exercises.map((ex, index) => (
-              <div key={index} className="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-2">
+              <div key={index} className="bg-[var(--surface-muted)] p-3 rounded-xl border border-[var(--border-warm)] space-y-2">
                 <input
                   className="control font-bold"
                   value={ex.name}
@@ -179,7 +179,7 @@ export function StrengthWorkoutCard({
                 />
                 <div className="grid grid-cols-3 gap-1.5">
                   <label className="block">
-                    <span className="text-[10px] text-slate-400">เซ็ต</span>
+                    <span className="text-[10px] text-[var(--color-text-soft)]">เซ็ต</span>
                     <input
                       type="number"
                       className="control text-xs"
@@ -188,7 +188,7 @@ export function StrengthWorkoutCard({
                     />
                   </label>
                   <label className="block">
-                    <span className="text-[10px] text-slate-400">จำนวนครั้ง</span>
+                    <span className="text-[10px] text-[var(--color-text-soft)]">จำนวนครั้ง</span>
                     <input
                       className="control text-xs"
                       value={ex.reps}
@@ -197,7 +197,7 @@ export function StrengthWorkoutCard({
                     />
                   </label>
                   <label className="block">
-                    <span className="text-[10px] text-slate-400">พัก (วิ)</span>
+                    <span className="text-[10px] text-[var(--color-text-soft)]">พัก (วิ)</span>
                     <input
                       type="number"
                       className="control text-xs"
@@ -210,7 +210,7 @@ export function StrengthWorkoutCard({
             ))}
           </div>
 
-          {error && <p className="text-xs font-semibold text-red-600 bg-red-50 p-3 rounded-2xl">{error}</p>}
+          {error && <p className="text-xs font-semibold text-[var(--color-danger)] bg-[var(--color-danger-soft)] p-3 rounded-2xl">{error}</p>}
 
           <div className="grid grid-cols-2 gap-2 pt-2">
             <button
@@ -238,7 +238,7 @@ export function StrengthWorkoutCard({
     <section className="card p-5 space-y-4">
       {/* Selector */}
       <div className="space-y-1.5">
-        <label className="text-xs font-bold uppercase tracking-wide text-slate-400">เลือกโปรแกรม</label>
+        <label className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-soft)]">เลือกโปรแกรม</label>
         <div className="flex gap-2">
           {routines.map((r) => (
             <button
@@ -248,7 +248,7 @@ export function StrengthWorkoutCard({
                 setSelectedRoutine(r);
                 setPrescription(null);
               }}
-              className={`flex-1 rounded-xl py-2 px-1 text-xs font-bold border transition-colors ${selectedRoutine?.id === r.id ? "border-[#17201d] bg-[#17201d] text-white" : "border-slate-200 text-slate-600 bg-white"}`}
+              className={`flex-1 rounded-xl py-2 px-1 text-xs font-bold border transition-colors ${selectedRoutine?.id === r.id ? "border-[var(--primary)] bg-[var(--primary)] text-[#0b1220]" : "border-[var(--border-warm)] text-[var(--color-text-muted)] bg-[var(--surface)]"}`}
             >
               {r.id === "recovery" ? "Recovery" : r.id === "fullbody" ? "Full Body" : "Core & Abs"}
             </button>
@@ -258,10 +258,10 @@ export function StrengthWorkoutCard({
 
       {selectedRoutine && (
         <div className="space-y-4">
-          <div className="border-b border-slate-100 pb-3">
-            <h3 className="text-lg font-bold text-[#17201d]">{selectedRoutine.name}</h3>
-            <p className="text-xs text-slate-500 mt-0.5 leading-5">{selectedRoutine.description}</p>
-            <div className="flex gap-4 mt-2 text-xs text-slate-400">
+          <div className="border-b border-[var(--border-warm)] pb-3">
+            <h3 className="text-lg font-bold text-[var(--foreground)]">{selectedRoutine.name}</h3>
+            <p className="text-xs text-[var(--color-text-muted)] mt-0.5 leading-5">{selectedRoutine.description}</p>
+            <div className="flex gap-4 mt-2 text-xs text-[var(--color-text-soft)]">
               <span>วอร์ม: {selectedRoutine.warmupMin} นาที</span>
               <span>คูลดาวน์: {selectedRoutine.cooldownMin} นาที</span>
             </div>
@@ -269,20 +269,20 @@ export function StrengthWorkoutCard({
 
           {/* AI prescription block */}
           {prescription ? (
-            <div className="rounded-2xl border border-[#d9e8df] bg-[#f5faf7] p-4 space-y-3">
+            <div className="rounded-2xl border border-[var(--color-success-border)] bg-[var(--color-success-soft)] p-4 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="rounded-full bg-green-100 text-green-700 px-2 py-0.5 text-[10px] font-bold">AI Prescription</span>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${prescription.intensity === "easy" ? "bg-green-100 text-green-700" : prescription.intensity === "hard" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>
+                <span className="rounded-full bg-[var(--color-success-soft)] text-[var(--color-success)] px-2 py-0.5 text-[10px] font-bold">AI Prescription</span>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${prescription.intensity === "easy" ? "bg-[var(--color-success-soft)] text-[var(--color-success)]" : prescription.intensity === "hard" ? "bg-[var(--color-danger-soft)] text-[var(--color-danger)]" : "bg-[var(--color-warning-soft)] text-[var(--color-warning)]"}`}>
                   ระดับ {prescription.intensity}
                 </span>
               </div>
-              <h4 className="text-sm font-bold text-[#17201d]">{prescription.recommendedTitle}</h4>
-              <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-wrap"><strong>โค้ชวิเคราะห์:</strong> {prescription.reason}</p>
+              <h4 className="text-sm font-bold text-[var(--foreground)]">{prescription.recommendedTitle}</h4>
+              <p className="text-xs text-[var(--color-text-muted)] leading-relaxed whitespace-pre-wrap"><strong>โค้ชวิเคราะห์:</strong> {prescription.reason}</p>
               
               {prescription.warnings && prescription.warnings.length > 0 && (
-                <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 space-y-1">
+                <div className="rounded-xl border border-[var(--color-warning-border)] bg-[var(--color-warning-soft)] p-3 space-y-1">
                   {prescription.warnings.map((w, i) => (
-                    <p key={i} className="text-[10px] font-semibold text-amber-800 flex items-start gap-1">
+                    <p key={i} className="text-[10px] font-semibold text-[var(--color-warning)] flex items-start gap-1">
                       <span className="shrink-0">⚠️</span>
                       <span>{w}</span>
                     </p>
@@ -292,16 +292,16 @@ export function StrengthWorkoutCard({
 
               <div className="space-y-1.5 pt-1">
                 {prescription.exercises.map((ex, i) => (
-                  <div key={i} className="text-xs flex justify-between items-start border-b border-slate-100/50 pb-1.5 last:border-0">
+                  <div key={i} className="text-xs flex justify-between items-start border-b border-[var(--border-warm)] pb-1.5 last:border-0">
                     <div>
-                      <p className="font-semibold text-slate-800">{ex.name}</p>
+                      <p className="font-semibold text-[var(--foreground)]">{ex.name}</p>
                       {ex.modificationNote && (
-                        <p className="text-[10px] text-slate-500 mt-0.5 italic">
+                        <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5 italic">
                           💡 {ex.modificationNote}
                         </p>
                       )}
                     </div>
-                    <p className="text-slate-500 font-medium shrink-0 ml-2">
+                    <p className="text-[var(--color-text-muted)] font-medium shrink-0 ml-2">
                       {formatRepsDuration(ex)}
                     </p>
                   </div>
@@ -331,17 +331,17 @@ export function StrengthWorkoutCard({
             <div className="space-y-3">
               <div className="space-y-1.5">
                 {selectedRoutine.exercises.map((ex, i) => (
-                  <div key={i} className="text-xs flex justify-between items-center border-b border-slate-100 pb-2 last:border-0">
-                    <p className="font-semibold text-slate-700">{ex.name}</p>
-                    <p className="text-slate-500 font-medium shrink-0 ml-2">
+                  <div key={i} className="text-xs flex justify-between items-center border-b border-[var(--border-warm)] pb-2 last:border-0">
+                    <p className="font-semibold text-[var(--foreground)]">{ex.name}</p>
+                    <p className="text-[var(--color-text-muted)] font-medium shrink-0 ml-2">
                       {formatRepsDuration(ex)}
                     </p>
                   </div>
                 ))}
               </div>
 
-              {error && <p className="text-xs font-semibold text-red-600 bg-red-50 p-3 rounded-2xl">{error}</p>}
-              {feedback && <p className="text-xs font-semibold text-green-700 bg-green-50 p-3 rounded-2xl">{feedback}</p>}
+              {error && <p className="text-xs font-semibold text-[var(--color-danger)] bg-[var(--color-danger-soft)] p-3 rounded-2xl">{error}</p>}
+              {feedback && <p className="text-xs font-semibold text-[var(--color-success)] bg-[var(--color-success-soft)] p-3 rounded-2xl">{feedback}</p>}
 
               <div className="flex gap-2 pt-2">
                 <button
@@ -358,13 +358,13 @@ export function StrengthWorkoutCard({
                   onClick={handleAIPrescription}
                   className="btn-secondary flex-1 py-2.5 text-xs font-bold flex items-center justify-center gap-1"
                 >
-                  {loadingAI && <div className="h-3 w-3 animate-spin rounded-full border border-slate-300 border-t-slate-600" />}
+                  {loadingAI && <div className="h-3 w-3 animate-spin rounded-full border border-[var(--border-warm)] border-t-slate-600" />}
                   {loadingAI ? "กำลังปรับ…" : "✨ ปรับให้วันนี้"}
                 </button>
                 <button
                   type="button"
                   onClick={() => setEditingRoutine({ ...selectedRoutine })}
-                  className="rounded-full bg-slate-100 px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-200"
+                  className="rounded-full bg-[var(--surface-muted)] px-4 py-2.5 text-xs font-bold text-[var(--color-text-muted)] hover:bg-[var(--surface-muted)]"
                 >
                   แก้ไข
                 </button>

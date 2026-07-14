@@ -114,7 +114,7 @@ export function NextMealCard({ recommendation, loading, onRequest, compact = fal
         type="button"
         onClick={onRequest}
         disabled={loading}
-        className="w-full rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface)] px-4 py-2.5 text-xs font-semibold text-slate-600 shadow-sm flex items-center justify-between hover:bg-[var(--surface-muted)] transition-all"
+        className="w-full rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface)] px-4 py-2.5 text-xs font-semibold text-[var(--color-text-muted)] shadow-sm flex items-center justify-between hover:bg-[var(--surface-muted)] transition-all"
       >
         <span className="flex items-center gap-1.5">🍴 อยากทานมื้อต่อไป?</span>
         <span className="text-[var(--primary)] font-bold">{loading ? "กำลังคิดเมนู..." : "ขอไอเดียมื้อต่อไป →"}</span>
@@ -229,7 +229,7 @@ export function NextMealCard({ recommendation, loading, onRequest, compact = fal
             </Link>
             <Link
               href="/upload?type=meal"
-              className="flex-1 rounded-2xl bg-[var(--primary)] py-2 text-center text-sm font-semibold text-white"
+              className="flex-1 rounded-2xl bg-[var(--primary)] py-2 text-center text-sm font-semibold text-[#0b1220]"
             >
               บันทึกมื้ออาหาร
             </Link>

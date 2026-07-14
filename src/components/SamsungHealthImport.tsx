@@ -89,14 +89,14 @@ export function SamsungHealthImport() {
     <div className="space-y-3">
       {step === "idle" && (
         <div
-          className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-200 p-8 text-center"
+          className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-[var(--border-warm)] p-8 text-center"
           onClick={() => inputRef.current?.click()}
           onDrop={onDrop}
           onDragOver={(e) => e.preventDefault()}
         >
           <p className="text-2xl">📱</p>
-          <p className="text-sm font-bold text-[#17201d]">วาง ZIP ที่นี่ หรือกดเลือกไฟล์</p>
-          <p className="text-xs text-slate-400">ไฟล์ .zip ที่ export จาก Samsung Health</p>
+          <p className="text-sm font-bold text-[var(--foreground)]">วาง ZIP ที่นี่ หรือกดเลือกไฟล์</p>
+          <p className="text-xs text-[var(--color-text-soft)]">ไฟล์ .zip ที่ export จาก Samsung Health</p>
           <input
             ref={inputRef}
             type="file"
@@ -108,19 +108,19 @@ export function SamsungHealthImport() {
       )}
 
       {step === "loading" && (
-        <div className="flex flex-col items-center gap-3 rounded-2xl bg-slate-50 p-8">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-[#42677f]" />
-          <p className="text-sm text-slate-600">กำลัง unzip และ parse ข้อมูล…</p>
-          <p className="text-xs text-slate-400">ไฟล์ใหญ่อาจใช้เวลาสักครู่</p>
+        <div className="flex flex-col items-center gap-3 rounded-2xl bg-[var(--surface-muted)] p-8">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--border-warm)] border-t-[var(--recovery-blue)]" />
+          <p className="text-sm text-[var(--color-text-muted)]">กำลัง unzip และ parse ข้อมูล…</p>
+          <p className="text-xs text-[var(--color-text-soft)]">ไฟล์ใหญ่อาจใช้เวลาสักครู่</p>
         </div>
       )}
 
       {step === "preview" && preview && (
-        <div className="rounded-2xl bg-[#e7efea] p-4 space-y-4">
+        <div className="rounded-2xl bg-[var(--color-success-soft)] p-4 space-y-4">
           <div>
-            <p className="text-sm font-bold text-[#17201d]">พบข้อมูล</p>
+            <p className="text-sm font-bold text-[var(--foreground)]">พบข้อมูล</p>
             {preview.dateFrom && preview.dateTo && (
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
                 {formatThaiShort(preview.dateFrom)} – {formatThaiShort(preview.dateTo)}
               </p>
             )}
@@ -131,12 +131,12 @@ export function SamsungHealthImport() {
             <PreviewStat icon="⚖️" label="ชั่งน้ำหนัก" count={preview.body} />
           </div>
           {cloudSyncMessage && (
-            <p className="rounded-2xl bg-red-50 p-3 text-xs font-semibold text-red-600">
+            <p className="rounded-2xl bg-[var(--color-danger-soft)] p-3 text-xs font-semibold text-[var(--color-danger)]">
               {cloudSyncMessage}
             </p>
           )}
           {preview.sleep + preview.workout + preview.body === 0 ? (
-            <p className="text-xs text-red-500">ไม่พบข้อมูลในช่วงนี้ ลอง export ใหม่ให้ครอบคลุมช่วงที่ต้องการ</p>
+            <p className="text-xs text-[var(--color-danger)]">ไม่พบข้อมูลในช่วงนี้ ลอง export ใหม่ให้ครอบคลุมช่วงที่ต้องการ</p>
           ) : (
             <div className="flex gap-2">
               <LoadingButton type="button" className="flex-1 btn-primary text-sm py-3" loading={importing} loadingText="กำลังบันทึก..." onClick={confirmImport}>
@@ -151,25 +151,25 @@ export function SamsungHealthImport() {
       )}
 
       {step === "done" && preview && (
-        <div className="rounded-2xl bg-[#e7efea] p-4 text-center space-y-1">
+        <div className="rounded-2xl bg-[var(--color-success-soft)] p-4 text-center space-y-1">
           <p className="text-xl">✅</p>
-          <p className="text-sm font-bold text-[#17201d]">Import สำเร็จแล้ว</p>
-          <p className="text-xs text-slate-600">
+          <p className="text-sm font-bold text-[var(--foreground)]">Import สำเร็จแล้ว</p>
+          <p className="text-xs text-[var(--color-text-muted)]">
             นอน {preview.sleep} · ออกกำลังกาย {preview.workout} · ชั่งน้ำหนัก {preview.body} รายการ
           </p>
           {cloudSyncMessage && (
-            <p className={`mt-2 text-xs font-semibold ${cloudSyncMessage.includes("ไม่สำเร็จ") ? "text-red-600" : "text-green-700"}`}>
+            <p className={`mt-2 text-xs font-semibold ${cloudSyncMessage.includes("ไม่สำเร็จ") ? "text-[var(--color-danger)]" : "text-[var(--color-success)]"}`}>
               {cloudSyncMessage}
             </p>
           )}
-          <p className="text-xs text-slate-400 mt-2">ดูข้อมูลได้ที่หน้า Report</p>
+          <p className="text-xs text-[var(--color-text-soft)] mt-2">ดูข้อมูลได้ที่หน้า Report</p>
         </div>
       )}
 
       {step === "error" && (
-        <div className="rounded-2xl bg-red-50 p-4 space-y-2">
-          <p className="text-sm font-bold text-red-600">เกิดข้อผิดพลาด</p>
-          <p className="text-xs text-red-500">{error}</p>
+        <div className="rounded-2xl bg-[var(--color-danger-soft)] p-4 space-y-2">
+          <p className="text-sm font-bold text-[var(--color-danger)]">เกิดข้อผิดพลาด</p>
+          <p className="text-xs text-[var(--color-danger)]">{error}</p>
           <button type="button" className="btn-secondary w-full text-sm" onClick={() => setStep("idle")}>
             ลองใหม่
           </button>
@@ -181,10 +181,10 @@ export function SamsungHealthImport() {
 
 function PreviewStat({ icon, label, count }: { icon: string; label: string; count: number }) {
   return (
-    <div className="rounded-xl bg-white p-3 text-center">
+    <div className="rounded-xl bg-[var(--surface)] p-3 text-center">
       <p className="text-lg">{icon}</p>
-      <p className="mt-1 text-xl font-bold text-[#17201d]">{count}</p>
-      <p className="text-xs text-slate-500">{label}</p>
+      <p className="mt-1 text-xl font-bold text-[var(--foreground)]">{count}</p>
+      <p className="text-xs text-[var(--color-text-muted)]">{label}</p>
     </div>
   );
 }
