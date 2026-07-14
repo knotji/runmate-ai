@@ -73,12 +73,12 @@ export default function LoginPage() {
   const anyLoading = loading || googleLoading;
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-[#f4f7f5] px-4">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-[var(--background)] px-4">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center">
           <p className="text-3xl">🏃</p>
           <h1 className="mt-2 text-xl font-bold text-[var(--foreground)]">RunMate AI</h1>
-          <p className="text-sm text-slate-500">โค้ชวิ่งส่วนตัว</p>
+          <p className="text-sm text-[var(--color-text-muted)]">โค้ชวิ่งส่วนตัว</p>
         </div>
 
         <div className="card space-y-3 p-6">
@@ -146,7 +146,7 @@ export default function LoginPage() {
           <button
             type="button"
             onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setError(""); setDone(""); }}
-            className="w-full text-center text-xs text-slate-400 hover:text-slate-600"
+            className="w-full text-center text-xs text-[var(--color-text-soft)] hover:text-[var(--foreground)]"
           >
             {mode === "signin" ? "ยังไม่มีบัญชี? สร้างบัญชีใหม่" : "มีบัญชีแล้ว? เข้าสู่ระบบ"}
           </button>

@@ -402,7 +402,7 @@ export default function TodayPage() {
               </div>
             </details>
             {dr.sleepAdvice && (
-              <p className="px-1 text-[11px] text-amber-600 leading-snug">💡 {dr.sleepAdvice}</p>
+              <p className="px-1 text-[11px] text-[var(--color-warning)] leading-snug">💡 {dr.sleepAdvice}</p>
             )}
             {/* 1c. Goal-aware strip — collapsed by default */}
             {goalProfile && (
@@ -938,7 +938,7 @@ function PostWorkoutFocusContent({ insight, context }: { insight: DailyCoachInsi
           </p>
 
           {context.recoverySystem?.guardrails && context.recoverySystem.guardrails.filter(g => !g.includes("บันทึกกิจกรรม") && !g.includes("สภาพร่างกายพร้อม")).length > 0 && (
-            <div className="rounded-2xl bg-amber-50/60 p-3 text-xs leading-relaxed text-amber-900 border border-amber-100 flex items-start gap-2">
+            <div className="rounded-2xl bg-[var(--color-warning-soft)] p-3 text-xs leading-relaxed text-[var(--color-warning)] border border-amber-100 flex items-start gap-2">
               <span className="text-sm">⚠️</span>
               <div>
                 <p className="font-bold">ข้อควรระวังฟื้นตัววันนี้</p>
@@ -954,7 +954,7 @@ function PostWorkoutFocusContent({ insight, context }: { insight: DailyCoachInsi
             </div>
           )}
 
-          <div className="rounded-2xl bg-emerald-50/60 p-3 text-xs leading-relaxed text-emerald-900 border border-emerald-100 flex items-start gap-2">
+          <div className="rounded-2xl bg-[var(--color-success-soft)] p-3 text-xs leading-relaxed text-[var(--color-success)] border border-emerald-100 flex items-start gap-2">
             <span className="text-sm">🍳</span>
             <div>
               <p className="font-bold">โภชนาการฟื้นฟูหลังซ้อม</p>
@@ -970,7 +970,7 @@ function PostWorkoutFocusContent({ insight, context }: { insight: DailyCoachInsi
             <ul className="space-y-1.5">
               {items.map((item) => (
                 <li key={item} className="flex gap-2">
-                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#2a5a39]" />
+                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-success)]" />
                   <span>{item}</span>
                 </li>
               ))}
@@ -1104,10 +1104,10 @@ function TodayStrengthRoutineCard({
     const summaryParts = [loggedDuration, loggedLabel, "เวท", loggedHR, loggedCalories].filter(Boolean);
 
     return (
-      <section className="card space-y-3 p-5 border-l-4 border-green-500 bg-[#fbfdfb]">
+      <section className="card space-y-3 p-5 border-l-4 border-[var(--color-success)] bg-[var(--color-success-soft)]">
         <div>
           <div className="flex items-center gap-2">
-            <span className="rounded-full bg-[#eef7f0] px-2.5 py-0.5 text-[10px] font-bold text-[var(--status-ready)]">✓ วันนี้บันทึกเวทแล้ว</span>
+            <span className="rounded-full bg-[var(--color-success-soft)] px-2.5 py-0.5 text-[10px] font-bold text-[var(--status-ready)]">✓ วันนี้บันทึกเวทแล้ว</span>
           </div>
           <h2 className="mt-1.5 text-xl font-bold text-[var(--foreground)]">
             {prescription?.routineName ?? selected?.name ?? "Recovery Strength"} เสร็จแล้ว
@@ -1175,15 +1175,15 @@ function TodayStrengthRoutineCard({
   if (hasActivePain) {
     strengthBadge = "เน้นฟื้นตัว";
     strengthHelperCopy = "เลือกเฉพาะท่าที่ไม่กระตุ้นอาการเจ็บ และหยุดถ้าอาการกลับมา";
-    badgeColorClass = "bg-red-50 text-[var(--status-rest)] border-red-200";
+    badgeColorClass = "bg-[var(--color-danger-soft)] text-[var(--status-rest)] border-red-200";
   } else if (isFairOrCaution || hasRecentPainHistory) {
     strengthBadge = "ทางเลือกแทนวิ่งวันนี้";
     strengthHelperCopy = "ถ้าขายังล้าหรือไม่อยากวิ่ง ให้ทำชุดนี้แทนได้ ไม่จำเป็นต้องทำทั้งวิ่งและเวทในวันเดียวกัน";
-    badgeColorClass = "bg-amber-50 text-[#9b742c] border-amber-200";
+    badgeColorClass = "bg-[var(--color-warning-soft)] text-[var(--color-warning)] border-[var(--color-warning-border)]";
   } else {
     strengthBadge = "เสริมได้ถ้ายังไม่ล้า";
     strengthHelperCopy = "ทำเสริมหลังวิ่งได้ถ้ายังสด แต่ไม่จำเป็นถ้ารู้สึกล้า";
-    badgeColorClass = "bg-[#eef7f0] text-[var(--status-ready)] border-[#cfe4d5]";
+    badgeColorClass = "bg-[var(--color-success-soft)] text-[var(--status-ready)] border-[var(--color-success-border)]";
   }
 
   async function adjustForToday() {
@@ -1270,7 +1270,7 @@ function TodayStrengthRoutineCard({
 
       {/* Show only the most important note: blocking safety note takes priority, else helper copy */}
       {safety.blockWorkout && safety.note ? (
-        <p className="rounded-2xl bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
+        <p className="rounded-2xl bg-[var(--color-warning-soft)] px-3 py-2 text-xs leading-5 text-[var(--color-warning)]">
           {safety.note}
         </p>
       ) : strengthHelperCopy ? (
@@ -1314,11 +1314,11 @@ function TodayStrengthRoutineCard({
       ) : null}
 
       {alreadyCompleted ? (
-        <p className="rounded-2xl bg-green-50 px-3 py-2 text-xs font-bold text-green-700">
+        <p className="rounded-2xl bg-[var(--color-success-soft)] px-3 py-2 text-xs font-bold text-[var(--color-success)]">
           วันนี้บันทึกเวทแล้ว
         </p>
       ) : null}
-      {error ? <p className="rounded-2xl bg-red-50 px-3 py-2 text-xs font-semibold text-red-600">{error}</p> : null}
+      {error ? <p className="rounded-2xl bg-[var(--color-danger-soft)] px-3 py-2 text-xs font-semibold text-[var(--color-danger)]">{error}</p> : null}
 
       {!alreadyCompleted && !safety.blockWorkout ? (
         <div className="space-y-2">
@@ -1336,7 +1336,7 @@ function TodayStrengthRoutineCard({
             loading={adjusting}
             loadingText="กำลังปรับ..."
             onClick={() => void adjustForToday()}
-            className="w-full rounded-full border border-[var(--border-warm)] bg-white/80 py-2 text-xs font-semibold text-[var(--color-text-muted)] hover:bg-[var(--surface-muted)]"
+            className="w-full rounded-full border border-[var(--border-warm)] bg-[var(--surface)]/80 py-2 text-xs font-semibold text-[var(--color-text-muted)] hover:bg-[var(--surface-muted)]"
           >
             ปรับเป็นเวอร์ชันวันนี้
           </LoadingButton>
@@ -1516,9 +1516,9 @@ function buildReadinessCoverageSummary(ctx: CoachContext | null): { used: string
 
 function getAxisBadgeClass(axisKey: "recovery" | "load" | "sleep" | "fuel", score: number): string {
   const tone = getAxisTone(axisKey, score);
-  if (tone === "success") return "bg-[#eef7f0] text-[var(--status-ready)] border border-[#cfe4d5]";
-  if (tone === "warning") return "bg-[#fff6df] text-[#9b742c] border border-[#ead9a9]";
-  if (tone === "danger") return "bg-[#fff0ee] text-[var(--status-rest)] border border-[#e8c1bd]";
+  if (tone === "success") return "bg-[var(--color-success-soft)] text-[var(--status-ready)] border border-[var(--color-success-border)]";
+  if (tone === "warning") return "bg-[var(--color-warning-soft)] text-[var(--color-warning)] border border-[var(--color-warning-border)]";
+  if (tone === "danger") return "bg-[var(--color-danger-soft)] text-[var(--status-rest)] border border-[var(--color-danger-border)]";
   if (tone === "info") return "bg-[var(--recovery-soft)] text-[var(--recovery-blue)] border border-[var(--color-info-border)]";
   return "bg-[var(--surface-muted)] text-[var(--color-text-muted)] border border-[var(--border-warm)]";
 }
@@ -1618,19 +1618,19 @@ function RecoveryLoopCard({ coachCtx }: { coachCtx: CoachContext }) {
 }
 
 const FACTOR_BAR_COLOR: Record<string, string> = {
-  success: "#7aab8f",
-  warning: "#c9961d",
-  danger: "#c06050",  // muted coral — reserved for active pain / true high-risk
-  info: "#7a96b0",
-  neutral: "#94a3b8",
+  success: "var(--color-success)",
+  warning: "var(--color-warning)",
+  danger: "var(--color-danger)",  // reserved for active pain / true high-risk
+  info: "var(--recovery-blue)",
+  neutral: "var(--rm-neutral)",
 };
 
 const FACTOR_BAR_TEXT_COLOR: Record<string, string> = {
-  success: "#2a6e45",
-  warning: "#9b742c",
-  danger: "#a04030",  // muted coral text
-  info: "#4a6880",
-  neutral: "#64748b",
+  success: "var(--color-success)",
+  warning: "var(--color-warning)",
+  danger: "var(--color-danger)",
+  info: "var(--recovery-blue)",
+  neutral: "var(--color-text-muted)",
 };
 
 function FactorBar({ title, score, tone, label }: { title: string; score: number; tone: string; label: string }) {
@@ -1640,7 +1640,7 @@ function FactorBar({ title, score, tone, label }: { title: string; score: number
   return (
     <div className="grid grid-cols-[4.55rem_minmax(0,1fr)_2rem_2.65rem] items-center gap-2" data-tone={tone} data-testid="today-factor-bar">
       <span className="text-[10px] font-semibold text-[var(--color-text-muted)]/80 shrink-0 leading-tight">{title}</span>
-      <div className="h-1.5 rounded-full bg-[#eee8dd]/75 overflow-hidden shadow-[inset_0_1px_1px_rgba(47,51,47,0.04)]">
+      <div className="h-1.5 rounded-full bg-[var(--border-warm)]/75 overflow-hidden shadow-[inset_0_1px_1px_rgba(47,51,47,0.04)]">
         <div className="h-full rounded-full transition-all duration-300 ease-out" style={{ width: `${pct}%`, background: color }} />
       </div>
       <span className="text-right text-[11px] font-black tabular-nums tracking-[-0.01em]" style={{ color: tColor }}>{Math.round(score)}</span>
@@ -1959,7 +1959,7 @@ function TodaySnapshotCard({
         <DetailAccordion title="ดูรายละเอียด Recovery" data-testid="recovery-details">
           <div className="space-y-3 cursor-default text-xs">
             {/* Factor bars — compact visual summary */}
-            <div className="space-y-1.5 rounded-2xl bg-white/35 px-2.5 py-2" data-testid="factor-bars">
+            <div className="space-y-1.5 rounded-2xl bg-[var(--surface)]/35 px-2.5 py-2" data-testid="factor-bars">
               {([
                 { key: "recovery" as const, title: "ฟื้นตัว" },
                 { key: "load" as const, title: "โหลดซ้อม" },
@@ -2062,7 +2062,7 @@ function TodaySnapshotCard({
                     </p>
                   )}
                   {recSys.axes.load.score >= 55 && (
-                    <p className="text-[10px] text-amber-700 font-semibold bg-amber-50/50 p-1.5 rounded-lg border border-amber-100/50">
+                    <p className="text-[10px] text-[var(--color-warning)] font-semibold bg-[var(--color-warning-soft)] p-1.5 rounded-lg border border-amber-100/50">
                       ⚠️ สำหรับโหลดซ้อม คะแนนสูงหมายถึงโหลดสะสมสูง จึงควรคุมความหนัก ไม่ใช่คะแนนดีเสมอไป
                     </p>
                   )}
@@ -2096,15 +2096,15 @@ function TodaySnapshotCard({
 
 function readinessChipClass(score: number, label?: string): string {
   if (label) {
-    if (label.includes("Excellent")) return "bg-[#eef7f0] text-[var(--status-ready)]";
-    if (label.includes("Good")) return "bg-[#e7f0fa] text-[var(--recovery-blue)]";
-    if (label.includes("Fair")) return "bg-[#fff6df] text-[#9b742c]";
-    if (label.includes("Low")) return "bg-red-50 text-[var(--status-rest)]";
+    if (label.includes("Excellent")) return "bg-[var(--color-success-soft)] text-[var(--status-ready)]";
+    if (label.includes("Good")) return "bg-[var(--color-info-soft)] text-[var(--recovery-blue)]";
+    if (label.includes("Fair")) return "bg-[var(--color-warning-soft)] text-[var(--color-warning)]";
+    if (label.includes("Low")) return "bg-[var(--color-danger-soft)] text-[var(--status-rest)]";
   }
-  if (score >= 80) return "bg-[#eef7f0] text-[var(--status-ready)]";
-  if (score >= 66) return "bg-[#e7f0fa] text-[var(--recovery-blue)]";
-  if (score >= 50) return "bg-[#fff6df] text-[#9b742c]";
-  return "bg-red-50 text-[var(--status-rest)]";
+  if (score >= 80) return "bg-[var(--color-success-soft)] text-[var(--status-ready)]";
+  if (score >= 66) return "bg-[var(--color-info-soft)] text-[var(--recovery-blue)]";
+  if (score >= 50) return "bg-[var(--color-warning-soft)] text-[var(--color-warning)]";
+  return "bg-[var(--color-danger-soft)] text-[var(--status-rest)]";
 }
 
 function isMeaningfulWorkoutTarget(value: string | null | undefined): boolean {
@@ -2206,7 +2206,7 @@ function CompactPainCard({ pains }: { pains: PainSummary[] }) {
           loading={savingResolved}
           loadingText="กำลังบันทึก..."
           onClick={() => void markPainResolved()}
-          className="w-full rounded-full bg-white/80 py-2 text-center text-xs font-bold text-[var(--color-success)] hover:bg-white"
+          className="w-full rounded-full bg-[var(--surface)]/80 py-2 text-center text-xs font-bold text-[var(--color-success)] hover:bg-[var(--surface)]"
         >
           หายแล้ว
         </LoadingButton>
@@ -2236,13 +2236,13 @@ function CompactNutritionCard({ nutrition, profile }: { nutrition: NutritionDayS
     : "เกินเป้า";
 
   return (
-    <section className="rounded-2xl border border-[var(--color-border-soft)] bg-white/45 px-3 py-2.5">
+    <section className="rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface)]/45 px-3 py-2.5">
       <div className="flex items-center justify-between gap-3">
         <span className="text-sm font-bold text-[var(--foreground)]">
           💪 Protein {actual ?? "-"} / {target} g
         </span>
         {status && (
-          <span className="shrink-0 rounded-full bg-orange-50 px-2.5 py-0.5 text-xs font-bold text-orange-700">{status}</span>
+          <span className="shrink-0 rounded-full bg-[var(--color-warning-soft)] px-2.5 py-0.5 text-xs font-bold text-[var(--color-warning)]">{status}</span>
         )}
       </div>
       <div className="mt-1 flex flex-wrap gap-x-3 text-xs text-[var(--color-text-soft)]">
@@ -2335,8 +2335,8 @@ function EndOfDaySummaryCard({
         </summary>
         <div className="mt-3 pt-3 border-t border-[var(--border-warm)]/60 cursor-default space-y-3">
           <p className="text-xs text-[var(--color-text-muted)]">กดก่อนนอนเพื่อสรุปวันนี้และวางแผนพรุ่งนี้จากข้อมูลใน Report ({newSummaryNote})</p>
-          {message && <p className="text-xs font-semibold text-green-600">{message}</p>}
-          {error && <p className="rounded-2xl bg-red-50 px-3 py-2 text-xs font-bold text-red-500">{error}</p>}
+          {message && <p className="text-xs font-semibold text-[var(--color-success)]">{message}</p>}
+          {error && <p className="rounded-2xl bg-[var(--color-danger-soft)] px-3 py-2 text-xs font-bold text-[var(--color-danger)]">{error}</p>}
           <LoadingButton type="button" loading={loading} loadingText="กำลังสร้างสรุป..." onClick={onGenerate} className="w-full rounded-full border border-rm-primary/40 bg-rm-primary-soft py-2.5 text-xs font-bold text-rm-primary-strong disabled:opacity-50">
             สร้างสรุปท้ายวัน
           </LoadingButton>
@@ -2353,8 +2353,8 @@ function EndOfDaySummaryCard({
         <p className="mt-1 text-sm leading-6 text-[var(--color-text-muted)]">กดก่อนนอนเพื่อสรุปวันนี้และวางแผนพรุ่งนี้จากข้อมูลใน Report</p>
         <p className="mt-1 text-[11px] text-[var(--color-text-soft)]">{newSummaryNote}</p>
       </div>
-      {message && <p className="text-xs font-semibold text-green-600">{message}</p>}
-      {error && <p className="rounded-2xl bg-red-50 px-3 py-2 text-xs font-bold text-red-500">{error}</p>}
+      {message && <p className="text-xs font-semibold text-[var(--color-success)]">{message}</p>}
+      {error && <p className="rounded-2xl bg-[var(--color-danger-soft)] px-3 py-2 text-xs font-bold text-[var(--color-danger)]">{error}</p>}
       <LoadingButton type="button" loading={loading} loadingText="กำลังสร้างสรุป..." onClick={onGenerate} className="w-full rounded-full border border-rm-primary/40 bg-rm-primary-soft py-3 text-sm font-bold text-rm-primary-strong disabled:opacity-50">
         สรุปท้ายวัน
       </LoadingButton>
