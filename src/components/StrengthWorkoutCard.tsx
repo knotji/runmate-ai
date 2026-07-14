@@ -248,7 +248,7 @@ export function StrengthWorkoutCard({
                 setSelectedRoutine(r);
                 setPrescription(null);
               }}
-              className={`flex-1 rounded-xl py-2 px-1 text-xs font-bold border transition-colors ${selectedRoutine?.id === r.id ? "border-[var(--primary)] bg-[var(--primary)] text-[#0b1220]" : "border-[var(--border-warm)] text-[var(--color-text-muted)] bg-[var(--surface)]"}`}
+              className={`flex-1 rounded-xl py-2 px-1 text-xs font-bold border transition-colors ${selectedRoutine?.id === r.id ? "border-[var(--primary)] bg-[var(--primary)] text-[#fff5f0]" : "border-[var(--border-warm)] text-[var(--color-text-muted)] bg-[var(--surface)]"}`}
             >
               {r.id === "recovery" ? "Recovery" : r.id === "fullbody" ? "Full Body" : "Core & Abs"}
             </button>

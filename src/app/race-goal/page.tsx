@@ -325,7 +325,7 @@ function ConfirmReplaceSection({
           loading={replacing}
           loadingText="กำลังบันทึก..."
           onClick={onConfirm}
-          className="flex-1 rounded-2xl bg-[var(--primary)] py-3 text-sm font-bold text-[#0b1220] disabled:opacity-40"
+          className="flex-1 rounded-2xl bg-[var(--primary)] py-3 text-sm font-bold text-[#fff5f0] disabled:opacity-40"
         >
           ยืนยันสร้างแผนใหม่
         </LoadingButton>
@@ -753,7 +753,7 @@ function ActionableWeekCard({ workouts, coachContext }: { workouts: WeekWorkout[
                   <span className="text-xs font-bold text-[var(--label-color)] flex items-center gap-1.5">
                     {workout.day}
                     {isToday && (
-                      <span className="rounded bg-[var(--primary)] px-1.5 py-0.5 text-[9px] font-bold text-[#0b1220]">
+                      <span className="rounded bg-[var(--primary)] px-1.5 py-0.5 text-[9px] font-bold text-[#fff5f0]">
                         วันนี้
                       </span>
                     )}

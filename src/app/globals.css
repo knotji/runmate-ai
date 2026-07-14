@@ -1,46 +1,46 @@
 @import "tailwindcss";
 
 :root {
-  /* ─── Night Pace — dark athletic theme ─────────────────────────────────── */
-  --background: #14171a;
-  --foreground: #f2f4f3;
-  --surface: #1e2226;
-  --surface-muted: #191c1f;
-  --border-warm: #2c3238;
-  --primary: #4f9dff;
-  --primary-strong: #2f7fe0;
-  --primary-soft: #1c2a3a;
-  --recovery-blue: #4dd0c4;
-  --recovery-soft: #16302d;
-  --status-ready: #52d17c;
-  --status-caution: #ffb648;
-  --status-rest: #ff6b6b;
-  --muted-text: #9aa3a8;
+  /* ─── Daybreak — bright optimistic theme ─────────────────────────────────── */
+  --background: #f6f7f9;
+  --foreground: #14181c;
+  --surface: #ffffff;
+  --surface-muted: #eef0f3;
+  --border-warm: #d7dbe0;
+  --primary: #ff5a2e;
+  --primary-strong: #c94320;
+  --primary-soft: #ffe4da;
+  --recovery-blue: #0b6e6e;
+  --recovery-soft: #dcf0ef;
+  --status-ready: #1f9d55;
+  --status-caution: #e0a100;
+  --status-rest: #c9384a;
+  --muted-text: #5b6570;
   --muted-blue: var(--recovery-blue);
-  --soft-green: #1c3324;
+  --soft-green: #d8f3e3;
 
   /* Semantic color tokens */
-  --color-warning: #ffb648;
-  --color-warning-soft: #3a2f16;
-  --color-danger: #ff6b6b;
-  --color-danger-soft: #3a1e1e;
-  --color-success: #52d17c;
-  --color-success-soft: #17301f;
-  --color-info: #4dd0c4;
-  --color-info-soft: #16302d;
+  --color-warning: #e0a100;
+  --color-warning-soft: #fdf1d6;
+  --color-danger: #c9384a;
+  --color-danger-soft: #fbe2e5;
+  --color-success: #1f9d55;
+  --color-success-soft: #dff3e6;
+  --color-info: #0b6e6e;
+  --color-info-soft: #dcf0ef;
 
-  /* Border tokens — translucent white hairlines read cleanly on a dark ground */
-  --color-border: rgba(255, 255, 255, 0.14);
-  --color-border-soft: rgba(255, 255, 255, 0.08);
-  --color-warning-border: rgba(255, 182, 72, 0.35);
-  --color-success-border: rgba(82, 209, 124, 0.32);
-  --color-info-border: rgba(77, 208, 196, 0.32);
-  --color-danger-border: rgba(255, 107, 107, 0.32);
+  /* Border tokens — dark-on-light hairlines */
+  --color-border: rgba(20, 24, 28, 0.12);
+  --color-border-soft: rgba(20, 24, 28, 0.07);
+  --color-warning-border: rgba(224, 161, 0, 0.30);
+  --color-success-border: rgba(31, 157, 85, 0.30);
+  --color-info-border: rgba(11, 110, 110, 0.30);
+  --color-danger-border: rgba(201, 56, 74, 0.30);
 
   /* Text tokens */
   --color-text: var(--foreground);
   --color-text-muted: var(--muted-text);
-  --color-text-soft: #6f767c;
+  --color-text-soft: #8b93a0;
 
   /* Radius tokens */
   --radius-card: 20px;
@@ -49,44 +49,44 @@
   --radius-input: 14px;
   --radius-chip: 999px;
 
-  /* Shadow tokens — deeper black shadows plus a faint accent glow on floaters */
-  --shadow-card: 0 18px 45px rgba(0, 0, 0, 0.45);
-  --shadow-soft: 0 4px 16px rgba(0, 0, 0, 0.35);
-  --shadow-floating: 0 10px 24px rgba(79, 157, 255, 0.28);
+  /* Shadow tokens — soft cool-gray shadows plus a warm accent glow on floaters */
+  --shadow-card: 0 18px 45px rgba(20, 24, 28, 0.08);
+  --shadow-soft: 0 4px 16px rgba(20, 24, 28, 0.06);
+  --shadow-floating: 0 10px 24px rgba(255, 90, 46, 0.22);
 
   /* Spacing tokens */
   --space-card: 1.25rem;
   --space-card-sm: 1rem;
 
   /* Danger action tokens */
-  --color-danger-tint: #2a1414;
-  --color-danger-tint-hover: #351818;
+  --color-danger-tint: #fdeceb;
+  --color-danger-tint-hover: #fbdcd9;
 
-  /* Section label — light azure eyebrow, readable on dark ground */
-  --label-color: #8fb8d9;
+  /* Section label — cool blue-gray eyebrow */
+  --label-color: #5c7a8a;
 
-  /* ─── RunMate v0.2 — Night Pace tokens ────────────────────────────────────
+  /* ─── RunMate v0.2 — Daybreak tokens ────────────────────────────────────
      New semantic layer for the v0.2 design system. Existing --background /
      --primary / --color-* tokens above are kept as-is for backward
      compatibility; these --rm-* tokens are the source of truth going
      forward and are mapped close to the legacy values where they overlap. */
-  --rm-bg: #14171a;
-  --rm-surface: #1e2226;
-  --rm-surface-soft: #191c1f;
-  --rm-border: #2c3238;
-  --rm-text: #f2f4f3;
-  --rm-text-muted: #9aa3a8;
-  --rm-primary: #4f9dff;
-  --rm-primary-strong: #2f7fe0;
-  --rm-primary-soft: #1c2a3a;
-  --rm-caution: #ffb648;
-  --rm-caution-soft: #3a2f16;
-  --rm-stop: #ff6b6b;
-  --rm-stop-soft: #3a1e1e;
-  --rm-recovery: #4dd0c4;
-  --rm-recovery-soft: #16302d;
-  --rm-neutral: #8a939b;
-  --rm-neutral-soft: #24292e;
+  --rm-bg: #f6f7f9;
+  --rm-surface: #ffffff;
+  --rm-surface-soft: #eef0f3;
+  --rm-border: #d7dbe0;
+  --rm-text: #14181c;
+  --rm-text-muted: #5b6570;
+  --rm-primary: #ff5a2e;
+  --rm-primary-strong: #c94320;
+  --rm-primary-soft: #ffe4da;
+  --rm-caution: #e0a100;
+  --rm-caution-soft: #fdf1d6;
+  --rm-stop: #c9384a;
+  --rm-stop-soft: #fbe2e5;
+  --rm-recovery: #0b6e6e;
+  --rm-recovery-soft: #dcf0ef;
+  --rm-neutral: #8b93a0;
+  --rm-neutral-soft: #eef0f3;
 }
 
 @theme inline {
@@ -126,9 +126,9 @@ body {
   min-height: 100vh;
   overflow-x: hidden;
   background:
-    radial-gradient(circle at top left, rgba(79, 157, 255, 0.14), transparent 32rem),
-    radial-gradient(circle at 100% 10%, rgba(77, 208, 196, 0.10), transparent 28rem),
-    linear-gradient(180deg, #14171a 0%, #17191c 48%, #15181b 100%);
+    radial-gradient(circle at top left, rgba(255, 90, 46, 0.10), transparent 32rem),
+    radial-gradient(circle at 100% 10%, rgba(11, 110, 110, 0.08), transparent 28rem),
+    linear-gradient(180deg, #f9fafb 0%, #f6f7f9 48%, #f2f4f6 100%);
   color: var(--foreground);
   font-family: var(--font-noto-thai), Arial, sans-serif;
   font-weight: 400;
@@ -172,10 +172,10 @@ textarea {
 .btn-primary {
   border-radius: 999px;
   background: linear-gradient(180deg, var(--primary) 0%, var(--primary-strong) 100%);
-  color: #0b1220;
+  color: #fff5f0;
   padding: 0.85rem 1.1rem;
   font-weight: 700;
-  box-shadow: 0 10px 24px rgba(79, 157, 255, 0.28);
+  box-shadow: 0 10px 24px rgba(255, 90, 46, 0.28);
   transition: transform 150ms ease, box-shadow 150ms ease, opacity 150ms ease;
 }
 
@@ -284,7 +284,7 @@ textarea {
   font-size: 0.85rem;
   transition: background 150ms ease;
 }
-.btn-soft:hover { background: #cdddd3; background: color-mix(in srgb, var(--primary-soft) 80%, var(--primary)); }
+.btn-soft:hover { background: #ffd0bd; background: color-mix(in srgb, var(--primary-soft) 80%, var(--primary)); }
 
 /* Section heading utility */
 .section-label {
@@ -323,22 +323,22 @@ textarea {
 .health-score-card {
   background:
     linear-gradient(145deg,
-      rgba(79, 157, 255, 0.10) 0%,
-      rgba(30, 34, 38, 0.94) 40%,
-      rgba(77, 208, 196, 0.08) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.10);
+      rgba(255, 90, 46, 0.07) 0%,
+      rgba(255, 255, 255, 0.96) 40%,
+      rgba(11, 110, 110, 0.06) 100%);
+  border: 1px solid rgba(20, 24, 28, 0.08);
   border-radius: var(--radius-card);
   box-shadow:
-    0 10px 32px rgba(0, 0, 0, 0.40),
-    0 2px 8px rgba(79, 157, 255, 0.08);
+    0 10px 32px rgba(20, 24, 28, 0.07),
+    0 2px 8px rgba(255, 90, 46, 0.06);
 }
 
 .ring-panel {
   display: flex;
   flex-direction: column;
   align-items: center;
-  background: rgba(30, 34, 38, 0.70);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.70);
+  border: 1px solid rgba(20, 24, 28, 0.06);
   border-radius: 16px;
   padding: 0.5rem 0.25rem 0.5rem;
 }

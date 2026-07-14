@@ -392,7 +392,7 @@ export function StrengthRoutineManager() {
                 setSelectedRoutine(r);
                 setPrescription(null);
               }}
-              className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition-all border ${selectedRoutine?.id === r.id ? "bg-[var(--primary)] text-[#0b1220] border-[var(--primary)]" : "bg-[var(--surface)] text-[var(--color-text-muted)] border-[var(--border-warm)] hover:bg-[var(--surface-muted)]"}`}
+              className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition-all border ${selectedRoutine?.id === r.id ? "bg-[var(--primary)] text-[#fff5f0] border-[var(--primary)]" : "bg-[var(--surface)] text-[var(--color-text-muted)] border-[var(--border-warm)] hover:bg-[var(--surface-muted)]"}`}
             >
               {getShortName(r)}
             </button>

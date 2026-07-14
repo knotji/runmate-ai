@@ -636,7 +636,7 @@ function DaySlot({ day }: { day: import("@/lib/reportSummary").DailyReportItem }
           <span className={`text-xs ${day.isToday ? "font-bold text-[var(--foreground)]" : "font-semibold text-[var(--color-text-muted)]"}`}>
             {day.weekdayLabel}
             {day.isToday && (
-              <span className="ml-2 rounded-full bg-[var(--primary)] px-2 py-0.5 text-[10px] text-[#0b1220]">วันนี้</span>
+              <span className="ml-2 rounded-full bg-[var(--primary)] px-2 py-0.5 text-[10px] text-[#fff5f0]">วันนี้</span>
             )}
           </span>
           <span className="text-[10px] text-[var(--color-text-soft)]">ยังไม่มีข้อมูล</span>
@@ -656,7 +656,7 @@ function DaySlot({ day }: { day: import("@/lib/reportSummary").DailyReportItem }
           <span className="text-xs font-bold text-[var(--foreground)]">
             {day.weekdayLabel}
             {day.isToday && (
-              <span className="ml-2 rounded-full bg-[var(--primary)] px-2 py-0.5 text-[10px] text-[#0b1220]">วันนี้</span>
+              <span className="ml-2 rounded-full bg-[var(--primary)] px-2 py-0.5 text-[10px] text-[#fff5f0]">วันนี้</span>
             )}
           </span>
           <span className="shrink-0 text-[10px] font-bold text-[var(--primary)]">
@@ -3135,7 +3135,7 @@ function EditMealModal({
                     key={slot}
                     type="button"
                     onClick={() => setMealSlot(slot)}
-                    className={`rounded-full px-4 py-1.5 text-xs font-bold transition border ${mealSlot === slot ? "bg-[var(--primary)] text-[#0b1220] border-[var(--primary)]" : "bg-[var(--surface)] text-[var(--color-text-muted)] border-[var(--border-warm)] hover:bg-[var(--surface-muted)]"}`}
+                    className={`rounded-full px-4 py-1.5 text-xs font-bold transition border ${mealSlot === slot ? "bg-[var(--primary)] text-[#fff5f0] border-[var(--primary)]" : "bg-[var(--surface)] text-[var(--color-text-muted)] border-[var(--border-warm)] hover:bg-[var(--surface-muted)]"}`}
                   >
                     {label}
                   </button>
@@ -3180,7 +3180,7 @@ function EditMealModal({
               type="submit"
               loading={saving}
               loadingText="กำลังบันทึก..."
-              className="rounded-full bg-[var(--primary)] px-5 py-2.5 text-sm font-bold text-[#0b1220] transition hover:bg-[var(--primary-strong)]"
+              className="rounded-full bg-[var(--primary)] px-5 py-2.5 text-sm font-bold text-[#fff5f0] transition hover:bg-[var(--primary-strong)]"
             >
               บันทึกการแก้ไข
             </LoadingButton>
@@ -3309,7 +3309,7 @@ function WeeklyReviewCard({ review }: { review: WeeklyReview }) {
           </div>
           {review.nextFocus.map((f, i) => (
             <div key={i} className="flex items-start gap-2">
-              <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[var(--recovery-blue)] text-[9px] font-bold text-[#0b1220]">
+              <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[var(--recovery-blue)] text-[9px] font-bold text-[#fff5f0]">
                 {i + 1}
               </span>
               <p className="text-xs font-semibold text-[var(--color-text)] leading-5">{f}</p>
