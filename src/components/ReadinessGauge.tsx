@@ -130,8 +130,8 @@ export function ReadinessGauge({
         {/* Center text overlay */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <span
-            className="font-black tabular-nums leading-none"
-            style={{ fontSize: 22, color: loading ? "#6f767c" : colors.text }}
+            className="font-bold tabular-nums leading-none"
+            style={{ fontSize: 22, color: loading ? "#6f767c" : colors.text, fontFamily: "var(--font-display), var(--font-noto-thai), sans-serif" }}
           >
             {loading || displayScore == null ? "—" : displayScore}
           </span>

@@ -304,11 +304,12 @@ textarea {
 
 /* Metric display */
 .metric-value {
+  font-family: var(--font-display), var(--font-noto-thai), sans-serif;
   font-size: 2rem;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1;
   color: var(--foreground);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
 }
 .metric-label {
   font-size: 0.7rem;
@@ -373,9 +374,10 @@ textarea {
 
 /* ─── RunMate v0.2 — Typography scale ───────────────────────────────────── */
 .rm-page-title {
+  font-family: var(--font-display), var(--font-noto-thai), sans-serif;
   font-size: 1.75rem;
   line-height: 1.25;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--rm-text);
   letter-spacing: -0.01em;
 }
@@ -409,10 +411,11 @@ textarea {
   color: var(--rm-text-muted);
 }
 .rm-metric {
+  font-family: var(--font-display), var(--font-noto-thai), sans-serif;
   font-size: 2.75rem;
   line-height: 1;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  font-weight: 700;
+  letter-spacing: -0.01em;
   color: var(--rm-text);
 }
 
