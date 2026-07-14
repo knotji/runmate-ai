@@ -16,12 +16,12 @@ export type ReadinessGaugeProps = {
 };
 
 const STATUS_COLORS: Record<GaugeStatus, { ring: string; track: string; text: string }> = {
-  good:     { ring: "#52d17c", track: "rgba(255,255,255,0.10)", text: "#52d17c" },
-  fair:     { ring: "#ffb648", track: "rgba(255,255,255,0.10)", text: "#ffb648" },
-  caution:  { ring: "#ffb648", track: "rgba(255,255,255,0.10)", text: "#ffb648" },
-  recovery: { ring: "#4dd0c4", track: "rgba(255,255,255,0.10)", text: "#4dd0c4" },
-  risk:     { ring: "#ff6b6b", track: "rgba(255,255,255,0.10)", text: "#ff6b6b" },
-  unknown:  { ring: "#6f767c", track: "rgba(255,255,255,0.08)", text: "#9aa3a8" },
+  good:     { ring: "#1f9d55", track: "rgba(20,24,28,0.08)", text: "#1f9d55" },
+  fair:     { ring: "#e0a100", track: "rgba(20,24,28,0.08)", text: "#e0a100" },
+  caution:  { ring: "#e0a100", track: "rgba(20,24,28,0.08)", text: "#e0a100" },
+  recovery: { ring: "#0b6e6e", track: "rgba(20,24,28,0.08)", text: "#0b6e6e" },
+  risk:     { ring: "#c9384a", track: "rgba(20,24,28,0.08)", text: "#c9384a" },
+  unknown:  { ring: "#8b93a0", track: "rgba(20,24,28,0.06)", text: "#5b6570" },
 };
 
 const RADIUS = 48;
@@ -95,7 +95,7 @@ export function ReadinessGauge({
             cy={CENTER}
             r={RADIUS}
             fill="none"
-            stroke={loading ? "rgba(255,255,255,0.08)" : colors.track}
+            stroke={loading ? "rgba(20,24,28,0.06)" : colors.track}
             strokeWidth={STROKE_WIDTH}
           />
           {/* Progress ring or loading dashes */}
@@ -105,7 +105,7 @@ export function ReadinessGauge({
               cy={CENTER}
               r={RADIUS}
               fill="none"
-              stroke="#6f767c"
+              stroke="#c3c8cf"
               strokeWidth={STROKE_WIDTH}
               strokeDasharray="8 6"
             />
@@ -131,7 +131,7 @@ export function ReadinessGauge({
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <span
             className="font-bold tabular-nums leading-none"
-            style={{ fontSize: 22, color: loading ? "#6f767c" : colors.text, fontFamily: "var(--font-display), var(--font-noto-thai), sans-serif" }}
+            style={{ fontSize: 22, color: loading ? "#8b93a0" : colors.text, fontFamily: "var(--font-display), var(--font-noto-thai), sans-serif" }}
           >
             {loading || displayScore == null ? "—" : displayScore}
           </span>

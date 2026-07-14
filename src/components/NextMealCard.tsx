@@ -229,7 +229,7 @@ export function NextMealCard({ recommendation, loading, onRequest, compact = fal
             </Link>
             <Link
               href="/upload?type=meal"
-              className="flex-1 rounded-2xl bg-[var(--primary)] py-2 text-center text-sm font-semibold text-[#0b1220]"
+              className="flex-1 rounded-2xl bg-[var(--primary)] py-2 text-center text-sm font-semibold text-[#fff5f0]"
             >
               บันทึกมื้ออาหาร
             </Link>

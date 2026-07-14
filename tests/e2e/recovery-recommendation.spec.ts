@@ -200,7 +200,7 @@ test("3. Active pain: UI avoids encouraging running, shows rest/recovery", async
   expect(mentionsCaution).toBe(true);
 
   // Hero coach headline should indicate caution (activePain path)
-  const snapshotHeadline = page.locator(".health-score-card p.text-\\[15px\\]").first();
+  const snapshotHeadline = page.getByTestId("readiness-gauge").locator("p").first();
   // If visible, it should not say "ลุยเต็มที่"
   const headlineText = await snapshotHeadline.textContent().catch(() => "");
   expect(headlineText).not.toMatch(/ลุยเต็มที่|กด pace/i);
@@ -291,7 +291,7 @@ test("5. Hero insight pill shows calm copy (not 'ลุย') with low sleep", as
   await gotoApp(page, "/");
 
   // Hero insight pill (small coach insight line) should not say "go hard" variants
-  const heroPill = page.locator(".health-score-card").first();
+  const heroPill = page.getByTestId("readiness-gauge").first();
   await expect(heroPill).toBeVisible();
 
   const pillText = await heroPill.textContent();

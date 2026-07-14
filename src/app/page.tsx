@@ -403,34 +403,8 @@ export default function TodayPage() {
         signalsSlot={signalsSlot}
       />
 
-      {coachCtx && !loading && dailyReadinessForSignals && (dailyReadinessForSignals.sleepAdvice || goalProfile) && (
-        <div className="space-y-1.5">
-          {dailyReadinessForSignals.sleepAdvice && (
-            <p className="px-1 text-[11px] text-[var(--color-warning)] leading-snug">💡 {dailyReadinessForSignals.sleepAdvice}</p>
-          )}
-          {/* Goal-aware strip — collapsed by default */}
-          {goalProfile && (
-            <details className="group" data-testid="goal-details">
-              <summary className="list-none cursor-pointer">
-                <div className="flex items-center justify-between px-1">
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-rm-muted">เป้าหมายวันนี้</span>
-                  <span className="text-[10px] text-[var(--color-text-soft)]">
-                    <span className="group-open:hidden">ดู ⌄</span>
-                    <span className="hidden group-open:inline">ซ่อน ⌄</span>
-                  </span>
-                </div>
-              </summary>
-              <div className="mt-1.5">
-                <GoalAwareTodayStrip
-                  goalProfile={goalProfile}
-                  band={dailyReadinessForSignals.band}
-                  loadTarget={dailyReadinessForSignals.loadTarget}
-                  hasPain={coachCtx.activePain ?? false}
-                />
-              </div>
-            </details>
-          )}
-        </div>
+      {coachCtx && !loading && dailyReadinessForSignals?.sleepAdvice && (
+        <p className="px-1 text-[11px] text-[var(--color-warning)] leading-snug">💡 {dailyReadinessForSignals.sleepAdvice}</p>
       )}
 
       {/* Hard-stop sick card — shown prominently above recommendation when active */}
@@ -540,44 +514,51 @@ export default function TodayPage() {
         </div>
       </div>
 
-      {insight && coachCtx && shouldShowTodayStrengthCard(insight, coachCtx) ? (
+      {/* Safety-critical: active pain always stays visible, never tucked behind a toggle */}
+      {coachCtx?.latestPain && coachCtx.latestPain.hasActivePain && coachCtx.latestPain.painLevel > 0 && (
+        <>
+          <p className="mt-1 px-1 rm-eyebrow">Recovery / อาการ</p>
+          <CompactPainCard pains={[coachCtx.latestPain, ...coachCtx.recentPainLogs.filter((pain) => pain.id !== coachCtx.latestPain?.id)]} />
+        </>
+      )}
+
+      {/* Sick Day entry point — non-hard-stop variants stay here; hard-stop shown earlier */}
+      {coachCtx && coachCtx.sickRiskLevel !== "hard_stop" && <SickDayEntryCard coachCtx={coachCtx} />}
+
+      {insight && coachCtx && shouldShowTodayStrengthCard(insight, coachCtx) && (
         <TodayStrengthRoutineCard
           insight={insight}
           context={coachCtx}
           onSaved={() => void generateInsight(true)}
         />
-      ) : null}
+      )}
 
-      {/* F. Compact detail sections */}
-      {(() => {
-        if (!coachCtx?.latestPain) return null;
-        const latest = coachCtx.latestPain;
-        const hasActivePain = latest.hasActivePain && latest.painLevel > 0;
+      {/* Low-priority extras — goal strip + resolved-pain notice only; everything else
+          people actually interact with daily (nutrition, next meal) stays visible above. */}
+      {((goalProfile && dailyReadinessForSignals) ||
+        (coachCtx?.latestPain && !(coachCtx.latestPain.hasActivePain && coachCtx.latestPain.painLevel > 0))) && (
+        <DetailAccordion title="ดูเพิ่มเติมวันนี้" data-testid="today-more-details">
+          <div className="space-y-3">
+            {goalProfile && dailyReadinessForSignals && (
+              <GoalAwareTodayStrip
+                goalProfile={goalProfile}
+                band={dailyReadinessForSignals.band}
+                loadTarget={dailyReadinessForSignals.loadTarget}
+                hasPain={coachCtx?.activePain ?? false}
+              />
+            )}
 
-        if (hasActivePain) {
-          return (
-            <>
-              <p className="mt-1 px-1 rm-eyebrow">Recovery / อาการ</p>
-              <CompactPainCard pains={coachCtx.latestPain ? [coachCtx.latestPain, ...coachCtx.recentPainLogs.filter((pain) => pain.id !== coachCtx.latestPain?.id)] : coachCtx.recentPainLogs} />
-            </>
-          );
-        } else {
-          return (
-            <>
-              <p className="mt-1 px-1 rm-eyebrow">Recovery / อาการ</p>
+            {coachCtx?.latestPain && !(coachCtx.latestPain.hasActivePain && coachCtx.latestPain.painLevel > 0) && (
               <div className="flex items-center justify-between rounded-2xl border border-rm-border bg-rm-surface px-4 py-2.5 text-xs text-rm-text shadow-[0_6px_18px_rgba(72,82,72,0.035)]">
-                <span className="font-semibold text-rm-text">🩹 อาการเจ็บ{latest.painLocation}ดีขึ้นแล้ว</span>
+                <span className="font-semibold text-rm-text">🩹 อาการเจ็บ{coachCtx.latestPain.painLocation}ดีขึ้นแล้ว</span>
                 <Link href="/pain" className="text-rm-primary-strong font-bold hover:underline">
                   อัปเดตอาการ →
                 </Link>
               </div>
-            </>
-          );
-        }
-      })()}
-
-      {/* Sick Day entry point — non-hard-stop variants stay here; hard-stop shown earlier */}
-      {coachCtx && coachCtx.sickRiskLevel !== "hard_stop" && <SickDayEntryCard coachCtx={coachCtx} />}
+            )}
+          </div>
+        </DetailAccordion>
+      )}
 
       {(() => {
         if (!coachCtx) return null;
@@ -2417,20 +2398,18 @@ function SickDayEntryCard({ coachCtx }: { coachCtx: CoachContext }) {
   }
 
   return (
-    <InsightCard
+    <div
       data-testid="sick-day-entry-card"
-      tone="neutral"
-      title="วันนี้ไม่สบาย?"
-      body="บันทึกอาการป่วย เพื่อให้ RunMate ปรับคำแนะนำซ้อมให้ปลอดภัยขึ้น"
-      action={
-        <Link
-          href="/sick"
-          className="inline-block rounded-xl border border-rm-border bg-rm-surface-soft px-3 py-1.5 text-xs font-bold text-rm-muted"
-        >
-          แจ้งว่าป่วย
-        </Link>
-      }
-    />
+      className="flex items-center justify-between gap-3 rounded-2xl border border-rm-border bg-rm-surface-soft px-4 py-2.5"
+    >
+      <span className="text-xs font-semibold text-rm-text">วันนี้ไม่สบาย?</span>
+      <Link
+        href="/sick"
+        className="shrink-0 rounded-xl border border-rm-border bg-rm-surface px-3 py-1.5 text-xs font-bold text-rm-muted"
+      >
+        แจ้งว่าป่วย
+      </Link>
+    </div>
   );
 }
 

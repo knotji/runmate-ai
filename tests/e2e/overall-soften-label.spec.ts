@@ -171,9 +171,9 @@ test.describe("Readiness Label Softening with Caution Axes", () => {
     await expect(page.getByText("80 Readiness Good")).toBeVisible();
     await expect(page.getByText("80 Readiness Excellent")).toHaveCount(0);
 
-    // Check that the background color class is Blue (bg-[#e7f0fa]) instead of Green
+    // Check that the background color class is the info/blue token instead of success/green
     const chip = page.locator("span.rounded-full").filter({ hasText: /Readiness/ }).first();
-    await expect(chip).toHaveClass(/bg-\[#e7f0fa\]/);
+    await expect(chip).toHaveClass(/color-info-soft/);
 
     // Moderate caution: heavy card NOT shown, soft note shown instead
     await expect(page.getByText("ข้อแนะนำความพร้อม")).toHaveCount(0);
@@ -183,11 +183,11 @@ test.describe("Readiness Label Softening with Caution Axes", () => {
     await page.getByRole("link", { name: "Coach" }).click();
     await page.waitForURL("**/coach");
 
-    // CoachContextDashboard score badge (rounded-2xl) should show the recovery score and "Fair" label
+    // CoachContextDashboard score badge should show the recovery score and "Fair" label
     const dashboard = page.locator('[data-testid="coach-context-dashboard"]');
     await expect(dashboard).toBeVisible();
-    await expect(dashboard.locator(".rounded-2xl").getByText("55")).toBeVisible();
-    await expect(dashboard.locator(".rounded-2xl").getByText("Fair")).toBeVisible();
+    await expect(dashboard.getByTestId("coach-score-badge").getByText("55")).toBeVisible();
+    await expect(dashboard.getByTestId("coach-score-badge").getByText("Fair")).toBeVisible();
 
     // Coaching stance for "maintain" state
     await expect(page.getByText("วันนี้ยังไปตามแผนได้")).toBeVisible();
@@ -265,9 +265,9 @@ test.describe("Readiness Label Softening with Caution Axes", () => {
     // Top chip overall score should show 85 Excellent
     await expect(page.getByText("85 Readiness Excellent")).toBeVisible();
 
-    // Check that background is Green (bg-[#eef7f0])
+    // Check that background is the success/green token
     const chip = page.locator("span.rounded-full").filter({ hasText: /Readiness/ }).first();
-    await expect(chip).toHaveClass(/bg-\[#eef7f0\]/);
+    await expect(chip).toHaveClass(/color-success-soft/);
 
     // No Caution Note banner
     await expect(page.getByText("ข้อแนะนำความพร้อม")).toHaveCount(0);
