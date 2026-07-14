@@ -384,7 +384,7 @@ export default function TodayPage() {
               <summary className="list-none cursor-pointer">
                 <div className="flex items-center gap-2 px-1">
                   <div className="flex flex-1 flex-wrap items-center gap-2.5">
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--color-text-soft)]">สัญญาณวันนี้</span>
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-rm-muted">สัญญาณวันนี้</span>
                     <TodaySignalCircles
                       signals={dr.signals}
                       sickHardStop={coachCtx.sickRiskLevel === "hard_stop"}
@@ -409,7 +409,7 @@ export default function TodayPage() {
               <details className="group" data-testid="goal-details">
                 <summary className="list-none cursor-pointer">
                   <div className="flex items-center justify-between px-1">
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--color-text-soft)]">เป้าหมายวันนี้</span>
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-rm-muted">เป้าหมายวันนี้</span>
                     <span className="text-[10px] text-[var(--color-text-soft)]">
                       <span className="group-open:hidden">ดู ⌄</span>
                       <span className="hidden group-open:inline">ซ่อน ⌄</span>
@@ -488,7 +488,7 @@ export default function TodayPage() {
         {!insight && !loading && !insightError && hasHistory && (
           <div className="flex items-center justify-between gap-3 py-1">
             <p className="rm-body text-rm-muted">มีข้อมูลพร้อมแล้ว</p>
-            <LoadingButton type="button" loading={loading} loadingText="กำลังวิเคราะห์..." onClick={() => void generateInsight(true)} className="shrink-0 rounded-full bg-rm-primary px-4 py-1.5 text-xs font-bold text-rm-surface">
+            <LoadingButton type="button" loading={loading} loadingText="กำลังวิเคราะห์..." onClick={() => void generateInsight(true)} className="shrink-0 rounded-full border border-rm-primary/40 bg-rm-primary-soft px-4 py-1.5 text-xs font-bold text-rm-primary-strong">
               วิเคราะห์
             </LoadingButton>
           </div>
@@ -1553,14 +1553,14 @@ function RecoveryLoopCard({ coachCtx }: { coachCtx: CoachContext }) {
       {/* 2-column strip: sleep | tomorrow */}
       <div className="grid grid-cols-2 gap-x-3 divide-x divide-[var(--color-border-soft)]/80">
         <div className="pr-2">
-          <p className="text-[9px] font-bold uppercase tracking-wide text-[var(--color-text-soft)] mb-1">คืนนี้</p>
+          <p className="text-[9px] font-bold uppercase tracking-wide text-rm-muted mb-1">คืนนี้</p>
           <div className="flex items-center gap-1 text-xs">
             <span className="leading-none">🌙</span>
             <span className="font-bold text-[var(--foreground)] leading-snug">{sleepNeed.label}</span>
           </div>
         </div>
         <div className="pl-3">
-          <p className="text-[9px] font-bold uppercase tracking-wide text-[var(--color-text-soft)] mb-1">ถัดไป</p>
+          <p className="text-[9px] font-bold uppercase tracking-wide text-rm-muted mb-1">ถัดไป</p>
           <div className="flex items-start gap-1 text-xs">
             <span className="leading-none shrink-0">{icon}</span>
             <span className="font-bold text-[var(--foreground)] leading-snug">{tomorrowPreview.headline}</span>
@@ -1569,7 +1569,7 @@ function RecoveryLoopCard({ coachCtx }: { coachCtx: CoachContext }) {
       </div>
 
       {/* Day load context — full width, below sleep so Y ordering is preserved */}
-      <p className="text-[11px] text-[var(--color-text-soft)] leading-snug" data-testid="day-load-context">{dayLoadContextLine}</p>
+      <p className="text-[11px] text-rm-muted leading-snug" data-testid="day-load-context">{dayLoadContextLine}</p>
 
       {/* Expandable detail */}
       <button
@@ -1795,13 +1795,17 @@ function TodaySnapshotCard({
   const chipLabel = hasSleepToday ? displayStatus.label : `ล่าสุด · ${displayStatus.label}`;
 
   const hasGaugeData = !loading && readinessScore != null && !!insight;
-  // The gauge (when shown) already renders its own headline/subline text, and other
-  // cards below (e.g. sick hard-stop) may independently show the same headline copy —
-  // so StatusHero's own title/subtitle stay empty here, matching the original layout
-  // which showed no separate headline text when the gauge itself wasn't rendered.
+  // The gauge (when shown) already renders its own headline/subline text, so StatusHero's
+  // own title/subtitle only fill in when there's no gauge yet — using copy distinct from
+  // SickDayEntryCard's own heading below, so the two never duplicate the same text.
   const heroTone: RmTone = loading ? "neutral" : mapGaugeStatusToTone(gaugeStatus);
-  const heroTitle: string | undefined = undefined;
-  const heroSubtitle: string | undefined = undefined;
+  const isSickHardStop = coachCtx?.sickRiskLevel === "hard_stop";
+  const heroTitle: string | undefined =
+    !loading && !hasGaugeData ? (isSickHardStop ? "งดหนักไว้ก่อน" : "วันนี้มีข้อมูลบางส่วน") : undefined;
+  const heroSubtitle: string | undefined =
+    !loading && !hasGaugeData
+      ? (isSickHardStop ? "บันทึกอาการแล้ว รอข้อมูลเพิ่มเพื่อประเมินภาพรวม" : "เพิ่มข้อมูลนอน/ซ้อม เพื่อให้คำแนะนำแม่นขึ้น")
+      : undefined;
   const heroMetric = loading ? (
     <ReadinessGauge score={null} label="" status="unknown" headlineTh="กำลังประเมิน…" loading />
   ) : hasGaugeData ? (
@@ -2333,7 +2337,7 @@ function EndOfDaySummaryCard({
           <p className="text-xs text-slate-500">กดก่อนนอนเพื่อสรุปวันนี้และวางแผนพรุ่งนี้จากข้อมูลใน Report ({newSummaryNote})</p>
           {message && <p className="text-xs font-semibold text-green-600">{message}</p>}
           {error && <p className="rounded-2xl bg-red-50 px-3 py-2 text-xs font-bold text-red-500">{error}</p>}
-          <LoadingButton type="button" loading={loading} loadingText="กำลังสร้างสรุป..." onClick={onGenerate} className="btn-primary w-full py-2.5 text-xs font-bold disabled:opacity-50">
+          <LoadingButton type="button" loading={loading} loadingText="กำลังสร้างสรุป..." onClick={onGenerate} className="w-full rounded-full border border-rm-primary/40 bg-rm-primary-soft py-2.5 text-xs font-bold text-rm-primary-strong disabled:opacity-50">
             สร้างสรุปท้ายวัน
           </LoadingButton>
         </div>
@@ -2351,7 +2355,7 @@ function EndOfDaySummaryCard({
       </div>
       {message && <p className="text-xs font-semibold text-green-600">{message}</p>}
       {error && <p className="rounded-2xl bg-red-50 px-3 py-2 text-xs font-bold text-red-500">{error}</p>}
-      <LoadingButton type="button" loading={loading} loadingText="กำลังสร้างสรุป..." onClick={onGenerate} className="btn-primary w-full py-3 text-sm font-bold disabled:opacity-50">
+      <LoadingButton type="button" loading={loading} loadingText="กำลังสร้างสรุป..." onClick={onGenerate} className="w-full rounded-full border border-rm-primary/40 bg-rm-primary-soft py-3 text-sm font-bold text-rm-primary-strong disabled:opacity-50">
         สรุปท้ายวัน
       </LoadingButton>
     </section>

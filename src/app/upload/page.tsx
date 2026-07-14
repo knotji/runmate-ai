@@ -45,7 +45,6 @@ import {
   CONFIDENCE_LABELS,
 } from "@/lib/upload/uploadConstants";
 import { StatusHero } from "@/components/ui/StatusHero";
-import { InsightCard } from "@/components/ui/InsightCard";
 import { DetailAccordion } from "@/components/ui/DetailAccordion";
 import { PrimaryCTA, SecondaryCTA } from "@/components/ui/ActionButton";
 import { cn } from "@/lib/cn";
@@ -685,71 +684,68 @@ export default function UploadPage() {
           subtitle="วางรูป ไฟล์ หรือพิมพ์ข้อความได้เลย RunMate จะช่วยแยกประเภทให้"
           data-testid="universal-intake-hero"
         >
-          <p className="rm-body text-rm-muted">
-            อัปโหลดรูป/ไฟล์ หรือเลือกประเภทด้านล่าง RunMate จะช่วยอ่านและสรุปให้ก่อนบันทึก
+          <p className="inline-flex items-start gap-1.5 rounded-2xl bg-rm-recovery-soft px-3 py-2 text-xs leading-5 text-rm-text/80">
+            <span aria-hidden="true">🔎</span>
+            <span>RunMate จะสรุปให้ก่อนบันทึก คุณยืนยันหรือแก้ไขได้ทุกครั้ง</span>
           </p>
-          <div className="flex flex-wrap gap-2 pt-1">
+          <div className="flex flex-wrap items-center gap-2 pt-1">
             <PrimaryCTA type="button" data-testid="universal-intake-cta" onClick={() => setShowIntakeChooser(true)}>
-              เลือกไฟล์หรือรูป
+              เริ่มเพิ่มข้อมูล
             </PrimaryCTA>
             <SecondaryCTA type="button" data-testid="universal-intake-text-cta" onClick={startQuickTextEntry}>
               พิมพ์บันทึกเอง
             </SecondaryCTA>
           </div>
+          <p className="rm-caption pt-0.5">เลือกประเภทก่อน แล้ว RunMate จะพาไปขั้นตอนที่ถูกต้อง</p>
         </StatusHero>
 
-        <InsightCard
-          tone="recovery"
-          icon="🔎"
-          title="RunMate จะสรุปก่อนบันทึก"
-          body="หลังอัปโหลด ระบบจะแสดงสิ่งที่อ่านได้ และให้คุณยืนยันหรือแก้ไขก่อนบันทึกทุกครั้ง"
-        />
-
-        <div className="space-y-2">
-          <p className="rm-card-title">เลือกประเภทเอง</p>
-          <p className="rm-caption -mt-1">ถ้ารู้ว่าข้อมูลคืออะไร เลือกตรงนี้ได้เลย</p>
-          <div className="grid grid-cols-3 gap-2 sm:grid-cols-6" data-testid="upload-type-selector">
+        <div className="space-y-1.5">
+          <div className="flex items-baseline justify-between gap-2">
+            <p className="text-sm font-bold text-rm-text">เลือกประเภทเอง</p>
+            <p className="rm-caption">ถ้ารู้ว่าข้อมูลคืออะไร เลือกตรงนี้ได้เลย</p>
+          </div>
+          <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-8" data-testid="upload-type-selector">
             {UPLOAD_ORDER.map((item) => (
               <button
                 key={item}
                 type="button"
                 className={cn(
-                  "rounded-[18px] border px-3 py-2.5 text-center text-xs font-bold transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-rm-primary",
+                  "rounded-2xl border px-2 py-2 text-center text-[11px] font-bold transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-rm-primary",
                   type === item
                     ? "border-rm-primary-strong bg-rm-primary text-rm-surface shadow-sm"
                     : "border-rm-border bg-rm-surface/70 text-rm-muted hover:bg-rm-primary-soft/60",
                 )}
                 onClick={() => selectUploadType(item)}
               >
-                <span className="block text-base leading-none">{UPLOAD_DASHBOARD_META[item].icon}</span>
+                <span className="block text-sm leading-none">{UPLOAD_DASHBOARD_META[item].icon}</span>
                 <span className="mt-1 block">{UPLOAD_LABELS[item]}</span>
               </button>
             ))}
             <Link
               href="/pain"
-              className="rounded-[18px] border border-rm-border bg-rm-surface/70 px-3 py-2.5 text-center text-xs font-bold text-rm-muted transition-all hover:bg-rm-primary-soft/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-rm-primary"
+              className="rounded-2xl border border-rm-border bg-rm-surface/70 px-2 py-2 text-center text-[11px] font-bold text-rm-muted transition-all hover:bg-rm-primary-soft/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-rm-primary"
             >
-              <span className="block text-base leading-none">🩹</span>
+              <span className="block text-sm leading-none">🩹</span>
               <span className="mt-1 block">อาการเจ็บ</span>
             </Link>
             <Link
               href="/sick"
-              className="rounded-[18px] border border-rm-border bg-rm-surface/70 px-3 py-2.5 text-center text-xs font-bold text-rm-muted transition-all hover:bg-rm-primary-soft/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-rm-primary"
+              className="rounded-2xl border border-rm-border bg-rm-surface/70 px-2 py-2 text-center text-[11px] font-bold text-rm-muted transition-all hover:bg-rm-primary-soft/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-rm-primary"
             >
-              <span className="block text-base leading-none">🤒</span>
+              <span className="block text-sm leading-none">🤒</span>
               <span className="mt-1 block">อาการป่วย</span>
             </Link>
             <Link
               href="/settings?tab=data"
-              className="rounded-[18px] border border-rm-border bg-rm-surface/70 px-3 py-2.5 text-center text-xs font-bold text-rm-muted transition-all hover:bg-rm-primary-soft/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-rm-primary"
+              className="rounded-2xl border border-rm-border bg-rm-surface/70 px-2 py-2 text-center text-[11px] font-bold text-rm-muted transition-all hover:bg-rm-primary-soft/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-rm-primary"
             >
-              <span className="block text-base leading-none">📥</span>
+              <span className="block text-sm leading-none">📥</span>
               <span className="mt-1 block">นำเข้าประวัติ</span>
             </Link>
           </div>
         </div>
 
-        <DetailAccordion title="ข้อมูลแต่ละแบบช่วยอะไร?">
+        <DetailAccordion title="ข้อมูลแต่ละแบบช่วยอะไร?" className="text-xs">
           <ul className="space-y-1">
             <li>· นอน: ใช้ประเมิน readiness</li>
             <li>· ซ้อม: ใช้คำนวณ load และ pace/HR</li>
