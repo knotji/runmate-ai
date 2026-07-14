@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState, useEffect, type ReactNode } from "react";
+import { FormEvent, useState, useEffect, useRef, type ReactNode } from "react";
 import { fileToDataUrl, type UploadKind } from "@/lib/storage";
 import { compressImage } from "@/lib/images/compressImage";
 import { ErrorState } from "@/components/ErrorState";
@@ -23,6 +23,8 @@ export function ImageUploader({
   compressImages = false,
   onResult,
   children,
+  initialFile,
+  autoSubmit = false,
 }: {
   kind: UploadKind;
   endpoint: string;
@@ -34,18 +36,32 @@ export function ImageUploader({
   compressImages?: boolean;
   onResult: (result: unknown) => void | Promise<void>;
   children?: ReactNode;
+  /** Pre-seed the file picker with a file already captured elsewhere (e.g. the universal intake classifier), so the user never has to re-select it. */
+  initialFile?: File;
+  /** When true (only meaningful together with initialFile), submit automatically once seeded instead of waiting for a manual button click. */
+  autoSubmit?: boolean;
 }) {
-  const [files, setFiles] = useState<File[]>([]);
-  const [previews, setPreviews] = useState<string[]>([]);
+  const [files, setFiles] = useState<File[]>(initialFile ? [initialFile] : []);
+  const [previews, setPreviews] = useState<string[]>(
+    initialFile ? [URL.createObjectURL(initialFile)] : [],
+  );
   const [inputKey, setInputKey] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const autoSubmittedRef = useRef(false);
 
   useEffect(() => {
     return () => {
       previews.forEach((url) => URL.revokeObjectURL(url));
     };
   }, [previews]);
+
+  useEffect(() => {
+    if (!initialFile || !autoSubmit || autoSubmittedRef.current) return;
+    autoSubmittedRef.current = true;
+    void submit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialFile, autoSubmit]);
 
   function removeFile(indexToRemove: number) {
     setFiles((prev) => prev.filter((_, idx) => idx !== indexToRemove));
@@ -57,8 +73,8 @@ export function ImageUploader({
     });
   }
 
-  async function submit(event: FormEvent) {
-    event.preventDefault();
+  async function submit(event?: FormEvent) {
+    event?.preventDefault();
     setError("");
     const isMealUpload = kind === "meal";
     const mealType = typeof extraFields?.mealType === "string" ? extraFields.mealType.trim() : "";

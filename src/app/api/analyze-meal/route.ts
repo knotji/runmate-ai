@@ -3,6 +3,7 @@ import { jsonFromAI } from "@/lib/ai";
 import { mergeWithFallback } from "@/lib/fallback";
 import { mealPrompt } from "@/lib/prompts/meal";
 import { buildRunnerProfileContext } from "@/lib/buildRunnerProfileContext";
+import { normalizeMealFoodQuantities } from "@/lib/upload/normalizeMealFoodQuantities";
 import { createClient } from "@/lib/supabase/server";
 import type { MealAnalysis, SleepAnalysis } from "@/types/logs";
 
@@ -281,7 +282,7 @@ function normalizeMealResult(
     inputMode: meta.inputMode,
     originalMealText: meta.inputMode === "text" ? meta.mealText ?? "" : data.originalMealText,
     note: meta.note || data.note,
-    detectedFoods: Array.isArray(data.detectedFoods) ? data.detectedFoods : [],
+    detectedFoods: normalizeMealFoodQuantities(data.detectedFoods),
     confidence: data.confidence ?? "low",
     unclearFields: Array.isArray(data.unclearFields) ? data.unclearFields : [],
     needsReview: data.needsReview ?? true,

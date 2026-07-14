@@ -6,6 +6,7 @@ import { AppShell } from "@/components/AppShell";
 import { LoadingButton } from "@/components/LoadingButton";
 import { fileToDataUrl } from "@/lib/storage";
 import { createHistoryItem, loadHistoryItemById, saveHistoryItems } from "@/lib/cloudHistory";
+import { readDraftIntakeNote } from "@/lib/upload/draftIntakeNote";
 import type { PainLog, PainAnalysisResult, PainSide, PainTriYesNo, PainRiskLevel, PainTrainingImpact } from "@/types/pain";
 
 // ── status choice ────────────────────────────────────────────────────────────
@@ -128,10 +129,19 @@ function PainPageContent() {
   const [savedStatus, setSavedStatus] = useState<PainStatusChoice | null>(null);
 
   const prefilling = fromId !== null && !prefillComplete;
+  // Consumed once per component instance and cached in a ref (rather than re-read from
+  // sessionStorage each time) so a React Strict Mode double-invoke of the reset effect
+  // below can't race itself — the second invocation would otherwise find the key already
+  // removed by the first and clobber it back to "".
+  const consumedDraftNoteRef = useRef<string | null | undefined>(undefined);
 
   // Prefill from existing pain log when ?from=[id] is present
   useEffect(() => {
     if (!fromId) {
+      if (consumedDraftNoteRef.current === undefined) {
+        consumedDraftNoteRef.current = readDraftIntakeNote("pain");
+      }
+      const draftNote = consumedDraftNoteRef.current;
       queueMicrotask(() => {
         setPainStatusChoice("active_pain");
         setPainLocation("");
@@ -142,7 +152,7 @@ function PainPageContent() {
         setPainfulWhen([]);
         setSwellingOrRedness("unknown");
         setCanBearWeight("unknown");
-        setNotes("");
+        setNotes(draftNote ?? "");
         setImageFile(null);
         setImagePreview(null);
         setResult(null);
@@ -619,6 +629,7 @@ function PainPageContent() {
           </p>
           <textarea
             className="control min-h-[70px]"
+            data-testid="pain-notes-input"
             placeholder={
               showNormalCard ? "บันทึกสั้น ๆ ถ้าอยากจดไว้..."
               : showLightForm ? "เช่น ยังตึงเล็กน้อยตอนเช้า แต่ดีขึ้นเรื่อย ๆ"
