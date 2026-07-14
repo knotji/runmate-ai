@@ -468,7 +468,7 @@ function PainPageContent() {
                   ref={inputRef}
                   type="file"
                   accept="image/*"
-                  className="sr-only"
+                  className="hidden"
                   onChange={(e) => void handleImageChange(e.target.files?.[0] ?? null)}
                 />
                 {imagePreview ? (

@@ -571,11 +571,11 @@ export function buildRunMateRecoverySystem(
     sleepStatus = "high";
     sleepLabel = "ดีมาก";
     sleepSummary = "นอนเพียงพอกับการฟื้นตัวกล้ามเนื้อดีเยี่ยม";
-  } else if (sleepScoreVal >= 60) {
+  } else if (sleepScoreVal >= 66) {
     sleepStatus = "good";
     sleepLabel = "ดี";
     sleepSummary = "นอนดี รักษารอบการนอนได้ดี";
-  } else if (sleepScoreVal >= 40) {
+  } else if (sleepScoreVal >= 50) {
     sleepStatus = "moderate";
     sleepLabel = "พอใช้";
     sleepSummary = "นอนปานกลาง สะสมเวลานอนให้สม่ำเสมอ";
@@ -669,11 +669,11 @@ export function buildRunMateRecoverySystem(
     fuelStatus = "high";
     fuelLabel = "ดีมาก";
     fuelSummary = "กินรองรับการฟื้นตัวและซ้อมได้ดีเยี่ยม";
-  } else if (fuelScore >= 60) {
+  } else if (fuelScore >= 66) {
     fuelStatus = "good";
     fuelLabel = "ดี";
     fuelSummary = "กินรองรับการฟื้นตัวได้ดี";
-  } else if (fuelScore >= 40) {
+  } else if (fuelScore >= 50) {
     fuelStatus = "moderate";
     fuelLabel = "พอใช้";
     fuelSummary = "ระดับสารอาหารปานกลาง เติมสารอาหารเสริม";
@@ -702,6 +702,14 @@ export function buildRunMateRecoverySystem(
   if (overrides) {
     // Dynamically re-evaluate baseV2 using weights if overrides are active
     baseV2 = Math.round((recoveryScore * 0.45) + (sleepScoreVal * 0.25) + (fuelScore * 0.15) + (100 - loadScore) * 0.15);
+
+    // Re-apply the pain-safety cap that would otherwise be lost by not using readinessV2.score
+    const painLevel = context.latestPain?.painLevel;
+    const hasRedFlag = Boolean(context.latestPain?.redFlags?.length);
+    if (activePain && painLevel != null) {
+      const cap = painLevel >= 4 || hasRedFlag ? 45 : painLevel >= 2 ? 60 : null;
+      if (cap != null) baseV2 = Math.min(baseV2, cap);
+    }
   }
   const overallScore = Math.max(0, Math.min(100, baseV2));
 

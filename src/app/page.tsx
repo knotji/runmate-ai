@@ -916,24 +916,24 @@ function PostWorkoutFocusContent({ insight, context }: { insight: DailyCoachInsi
       )}
 
       {/* 4. Detailed list collapsed behind details accordion */}
-      <details className="mt-3 group border-t border-slate-100/60 pt-3 cursor-pointer">
-        <summary className="text-[11px] font-bold text-slate-400 hover:text-slate-500 list-none flex items-center justify-between">
+      <details className="mt-3 group border-t border-[var(--border-warm)]/60 pt-3 cursor-pointer">
+        <summary className="text-[11px] font-bold text-[var(--color-text-soft)] hover:text-[var(--color-text-muted)] list-none flex items-center justify-between">
           <span>ดูสิ่งที่ควรทำต่อ</span>
           <span className="transition-transform group-open:rotate-180">▾</span>
         </summary>
         <div className="mt-3 space-y-3 cursor-default text-xs">
           {parts1.length > 0 && (
-            <p className="text-xs font-semibold text-slate-800 leading-normal">
+            <p className="text-xs font-semibold text-[var(--foreground)] leading-normal">
               {parts1.join(" · ")}
             </p>
           )}
           {parts2.length > 0 && (
-            <p className="text-[11px] text-slate-500 leading-normal">
+            <p className="text-[11px] text-[var(--color-text-muted)] leading-normal">
               {parts2.join(" · ")}
             </p>
           )}
 
-          <p className="text-xs leading-relaxed text-slate-500 bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3">
+          <p className="text-xs leading-relaxed text-[var(--color-text-muted)] bg-[var(--surface-muted)] border border-[var(--border-warm)] rounded-2xl px-4 py-3">
             💡 บันทึกกิจกรรมวันนี้แล้ว ไม่จำเป็นต้องซ้อมหนักซ้ำอีก เน้นการจิบน้ำ เติมโปรตีน ขยับเบา ๆ และนอนหลับให้เพียงพอเพื่อฟื้นฟูกล้ามเนื้อ
           </p>
 
@@ -1112,7 +1112,7 @@ function TodayStrengthRoutineCard({
           <h2 className="mt-1.5 text-xl font-bold text-[var(--foreground)]">
             {prescription?.routineName ?? selected?.name ?? "Recovery Strength"} เสร็จแล้ว
           </h2>
-          <p className="mt-1 text-sm leading-relaxed text-slate-500">
+          <p className="mt-1 text-sm leading-relaxed text-[var(--color-text-muted)]">
             ต่อจากนี้เน้นฟื้นตัว เดินเบา ๆ ยืดเบา ๆ และนอนให้พอ
           </p>
         </div>
@@ -1131,20 +1131,20 @@ function TodayStrengthRoutineCard({
           <button
             type="button"
             onClick={() => setShowDetails(!showDetails)}
-            className="text-xs font-semibold text-slate-400 hover:text-slate-600 flex items-center gap-1"
+            className="text-xs font-semibold text-[var(--color-text-soft)] hover:text-[var(--color-text-muted)] flex items-center gap-1"
           >
             <span>{showDetails ? "ซ่อนรายละเอียด" : "ดูรายละเอียดที่ทำ"}</span>
             <span className={`transition-transform duration-200 ${showDetails ? "rotate-180" : ""}`}>▾</span>
           </button>
 
           {showDetails && exercises.length > 0 && (
-            <div className="mt-2 rounded-2xl bg-slate-50 p-3 space-y-1.5 border border-slate-100">
-              <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">รายการท่าที่ทำ</p>
+            <div className="mt-2 rounded-2xl bg-[var(--surface-muted)] p-3 space-y-1.5 border border-[var(--border-warm)]">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--color-text-soft)]">รายการท่าที่ทำ</p>
               <div className="space-y-1.5">
                 {exercises.map((exercise) => (
                   <div key={`${exercise.name}-${exercise.sets}-${exercise.reps}`} className="flex justify-between gap-3 text-xs">
-                    <span className="font-semibold text-slate-700">{exercise.name}</span>
-                    <span className="shrink-0 text-slate-500">{formatStrengthExerciseLine(exercise)}</span>
+                    <span className="font-semibold text-[var(--foreground)]">{exercise.name}</span>
+                    <span className="shrink-0 text-[var(--color-text-muted)]">{formatStrengthExerciseLine(exercise)}</span>
                   </div>
                 ))}
               </div>
@@ -1236,7 +1236,7 @@ function TodayStrengthRoutineCard({
 
   if (loading) {
     return (
-      <section className="card p-4 text-sm text-slate-500">
+      <section className="card p-4 text-sm text-[var(--color-text-muted)]">
         กำลังโหลดรูทีนเวทวันนี้...
       </section>
     );
@@ -1259,7 +1259,7 @@ function TodayStrengthRoutineCard({
           <h2 className="mt-1.5 text-xl font-bold text-[var(--foreground)]">
             {prescription?.recommendedTitle ?? selected.name}
           </h2>
-          <p className="mt-1 text-sm leading-6 text-slate-500">{prescription?.reason ?? reason}</p>
+          <p className="mt-1 text-sm leading-6 text-[var(--color-text-muted)]">{prescription?.reason ?? reason}</p>
         </div>
         {durationMin ? (
           <span className="shrink-0 rounded-full bg-[var(--primary-soft)] px-3 py-1 text-xs font-bold text-[var(--color-success)]">
@@ -1274,37 +1274,37 @@ function TodayStrengthRoutineCard({
           {safety.note}
         </p>
       ) : strengthHelperCopy ? (
-        <p className="rounded-2xl border border-slate-100 bg-slate-50 px-3 py-2.5 text-xs leading-relaxed text-slate-600">
+        <p className="rounded-2xl border border-[var(--border-warm)] bg-[var(--surface-muted)] px-3 py-2.5 text-xs leading-relaxed text-[var(--color-text-muted)]">
           💡 {strengthHelperCopy}
         </p>
       ) : null}
 
       {!safety.blockWorkout && exercises.length > 0 ? (
-        <div className="border-t border-slate-100/60 pt-1">
+        <div className="border-t border-[var(--border-warm)]/60 pt-1">
           <button
             type="button"
             onClick={() => setShowDetails(!showDetails)}
-            className="flex items-center gap-1 text-xs font-semibold text-slate-400 hover:text-slate-600 py-1"
+            className="flex items-center gap-1 text-xs font-semibold text-[var(--color-text-soft)] hover:text-[var(--color-text-muted)] py-1"
           >
             <span>{showDetails ? "ซ่อนท่า" : "ดูท่า"}</span>
             <span className={`transition-transform duration-200 ${showDetails ? "rotate-180" : ""}`}>▾</span>
           </button>
           {showDetails && (
             <div className="mt-1.5 space-y-2">
-              <div className="rounded-2xl bg-slate-50/80 p-3">
-                <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">ตัวอย่างท่า</p>
+              <div className="rounded-2xl bg-[var(--surface-muted)]/80 p-3">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--color-text-soft)]">ตัวอย่างท่า</p>
                 <div className="mt-2 space-y-1.5">
                   {exercises.slice(0, 3).map((exercise) => (
                     <div key={`${exercise.name}-${exercise.sets}-${exercise.reps}`} className="flex justify-between gap-3 text-xs">
-                      <span className="font-semibold text-slate-700">{exercise.name}</span>
-                      <span className="shrink-0 text-slate-500">{formatStrengthExerciseLine(exercise)}</span>
+                      <span className="font-semibold text-[var(--foreground)]">{exercise.name}</span>
+                      <span className="shrink-0 text-[var(--color-text-muted)]">{formatStrengthExerciseLine(exercise)}</span>
                     </div>
                   ))}
-                  {exercises.length > 3 ? <p className="text-xs text-slate-400">+ อีก {exercises.length - 3} ท่า</p> : null}
+                  {exercises.length > 3 ? <p className="text-xs text-[var(--color-text-soft)]">+ อีก {exercises.length - 3} ท่า</p> : null}
                 </div>
               </div>
               {safety.note && (
-                <p className="rounded-2xl bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-600">
+                <p className="rounded-2xl bg-[var(--surface-muted)] px-3 py-2 text-xs leading-5 text-[var(--color-text-muted)]">
                   {safety.note}
                 </p>
               )}
@@ -1336,7 +1336,7 @@ function TodayStrengthRoutineCard({
             loading={adjusting}
             loadingText="กำลังปรับ..."
             onClick={() => void adjustForToday()}
-            className="w-full rounded-full border border-slate-200 bg-white/80 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+            className="w-full rounded-full border border-[var(--border-warm)] bg-white/80 py-2 text-xs font-semibold text-[var(--color-text-muted)] hover:bg-[var(--surface-muted)]"
           >
             ปรับเป็นเวอร์ชันวันนี้
           </LoadingButton>
@@ -1520,7 +1520,7 @@ function getAxisBadgeClass(axisKey: "recovery" | "load" | "sleep" | "fuel", scor
   if (tone === "warning") return "bg-[#fff6df] text-[#9b742c] border border-[#ead9a9]";
   if (tone === "danger") return "bg-[#fff0ee] text-[var(--status-rest)] border border-[#e8c1bd]";
   if (tone === "info") return "bg-[var(--recovery-soft)] text-[var(--recovery-blue)] border border-[var(--color-info-border)]";
-  return "bg-slate-50 text-slate-600 border border-slate-100";
+  return "bg-[var(--surface-muted)] text-[var(--color-text-muted)] border border-[var(--border-warm)]";
 }
 
 function RecoveryLoopCard({ coachCtx }: { coachCtx: CoachContext }) {
@@ -1581,30 +1581,30 @@ function RecoveryLoopCard({ coachCtx }: { coachCtx: CoachContext }) {
         <span className={`transition-transform duration-200 ${showDetail ? "rotate-180" : ""}`}>⌄</span>
       </button>
       {showDetail && (
-        <div className="rounded-2xl bg-slate-50/80 px-3 py-2.5 space-y-2">
+        <div className="rounded-2xl bg-[var(--surface-muted)]/80 px-3 py-2.5 space-y-2">
           {/* Day load activity reasons */}
           {dayLoad.reasons.length > 0 ? (
             <ul className="space-y-0.5">
               {dayLoad.reasons.map((r, i) => (
-                <li key={i} className="text-[11px] text-slate-600 leading-5">· {r}</li>
+                <li key={i} className="text-[11px] text-[var(--color-text-muted)] leading-5">· {r}</li>
               ))}
             </ul>
           ) : (
-            <p className="text-[11px] text-slate-500 leading-5">· {dayLoad.summary}</p>
+            <p className="text-[11px] text-[var(--color-text-muted)] leading-5">· {dayLoad.summary}</p>
           )}
           {/* Sleep need reasons */}
           {sleepNeed.reasons.length > 0 && (
-            <div className="pt-1 border-t border-slate-100/60 space-y-0.5">
+            <div className="pt-1 border-t border-[var(--border-warm)]/60 space-y-0.5">
               {sleepNeed.reasons.map((r, i) => (
-                <p key={i} className="text-[11px] text-slate-500 leading-5">· {r}</p>
+                <p key={i} className="text-[11px] text-[var(--color-text-muted)] leading-5">· {r}</p>
               ))}
             </div>
           )}
           {/* Tomorrow conditions */}
           {tomorrowPreview.conditions.length > 0 && (
-            <div className="pt-1 border-t border-slate-100/60 space-y-1">
+            <div className="pt-1 border-t border-[var(--border-warm)]/60 space-y-1">
               {tomorrowPreview.conditions.map((c, i) => (
-                <div key={i} className="flex items-start gap-1.5 text-[11px] text-slate-600 leading-5">
+                <div key={i} className="flex items-start gap-1.5 text-[11px] text-[var(--color-text-muted)] leading-5">
                   <span className="shrink-0 text-[var(--primary)]">·</span>
                   <span>{c}</span>
                 </div>
@@ -1992,37 +1992,37 @@ function TodaySnapshotCard({
                 const axis = recSys.axes[key];
                 return (
                   <div key={key} className="flex items-start gap-2">
-                    <span className="w-14 shrink-0 text-[10px] font-semibold text-slate-500">{title}</span>
-                    <span className="font-black text-slate-800 shrink-0">{formatAxisScore(axis.score)}</span>
+                    <span className="w-14 shrink-0 text-[10px] font-semibold text-[var(--color-text-muted)]">{title}</span>
+                    <span className="font-black text-[var(--foreground)] shrink-0">{formatAxisScore(axis.score)}</span>
                     <span className={`rounded px-1.5 py-0.5 text-[9px] font-bold shrink-0 ${getAxisBadgeClass(key, axis.score)}`}>
                       {getRecoveryAxisLabel(key, axis.score)}
                     </span>
-                    <span className="text-[10px] text-slate-400 leading-tight min-w-0">{axis.summary}</span>
+                    <span className="text-[10px] text-[var(--color-text-soft)] leading-tight min-w-0">{axis.summary}</span>
                   </div>
                 );
               })}
             </div>
 
-            <p className="text-[9.5px] text-slate-400">* Load สูง = ใช้ร่างกายเยอะ · แกนอื่น 0–100 ยิ่งสูงยิ่งดี</p>
+            <p className="text-[9.5px] text-[var(--color-text-soft)]">* Load สูง = ใช้ร่างกายเยอะ · แกนอื่น 0–100 ยิ่งสูงยิ่งดี</p>
 
             {/* Coverage chips */}
             {readinessCoverage && (readinessCoverage.used.length > 0 || readinessCoverage.missing.length > 0) && (
               <div className="space-y-1.5">
                 <div className="flex flex-wrap gap-1">
-                  <span className="text-slate-400 self-center">ข้อมูลที่ใช้ประเมิน:</span>
+                  <span className="text-[var(--color-text-soft)] self-center">ข้อมูลที่ใช้ประเมิน:</span>
                   {readinessCoverage.used.map((label) => (
                     <span key={label} className="rounded-full bg-[var(--primary-soft)] px-2 py-0.5 font-medium text-[var(--primary-strong)]">
                       {label}
                     </span>
                   ))}
                   {readinessCoverage.missing.map((label) => (
-                    <span key={label} className="rounded-full bg-slate-100 px-2 py-0.5 text-slate-400">
+                    <span key={label} className="rounded-full bg-[var(--surface-muted)] px-2 py-0.5 text-[var(--color-text-soft)]">
                       +{label}
                     </span>
                   ))}
                 </div>
                 {!hasSleepToday && readinessCoverage.used.some((l) => l.startsWith("ใช้การนอนล่าสุด")) && (
-                  <p className="text-[11px] text-slate-400 leading-4">
+                  <p className="text-[11px] text-[var(--color-text-soft)] leading-4">
                     ยังไม่มีข้อมูลการนอนวันนี้ — คะแนนนี้อิงจากข้อมูลการนอนล่าสุด
                   </p>
                 )}
@@ -2032,13 +2032,13 @@ function TodaySnapshotCard({
             {/* Missing checklist items */}
             {missingChecklist.length > 0 && (
               <div className="space-y-1">
-                <p className="text-[10px] font-semibold text-slate-400">ยังขาด:</p>
+                <p className="text-[10px] font-semibold text-[var(--color-text-soft)]">ยังขาด:</p>
                 <div className="flex flex-wrap gap-1">
                   {missingChecklist.map((item) => (
                     <Link
                       key={item.label}
                       href={item.href}
-                      className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-500 hover:bg-slate-200"
+                      className="rounded-full bg-[var(--surface-muted)] px-2 py-0.5 text-[10px] text-[var(--color-text-muted)] hover:bg-[var(--surface-muted)]"
                     >
                       {item.label}
                     </Link>
@@ -2049,15 +2049,15 @@ function TodaySnapshotCard({
 
             {/* Recovery explanation */}
             {readinessScore != null && (
-              <details className="group/recexp cursor-pointer border-t border-slate-50 pt-1.5">
-                <summary className="text-[10px] font-semibold text-slate-400 hover:text-slate-600 list-none flex items-center gap-1">
+              <details className="group/recexp cursor-pointer border-t border-[var(--border-warm)] pt-1.5">
+                <summary className="text-[10px] font-semibold text-[var(--color-text-soft)] hover:text-[var(--color-text-muted)] list-none flex items-center gap-1">
                   <span>ระบบ Recovery วันนี้คืออะไร?</span>
                   <span className="transition-transform group-open/recexp:rotate-180">▾</span>
                 </summary>
-                <div className="mt-1.5 rounded-2xl bg-slate-50 p-3 leading-relaxed text-slate-500 border border-slate-100 space-y-1.5">
+                <div className="mt-1.5 rounded-2xl bg-[var(--surface-muted)] p-3 leading-relaxed text-[var(--color-text-muted)] border border-[var(--border-warm)] space-y-1.5">
                   <p>แต่ละแกนให้คะแนน 0–100 เพื่อช่วยดูว่าร่างกายพร้อมแค่ไหน โหลดสะสมเท่าไร นอนพอไหม และกินพอรองรับไหม</p>
                   {!hasSleepToday && (
-                    <p className="text-[10.5px] text-slate-500 font-semibold bg-slate-100/50 p-1.5 rounded-lg border border-slate-200/50">
+                    <p className="text-[10.5px] text-[var(--color-text-muted)] font-semibold bg-[var(--surface-muted)]/50 p-1.5 rounded-lg border border-[var(--border-warm)]/50">
                       วันนี้ยังไม่มีข้อมูลการนอน จึงใช้ข้อมูลล่าสุดเพื่อประเมินชั่วคราว
                     </p>
                   )}
@@ -2073,7 +2073,7 @@ function TodaySnapshotCard({
                     <li><strong>อาหาร:</strong> สารอาหารคาร์บ/โปรตีนวันนี้เพื่อรองรับซ้อมและการฟื้นฟู</li>
                   </ul>
                   {hasWorkoutToday && (
-                    <p className="text-[10px] text-slate-400 font-semibold mt-1">
+                    <p className="text-[10px] text-[var(--color-text-soft)] font-semibold mt-1">
                       * บันทึกกิจกรรมซ้อมวันนี้แล้ว โหลดและสารอาหารจะอัปเดตเพื่อปรับคำแนะนำถัดไป
                     </p>
                   )}
@@ -2245,7 +2245,7 @@ function CompactNutritionCard({ nutrition, profile }: { nutrition: NutritionDayS
           <span className="shrink-0 rounded-full bg-orange-50 px-2.5 py-0.5 text-xs font-bold text-orange-700">{status}</span>
         )}
       </div>
-      <div className="mt-1 flex flex-wrap gap-x-3 text-xs text-slate-400">
+      <div className="mt-1 flex flex-wrap gap-x-3 text-xs text-[var(--color-text-soft)]">
         {nutrition.carbsG != null && <span>Carbs {nutrition.carbsG} g</span>}
         {nutrition.caloriesKcal != null && <span>{nutrition.caloriesKcal} kcal</span>}
         <span>{nutrition.mealCount} มื้อ</span>
@@ -2294,11 +2294,11 @@ function EndOfDaySummaryCard({
   if (hasSummary) {
     return (
       <div id="end-of-day-summary" className="flex items-center justify-between rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface)]/72 px-4 py-2.5 text-xs text-[var(--foreground)] shadow-[0_6px_18px_rgba(72,82,72,0.035)] scroll-mt-6">
-        <span className="font-semibold text-slate-700">📋 สรุปท้ายวันของวันนี้บันทึกเรียบร้อยแล้ว</span>
+        <span className="font-semibold text-[var(--foreground)]">📋 สรุปท้ายวันของวันนี้บันทึกเรียบร้อยแล้ว</span>
         <details className="inline-block cursor-pointer">
           <summary className="list-none text-[var(--primary)] font-bold hover:underline">ดูบันทึก</summary>
-          <div className="mt-2 text-left space-y-1 text-slate-500 border-t border-slate-100 pt-2 font-medium cursor-default">
-            <p className="font-bold text-slate-800 leading-snug">{summary?.overallSummary}</p>
+          <div className="mt-2 text-left space-y-1 text-[var(--color-text-muted)] border-t border-[var(--border-warm)] pt-2 font-medium cursor-default">
+            <p className="font-bold text-[var(--foreground)] leading-snug">{summary?.overallSummary}</p>
             {summary?.trainingReview && <p>ความรู้สึก/ซ้อม: {summary.trainingReview}</p>}
             {summary?.tomorrowPlan && <p>แผนพรุ่งนี้: {summary.tomorrowPlan}</p>}
             {summary?.coachMessage && (
@@ -2306,9 +2306,9 @@ function EndOfDaySummaryCard({
                 {summary.coachMessage}
               </p>
             )}
-            <p className="text-[10px] text-slate-400 mt-1">{existingSummaryNote}</p>
-            <div className="flex gap-2 mt-2 pt-2 border-t border-slate-50">
-              <LoadingButton type="button" loading={loading} loadingText="กำลังอัปเดต..." onClick={onGenerate} className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-bold text-slate-600 hover:bg-slate-200">
+            <p className="text-[10px] text-[var(--color-text-soft)] mt-1">{existingSummaryNote}</p>
+            <div className="flex gap-2 mt-2 pt-2 border-t border-[var(--border-warm)]">
+              <LoadingButton type="button" loading={loading} loadingText="กำลังอัปเดต..." onClick={onGenerate} className="rounded-full bg-[var(--surface-muted)] px-3 py-1 text-[10px] font-bold text-[var(--color-text-muted)] hover:bg-[var(--surface-muted)]">
                 อัปเดตสรุปท้ายวัน
               </LoadingButton>
             </div>
@@ -2333,8 +2333,8 @@ function EndOfDaySummaryCard({
             <span className="transition-transform group-open:rotate-180">▾</span>
           </div>
         </summary>
-        <div className="mt-3 pt-3 border-t border-slate-100/60 cursor-default space-y-3">
-          <p className="text-xs text-slate-500">กดก่อนนอนเพื่อสรุปวันนี้และวางแผนพรุ่งนี้จากข้อมูลใน Report ({newSummaryNote})</p>
+        <div className="mt-3 pt-3 border-t border-[var(--border-warm)]/60 cursor-default space-y-3">
+          <p className="text-xs text-[var(--color-text-muted)]">กดก่อนนอนเพื่อสรุปวันนี้และวางแผนพรุ่งนี้จากข้อมูลใน Report ({newSummaryNote})</p>
           {message && <p className="text-xs font-semibold text-green-600">{message}</p>}
           {error && <p className="rounded-2xl bg-red-50 px-3 py-2 text-xs font-bold text-red-500">{error}</p>}
           <LoadingButton type="button" loading={loading} loadingText="กำลังสร้างสรุป..." onClick={onGenerate} className="w-full rounded-full border border-rm-primary/40 bg-rm-primary-soft py-2.5 text-xs font-bold text-rm-primary-strong disabled:opacity-50">
@@ -2350,8 +2350,8 @@ function EndOfDaySummaryCard({
     <section id="end-of-day-summary" className="card scroll-mt-6 px-4 py-3 space-y-3">
       <div>
         <p className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--label-color)]">สรุปท้ายวัน</p>
-        <p className="mt-1 text-sm leading-6 text-slate-500">กดก่อนนอนเพื่อสรุปวันนี้และวางแผนพรุ่งนี้จากข้อมูลใน Report</p>
-        <p className="mt-1 text-[11px] text-slate-400">{newSummaryNote}</p>
+        <p className="mt-1 text-sm leading-6 text-[var(--color-text-muted)]">กดก่อนนอนเพื่อสรุปวันนี้และวางแผนพรุ่งนี้จากข้อมูลใน Report</p>
+        <p className="mt-1 text-[11px] text-[var(--color-text-soft)]">{newSummaryNote}</p>
       </div>
       {message && <p className="text-xs font-semibold text-green-600">{message}</p>}
       {error && <p className="rounded-2xl bg-red-50 px-3 py-2 text-xs font-bold text-red-500">{error}</p>}
