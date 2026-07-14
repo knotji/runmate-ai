@@ -9,13 +9,14 @@ export type InsightCardProps = {
   icon?: ReactNode;
   action?: ReactNode;
   className?: string;
+  "data-testid"?: string;
 };
 
 /** Compact explanation card — "why", weekly insight, next focus, recovery reason. */
-export function InsightCard({ title, body, tone = "neutral", icon, action, className }: InsightCardProps) {
+export function InsightCard({ title, body, tone = "neutral", icon, action, className, "data-testid": dataTestId }: InsightCardProps) {
   const toneStyle = toneClassNames[tone];
   return (
-    <section className={cn("rm-card p-4", className)}>
+    <section data-testid={dataTestId} className={cn("rm-card p-4", className)}>
       <div className="flex items-start gap-2">
         {icon ? (
           <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-base", toneStyle.softBg)}>

@@ -5,13 +5,15 @@ import { toneClassNames, type RmTone } from "./tone";
 export type StatusHeroProps = {
   tone: RmTone;
   eyebrow?: string;
-  title: string;
+  /** Omit when a custom `metric` node (e.g. a gauge) already surfaces its own headline, to avoid duplication. */
+  title?: string;
   subtitle?: string;
   metric?: ReactNode;
   badge?: ReactNode;
   children?: ReactNode;
   action?: ReactNode;
   className?: string;
+  "data-testid"?: string;
 };
 
 /**
@@ -28,10 +30,12 @@ export function StatusHero({
   children,
   action,
   className,
+  "data-testid": dataTestId,
 }: StatusHeroProps) {
   const toneStyle = toneClassNames[tone];
   return (
     <section
+      data-testid={dataTestId}
       className={cn(
         "rm-card relative overflow-hidden p-5",
         `border ${toneStyle.border}`,
@@ -42,7 +46,7 @@ export function StatusHero({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           {eyebrow ? <p className="rm-eyebrow mb-1">{eyebrow}</p> : null}
-          <h2 className="rm-section-heading">{title}</h2>
+          {title ? <h2 className="rm-section-heading">{title}</h2> : null}
           {subtitle ? <p className="rm-body rm-caption mt-1 text-rm-muted">{subtitle}</p> : null}
         </div>
         {badge ? <div className="shrink-0">{badge}</div> : null}

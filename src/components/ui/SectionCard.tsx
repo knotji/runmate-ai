@@ -9,13 +9,15 @@ export type SectionCardProps = {
   children: ReactNode;
   tone?: RmTone;
   className?: string;
+  "data-testid"?: string;
 };
 
 /** Generic rounded card wrapper for a labeled section of content. */
-export function SectionCard({ title, subtitle, action, children, tone, className }: SectionCardProps) {
+export function SectionCard({ title, subtitle, action, children, tone, className, "data-testid": dataTestId }: SectionCardProps) {
   const toneStyle = tone ? toneClassNames[tone] : null;
   return (
     <section
+      data-testid={dataTestId}
       className={cn(
         "rm-card p-5",
         toneStyle ? `border ${toneStyle.border}` : undefined,
