@@ -324,7 +324,8 @@ test("Guardrail 7: Report shows weekly coach insight inside rolling insight", as
 
 test("Guardrail 8: Upload empty guide shows sleep helper copy", async ({ page }) => {
   await installMockBackend(page);
-  await gotoApp(page, "/upload");
+  // The empty guide only renders in focused mode — deep-link straight into the sleep type.
+  await gotoApp(page, "/upload?type=sleep");
 
   const helpGuide = page.getByTestId("upload-help").first();
   await expect(helpGuide).toBeVisible();

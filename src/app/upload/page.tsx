@@ -157,6 +157,8 @@ export default function UploadPage() {
   const [strengthInputMode, setStrengthInputMode] = useState<"image" | "manual">("image");
   const [mealInputMode, setMealInputMode] = useState<MealInputMode>("image");
   const [showIntakeChooser, setShowIntakeChooser] = useState(false);
+  // Two-step flow: false = default entry/chooser screen, true = focused single-type form.
+  const [hasChosenType, setHasChosenType] = useState(false);
   const inputPanelRef = useRef<HTMLDivElement>(null);
   const [manualMealText, setManualMealText] = useState("");
   const [imageMealText, setImageMealText] = useState("");
@@ -198,6 +200,7 @@ export default function UploadPage() {
     queueMicrotask(() => {
       if (resolved) {
         setType(resolved);
+        setHasChosenType(true);
         if (resolved === "workout") {
           const sub = params.get("subtype") ?? "";
           if (isWorkoutSubtype(sub)) {
@@ -222,6 +225,7 @@ export default function UploadPage() {
         setMealInputMode("text");
         setManualMealText(draft.text);
         setDraftMealBadge(true);
+        setHasChosenType(true);
         // Map slot to MealType
         const slotMap: Record<string, MealType> = {
           breakfast: "breakfast", lunch: "lunch", dinner: "dinner",
@@ -569,7 +573,7 @@ export default function UploadPage() {
     setType(nextType);
     setWorkoutSubtype("run");
     setStrengthInputMode("image");
-    
+
     if (nextType !== "meal") setMealInputMode("image");
     setResult(null);
     setSaveStatus("idle");
@@ -580,19 +584,17 @@ export default function UploadPage() {
     setSaveFeedback("");
     setRaceDuplicateConfirm(null);
     setManualMealError("");
+    setHasChosenType(true);
   }
 
-  function scrollToInputPanel() {
-    // Runs after the type change re-renders the panel below the chooser/hero.
-    requestAnimationFrame(() => {
-      inputPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
+  /** Back to the default entry/chooser screen. Keeps current form state so re-entering the same type resumes it. */
+  function returnToEntryScreen() {
+    setHasChosenType(false);
   }
 
   function handleChooserSelectType(nextType: UploadType) {
     selectUploadType(nextType);
     setShowIntakeChooser(false);
-    scrollToInputPanel();
   }
 
   function handleChooserNavigate(href: string) {
@@ -602,9 +604,10 @@ export default function UploadPage() {
 
   function startQuickTextEntry() {
     // "พิมพ์บันทึกเอง" — the most direct existing free-text logging flow today.
+    // NOTE: this is intentionally still meal-text specific (see deliverables report
+    // for why a generic "text intent" chooser was not built in this pass).
     selectUploadType("meal");
     setMealInputMode("text");
-    scrollToInputPanel();
   }
 
   async function saveWorkoutOnce(workout: WorkoutAnalysis): Promise<import("@/lib/localHistory").LocalHistoryItem> {
@@ -678,81 +681,85 @@ export default function UploadPage() {
   return (
     <AppShell title="เพิ่มข้อมูล" subtitle="อัปโหลดรูป ไฟล์ หรือบันทึกข้อความ เพื่อให้ RunMate แนะนำได้แม่นขึ้น">
       <section className="space-y-3 pb-[calc(96px+env(safe-area-inset-bottom))]" data-testid="upload-dashboard">
-        <StatusHero
-          tone="ready"
-          title="วันนี้จะเพิ่มข้อมูลอะไร?"
-          subtitle="วางรูป ไฟล์ หรือพิมพ์ข้อความได้เลย RunMate จะช่วยแยกประเภทให้"
-          data-testid="universal-intake-hero"
-        >
-          <p className="inline-flex items-start gap-1.5 rounded-2xl bg-rm-recovery-soft px-3 py-2 text-xs leading-5 text-rm-text/80">
-            <span aria-hidden="true">🔎</span>
-            <span>RunMate จะสรุปให้ก่อนบันทึก คุณยืนยันหรือแก้ไขได้ทุกครั้ง</span>
-          </p>
-          <div className="flex flex-wrap items-center gap-2 pt-1">
-            <PrimaryCTA type="button" data-testid="universal-intake-cta" onClick={() => setShowIntakeChooser(true)}>
-              เริ่มเพิ่มข้อมูล
-            </PrimaryCTA>
-            <SecondaryCTA type="button" data-testid="universal-intake-text-cta" onClick={startQuickTextEntry}>
-              พิมพ์บันทึกเอง
-            </SecondaryCTA>
-          </div>
-          <p className="rm-caption pt-0.5">เลือกประเภทก่อน แล้ว RunMate จะพาไปขั้นตอนที่ถูกต้อง</p>
-        </StatusHero>
+        {!hasChosenType && (
+          <>
+            <StatusHero
+              tone="ready"
+              title="วันนี้จะเพิ่มข้อมูลอะไร?"
+              subtitle="วางรูป ไฟล์ หรือพิมพ์ข้อความได้เลย RunMate จะช่วยแยกประเภทให้"
+              data-testid="universal-intake-hero"
+            >
+              <p className="inline-flex items-start gap-1.5 rounded-2xl bg-rm-recovery-soft px-3 py-2 text-xs leading-5 text-rm-text/80">
+                <span aria-hidden="true">🔎</span>
+                <span>RunMate จะสรุปให้ก่อนบันทึก คุณยืนยันหรือแก้ไขได้ทุกครั้ง</span>
+              </p>
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <PrimaryCTA type="button" data-testid="universal-intake-cta" onClick={() => setShowIntakeChooser(true)}>
+                  เริ่มเพิ่มข้อมูล
+                </PrimaryCTA>
+                <SecondaryCTA type="button" data-testid="universal-intake-text-cta" onClick={startQuickTextEntry}>
+                  พิมพ์บันทึกเอง
+                </SecondaryCTA>
+              </div>
+              <p className="rm-caption pt-0.5">เลือกประเภทก่อน แล้ว RunMate จะพาไปขั้นตอนที่ถูกต้อง</p>
+            </StatusHero>
 
-        <div className="space-y-1.5">
-          <div className="flex items-baseline justify-between gap-2">
-            <p className="text-sm font-bold text-rm-text">เลือกประเภทเอง</p>
-            <p className="rm-caption">ถ้ารู้ว่าข้อมูลคืออะไร เลือกตรงนี้ได้เลย</p>
-          </div>
-          <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-8" data-testid="upload-type-selector">
-            {UPLOAD_ORDER.map((item) => (
-              <button
-                key={item}
-                type="button"
-                className={cn(
-                  "rounded-2xl border px-2 py-2 text-center text-[11px] font-bold transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-rm-primary",
-                  type === item
-                    ? "border-rm-primary-strong bg-rm-primary text-rm-surface shadow-sm"
-                    : "border-rm-border bg-rm-surface/70 text-rm-muted hover:bg-rm-primary-soft/60",
-                )}
-                onClick={() => selectUploadType(item)}
-              >
-                <span className="block text-sm leading-none">{UPLOAD_DASHBOARD_META[item].icon}</span>
-                <span className="mt-1 block">{UPLOAD_LABELS[item]}</span>
-              </button>
-            ))}
-            <Link
-              href="/pain"
-              className="rounded-2xl border border-rm-border bg-rm-surface/70 px-2 py-2 text-center text-[11px] font-bold text-rm-muted transition-all hover:bg-rm-primary-soft/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-rm-primary"
-            >
-              <span className="block text-sm leading-none">🩹</span>
-              <span className="mt-1 block">อาการเจ็บ</span>
-            </Link>
-            <Link
-              href="/sick"
-              className="rounded-2xl border border-rm-border bg-rm-surface/70 px-2 py-2 text-center text-[11px] font-bold text-rm-muted transition-all hover:bg-rm-primary-soft/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-rm-primary"
-            >
-              <span className="block text-sm leading-none">🤒</span>
-              <span className="mt-1 block">อาการป่วย</span>
-            </Link>
-            <Link
-              href="/settings?tab=data"
-              className="rounded-2xl border border-rm-border bg-rm-surface/70 px-2 py-2 text-center text-[11px] font-bold text-rm-muted transition-all hover:bg-rm-primary-soft/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-rm-primary"
-            >
-              <span className="block text-sm leading-none">📥</span>
-              <span className="mt-1 block">นำเข้าประวัติ</span>
-            </Link>
-          </div>
-        </div>
+            <div className="space-y-1.5">
+              <div className="flex items-baseline justify-between gap-2">
+                <p className="text-sm font-bold text-rm-text">เลือกประเภทเอง</p>
+                <p className="rm-caption">ถ้ารู้ว่าข้อมูลคืออะไร เลือกตรงนี้ได้เลย</p>
+              </div>
+              <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-8" data-testid="upload-type-selector">
+                {UPLOAD_ORDER.map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    className={cn(
+                      "rounded-2xl border px-2 py-2 text-center text-[11px] font-bold transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-rm-primary",
+                      type === item
+                        ? "border-rm-primary-strong bg-rm-primary text-rm-surface shadow-sm"
+                        : "border-rm-border bg-rm-surface/70 text-rm-muted hover:bg-rm-primary-soft/60",
+                    )}
+                    onClick={() => selectUploadType(item)}
+                  >
+                    <span className="block text-sm leading-none">{UPLOAD_DASHBOARD_META[item].icon}</span>
+                    <span className="mt-1 block">{UPLOAD_LABELS[item]}</span>
+                  </button>
+                ))}
+                <Link
+                  href="/pain"
+                  className="rounded-2xl border border-rm-border bg-rm-surface/70 px-2 py-2 text-center text-[11px] font-bold text-rm-muted transition-all hover:bg-rm-primary-soft/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-rm-primary"
+                >
+                  <span className="block text-sm leading-none">🩹</span>
+                  <span className="mt-1 block">อาการเจ็บ</span>
+                </Link>
+                <Link
+                  href="/sick"
+                  className="rounded-2xl border border-rm-border bg-rm-surface/70 px-2 py-2 text-center text-[11px] font-bold text-rm-muted transition-all hover:bg-rm-primary-soft/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-rm-primary"
+                >
+                  <span className="block text-sm leading-none">🤒</span>
+                  <span className="mt-1 block">อาการป่วย</span>
+                </Link>
+                <Link
+                  href="/settings?tab=data"
+                  className="rounded-2xl border border-rm-border bg-rm-surface/70 px-2 py-2 text-center text-[11px] font-bold text-rm-muted transition-all hover:bg-rm-primary-soft/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-rm-primary"
+                >
+                  <span className="block text-sm leading-none">📥</span>
+                  <span className="mt-1 block">นำเข้าประวัติ</span>
+                </Link>
+              </div>
+            </div>
 
-        <DetailAccordion title="ข้อมูลแต่ละแบบช่วยอะไร?" className="text-xs">
-          <ul className="space-y-1">
-            <li>· นอน: ใช้ประเมิน readiness</li>
-            <li>· ซ้อม: ใช้คำนวณ load และ pace/HR</li>
-            <li>· อาหาร: ใช้ดูพลังงานก่อน/หลังซ้อม</li>
-            <li>· เจ็บ/ป่วย: ใช้ปรับแผนไม่ให้ฝืน</li>
-          </ul>
-        </DetailAccordion>
+            <DetailAccordion title="ข้อมูลแต่ละแบบช่วยอะไร?" className="text-xs">
+              <ul className="space-y-1">
+                <li>· นอน: ใช้ประเมิน readiness</li>
+                <li>· ซ้อม: ใช้คำนวณ load และ pace/HR</li>
+                <li>· อาหาร: ใช้ดูพลังงานก่อน/หลังซ้อม</li>
+                <li>· เจ็บ/ป่วย: ใช้ปรับแผนไม่ให้ฝืน</li>
+              </ul>
+            </DetailAccordion>
+          </>
+        )}
 
         <IntakeChooserSheet
           open={showIntakeChooser}
@@ -760,6 +767,17 @@ export default function UploadPage() {
           onSelectType={handleChooserSelectType}
           onNavigate={handleChooserNavigate}
         />
+
+        {hasChosenType && (
+        <>
+        <button
+          type="button"
+          onClick={returnToEntryScreen}
+          data-testid="upload-change-type"
+          className="inline-flex items-center gap-1 text-xs font-bold text-rm-muted hover:text-rm-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-rm-primary rounded-full px-1 py-1 -ml-1"
+        >
+          ← เลือกข้อมูลอื่น
+        </button>
 
         <div className="card-soft flex items-start gap-3 px-4 py-3" data-testid="upload-type-summary">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white text-xl shadow-sm">
@@ -1023,8 +1041,12 @@ export default function UploadPage() {
             />
           </div>
         )}
+        </>
+        )}
       </section>
 
+      {hasChosenType && (
+      <>
       {/* ── AI-Suggested Date Confirmation ── */}
       {suggestedDateKey && (
         <div className="card-warning p-4 space-y-2 mb-4">
@@ -1180,6 +1202,8 @@ export default function UploadPage() {
           onSave={() => void store(result, "health_check")}
         />
       ) : null}
+      </>
+      )}
     </AppShell>
   );
 }
