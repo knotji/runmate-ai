@@ -71,9 +71,9 @@ const BEAR_WEIGHT_OPTIONS: { value: PainTriYesNo; label: string }[] = [
 // ── helpers ──────────────────────────────────────────────────────────────────
 
 function riskColor(risk: PainRiskLevel) {
-  if (risk === "high")   return "border-red-200 bg-red-50";
-  if (risk === "medium") return "border-amber-200 bg-amber-50";
-  return "border-green-200 bg-[#e7efea]";
+  if (risk === "high")   return "border-rm-stop/30 bg-rm-stop-soft";
+  if (risk === "medium") return "border-rm-caution/30 bg-rm-caution-soft";
+  return "border-rm-primary/25 bg-rm-primary-soft";
 }
 
 function riskLabel(risk: PainRiskLevel) {
@@ -309,7 +309,7 @@ function PainPageContent() {
   if (prefilling) {
     return (
       <AppShell title={fromId ? "อัปเดตอาการ" : "แจ้งอาการเจ็บ"} subtitle="กำลังโหลดข้อมูล..." medicalDisclaimer>
-        <section className="card p-5 text-sm text-slate-500">กำลังโหลดข้อมูล...</section>
+        <section className="card p-5 text-sm text-rm-muted">กำลังโหลดข้อมูล...</section>
       </AppShell>
     );
   }
@@ -319,13 +319,13 @@ function PainPageContent() {
   if (result && savedStatus === "cleared_normal") {
     return (
       <AppShell title="อัปเดตอาการ" subtitle="บันทึกสถานะการฟื้นตัว" medicalDisclaimer>
-        <div className="card rounded-2xl border border-green-200 bg-[#e7efea] p-5 space-y-3" data-testid="cleared-normal-success">
-          <p className="text-base font-bold text-[#2a5a39]">กลับมาปกติแล้ว ✅</p>
-          <p className="text-sm leading-6 text-[#17201d]">
+        <div className="card rounded-2xl border border-rm-primary/25 bg-rm-primary-soft p-5 space-y-3" data-testid="cleared-normal-success">
+          <p className="text-base font-bold text-rm-primary-strong">กลับมาปกติแล้ว ✅</p>
+          <p className="text-sm leading-6 text-rm-text">
             ดีมาก RunMate จะไม่ใช้อาการนี้เป็นตัวบล็อกซ้อมหนักอีกต่อไป
             แต่ยังดู sleep / load / recovery อยู่ตามปกติ
           </p>
-          <p className="text-xs text-slate-500 leading-5">
+          <p className="text-xs text-rm-muted leading-5">
             สัญญาณ Today จะแสดง <strong>ไม่มีเจ็บ</strong> ตั้งแต่รอบข้อมูลถัดไป
           </p>
           <button type="button" onClick={reset} className="btn-secondary w-full text-sm">
@@ -339,12 +339,12 @@ function PainPageContent() {
   if (result && savedStatus === "cleared_light") {
     return (
       <AppShell title="อัปเดตอาการ" subtitle="บันทึกสถานะการฟื้นตัว" medicalDisclaimer>
-        <div className="card rounded-2xl border border-amber-200 bg-amber-50 p-5 space-y-3">
-          <p className="text-base font-bold text-amber-800">กลับมาเบา ๆ ได้ 🟢</p>
-          <p className="text-sm leading-6 text-[#17201d]">
+        <div className="card rounded-2xl border border-rm-caution/30 bg-rm-caution-soft p-5 space-y-3">
+          <p className="text-base font-bold text-rm-caution">กลับมาเบา ๆ ได้ 🟢</p>
+          <p className="text-sm leading-6 text-rm-text">
             {result.coachAdvice}
           </p>
-          <p className="text-xs text-slate-500 leading-5">
+          <p className="text-xs text-rm-muted leading-5">
             วันนี้สัญญาณ Today จะแสดง <strong>เบา ๆ ได้</strong> — ยังงด interval และ tempo
           </p>
           <button type="button" onClick={reset} className="btn-secondary w-full text-sm">
@@ -360,23 +360,23 @@ function PainPageContent() {
       <AppShell title={fromId ? "อัปเดตอาการ" : "แจ้งอาการเจ็บ"} subtitle="ประเมินผลกระทบต่อการซ้อม · ไม่ใช่การวินิจฉัยทางการแพทย์" medicalDisclaimer>
         <div className={`card rounded-2xl border p-5 space-y-3 ${riskColor(result.riskLevel)}`}>
           <div className="flex items-center justify-between gap-3">
-            <p className="text-sm font-bold text-[#17201d]">บันทึกอาการเจ็บแล้ว</p>
-            <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${result.riskLevel === "high" ? "bg-red-100 text-red-700" : result.riskLevel === "medium" ? "bg-amber-100 text-amber-700" : "bg-[#e7efea] text-[#2a5a39]"}`}>
+            <p className="text-sm font-bold text-rm-text">บันทึกอาการเจ็บแล้ว</p>
+            <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${result.riskLevel === "high" ? "bg-rm-stop-soft text-rm-stop" : result.riskLevel === "medium" ? "bg-rm-caution-soft text-rm-caution" : "bg-rm-primary-soft text-rm-primary-strong"}`}>
               {riskLabel(result.riskLevel)}
             </span>
           </div>
           <div className="rounded-xl bg-white/60 px-3 py-2.5">
-            <p className="text-[11px] text-slate-400">ผลกระทบต่อการซ้อม</p>
-            <p className="text-sm font-semibold text-[#17201d]">{impactLabel(result.trainingImpact)}</p>
+            <p className="text-[11px] text-rm-muted/80">ผลกระทบต่อการซ้อม</p>
+            <p className="text-sm font-semibold text-rm-text">{impactLabel(result.trainingImpact)}</p>
           </div>
           <p className="text-sm leading-6 text-slate-700">{result.coachAdvice}</p>
           {result.redFlags.length > 0 && (
-            <div className="rounded-xl bg-red-100/70 px-3 py-2.5 space-y-1">
-              <p className="text-xs font-bold text-red-700">สัญญาณที่ควรระวัง</p>
-              {result.redFlags.map((f, i) => <p key={i} className="text-xs text-red-600">· {f}</p>)}
+            <div className="rounded-xl bg-rm-stop-soft px-3 py-2.5 space-y-1">
+              <p className="text-xs font-bold text-rm-stop">สัญญาณที่ควรระวัง</p>
+              {result.redFlags.map((f, i) => <p key={i} className="text-xs text-rm-stop">· {f}</p>)}
             </div>
           )}
-          <p className="text-[11px] text-slate-400 leading-4">
+          <p className="text-[11px] text-rm-muted/80 leading-4">
             รูปช่วยบอกตำแหน่งได้ แต่คำแนะนำนี้ไม่ใช่การวินิจฉัยทางการแพทย์
           </p>
           <button type="button" onClick={reset} className="btn-secondary w-full text-sm">
@@ -403,7 +403,7 @@ function PainPageContent() {
 
         {/* ── Status selector (always visible) ─────────────────────────── */}
         <div className="card p-4 space-y-3" data-testid="pain-status-selector">
-          <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">สถานะอาการตอนนี้</p>
+          <p className="text-xs font-bold uppercase tracking-[0.15em] text-rm-muted">สถานะอาการตอนนี้</p>
           <div className="grid grid-cols-2 gap-2">
             {STATUS_OPTIONS.map((opt) => (
               <button
@@ -412,12 +412,12 @@ function PainPageContent() {
                 onClick={() => setPainStatusChoice(opt.value)}
                 className={`rounded-xl border px-3 py-2.5 text-left transition-colors ${
                   painStatusChoice === opt.value
-                    ? "border-[#17201d] bg-[#17201d] text-white"
-                    : "border-slate-200 text-slate-600 hover:border-slate-300 bg-white"
+                    ? "border-rm-primary-strong bg-rm-primary-strong text-rm-surface"
+                    : "border-rm-border text-rm-muted hover:border-rm-primary/40 bg-rm-surface"
                 }`}
               >
                 <span className="block text-sm font-semibold">{opt.emoji} {opt.label}</span>
-                <span className={`block text-[11px] mt-0.5 ${painStatusChoice === opt.value ? "text-slate-300" : "text-slate-400"}`}>{opt.desc}</span>
+                <span className={`block text-[11px] mt-0.5 ${painStatusChoice === opt.value ? "text-rm-surface/70" : "text-rm-muted"}`}>{opt.desc}</span>
               </button>
             ))}
           </div>
@@ -425,11 +425,11 @@ function PainPageContent() {
 
         {/* ── cleared_normal: calm confirmation card ────────────────────── */}
         {showNormalCard && (
-          <div className="card rounded-2xl border border-green-200 bg-[#f5faf7] p-4 space-y-2" data-testid="cleared-normal-info">
-            <p className="text-sm font-semibold text-[#2a5a39]">
+          <div className="card rounded-2xl border border-rm-primary/25 bg-rm-primary-soft/60 p-4 space-y-2" data-testid="cleared-normal-info">
+            <p className="text-sm font-semibold text-rm-primary-strong">
               ดีมาก ถ้ากลับมาปกติแล้ว RunMate จะไม่ใช้ pain เป็นตัวบล็อกซ้อมหนัก
             </p>
-            <p className="text-xs leading-5 text-slate-500">
+            <p className="text-xs leading-5 text-rm-muted">
               แต่ยังดู sleep / load / recovery อยู่ตามปกติ — ถ้าอาการกลับมาให้รายงานใหม่ได้เลย
             </p>
           </div>
@@ -437,11 +437,11 @@ function PainPageContent() {
 
         {/* ── cleared_light: brief note card ───────────────────────────── */}
         {showLightForm && (
-          <div className="card rounded-2xl border border-amber-100 bg-amber-50/60 p-4 space-y-1">
-            <p className="text-sm font-semibold text-amber-800">
+          <div className="card rounded-2xl border border-rm-caution/25 bg-rm-caution-soft/60 p-4 space-y-1">
+            <p className="text-sm font-semibold text-rm-caution">
               เริ่มกลับมาเบา ๆ ได้ — ยังงด interval และ tempo
             </p>
-            <p className="text-xs leading-5 text-slate-500">
+            <p className="text-xs leading-5 text-rm-muted">
               RunMate จะปรับ loadTarget เป็น easy และยังจับตา recovery อยู่
             </p>
           </div>
@@ -452,8 +452,8 @@ function PainPageContent() {
           <>
             {/* Image upload (optional) */}
             <div className="card p-4 space-y-2">
-              <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">รูปบริเวณที่เจ็บ <span className="normal-case font-normal text-slate-400">(ถ้ามี)</span></p>
-              <label className={`flex min-h-[100px] cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed transition-colors ${imageFile ? "border-[#42677f] bg-[#f5faf7]" : "border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-white"}`}>
+              <p className="text-xs font-bold uppercase tracking-[0.15em] text-rm-muted">รูปบริเวณที่เจ็บ <span className="normal-case font-normal text-rm-muted/80">(ถ้ามี)</span></p>
+              <label className={`flex min-h-[100px] cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed transition-colors ${imageFile ? "border-rm-recovery bg-rm-recovery-soft/40" : "border-rm-border bg-rm-surface-soft hover:border-rm-primary/40 hover:bg-rm-surface"}`}>
                 <input
                   ref={inputRef}
                   type="file"
@@ -467,12 +467,12 @@ function PainPageContent() {
                 ) : (
                   <>
                     <span className="text-2xl">📷</span>
-                    <p className="text-xs text-slate-500">กดเพื่อเลือกรูป (ไม่บังคับ)</p>
+                    <p className="text-xs text-rm-muted">กดเพื่อเลือกรูป (ไม่บังคับ)</p>
                   </>
                 )}
               </label>
               {imageFile && (
-                <button type="button" onClick={() => void handleImageChange(null)} className="text-xs text-slate-400 underline underline-offset-2">
+                <button type="button" onClick={() => void handleImageChange(null)} className="text-xs text-rm-muted/80 underline underline-offset-2">
                   ลบรูป
                 </button>
               )}
@@ -480,9 +480,9 @@ function PainPageContent() {
 
             {/* Location */}
             <div className="card p-4 space-y-3">
-              <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">
+              <p className="text-xs font-bold uppercase tracking-[0.15em] text-rm-muted">
                 ตำแหน่งที่เจ็บ
-                {painStatusChoice === "improving" && <span className="normal-case font-normal text-slate-400"> (ถ้ามี)</span>}
+                {painStatusChoice === "improving" && <span className="normal-case font-normal text-rm-muted/80"> (ถ้ามี)</span>}
               </p>
               <input
                 className="control"
@@ -496,7 +496,7 @@ function PainPageContent() {
                     key={loc}
                     type="button"
                     onClick={() => setPainLocation(loc)}
-                    className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${painLocation === loc ? "border-[#17201d] bg-[#17201d] text-white" : "border-slate-200 text-slate-600 hover:border-slate-300"}`}
+                    className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${painLocation === loc ? "border-rm-primary-strong bg-rm-primary-strong text-rm-surface" : "border-rm-border text-rm-muted hover:border-rm-primary/40"}`}
                   >
                     {loc}
                   </button>
@@ -504,11 +504,11 @@ function PainPageContent() {
               </div>
 
               <div>
-                <p className="mb-1.5 text-xs font-semibold text-slate-500">ข้าง</p>
+                <p className="mb-1.5 text-xs font-semibold text-rm-muted">ข้าง</p>
                 <div className="grid grid-cols-4 gap-2">
                   {SIDE_OPTIONS.map((opt) => (
                     <button key={opt.value} type="button" onClick={() => setPainSide(opt.value)}
-                      className={`rounded-xl border py-2 text-xs font-semibold ${painSide === opt.value ? "border-[#17201d] bg-[#17201d] text-white" : "border-slate-200 text-slate-600"}`}>
+                      className={`rounded-xl border py-2 text-xs font-semibold ${painSide === opt.value ? "border-rm-primary-strong bg-rm-primary-strong text-rm-surface" : "border-rm-border text-rm-muted"}`}>
                       {opt.label}
                     </button>
                   ))}
@@ -519,8 +519,8 @@ function PainPageContent() {
             {/* Pain level */}
             <div className="card p-4 space-y-3">
               <div className="flex items-center justify-between">
-                <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">ระดับความเจ็บปวด</p>
-                <span className={`text-2xl font-bold ${painLevel >= 7 ? "text-red-500" : painLevel >= 4 ? "text-amber-500" : "text-[#2a5a39]"}`}>{painLevel}</span>
+                <p className="text-xs font-bold uppercase tracking-[0.15em] text-rm-muted">ระดับความเจ็บปวด</p>
+                <span className={`text-2xl font-bold ${painLevel >= 7 ? "text-rm-stop" : painLevel >= 4 ? "text-rm-caution" : "text-rm-primary-strong"}`}>{painLevel}</span>
               </div>
               <input
                 type="range"
@@ -533,7 +533,7 @@ function PainPageContent() {
                 title="ระดับความเจ็บปวด 0-10"
                 aria-label="ระดับความเจ็บปวด"
               />
-              <div className="flex justify-between text-[11px] text-slate-400">
+              <div className="flex justify-between text-[11px] text-rm-muted/80">
                 <span>0 — ไม่เจ็บ</span>
                 <span>5 — ปานกลาง</span>
                 <span>10 — ทนไม่ได้</span>
@@ -543,12 +543,12 @@ function PainPageContent() {
             {/* Pain type + started when */}
             <div className="card p-4 space-y-4">
               <div>
-                <p className="mb-1.5 text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">ลักษณะอาการ <span className="normal-case font-normal text-slate-400">(เลือกได้หลายข้อ)</span></p>
+                <p className="mb-1.5 text-xs font-bold uppercase tracking-[0.15em] text-rm-muted">ลักษณะอาการ <span className="normal-case font-normal text-rm-muted/80">(เลือกได้หลายข้อ)</span></p>
                 <div className="flex flex-wrap gap-2">
                   {PAIN_TYPE_OPTIONS.map((opt) => (
                     <button key={opt.value} type="button"
                       onClick={() => toggleMulti(painType, opt.value, setPainType)}
-                      className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${painType.includes(opt.value) ? "border-[#17201d] bg-[#17201d] text-white" : "border-slate-200 text-slate-600 hover:border-slate-300"}`}>
+                      className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${painType.includes(opt.value) ? "border-rm-primary-strong bg-rm-primary-strong text-rm-surface" : "border-rm-border text-rm-muted hover:border-rm-primary/40"}`}>
                       {opt.label}
                     </button>
                   ))}
@@ -556,11 +556,11 @@ function PainPageContent() {
               </div>
 
               <div>
-                <p className="mb-1.5 text-xs font-semibold text-slate-500">เริ่มเจ็บตอนไหน</p>
+                <p className="mb-1.5 text-xs font-semibold text-rm-muted">เริ่มเจ็บตอนไหน</p>
                 <div className="flex flex-wrap gap-2">
                   {STARTED_WHEN_OPTIONS.map((opt) => (
                     <button key={opt.value} type="button" onClick={() => setStartedWhen(opt.value)}
-                      className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${startedWhen === opt.value ? "border-[#17201d] bg-[#17201d] text-white" : "border-slate-200 text-slate-600 hover:border-slate-300"}`}>
+                      className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${startedWhen === opt.value ? "border-rm-primary-strong bg-rm-primary-strong text-rm-surface" : "border-rm-border text-rm-muted hover:border-rm-primary/40"}`}>
                       {opt.label}
                     </button>
                   ))}
@@ -570,12 +570,12 @@ function PainPageContent() {
 
             {/* Painful when */}
             <div className="card p-4 space-y-3">
-              <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">เจ็บเมื่อ <span className="normal-case font-normal text-slate-400">(เลือกได้หลายข้อ)</span></p>
+              <p className="text-xs font-bold uppercase tracking-[0.15em] text-rm-muted">เจ็บเมื่อ <span className="normal-case font-normal text-rm-muted/80">(เลือกได้หลายข้อ)</span></p>
               <div className="flex flex-wrap gap-2">
                 {PAINFUL_WHEN_OPTIONS.map((opt) => (
                   <button key={opt.value} type="button"
                     onClick={() => toggleMulti(painfulWhen, opt.value, setPainfulWhen)}
-                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${painfulWhen.includes(opt.value) ? "border-[#17201d] bg-[#17201d] text-white" : "border-slate-200 text-slate-600 hover:border-slate-300"}`}>
+                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${painfulWhen.includes(opt.value) ? "border-rm-primary-strong bg-rm-primary-strong text-rm-surface" : "border-rm-border text-rm-muted hover:border-rm-primary/40"}`}>
                     {opt.label}
                   </button>
                 ))}
@@ -585,11 +585,11 @@ function PainPageContent() {
             {/* Swelling + bear weight */}
             <div className="card p-4 space-y-4">
               <div>
-                <p className="mb-1.5 text-xs font-semibold text-slate-500">บวมหรือแดง</p>
+                <p className="mb-1.5 text-xs font-semibold text-rm-muted">บวมหรือแดง</p>
                 <div className="grid grid-cols-3 gap-2">
                   {TRI_OPTIONS.map((opt) => (
                     <button key={opt.value} type="button" onClick={() => setSwellingOrRedness(opt.value)}
-                      className={`rounded-xl border py-2 text-xs font-semibold ${swellingOrRedness === opt.value ? "border-[#17201d] bg-[#17201d] text-white" : "border-slate-200 text-slate-600"}`}>
+                      className={`rounded-xl border py-2 text-xs font-semibold ${swellingOrRedness === opt.value ? "border-rm-primary-strong bg-rm-primary-strong text-rm-surface" : "border-rm-border text-rm-muted"}`}>
                       {opt.label}
                     </button>
                   ))}
@@ -597,11 +597,11 @@ function PainPageContent() {
               </div>
 
               <div>
-                <p className="mb-1.5 text-xs font-semibold text-slate-500">รับน้ำหนักได้ไหม</p>
+                <p className="mb-1.5 text-xs font-semibold text-rm-muted">รับน้ำหนักได้ไหม</p>
                 <div className="grid grid-cols-3 gap-2">
                   {BEAR_WEIGHT_OPTIONS.map((opt) => (
                     <button key={opt.value} type="button" onClick={() => setCanBearWeight(opt.value)}
-                      className={`rounded-xl border py-2 text-xs font-semibold ${canBearWeight === opt.value ? "border-[#17201d] bg-[#17201d] text-white" : "border-slate-200 text-slate-600"}`}>
+                      className={`rounded-xl border py-2 text-xs font-semibold ${canBearWeight === opt.value ? "border-rm-primary-strong bg-rm-primary-strong text-rm-surface" : "border-rm-border text-rm-muted"}`}>
                       {opt.label}
                     </button>
                   ))}
@@ -613,9 +613,9 @@ function PainPageContent() {
 
         {/* Notes — visible for all statuses */}
         <div className="card p-4 space-y-2">
-          <p className="text-xs font-semibold text-slate-500">
+          <p className="text-xs font-semibold text-rm-muted">
             {showLightForm ? "ยังรู้สึกอะไรอยู่ไหม" : "หมายเหตุเพิ่มเติม"}
-            <span className="font-normal text-slate-400"> (ถ้ามี)</span>
+            <span className="font-normal text-rm-muted/80"> (ถ้ามี)</span>
           </p>
           <textarea
             className="control min-h-[70px]"
@@ -630,7 +630,7 @@ function PainPageContent() {
         </div>
 
         {error && (
-          <p className="rounded-2xl bg-red-50 p-3 text-sm font-semibold text-red-600">{error}</p>
+          <p className="rounded-2xl bg-rm-stop-soft p-3 text-sm font-semibold text-rm-stop">{error}</p>
         )}
 
         <LoadingButton
@@ -644,12 +644,12 @@ function PainPageContent() {
         </LoadingButton>
 
         {!submitting && (
-          <p className="mt-2 text-center text-xs text-slate-500 font-medium animate-fadeIn" data-testid="submit-helper-copy">
+          <p className="mt-2 text-center text-xs text-rm-muted font-medium animate-fadeIn" data-testid="submit-helper-copy">
             ข้อมูลนี้จะใช้ปรับ Today, Coach และ Race plan วันนี้
           </p>
         )}
         {submitting && showFullForm && (
-          <p className="text-center text-xs text-slate-400 mt-2">AI กำลังประเมินอาการ กรุณารอสักครู่…</p>
+          <p className="text-center text-xs text-rm-muted/80 mt-2">AI กำลังประเมินอาการ กรุณารอสักครู่…</p>
         )}
       </form>
     </AppShell>
@@ -660,7 +660,7 @@ export default function PainPage() {
   return (
     <Suspense fallback={
       <AppShell title="วิเคราะห์อาการเจ็บ" subtitle="กำลังโหลด..." medicalDisclaimer>
-        <section className="card p-5 text-sm text-slate-500">กำลังโหลด...</section>
+        <section className="card p-5 text-sm text-rm-muted">กำลังโหลด...</section>
       </AppShell>
     }>
       <PainPageContent />

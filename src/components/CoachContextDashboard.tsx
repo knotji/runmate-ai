@@ -129,13 +129,13 @@ export function CoachContextDashboard() {
 
       {/* Mini axis row */}
       {recSys && (
-        <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] font-semibold text-slate-500/90">
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] font-semibold text-rm-muted">
           <span>ฟื้นตัว {Math.round(recSys.axes.recovery.score)}</span>
-          <span className="text-slate-300">·</span>
+          <span className="text-rm-border">·</span>
           <span>โหลด {Math.round(recSys.axes.load.score)}</span>
-          <span className="text-slate-300">·</span>
+          <span className="text-rm-border">·</span>
           <span>นอน {Math.round(recSys.axes.sleep.score)}</span>
-          <span className="text-slate-300">·</span>
+          <span className="text-rm-border">·</span>
           <span>พลังงาน {Math.round(recSys.axes.fuel.score)}</span>
         </div>
       )}
@@ -168,7 +168,7 @@ export function CoachContextDashboard() {
             {suggestedChips.map((chip) => (
               <span
                 key={chip.label}
-                className="rounded-full border border-[var(--border-warm)] bg-white/70 px-2.5 py-1 text-xs font-semibold text-[var(--foreground)] cursor-default"
+                className="rounded-full border border-rm-border bg-rm-surface px-2.5 py-1 text-xs font-semibold text-rm-text cursor-default"
                 data-testid="coach-suggested-chip"
               >
                 {chip.label}
@@ -188,7 +188,7 @@ export function CoachContextDashboard() {
 
         <div className="mt-3 cursor-default space-y-2 border-t border-[var(--color-border-soft)] pt-3">
           {/* Source summary */}
-          <div className={`rounded-2xl p-3 ${hasUsefulData ? "bg-[var(--primary-soft)]" : "bg-amber-50/80"}`}>
+          <div className={`rounded-2xl p-3 ${hasUsefulData ? "bg-[var(--primary-soft)]" : "bg-rm-caution-soft"}`}>
             {hasUsefulData ? (
               <>
                 <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--primary-strong)]">อ้างอิงจาก</p>
@@ -196,8 +196,8 @@ export function CoachContextDashboard() {
               </>
             ) : (
               <>
-                <p className="font-bold text-amber-700">โค้ชยังมีข้อมูลน้อย</p>
-                <p className="text-sm text-amber-700">ลอง Upload ผลวิ่ง อาหาร หรือ Sleep score เพื่อให้คำแนะนำแม่นขึ้น</p>
+                <p className="font-bold text-rm-caution">โค้ชยังมีข้อมูลน้อย</p>
+                <p className="text-sm text-rm-caution">ลอง Upload ผลวิ่ง อาหาร หรือ Sleep score เพื่อให้คำแนะนำแม่นขึ้น</p>
               </>
             )}
           </div>

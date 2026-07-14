@@ -417,11 +417,11 @@ function RecoveryGuardrailsCard({ coachContext }: { coachContext: CoachContext |
   if (!recSys || !recSys.guardrails?.length) return null;
 
   return (
-    <section className="card border border-blue-100 bg-blue-50/20 p-4">
+    <section className="card border border-rm-recovery/25 bg-rm-recovery-soft/40 p-4">
       <details className="group cursor-pointer">
         <summary className="list-none flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#42677f]">ข้อควรระวังวันนี้</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-rm-recovery">ข้อควรระวังวันนี้</p>
             <p className="mt-1 text-xs font-semibold leading-relaxed text-[var(--foreground)] line-clamp-2 group-open:hidden">
               {recSys.guardrails[0]}
             </p>
@@ -432,7 +432,7 @@ function RecoveryGuardrailsCard({ coachContext }: { coachContext: CoachContext |
             <span className="transition-transform group-open:rotate-180">▾</span>
           </div>
         </summary>
-        <div className="mt-3 pt-3 border-t border-blue-100/50 cursor-default">
+        <div className="mt-3 pt-3 border-t border-rm-recovery/20 cursor-default">
           <p className="text-xs font-extrabold text-[var(--foreground)] leading-snug">{recSys.headline}</p>
           <ul className="list-disc pl-4 mt-2 space-y-1 text-xs font-semibold text-[var(--muted-text)]">
             {recSys.guardrails.map((g, idx) => (
@@ -492,7 +492,7 @@ function TodayWorkoutCompletedCard({ workout, completedKm }: { workout: WeekWork
   const planned = workout.distanceKm;
   const exceeded = planned != null && completedKm > planned;
   return (
-    <section className="card relative overflow-hidden border border-[#b7dcc4] bg-[#f4fbf6] p-5 pl-7" data-testid="today-workout-completed-card">
+    <section className="card relative overflow-hidden border border-rm-primary/25 bg-rm-primary-soft p-5 pl-7" data-testid="today-workout-completed-card">
       <div className="absolute inset-y-0 left-0 w-1.5 bg-[var(--primary)]" aria-hidden="true" />
       <div className="mb-3 flex items-center gap-2">
         <p className="text-xs font-bold uppercase tracking-[0.22em] text-[var(--primary-strong)]">วันนี้ทำแล้ว</p>
@@ -518,12 +518,12 @@ function TodayWorkoutCompletedCard({ workout, completedKm }: { workout: WeekWork
 
 function SickHardStopRaceAdvisory() {
   return (
-    <section className="rounded-2xl border border-red-200 bg-red-50 p-4 space-y-2" data-testid="sick-hard-stop-race-advisory">
-      <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-red-700">⚠️ วันนี้ไม่ใช้แผนซ้อม</p>
-      <p className="text-sm leading-6 text-red-800">
+    <section className="rounded-2xl border border-rm-stop/30 bg-rm-stop-soft p-4 space-y-2" data-testid="sick-hard-stop-race-advisory">
+      <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-rm-stop">⚠️ วันนี้ไม่ใช้แผนซ้อม</p>
+      <p className="text-sm leading-6 text-rm-text">
         มีอาการป่วยที่ควรพักก่อน แผนซ้อมจะกลับมาดูอีกครั้งเมื่ออาการดีขึ้น
       </p>
-      <Link href="/sick" className="inline-block rounded-xl bg-red-700 px-4 py-1.5 text-xs font-bold text-white">
+      <Link href="/sick" className="inline-block rounded-xl bg-rm-stop px-4 py-1.5 text-xs font-bold text-rm-surface">
         ดู/อัปเดตอาการ
       </Link>
     </section>
@@ -548,9 +548,10 @@ function TodayWorkoutCard({ workout, coachContext }: { workout: WeekWorkout; coa
 
   const isStrength = isStrengthOrMobilityType(workout.workoutType);
   const adaptiveNote = getAdaptiveLongRunNote(workout, coachContext, true);
+  const isSickHardStop = coachContext?.sickRiskLevel === "hard_stop";
   return (
-    <section className="card relative overflow-hidden border border-[#b7dcc4] bg-[#f4fbf6] p-5 pl-7">
-      <div className="absolute inset-y-0 left-0 w-1.5 bg-[var(--primary)]" aria-hidden="true" />
+    <section className={`card relative overflow-hidden border p-5 pl-7 ${isSickHardStop ? "border-rm-border bg-rm-surface-soft" : "border-rm-primary/25 bg-rm-primary-soft"}`}>
+      <div className={`absolute inset-y-0 left-0 w-1.5 ${isSickHardStop ? "bg-rm-neutral" : "bg-[var(--primary)]"}`} aria-hidden="true" />
       <div className="mb-3 flex items-center gap-2">
         <p className="text-xs font-bold uppercase tracking-[0.22em] text-[var(--primary-strong)]">วันนี้แผนซ้อมปรับตามร่างกาย</p>
         <span className="rounded-full bg-[var(--primary-soft)] px-2 py-0.5 text-[9px] font-bold text-[var(--primary-strong)]">ปรับแล้ว</span>
@@ -576,19 +577,19 @@ function TodayWorkoutCard({ workout, coachContext }: { workout: WeekWorkout; coa
         </>
       )}
       {adaptiveNote && (
-        <div className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800 font-medium border border-amber-200">
+        <div className="mt-3 rounded-xl bg-rm-caution-soft px-3 py-2 text-xs leading-5 text-rm-caution font-medium border border-rm-caution/30">
           ⚠️ {adaptiveNote}
         </div>
       )}
       {guardrail && guardrail.canDoHardWorkout === false && (
-        <div className="mt-3 rounded-xl bg-[#fff8ed] px-3 py-2.5 text-xs leading-5 text-[#9b742c] font-medium border border-[#f0dab0]" data-testid="pain-recovery-race-banner">
+        <div className="mt-3 rounded-xl bg-rm-caution-soft px-3 py-2.5 text-xs leading-5 text-rm-caution font-medium border border-rm-caution/30" data-testid="pain-recovery-race-banner">
           ⚠️ {guardrail.shortThaiCopy}
         </div>
       )}
       {coachContext?.activeSick && (
         <div
           data-testid="sick-day-race-banner"
-          className={`mt-3 rounded-xl px-3 py-2.5 text-xs leading-5 font-medium border ${coachContext.sickRiskLevel === "hard_stop" ? "bg-red-50 text-red-700 border-red-200" : "bg-amber-50 text-amber-700 border-amber-200"}`}
+          className={`mt-3 rounded-xl px-3 py-2.5 text-xs leading-5 font-medium border ${coachContext.sickRiskLevel === "hard_stop" ? "bg-rm-stop-soft text-rm-stop border-rm-stop/30" : "bg-rm-caution-soft text-rm-caution border-rm-caution/30"}`}
         >
           {coachContext.sickRiskLevel === "hard_stop"
             ? "🔴 วันนี้พักก่อน — อาการป่วยสำคัญกว่าแผนซ้อม พักให้หาย แล้วค่อยกลับมาซ้อม"
@@ -600,14 +601,14 @@ function TodayWorkoutCard({ workout, coachContext }: { workout: WeekWorkout; coa
         const isHardWorkout = /interval|tempo|ซ้อมเร็ว|long run|วิ่งยาว|race pace/i.test(workout.workoutType);
         if (dr.band === "red" && isHardWorkout) {
           return (
-            <div className="mt-3 rounded-xl bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-600 border border-slate-200" data-testid="readiness-race-softening">
+            <div className="mt-3 rounded-xl bg-rm-surface-soft px-3 py-2 text-xs leading-5 text-rm-muted border border-rm-border" data-testid="readiness-race-softening">
               💡 ร่างกายฟื้นตัวต่ำวันนี้ — พิจารณาลดเป็น easy run หรือพัก แล้วทำตามแผนพรุ่งนี้แทน
             </div>
           );
         }
         if (dr.band === "pain_risk") {
           return (
-            <div className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-xs leading-5 text-red-700 border border-red-200" data-testid="readiness-race-pain-note">
+            <div className="mt-3 rounded-xl bg-rm-stop-soft px-3 py-2 text-xs leading-5 text-rm-stop border border-rm-stop/30" data-testid="readiness-race-pain-note">
               🩹 มีอาการเจ็บ — แนะนำงดซ้อมตามแผนนี้ก่อน และประเมินอาการก่อนกลับซ้อม
             </div>
           );
