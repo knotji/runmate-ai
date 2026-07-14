@@ -15,6 +15,7 @@ import { formatBpm } from "@/lib/format";
 import { validateHrValues, hasBlockingHrErrors } from "@/lib/hrValidation";
 import { getCoachStylePreview } from "@/lib/coachStylePreview";
 import { todayBangkokDateKey } from "@/lib/date";
+import { SignalDot } from "@/components/ui/SignalPill";
 
 type Status = { tone: "idle" | "good" | "warn" | "bad"; text: string };
 
@@ -600,13 +601,16 @@ export function ProfileSetupForm({
                 )}
               </div>
             </div>
-            <div className="rounded-xl bg-slate-50 px-3 py-2.5">
-              <p className="text-[11px] text-slate-400">โซนหัวใจ / Easy HR</p>
-              <p className="text-sm font-semibold text-[var(--foreground)]">
+            <div className="rounded-xl border border-rm-primary/20 bg-rm-primary-soft px-3 py-2.5">
+              <p className="flex items-center gap-1.5 text-[11px] text-rm-muted">
+                <SignalDot tone="recovery" />
+                โซนหัวใจ / Easy HR
+              </p>
+              <p className="text-sm font-semibold text-rm-text">
                 {HR_ZONE_METHOD_LABELS[profile.hrZoneMethod ?? "auto"]}
               </p>
               {(profile.aerobicThresholdHr != null || profile.anaerobicThresholdHr != null) && (
-                <p className="mt-0.5 text-[10px] leading-tight text-slate-400">
+                <p className="mt-0.5 text-[10px] leading-tight text-rm-muted">
                   AT {profile.aerobicThresholdHr ?? "—"} · AnT {profile.anaerobicThresholdHr ?? "—"}
                 </p>
               )}
@@ -651,10 +655,13 @@ export function ProfileSetupForm({
               </div>
             </div>
 
-            <div className="space-y-2 rounded-xl border border-[var(--border-warm)] p-3">
+            <div className="space-y-2 rounded-xl border border-rm-recovery/25 bg-rm-recovery-soft/40 p-3">
               <div className="space-y-0.5">
-                <label className="text-xs font-semibold text-slate-500">โซนหัวใจ / Easy HR</label>
-                <p className="text-[10px] text-slate-400">ใช้กำหนดว่า easy/recovery วันนี้ควรเบาแค่ไหน</p>
+                <label className="flex items-center gap-1.5 text-xs font-semibold text-rm-text">
+                  <SignalDot tone="recovery" />
+                  โซนหัวใจ / Easy HR
+                </label>
+                <p className="text-[10px] text-rm-muted">ใช้กำหนดว่า easy/recovery วันนี้ควรเบาแค่ไหน</p>
               </div>
               <select
                 className="control"
@@ -668,17 +675,17 @@ export function ProfileSetupForm({
                 <option value="max_hr">Max HR</option>
                 <option value="manual">ตั้งเอง</option>
               </select>
-              <p className="text-[10px] leading-snug text-slate-400">
+              <p className="text-[10px] leading-snug text-rm-muted">
                 {HR_ZONE_METHOD_HELP[profile.hrZoneMethod ?? "auto"]}
               </p>
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-500">AT (Aerobic) <span className="font-normal text-slate-400">bpm</span></label>
+                  <label className="text-xs font-semibold text-rm-muted">AT (Aerobic) <span className="font-normal text-rm-muted/80">bpm</span></label>
                   <NumberInput placeholder="เช่น 146" value={profile.aerobicThresholdHr} onChange={(v) => update("aerobicThresholdHr", v)} />
                   {renderFieldIssues("aerobicThresholdHr")}
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-500">AnT (Anaerobic) <span className="font-normal text-slate-400">bpm</span></label>
+                  <label className="text-xs font-semibold text-rm-muted">AnT (Anaerobic) <span className="font-normal text-rm-muted/80">bpm</span></label>
                   <NumberInput placeholder="เช่น 172" value={profile.anaerobicThresholdHr} onChange={(v) => update("anaerobicThresholdHr", v)} />
                   {renderFieldIssues("anaerobicThresholdHr")}
                 </div>

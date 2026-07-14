@@ -63,12 +63,54 @@
 
   /* Section label blue-gray */
   --label-color: #6f8fa6;
+
+  /* ─── RunMate v0.2 — Calm Runner Coach tokens ────────────────────────────
+     New semantic layer for the v0.2 design system. Existing --background /
+     --primary / --color-* tokens above are kept as-is for backward
+     compatibility; these --rm-* tokens are the source of truth going
+     forward and are mapped close to the legacy values where they overlap. */
+  --rm-bg: #f7f3ea;
+  --rm-surface: #fffdf8;
+  --rm-surface-soft: #fbf6ec;
+  --rm-border: #e8ded0;
+  --rm-text: #1f2a24;
+  --rm-text-muted: #6f7b73;
+  --rm-primary: #5b947e;
+  --rm-primary-strong: #2f5d50;
+  --rm-primary-soft: #e4efe9;
+  --rm-caution: #d89a3d;
+  --rm-caution-soft: #f7e4bf;
+  --rm-stop: #c96a6a;
+  --rm-stop-soft: #f6dada;
+  --rm-recovery: #6f9fb8;
+  --rm-recovery-soft: #ddebf2;
+  --rm-neutral: #a89c8d;
+  --rm-neutral-soft: #efe8de;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-noto-thai);
+
+  /* RunMate v0.2 Tailwind color utilities (bg-rm-*, text-rm-*, border-rm-*) */
+  --color-rm-bg: var(--rm-bg);
+  --color-rm-surface: var(--rm-surface);
+  --color-rm-surface-soft: var(--rm-surface-soft);
+  --color-rm-border: var(--rm-border);
+  --color-rm-text: var(--rm-text);
+  --color-rm-muted: var(--rm-text-muted);
+  --color-rm-primary: var(--rm-primary);
+  --color-rm-primary-strong: var(--rm-primary-strong);
+  --color-rm-primary-soft: var(--rm-primary-soft);
+  --color-rm-caution: var(--rm-caution);
+  --color-rm-caution-soft: var(--rm-caution-soft);
+  --color-rm-stop: var(--rm-stop);
+  --color-rm-stop-soft: var(--rm-stop-soft);
+  --color-rm-recovery: var(--rm-recovery);
+  --color-rm-recovery-soft: var(--rm-recovery-soft);
+  --color-rm-neutral: var(--rm-neutral);
+  --color-rm-neutral-soft: var(--rm-neutral-soft);
 }
 
 * {
@@ -327,3 +369,65 @@ textarea {
   transition: background 150ms ease;
 }
 .btn-danger-soft:hover { background: var(--color-danger-tint-hover); }
+
+/* ─── RunMate v0.2 — Typography scale ───────────────────────────────────── */
+.rm-page-title {
+  font-size: 1.75rem;
+  line-height: 1.25;
+  font-weight: 700;
+  color: var(--rm-text);
+  letter-spacing: -0.01em;
+}
+.rm-section-heading {
+  font-size: 1.25rem;
+  line-height: 1.3;
+  font-weight: 600;
+  color: var(--rm-text);
+}
+.rm-card-title {
+  font-size: 1.0625rem;
+  line-height: 1.35;
+  font-weight: 600;
+  color: var(--rm-text);
+}
+.rm-body {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--rm-text);
+}
+.rm-caption {
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--rm-text-muted);
+}
+.rm-eyebrow {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--rm-text-muted);
+}
+.rm-metric {
+  font-size: 2.75rem;
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--rm-text);
+}
+
+/* ─── RunMate v0.2 — Tone surfaces (ready/caution/recovery/stop/neutral) ── */
+.rm-tone-ready { --rm-tone: var(--rm-primary); --rm-tone-soft: var(--rm-primary-soft); --rm-tone-strong: var(--rm-primary-strong); }
+.rm-tone-caution { --rm-tone: var(--rm-caution); --rm-tone-soft: var(--rm-caution-soft); --rm-tone-strong: var(--rm-caution); }
+.rm-tone-recovery { --rm-tone: var(--rm-recovery); --rm-tone-soft: var(--rm-recovery-soft); --rm-tone-strong: var(--rm-recovery); }
+.rm-tone-stop { --rm-tone: var(--rm-stop); --rm-tone-soft: var(--rm-stop-soft); --rm-tone-strong: var(--rm-stop); }
+.rm-tone-neutral { --rm-tone: var(--rm-neutral); --rm-tone-soft: var(--rm-neutral-soft); --rm-tone-strong: var(--rm-neutral); }
+
+/* ─── RunMate v0.2 — Card surface ────────────────────────────────────────
+   Generic soft-white rounded card. Coexists with legacy .card/.card-soft;
+   used by the new src/components/ui/ primitives. */
+.rm-card {
+  border: 1px solid var(--rm-border);
+  border-radius: 20px;
+  background: var(--rm-surface);
+  box-shadow: 0 18px 45px rgba(72, 82, 72, 0.06);
+}

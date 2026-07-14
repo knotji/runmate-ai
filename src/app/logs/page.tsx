@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
 import { LoadingButton } from "@/components/LoadingButton";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { deleteHistoryItem, loadHistoryItems, saveHistoryItems } from "@/lib/cloudHistory";
 import { deleteRaceResult, loadRaceResults } from "@/lib/raceResults";
 import { loadProfileFromSupabase } from "@/lib/profileStorage";
@@ -294,15 +295,16 @@ export default function ReportPage() {
           </button>
         </section>
       ) : days.length === 0 ? (
-        <section className="card space-y-3 p-5 text-sm text-[var(--muted-text)]">
-          <div>
-            <p className="font-bold text-[var(--foreground)]">ยังไม่มีบันทึกในสัปดาห์นี้</p>
-            <p className="mt-1 leading-6">ลองบันทึกการนอน อาหาร หรือการซ้อมวันนี้ก่อน — ข้อมูลจะเริ่มสะสมเป็น Report ให้โค้ชใช้ประเมิน</p>
-          </div>
-          <Link href="/upload" className="btn-primary block py-3 text-center text-sm">
-            บันทึกข้อมูลวันนี้
-          </Link>
-        </section>
+        <EmptyState
+          icon="📒"
+          title="ยังไม่มีบันทึกในสัปดาห์นี้"
+          description="ลองบันทึกการนอน อาหาร หรือการซ้อมวันนี้ก่อน — ข้อมูลจะเริ่มสะสมเป็น Report ให้โค้ชใช้ประเมิน"
+          action={
+            <Link href="/upload" className="btn-primary block py-3 text-center text-sm">
+              บันทึกข้อมูลวันนี้
+            </Link>
+          }
+        />
       ) : (
         <>
           <section className="rounded-3xl border border-[var(--color-border-soft)] bg-[var(--surface)]/70 px-4 py-3 text-xs leading-5 text-[var(--color-text-muted)] shadow-sm">
