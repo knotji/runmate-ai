@@ -34,7 +34,7 @@ export function CoachContextDashboard() {
   if (loading) {
     return (
       <div className="flex h-24 items-center justify-center rounded-3xl border border-[var(--border-warm)] bg-[var(--surface-muted)]">
-        <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#e4d8c8] border-t-[var(--primary)]" />
+        <div className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--border-warm)] border-t-[var(--primary)]" />
       </div>
     );
   }
@@ -69,19 +69,19 @@ export function CoachContextDashboard() {
   const stanceColor = !coachingState || coachingState === "push" || coachingState === "maintain"
     ? "text-[var(--status-ready)]"
     : coachingState === "easy"
-    ? "text-[#9b742c]"
+    ? "text-[var(--color-warning)]"
     : "text-[var(--status-rest)]";
 
   const scoreBg = !coachingState || coachingState === "push" || coachingState === "maintain"
     ? "bg-[var(--primary-soft)]"
     : coachingState === "easy"
-    ? "bg-[#fff6df]"
-    : "bg-[#fff0ee]";
+    ? "bg-[var(--color-warning-soft)]"
+    : "bg-[var(--color-danger-soft)]";
 
   const scoreTextColor = !coachingState || coachingState === "push" || coachingState === "maintain"
     ? "text-[var(--primary-strong)]"
     : coachingState === "easy"
-    ? "text-[#9b742c]"
+    ? "text-[var(--color-warning)]"
     : "text-[var(--status-rest)]";
 
   const guardrail = getTodayTrainingGuardrail(recSys, context.activePain, context.painRecoveryStatus);
@@ -90,14 +90,14 @@ export function CoachContextDashboard() {
   const hasUsefulData = context.sleep7d.length > 0 || context.workouts7d.length > 0 ||
     context.recentPainLogs.length > 0 || Boolean(context.raceGoal);
 
-  const guardrailMsgBg = guardrail.tone === "danger" ? "bg-[#fff0ee]"
-    : guardrail.tone === "warning" ? "bg-[#fff8ed]/80"
+  const guardrailMsgBg = guardrail.tone === "danger" ? "bg-[var(--color-danger-soft)]"
+    : guardrail.tone === "warning" ? "bg-[var(--color-warning-soft)]"
     : guardrail.tone === "caution" ? "bg-[var(--surface-muted)]"
     : guardrail.tone === "success" ? "bg-[var(--primary-soft)]"
     : "bg-[var(--surface-muted)]";
 
   const guardrailMsgColor = guardrail.tone === "danger" ? "text-[var(--status-rest)]"
-    : guardrail.tone === "warning" ? "text-[#9b742c]"
+    : guardrail.tone === "warning" ? "text-[var(--color-warning)]"
     : guardrail.tone === "caution" ? "text-[var(--muted-text)]"
     : guardrail.tone === "success" ? "text-[var(--primary-strong)]"
     : "text-[var(--muted-text)]";
