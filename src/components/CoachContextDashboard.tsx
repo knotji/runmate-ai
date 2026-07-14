@@ -84,6 +84,18 @@ export function CoachContextDashboard() {
     ? "text-[var(--color-warning)]"
     : "text-[var(--status-rest)]";
 
+  const scoreRing = !coachingState || coachingState === "push" || coachingState === "maintain"
+    ? "border-[var(--color-success)]"
+    : coachingState === "easy"
+    ? "border-[var(--color-warning)]"
+    : "border-[var(--color-danger)]";
+
+  const scoreGlow = !coachingState || coachingState === "push" || coachingState === "maintain"
+    ? "rgba(82,209,124,0.35)"
+    : coachingState === "easy"
+    ? "rgba(255,182,72,0.35)"
+    : "rgba(255,107,107,0.35)";
+
   const guardrail = getTodayTrainingGuardrail(recSys, context.activePain, context.painRecoveryStatus);
   const suggestedChips = getGuardrailSuggestedChips(guardrail);
   const contextChips = buildContextChips(context, recSys);
@@ -111,9 +123,13 @@ export function CoachContextDashboard() {
           <p className={`mt-1 text-base font-extrabold ${stanceColor}`}>{stanceLabel}</p>
         </div>
         {score != null && (
-          <div className={`shrink-0 rounded-2xl px-3 py-2 text-center min-w-[56px] ${scoreBg}`}>
+          <div
+            data-testid="coach-score-badge"
+            className={`shrink-0 flex h-16 w-16 flex-col items-center justify-center rounded-full border-2 ${scoreRing} ${scoreBg}`}
+            style={{ boxShadow: `0 0 12px ${scoreGlow}` }}
+          >
             <p className={`text-xl font-extrabold leading-none ${scoreTextColor}`}>{score}</p>
-            <p className="mt-0.5 text-[10px] text-[var(--muted-text)]">{runmateLabel ?? "Fair"}</p>
+            <p className="mt-0.5 text-[9px] text-[var(--muted-text)]">{runmateLabel ?? "Fair"}</p>
           </div>
         )}
       </div>
@@ -160,12 +176,12 @@ export function CoachContextDashboard() {
         <p className="mt-2.5 text-xs text-[var(--muted-text)]">ยังมีข้อมูลไม่มาก ลองอัปโหลด Report เพิ่ม</p>
       ) : null}
 
-      {/* Suggested question chips */}
-      {hasUsefulData && (
+      {/* Suggested question chips — capped to 2 here; the full interactive set lives in CoachChat below */}
+      {hasUsefulData && suggestedChips.length > 0 && (
         <div className="mt-2.5">
           <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--label-color)]">คำถามที่เหมาะกับวันนี้</p>
           <div className="flex flex-wrap gap-1.5">
-            {suggestedChips.map((chip) => (
+            {suggestedChips.slice(0, 2).map((chip) => (
               <span
                 key={chip.label}
                 className="rounded-full border border-rm-border bg-rm-surface px-2.5 py-1 text-xs font-semibold text-rm-text cursor-default"

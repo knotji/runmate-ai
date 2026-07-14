@@ -361,7 +361,7 @@ export function CoachChat() {
           {buildQuickQuestions(raceQuickContext, recoveryCtx).map((item) => (
             <button
               key={item.label}
-              className="whitespace-nowrap rounded-full border border-[var(--border-warm)] bg-[var(--surface-muted)] px-3 py-2 text-xs font-semibold text-[var(--foreground)] transition hover:bg-[var(--primary-soft)]"
+              className="whitespace-nowrap rounded-full border border-[var(--border-warm)] bg-[var(--surface-muted)] px-3 py-2 text-sm font-semibold text-[var(--foreground)] transition hover:bg-[var(--primary-soft)]"
               onClick={() => void ask(item.prompt)}
             >
               {item.label}
@@ -382,7 +382,7 @@ export function CoachChat() {
                 key={item.label}
                 type="button"
                 onClick={() => void ask(item.prompt)}
-                className="rounded-full bg-[var(--surface-muted)] px-3 py-2 text-xs font-semibold text-[var(--foreground)] transition hover:bg-[var(--primary-soft)]"
+                className="rounded-full bg-[var(--surface-muted)] px-3 py-2 text-sm font-semibold text-[var(--foreground)] transition hover:bg-[var(--primary-soft)]"
               >
                 {item.label}
               </button>
@@ -411,13 +411,13 @@ export function CoachChat() {
 
       <div
         data-testid="coach-chat-history"
-        className="flex max-h-[55vh] min-h-[300px] flex-1 flex-col gap-4 overflow-y-auto rounded-3xl border border-[var(--border-warm)] bg-[var(--surface)]/70 p-4 pb-6 shadow-sm"
+        className="flex max-h-[55vh] min-h-[160px] flex-1 flex-col gap-4 overflow-y-auto rounded-3xl border border-[var(--border-warm)] bg-[var(--surface)]/70 p-4 pb-6 shadow-sm"
       >
         {hasLoadedHistory && messages.length === 0 ? (
-          <div className="my-auto flex flex-col items-center justify-center text-center p-6" data-testid="chat-empty-state">
-            <span className="text-3xl">💬</span>
-            <p className="mt-2 text-sm font-bold text-[var(--foreground)]">ยังไม่มีบทสนทนากับโค้ช</p>
-            <p className="mt-1 text-xs text-[var(--muted-text)]">ลองถามว่า วันนี้ควรซ้อมยังไงดี หรือ กินอะไรดีหลังวิ่ง</p>
+          <div className="my-auto flex flex-col items-center justify-center gap-1 text-center p-3" data-testid="chat-empty-state">
+            <span className="text-2xl">💬</span>
+            <p className="text-sm font-bold text-[var(--foreground)]">ยังไม่มีบทสนทนากับโค้ช</p>
+            <p className="text-xs text-[var(--muted-text)]">ลองถามว่า วันนี้ควรซ้อมยังไงดี หรือ กินอะไรดีหลังวิ่ง</p>
           </div>
         ) : (
           <>

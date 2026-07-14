@@ -57,7 +57,7 @@ test.describe("Coach home 10/10 polish", () => {
     await expect(dashboard).toBeVisible();
 
     // Score badge visible
-    await expect(dashboard.locator(".rounded-2xl").first()).toBeVisible();
+    await expect(dashboard.getByTestId("coach-score-badge")).toBeVisible();
 
     // A valid human stance label is shown
     let stanceFound = false;
