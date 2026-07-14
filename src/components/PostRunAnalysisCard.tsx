@@ -82,7 +82,7 @@ export function PostRunAnalysisCard({ workout }: { workout: WorkoutAnalysis }) {
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.22em] text-[var(--label-color)]">Post-run Flow</p>
           <h2 className="mt-2 text-xl font-bold text-[var(--foreground)]">วิเคราะห์หลังซ้อม</h2>
-          <p className="mt-1 text-sm leading-6 text-slate-600">
+          <p className="mt-1 text-sm leading-6 text-[var(--color-text-muted)]">
             ใช้ workout นี้ + sleep/readiness + weekly load + race goal เพื่อสรุปว่าซ้อมนี้ส่งผลยังไง
           </p>
         </div>
@@ -91,13 +91,13 @@ export function PostRunAnalysisCard({ workout }: { workout: WorkoutAnalysis }) {
           onClick={analyze}
           loading={loading}
           loadingText="กำลังวิเคราะห์..."
-          className="shrink-0 rounded-full bg-[#17201d] px-4 py-2 text-xs font-bold text-white disabled:opacity-50"
+          className="shrink-0 rounded-full bg-[var(--primary)] px-4 py-2 text-xs font-bold text-[#0b1220] disabled:opacity-50"
         >
           {analysis ? "วิเคราะห์ใหม่" : "วิเคราะห์"}
         </LoadingButton>
       </div>
 
-      {error ? <p className="rounded-2xl bg-red-50 p-3 text-sm text-red-600">{error}</p> : null}
+      {error ? <p className="rounded-2xl bg-[var(--color-danger-soft)] p-3 text-sm text-[var(--color-danger)]">{error}</p> : null}
 
       {analysis ? (
         <div className="space-y-3">
