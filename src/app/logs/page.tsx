@@ -276,7 +276,7 @@ export default function ReportPage() {
     <AppShell title="บันทึกของเรา" subtitle="Report · ข้อมูลจาก Upload ที่โค้ชใช้เป็นบริบท">
       {/* Delete status rendered at top level so it shows even after last item is deleted */}
       {deleteStatus ? (
-        <section className={`rounded-2xl px-4 py-3 text-xs font-semibold ${deleteStatus.startsWith("ลบไม่สำเร็จ") ? "bg-red-50 text-red-600" : "bg-[var(--primary-soft)] text-[var(--color-success)]"}`}>
+        <section className={`rounded-2xl px-4 py-3 text-xs font-semibold ${deleteStatus.startsWith("ลบไม่สำเร็จ") ? "bg-[var(--color-danger-soft)] text-[var(--color-danger)]" : "bg-[var(--primary-soft)] text-[var(--color-success)]"}`}>
           {deleteStatus}
         </section>
       ) : null}
@@ -359,7 +359,7 @@ export default function ReportPage() {
                   if (!insight) return null;
                   const toneClass =
                     insight.tone === "positive" ? "bg-[var(--primary-soft)] border-[var(--primary-strong)]/30 text-[var(--primary-strong)]" :
-                    insight.tone === "caution" ? "bg-amber-50 border-amber-200 text-amber-900" :
+                    insight.tone === "caution" ? "bg-[var(--color-warning-soft)] border-[var(--color-warning-border)] text-[var(--color-warning)]" :
                     "bg-[var(--surface-muted)] border-[var(--border-warm)] text-[var(--foreground)]";
                   return (
                     <div className={`rounded-2xl border px-4 py-3 space-y-1 ${toneClass}`} data-testid="goal-progress-insight">
@@ -407,7 +407,7 @@ export default function ReportPage() {
                   if (!insight) return null;
                   const toneClass =
                     insight.tone === "positive" ? "bg-[var(--primary-soft)] border-[var(--primary-strong)]/30 text-[var(--primary-strong)]" :
-                    insight.tone === "caution" ? "bg-amber-50 border-amber-200 text-amber-900" :
+                    insight.tone === "caution" ? "bg-[var(--color-warning-soft)] border-[var(--color-warning-border)] text-[var(--color-warning)]" :
                     "bg-[var(--surface-muted)] border-[var(--border-warm)] text-[var(--foreground)]";
                   return (
                     <div className={`rounded-2xl border px-4 py-3 space-y-1 ${toneClass}`} data-testid="goal-progress-insight">
@@ -513,7 +513,7 @@ function CalendarNav({
             type="button"
             disabled={transitioning}
             onClick={() => onModeChange(m)}
-            className={`flex-1 rounded-xl py-2 text-xs font-bold transition-all disabled:cursor-not-allowed disabled:opacity-55 ${mode === m ? "bg-white shadow-sm text-[var(--primary)]" : "text-[var(--color-text-muted)]"}`}
+            className={`flex-1 rounded-xl py-2 text-xs font-bold transition-all disabled:cursor-not-allowed disabled:opacity-55 ${mode === m ? "bg-[var(--surface)] shadow-sm text-[var(--primary)]" : "text-[var(--color-text-muted)]"}`}
           >
             {m === "week" ? "สัปดาห์" : "เดือน"}
           </button>
@@ -568,7 +568,7 @@ function CalendarNav({
       {onExport !== undefined && (
         <div className="flex items-center justify-end gap-2 px-0.5" data-testid="report-export-control">
           {exportStatus && (
-            <p className={`text-[11px] font-semibold ${exportStatus.includes("ไม่สำเร็จ") ? "text-red-600" : "text-[var(--color-success)]"}`} data-testid="report-export-status">
+            <p className={`text-[11px] font-semibold ${exportStatus.includes("ไม่สำเร็จ") ? "text-[var(--color-danger)]" : "text-[var(--color-success)]"}`} data-testid="report-export-status">
               {exportStatus}
             </p>
           )}
@@ -577,7 +577,7 @@ function CalendarNav({
             title="ส่งออกข้อมูลช่วงนี้เป็นไฟล์ JSON"
             disabled={exportPreparing}
             onClick={onExport}
-            className="rounded-full border border-[var(--color-border-soft)] bg-white/80 px-3 py-1.5 text-[11px] font-bold text-[var(--primary)] transition hover:bg-[var(--surface-muted)] disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-full border border-[var(--color-border-soft)] bg-[var(--surface)]/80 px-3 py-1.5 text-[11px] font-bold text-[var(--primary)] transition hover:bg-[var(--surface-muted)] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {exportPreparing ? "กำลังเตรียมไฟล์..." : "ส่งออก JSON"}
           </button>
@@ -630,7 +630,7 @@ function DaySlot({ day }: { day: import("@/lib/reportSummary").DailyReportItem }
           <span className="text-xs font-bold text-[var(--foreground)]">
             {day.weekdayLabel}
             {day.isToday && (
-              <span className="ml-2 rounded-full bg-[var(--primary)] px-2 py-0.5 text-[10px] text-white">วันนี้</span>
+              <span className="ml-2 rounded-full bg-[var(--primary)] px-2 py-0.5 text-[10px] text-[#0b1220]">วันนี้</span>
             )}
           </span>
           <span className="text-[10px] text-[var(--color-text-muted)]">ยังไม่มีข้อมูล</span>
@@ -649,7 +649,7 @@ function DaySlot({ day }: { day: import("@/lib/reportSummary").DailyReportItem }
           <span className="text-xs font-bold text-[var(--foreground)]">
             {day.weekdayLabel}
             {day.isToday && (
-              <span className="ml-2 rounded-full bg-[var(--primary)] px-2 py-0.5 text-[10px] text-white">วันนี้</span>
+              <span className="ml-2 rounded-full bg-[var(--primary)] px-2 py-0.5 text-[10px] text-[#0b1220]">วันนี้</span>
             )}
           </span>
           <span className="shrink-0 text-[10px] font-bold text-[var(--primary)]">
@@ -671,7 +671,7 @@ function DaySlot({ day }: { day: import("@/lib/reportSummary").DailyReportItem }
             <span className="text-xs text-[var(--color-text-muted)]">{nutritionText}</span>
           )}
           {day.painStatus === "active" && day.painLevel != null && (
-            <span className="rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-600">เจ็บ {day.painLevel}/10</span>
+            <span className="rounded-full bg-[var(--color-danger-soft)] px-2 py-0.5 text-[10px] font-bold text-[var(--color-danger)]">เจ็บ {day.painLevel}/10</span>
           )}
           {day.painStatus === "resolved" && (
             <span className="rounded-full bg-[var(--primary-soft)] px-2 py-0.5 text-[10px] font-bold text-[var(--color-success)]">หายเจ็บแล้ว</span>
@@ -697,7 +697,7 @@ function DaySlot({ day }: { day: import("@/lib/reportSummary").DailyReportItem }
 
 function DaySlotDetail({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl bg-white/70 px-2.5 py-2">
+    <div className="rounded-xl bg-[var(--surface)]/70 px-2.5 py-2">
       <p className="text-[10px] font-semibold text-[var(--color-text-muted)]">{label}</p>
       <p className="mt-0.5 font-bold text-[var(--foreground)]">{value}</p>
     </div>
@@ -874,8 +874,8 @@ function WeeklyReadinessDots({ items }: { items: LocalHistoryItem[] }) {
 
   const DOT: Record<string, string> = {
     green: "bg-[var(--color-success)] ring-[var(--color-success)]/30",
-    yellow: "bg-amber-400 ring-amber-300/40",
-    red: "bg-red-400 ring-red-300/40",
+    yellow: "bg-[var(--color-warning)] ring-[var(--color-warning-border)]",
+    red: "bg-[var(--color-danger)] ring-[var(--color-danger-border)]",
     no_data: "bg-[var(--surface-muted)] ring-[var(--border-warm)]/40",
   };
 
@@ -894,8 +894,8 @@ function WeeklyReadinessDots({ items }: { items: LocalHistoryItem[] }) {
       </div>
       <p className="mt-1.5 text-[10px] text-[var(--color-text-soft)]">
         <span className="inline-flex items-center gap-1 mr-2"><span className="inline-block h-2 w-2 rounded-full bg-[var(--color-success)]" />ดี</span>
-        <span className="inline-flex items-center gap-1 mr-2"><span className="inline-block h-2 w-2 rounded-full bg-amber-400" />ปานกลาง</span>
-        <span className="inline-flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-red-400" />ต่ำ</span>
+        <span className="inline-flex items-center gap-1 mr-2"><span className="inline-block h-2 w-2 rounded-full bg-[var(--color-warning)]" />ปานกลาง</span>
+        <span className="inline-flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-[var(--color-danger)]" />ต่ำ</span>
       </p>
     </div>
   );
@@ -1218,12 +1218,12 @@ function getTimelineItemTitle(item: LocalHistoryItem): string {
 
 function getTypeBadgeStyles(type: string): string {
   if (type === "sleep") return "bg-indigo-50 text-indigo-700 border border-indigo-100";
-  if (type === "workout") return "bg-emerald-50 text-emerald-700 border border-emerald-100";
-  if (type === "food") return "bg-orange-50 text-orange-700 border border-orange-100";
-  if (type === "pain") return "bg-red-50 text-red-700 border border-red-100";
-  if (type === "sick") return "bg-amber-50 text-amber-700 border border-amber-200";
+  if (type === "workout") return "bg-[var(--color-success-soft)] text-[var(--color-success)] border border-[var(--color-success-border)]";
+  if (type === "food") return "bg-[var(--color-warning-soft)] text-[var(--color-warning)] border border-[var(--color-warning-border)]";
+  if (type === "pain") return "bg-[var(--color-danger-soft)] text-[var(--color-danger)] border border-[var(--color-danger-border)]";
+  if (type === "sick") return "bg-[var(--color-warning-soft)] text-[var(--color-warning)] border border-[var(--color-warning-border)]";
   if (type === "body") return "bg-purple-50 text-purple-700 border border-purple-100";
-  if (type === "health") return "bg-blue-50 text-blue-700 border border-blue-100";
+  if (type === "health") return "bg-[var(--color-info-soft)] text-[var(--color-info)] border border-[var(--color-info-border)]";
   return "bg-[var(--surface-muted)] text-[var(--foreground)] border border-[var(--border-warm)]";
 }
 
@@ -1337,7 +1337,7 @@ function WeeklyDashboard({ dashboard, proteinTarget, items, cutoff }: { dashboar
   const assessmentText = getDayMealsAssessmentText(meals7d);
 
   return (
-    <details className="group cursor-pointer rounded-3xl border border-[var(--border-warm)] bg-white p-4 shadow-sm">
+    <details className="group cursor-pointer rounded-3xl border border-[var(--border-warm)] bg-[var(--surface)] p-4 shadow-sm">
       <summary className="list-none flex items-center justify-between font-bold text-[var(--foreground)]">
         <div className="flex flex-col gap-0.5">
           <span className="text-[10px] uppercase tracking-[0.15em] text-[var(--label-color)]">ตัวเลขสำคัญ 7 วัน</span>
@@ -1554,12 +1554,12 @@ function DayCard({
     <section
       data-testid="report-day"
       data-date-key={day.date}
-      className={`card overflow-hidden border transition-colors ${expanded ? "border-[#d9e8df] bg-[#fbfdfb] shadow-sm" : "border-transparent"}`}
+      className={`card overflow-hidden border transition-colors ${expanded ? "border-[var(--color-success-border)] bg-[var(--color-success-soft)] shadow-sm" : "border-transparent"}`}
     >
       <button
         data-testid="report-day-toggle"
         type="button"
-        className="w-full cursor-pointer p-4 text-left outline-none focus-visible:ring-2 focus-visible:ring-[#b9d9c0] focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+        className="w-full cursor-pointer p-4 text-left outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
         onClick={() => setExpanded((v) => !v)}
       >
         <div className="flex items-start justify-between gap-3">
@@ -1624,7 +1624,7 @@ function DayCard({
       </button>
 
       {expanded && (
-        <div className="border-t border-[#d9e8df]/70 space-y-3 px-4 pb-4 pt-3">
+        <div className="border-t border-[var(--color-success-border)] space-y-3 px-4 pb-4 pt-3">
           {dedupedSleeps.map((item) => <SleepDetail key={item.id} item={item} onDelete={onDeleteItem} deleting={deletingKey === item.id} />)}
           {pains.map((item) => <PainDetail key={item.id} item={item} meta={painMetaById.get(item.id)} onDelete={onDeleteItem} deleting={deletingKey === item.id} />)}
           {strengths.map((item) => <StrengthDetail key={item.id} item={item} onDelete={onDeleteItem} deleting={deletingKey === item.id} />)}
@@ -1664,7 +1664,7 @@ function DayCard({
             <div className="rounded-2xl bg-[var(--surface-muted)] p-3">
               <p className="text-xs font-bold text-[var(--color-text-muted)] mb-1">สรุปท้ายวัน ({summaries.length})</p>
               {summaries.slice(0, 2).map((item) => (
-                <div key={item.id} className="mt-2 rounded-xl bg-white/80 p-3">
+                <div key={item.id} className="mt-2 rounded-xl bg-[var(--surface)]/80 p-3">
                   <p className="text-sm text-[var(--foreground)] leading-5">
                     {truncate(getSummaryText(item), 120)}
                   </p>
@@ -1830,11 +1830,11 @@ function MealDetail({
   const label = isQuickProtein ? "Quick log" : getMealSlotLabel(normalizedSlot);
 
   return (
-    <div data-testid="report-meal-card" className="rounded-2xl bg-orange-50 p-4">
+    <div data-testid="report-meal-card" className="rounded-2xl bg-[var(--color-warning-soft)] p-4">
       <div className="flex items-center gap-1.5 mb-1">
-        <p className="text-xs font-bold uppercase tracking-wide text-orange-600">{icon} {label}</p>
+        <p className="text-xs font-bold uppercase tracking-wide text-[var(--color-warning)]">{icon} {label}</p>
         {sourceInfo.badgeText && (
-          <span className="rounded-full bg-orange-200 px-2 py-0.5 text-[10px] font-bold text-orange-700">{sourceInfo.badgeText}</span>
+          <span className="rounded-full bg-[var(--color-warning-soft)] px-2 py-0.5 text-[10px] font-bold text-[var(--color-warning)]">{sourceInfo.badgeText}</span>
         )}
       </div>
       {isQuickProtein ? (
@@ -1857,7 +1857,7 @@ function MealDetail({
         </div>
       )}
       {!isQuickProtein && (
-        <p className="mb-2 text-xs text-orange-700">{sourceInfo.assessmentText}</p>
+        <p className="mb-2 text-xs text-[var(--color-warning)]">{sourceInfo.assessmentText}</p>
       )}
       {note && (
         <p className="text-sm leading-6 text-[var(--foreground)]">{truncate(note, 140)}</p>
@@ -1866,7 +1866,7 @@ function MealDetail({
         <button
           type="button"
           onClick={() => onEdit(item)}
-          className="rounded-full border border-orange-200 bg-white/80 px-4 py-1.5 text-xs font-bold text-orange-600 transition hover:bg-orange-100"
+          className="rounded-full border border-[var(--color-warning-border)] bg-[var(--surface)]/80 px-4 py-1.5 text-xs font-bold text-[var(--color-warning)] transition hover:bg-[var(--color-warning-soft)]"
         >
           แก้ไข
         </button>
@@ -1875,7 +1875,7 @@ function MealDetail({
           loading={deleting}
           loadingText="กำลังลบ..."
           onClick={() => onDelete(item)}
-          className="rounded-full border border-red-100 bg-white/80 px-3 py-1.5 text-xs font-bold text-red-500 transition hover:bg-red-50"
+          className="rounded-full border border-[var(--color-danger-border)] bg-[var(--surface)]/80 px-3 py-1.5 text-xs font-bold text-[var(--color-danger)] transition hover:bg-[var(--color-danger-soft)]"
         >
           ลบรายการ
         </LoadingButton>
@@ -1931,20 +1931,20 @@ function HealthCheckDetail({ item, onDelete, deleting }: { item: LocalHistoryIte
   const isMissingLabs = !d.labs?.hba1c || !d.labs?.egfr;
 
   return (
-    <div className="rounded-2xl bg-blue-50 p-4">
+    <div className="rounded-2xl bg-[var(--color-info-soft)] p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="font-bold text-[var(--foreground)] text-base">ผลตรวจสุขภาพล่าสุด</h3>
           <p className="mt-0.5 text-xs text-[var(--recovery-blue)] font-semibold">ใช้เพื่อช่วยปรับคำแนะนำอาหารและไลฟ์สไตล์</p>
           <p className="mt-0.5 text-[11px] text-[var(--color-text-muted)]">{d.checkupDate ?? formatDayLabel(bangkokDateKey(item.createdAt))}</p>
         </div>
-        <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-[var(--recovery-blue)]">{d.confidence ?? "low"}</span>
+        <span className="rounded-full bg-[var(--surface)] px-2.5 py-1 text-[11px] font-bold text-[var(--recovery-blue)]">{d.confidence ?? "low"}</span>
       </div>
 
       <div className="mt-4 space-y-3">
         {/* ควรระวัง */}
-        <div className="rounded-xl bg-white/70 p-3 ring-1 ring-[var(--border-warm)]">
-          <p className="text-xs font-bold text-amber-800">⚠️ ควรระวัง</p>
+        <div className="rounded-xl bg-[var(--surface)]/70 p-3 ring-1 ring-[var(--border-warm)]">
+          <p className="text-xs font-bold text-[var(--color-warning)]">⚠️ ควรระวัง</p>
           {warningLabs.length > 0 ? (
             <ul className="mt-1.5 list-disc pl-4 space-y-1 text-sm text-[var(--foreground)]">
               {warningLabs.map(([key, lab]) => (
@@ -1957,8 +1957,8 @@ function HealthCheckDetail({ item, onDelete, deleting }: { item: LocalHistoryIte
         </div>
 
         {/* อยู่ในเกณฑ์ */}
-        <div className="rounded-xl bg-white/70 p-3 ring-1 ring-[var(--border-warm)]">
-          <p className="text-xs font-bold text-emerald-800">✅ อยู่ในเกณฑ์</p>
+        <div className="rounded-xl bg-[var(--surface)]/70 p-3 ring-1 ring-[var(--border-warm)]">
+          <p className="text-xs font-bold text-[var(--color-success)]">✅ อยู่ในเกณฑ์</p>
           {normalLabs.length > 0 ? (
             <p className="mt-1.5 text-sm text-[var(--foreground)] leading-relaxed font-medium">
               {normalLabs.map(([key, lab]) => {
@@ -1986,7 +1986,7 @@ function HealthCheckDetail({ item, onDelete, deleting }: { item: LocalHistoryIte
         </div>
 
         {/* โภชนาการที่เหมาะ */}
-        <div className="rounded-xl bg-white/70 p-3 ring-1 ring-[var(--border-warm)]">
+        <div className="rounded-xl bg-[var(--surface)]/70 p-3 ring-1 ring-[var(--border-warm)]">
           <p className="text-xs font-bold text-[var(--recovery-blue)]">🥗 โภชนาการที่เหมาะ</p>
           {(d.foodGuidance?.prefer?.length || d.foodGuidance?.limit?.length) ? (
             <ul className="mt-1.5 list-disc pl-4 space-y-1 text-sm text-[var(--foreground)] font-medium">
@@ -2004,13 +2004,13 @@ function HealthCheckDetail({ item, onDelete, deleting }: { item: LocalHistoryIte
       </div>
 
       {isLowConfidence && (
-        <div className="mt-3 rounded-2xl bg-amber-50/80 px-3 py-2 text-xs leading-5 text-amber-800">
+        <div className="mt-3 rounded-2xl bg-[var(--color-warning-soft)] px-3 py-2 text-xs leading-5 text-[var(--color-warning)]">
           ⚠️ ข้อมูลบางส่วนอาจอ่านไม่ชัด กรุณาตรวจทานก่อนใช้ประกอบคำแนะนำ
         </div>
       )}
 
       {isMissingLabs && (
-        <div className="mt-3 rounded-2xl bg-blue-100/50 px-3 py-2 text-xs leading-5 text-[var(--color-text-muted)]">
+        <div className="mt-3 rounded-2xl bg-[var(--color-info-soft)] px-3 py-2 text-xs leading-5 text-[var(--color-text-muted)]">
           ℹ️ ยังไม่มีค่าบางรายการ เช่น HbA1c หรือ eGFR หากต้องการให้คำแนะนำแม่นขึ้น สามารถเพิ่มผลตรวจรอบถัดไปได้
         </div>
       )}
@@ -2043,8 +2043,8 @@ function MealNutritionDaySummary({ summary, mealCount, proteinTarget, meals }: {
   const showSecondaryMacros = summary.caloriesKcal != null || summary.carbsG != null || summary.fatG != null;
 
   return (
-    <div className="rounded-2xl bg-orange-50 p-4 space-y-3">
-      <p className="text-xs font-bold uppercase tracking-wide text-orange-600">Nutrition Summary</p>
+    <div className="rounded-2xl bg-[var(--color-warning-soft)] p-4 space-y-3">
+      <p className="text-xs font-bold uppercase tracking-wide text-[var(--color-warning)]">Nutrition Summary</p>
 
       {/* Protein — hero metric */}
       <div className="flex items-center justify-between gap-3">
@@ -2058,7 +2058,7 @@ function MealNutritionDaySummary({ summary, mealCount, proteinTarget, meals }: {
           )}
         </div>
         {status && (
-          <span className="shrink-0 rounded-full bg-white px-2.5 py-1 text-xs font-bold text-orange-600">{status}</span>
+          <span className="shrink-0 rounded-full bg-[var(--surface)] px-2.5 py-1 text-xs font-bold text-[var(--color-warning)]">{status}</span>
         )}
       </div>
 
@@ -2071,7 +2071,7 @@ function MealNutritionDaySummary({ summary, mealCount, proteinTarget, meals }: {
         </div>
       )}
 
-      <p className="text-xs text-orange-700">{mealCount} มื้อ · {getDayMealsAssessmentText(meals)}</p>
+      <p className="text-xs text-[var(--color-warning)]">{mealCount} มื้อ · {getDayMealsAssessmentText(meals)}</p>
       {coachNote && <p className="text-sm font-semibold text-[var(--foreground)]">{coachNote}</p>}
     </div>
   );
@@ -2136,14 +2136,14 @@ function PainDetail({ item, meta, onDelete, deleting }: { item: LocalHistoryItem
   const BEAR_LABELS: Record<string, string> = { yes: "รับได้ปกติ", no: "รับไม่ได้", unknown: "ไม่แน่ใจ" };
 
   function riskBadgeClass(risk: string) {
-    if (risk === "high")   return "bg-red-100 text-red-700";
-    if (risk === "medium") return "bg-amber-100 text-amber-700";
+    if (risk === "high")   return "bg-[var(--color-danger-soft)] text-[var(--color-danger)]";
+    if (risk === "medium") return "bg-[var(--color-warning-soft)] text-[var(--color-warning)]";
     return "bg-[var(--primary-soft)] text-[var(--color-success)]";
   }
   function cardClass(risk: string) {
-    if (risk === "high")   return "border-red-200 bg-red-50";
-    if (risk === "medium") return "border-amber-200 bg-amber-50";
-    return "border-[#d9e8df] bg-[#f5faf7]";
+    if (risk === "high")   return "border-[var(--color-danger-border)] bg-[var(--color-danger-soft)]";
+    if (risk === "medium") return "border-[var(--color-warning-border)] bg-[var(--color-warning-soft)]";
+    return "border-[var(--color-success-border)] bg-[var(--color-success-soft)]";
   }
   function riskLabel(risk: string) {
     if (risk === "high")   return "ต้องระวังสูง";
@@ -2176,7 +2176,7 @@ function PainDetail({ item, meta, onDelete, deleting }: { item: LocalHistoryItem
           {metaLabel && <p className="mt-0.5 text-[11px] font-semibold text-[var(--color-text-muted)]">{metaLabel}</p>}
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1">
-          <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${isResolved ? "bg-[var(--primary-soft)] text-[var(--color-success)]" : painLog.riskLevel === "high" ? "bg-red-100 text-red-700" : painLog.riskLevel === "medium" ? "bg-amber-100 text-amber-700" : "bg-[var(--primary-soft)] text-[var(--color-success)]"}`}>
+          <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${isResolved ? "bg-[var(--primary-soft)] text-[var(--color-success)]" : painLog.riskLevel === "high" ? "bg-[var(--color-danger-soft)] text-[var(--color-danger)]" : painLog.riskLevel === "medium" ? "bg-[var(--color-warning-soft)] text-[var(--color-warning)]" : "bg-[var(--primary-soft)] text-[var(--color-success)]"}`}>
             {isResolved ? "หายแล้ว" : `${painLog.painLevel}/10`}
           </span>
           <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${riskBadgeClass(painLog.riskLevel)}`}>
@@ -2185,34 +2185,34 @@ function PainDetail({ item, meta, onDelete, deleting }: { item: LocalHistoryItem
         </div>
       </div>
 
-      <p className="rounded-xl bg-white/65 px-3 py-2 text-xs font-semibold leading-5 text-[var(--foreground)]">
+      <p className="rounded-xl bg-[var(--surface)]/65 px-3 py-2 text-xs font-semibold leading-5 text-[var(--foreground)]">
         {isResolved ? "ล่าสุดบันทึกว่าอาการหายแล้ว ค่อย ๆ เพิ่มโหลดกลับและหยุดถ้าอาการกลับมา" : impactLabel(painLog.trainingImpact)}
       </p>
 
       {hasRedFlags && (
-        <div className="rounded-xl bg-red-100/70 px-3 py-2 space-y-0.5">
-          <p className="text-[10px] font-bold text-red-700">สัญญาณที่ควรระวัง</p>
+        <div className="rounded-xl bg-[var(--color-danger-soft)] px-3 py-2 space-y-0.5">
+          <p className="text-[10px] font-bold text-[var(--color-danger)]">สัญญาณที่ควรระวัง</p>
           {painLog.redFlags.slice(0, 3).map((f, i) => (
-            <p key={i} className="text-[10px] text-red-600">· {f}</p>
+            <p key={i} className="text-[10px] text-[var(--color-danger)]">· {f}</p>
           ))}
         </div>
       )}
 
       <div className="flex flex-wrap gap-1.5 text-[10px] text-[var(--color-text-muted)]">
-        <span className="rounded-full bg-white/60 px-2 py-0.5">เริ่ม: {STARTED_LABELS[painLog.startedWhen] ?? painLog.startedWhen}</span>
-        <span className="rounded-full bg-white/60 px-2 py-0.5">บวม/แดง: {TRI_LABELS[painLog.swellingOrRedness] ?? painLog.swellingOrRedness}</span>
-        <span className="rounded-full bg-white/60 px-2 py-0.5">ลงน้ำหนัก: {BEAR_LABELS[painLog.canBearWeight] ?? painLog.canBearWeight}</span>
+        <span className="rounded-full bg-[var(--surface)]/60 px-2 py-0.5">เริ่ม: {STARTED_LABELS[painLog.startedWhen] ?? painLog.startedWhen}</span>
+        <span className="rounded-full bg-[var(--surface)]/60 px-2 py-0.5">บวม/แดง: {TRI_LABELS[painLog.swellingOrRedness] ?? painLog.swellingOrRedness}</span>
+        <span className="rounded-full bg-[var(--surface)]/60 px-2 py-0.5">ลงน้ำหนัก: {BEAR_LABELS[painLog.canBearWeight] ?? painLog.canBearWeight}</span>
       </div>
       <div className="flex gap-2 pt-0.5">
         <Link
           href={`/pain/${encodeURIComponent(item.id)}`}
-          className="rounded-full bg-white/70 px-3 py-1.5 text-xs font-bold text-[var(--recovery-blue)] hover:bg-white"
+          className="rounded-full bg-[var(--surface)]/70 px-3 py-1.5 text-xs font-bold text-[var(--recovery-blue)] hover:bg-[var(--surface)]"
         >
           ดูรายละเอียด
         </Link>
         <Link
           href={`/pain?from=${encodeURIComponent(item.id)}`}
-          className="rounded-full bg-white/70 px-3 py-1.5 text-xs font-bold text-[var(--recovery-blue)] hover:bg-white"
+          className="rounded-full bg-[var(--surface)]/70 px-3 py-1.5 text-xs font-bold text-[var(--recovery-blue)] hover:bg-[var(--surface)]"
         >
           อัปเดตอาการ
         </Link>
@@ -2229,8 +2229,8 @@ function SickDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; onDe
   const SEVERITY_LABELS: Record<string, string> = { mild: "เบา", moderate: "ปานกลาง", severe: "หนัก" };
   const RISK_LABELS: Record<string, string> = { none: "ปกติ", mild: "ลดโหลด", caution: "ระวัง", hard_stop: "งดซ้อม" };
 
-  const cardBg = log.riskLevel === "hard_stop" ? "bg-red-50 border-red-200" : log.riskLevel === "none" ? "bg-[var(--surface-muted)] border-[var(--border-warm)]" : "bg-amber-50 border-amber-200";
-  const riskTagBg = log.riskLevel === "hard_stop" ? "bg-red-100 text-red-700" : log.riskLevel === "none" ? "bg-[var(--surface-muted)] text-[var(--color-text-muted)]" : "bg-amber-100 text-amber-700";
+  const cardBg = log.riskLevel === "hard_stop" ? "bg-[var(--color-danger-soft)] border-[var(--color-danger-border)]" : log.riskLevel === "none" ? "bg-[var(--surface-muted)] border-[var(--border-warm)]" : "bg-[var(--color-warning-soft)] border-[var(--color-warning-border)]";
+  const riskTagBg = log.riskLevel === "hard_stop" ? "bg-[var(--color-danger-soft)] text-[var(--color-danger)]" : log.riskLevel === "none" ? "bg-[var(--surface-muted)] text-[var(--color-text-muted)]" : "bg-[var(--color-warning-soft)] text-[var(--color-warning)]";
 
   return (
     <div className={`rounded-2xl border p-3 space-y-2.5 ${cardBg}`}>
@@ -2249,12 +2249,12 @@ function SickDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; onDe
       {(log.symptoms ?? []).length > 0 && (
         <div className="flex flex-wrap gap-1">
           {(log.symptoms ?? []).map((s) => (
-            <span key={s} className="rounded-full bg-white/60 px-2 py-0.5 text-[10px] text-[var(--color-text-muted)] font-medium">
+            <span key={s} className="rounded-full bg-[var(--surface)]/60 px-2 py-0.5 text-[10px] text-[var(--color-text-muted)] font-medium">
               {SICK_SYMPTOM_LABELS[s] ?? s}
             </span>
           ))}
           {log.severity && (
-            <span className="rounded-full bg-white/60 px-2 py-0.5 text-[10px] text-[var(--color-text-muted)] font-medium">
+            <span className="rounded-full bg-[var(--surface)]/60 px-2 py-0.5 text-[10px] text-[var(--color-text-muted)] font-medium">
               ความรุนแรง: {SEVERITY_LABELS[log.severity] ?? log.severity}
             </span>
           )}
@@ -2262,24 +2262,24 @@ function SickDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; onDe
       )}
 
       {log.note && (
-        <p className="rounded-xl bg-white/65 px-3 py-2 text-xs leading-5 text-[var(--color-text-muted)]">{log.note}</p>
+        <p className="rounded-xl bg-[var(--surface)]/65 px-3 py-2 text-xs leading-5 text-[var(--color-text-muted)]">{log.note}</p>
       )}
 
       {log.riskLevel !== "none" && (
-        <p className="rounded-xl bg-white/65 px-3 py-2 text-xs font-semibold leading-5 text-[var(--foreground)]">
+        <p className="rounded-xl bg-[var(--surface)]/65 px-3 py-2 text-xs font-semibold leading-5 text-[var(--foreground)]">
           {log.riskLevel === "hard_stop" ? "งดออกกำลังกาย เน้นพัก ดื่มน้ำ และนอนให้พอ" : "ลดความหนักไว้ก่อน ฟังร่างกายเป็นหลัก"}
         </p>
       )}
 
       <div className="flex flex-wrap gap-1.5 text-[10px] text-[var(--color-text-muted)]">
-        {log.fever && <span className="rounded-full bg-red-100/70 px-2 py-0.5 text-red-600 font-semibold">มีไข้</span>}
-        {log.chestSymptoms && <span className="rounded-full bg-red-100/70 px-2 py-0.5 text-red-600 font-semibold">อาการที่หน้าอก</span>}
-        {log.giSymptoms && <span className="rounded-full bg-amber-100/70 px-2 py-0.5 text-amber-700 font-semibold">ระบบย่อยอาหาร</span>}
+        {log.fever && <span className="rounded-full bg-[var(--color-danger-soft)] px-2 py-0.5 text-[var(--color-danger)] font-semibold">มีไข้</span>}
+        {log.chestSymptoms && <span className="rounded-full bg-[var(--color-danger-soft)] px-2 py-0.5 text-[var(--color-danger)] font-semibold">อาการที่หน้าอก</span>}
+        {log.giSymptoms && <span className="rounded-full bg-[var(--color-warning-soft)] px-2 py-0.5 text-[var(--color-warning)] font-semibold">ระบบย่อยอาหาร</span>}
         {log.aboveNeckOnly && <span className="rounded-full bg-[var(--surface-muted)] px-2 py-0.5 text-[var(--color-text-muted)] font-semibold">เหนือคอเท่านั้น</span>}
       </div>
 
       <div className="flex gap-2 pt-0.5">
-        <Link href="/sick" className="rounded-full bg-white/70 px-3 py-1.5 text-xs font-bold text-[var(--recovery-blue)] hover:bg-white">
+        <Link href="/sick" className="rounded-full bg-[var(--surface)]/70 px-3 py-1.5 text-xs font-bold text-[var(--recovery-blue)] hover:bg-[var(--surface)]">
           อัปเดตอาการ
         </Link>
       </div>
@@ -2305,10 +2305,10 @@ function StrengthDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; 
   };
 
   return (
-    <div className="rounded-2xl bg-blue-50/70 border border-blue-100 p-4 space-y-3">
+    <div className="rounded-2xl bg-[var(--color-info-soft)] border border-[var(--color-info-border)] p-4 space-y-3">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-bold uppercase tracking-wide text-blue-600">🏋️ เวทเทรนนิ่ง</p>
+          <p className="text-xs font-bold uppercase tracking-wide text-[var(--color-info)]">🏋️ เวทเทรนนิ่ง</p>
           <h4 className="mt-1 text-sm font-bold text-[var(--foreground)]">
             {log.routineName}
           </h4>
@@ -2320,14 +2320,14 @@ function StrengthDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; 
       </div>
 
       {log.coachReason && (
-        <div className="rounded-xl bg-white/60 p-2 text-xs text-[var(--foreground)]">
+        <div className="rounded-xl bg-[var(--surface)]/60 p-2 text-xs text-[var(--foreground)]">
           <p className="font-semibold text-[var(--foreground)]">คำแนะนำจากโค้ช:</p>
           <p>{log.coachReason}</p>
         </div>
       )}
 
       {Array.isArray(log.exercises) && log.exercises.length > 0 && (
-        <div className="space-y-1 bg-white/40 p-2 rounded-xl">
+        <div className="space-y-1 bg-[var(--surface)]/40 p-2 rounded-xl">
           <p className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wide">ท่าที่ฝึกซ้อม</p>
           <div className="divide-y divide-slate-100/50">
             {log.exercises.map((ex, i) => (
@@ -2362,7 +2362,7 @@ function DeleteRecordButton({ onDelete, loading = false }: { onDelete: () => voi
         loading={loading}
         loadingText="กำลังลบ..."
         onClick={onDelete}
-        className="rounded-full border border-red-100 bg-white/80 px-3 py-1.5 text-xs font-bold text-red-500 transition hover:bg-red-50"
+        className="rounded-full border border-[var(--color-danger-border)] bg-[var(--surface)]/80 px-3 py-1.5 text-xs font-bold text-[var(--color-danger)] transition hover:bg-[var(--color-danger-soft)]"
       >
         ลบรายการ
       </LoadingButton>
@@ -2373,10 +2373,10 @@ function DeleteRecordButton({ onDelete, loading = false }: { onDelete: () => voi
 function Badge({ icon, label, color }: { icon?: string; label: string; color?: "green" | "blue" | "orange" | "red" | "yellow" }) {
   const bg =
     color === "green" ? "bg-[var(--primary-soft)] text-[var(--color-success)]"
-    : color === "blue" ? "bg-blue-50 text-blue-700"
-    : color === "orange" ? "bg-orange-50 text-orange-700"
-    : color === "red" ? "bg-red-50 text-red-700"
-    : color === "yellow" ? "bg-amber-50 text-amber-700"
+    : color === "blue" ? "bg-[var(--color-info-soft)] text-[var(--color-info)]"
+    : color === "orange" ? "bg-[var(--color-warning-soft)] text-[var(--color-warning)]"
+    : color === "red" ? "bg-[var(--color-danger-soft)] text-[var(--color-danger)]"
+    : color === "yellow" ? "bg-[var(--color-warning-soft)] text-[var(--color-warning)]"
     : "bg-[var(--surface-muted)] text-[var(--color-text-muted)]";
   return (
     <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold ${bg}`}>
@@ -2387,7 +2387,7 @@ function Badge({ icon, label, color }: { icon?: string; label: string; color?: "
 
 function Metric({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="rounded-xl bg-white p-2.5 text-center">
+    <div className="rounded-xl bg-[var(--surface)] p-2.5 text-center">
       <p className="text-xs text-[var(--color-text-soft)] truncate">{label}</p>
       <p className="mt-0.5 text-sm font-bold leading-tight">{value}</p>
       {sub && <p className="text-xs text-[var(--color-text-soft)]">{sub}</p>}
@@ -2690,10 +2690,10 @@ function parseDurationMins(duration: string | null | undefined): number | null {
 }
 
 function readinessColor(score: number): string {
-  if (score >= 80) return "text-green-600";
+  if (score >= 80) return "text-[var(--color-success)]";
   if (score >= 65) return "text-[var(--recovery-blue)]";
-  if (score >= 50) return "text-amber-600";
-  return "text-red-500";
+  if (score >= 50) return "text-[var(--color-warning)]";
+  return "text-[var(--color-danger)]";
 }
 
 function truncate(text: string, max: number): string {
@@ -2860,9 +2860,9 @@ function PainHistoryCompactList({
 
   const RISK_LABELS: Record<string, string> = { high: "สูง", medium: "กลาง", low: "ต่ำ" };
   const RISK_COLORS: Record<string, string> = {
-    high: "text-red-600 bg-red-50 border-red-100",
-    medium: "text-amber-600 bg-amber-50 border-amber-100",
-    low: "text-green-600 bg-green-50 border-green-100"
+    high: "text-[var(--color-danger)] bg-[var(--color-danger-soft)] border-[var(--color-danger-border)]",
+    medium: "text-[var(--color-warning)] bg-[var(--color-warning-soft)] border-[var(--color-warning-border)]",
+    low: "text-[var(--color-success)] bg-[var(--color-success-soft)] border-[var(--color-success-border)]"
   };
 
   const IMPACT_LABELS: Record<string, string> = {
@@ -2873,7 +2873,7 @@ function PainHistoryCompactList({
   };
 
   return (
-    <section className="card p-5 space-y-4 bg-white">
+    <section className="card p-5 space-y-4 bg-[var(--surface)]">
       <div>
         <h3 className="text-base font-bold text-[var(--foreground)]">ประวัติอาการเจ็บ</h3>
         <p className="text-xs text-[var(--color-text-muted)] mt-0.5">ประวัติและคำแนะนำผลกระทบการซ้อมสะสม</p>
@@ -2914,7 +2914,7 @@ function PainHistoryCompactList({
                       loading={deletingKey === item.id}
                       loadingText="กำลังลบ..."
                       onClick={() => onDelete(item)}
-                      className="rounded-full border border-red-100 bg-white px-2.5 py-1 text-[10px] font-bold text-red-500 hover:bg-red-50"
+                      className="rounded-full border border-[var(--color-danger-border)] bg-[var(--surface)] px-2.5 py-1 text-[10px] font-bold text-[var(--color-danger)] hover:bg-[var(--color-danger-soft)]"
                     >
                       ลบ
                     </LoadingButton>
@@ -3048,12 +3048,12 @@ function EditMealModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <div
         data-testid="meal-edit-modal"
-        className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl border border-[var(--border-warm)] flex flex-col max-h-[90vh] overflow-y-auto"
+        className="w-full max-w-lg rounded-3xl bg-[var(--surface)] p-6 shadow-2xl border border-[var(--border-warm)] flex flex-col max-h-[90vh] overflow-y-auto"
       >
         <h3 className="text-lg font-bold text-[var(--foreground)] mb-4">แก้ไขมื้ออาหาร</h3>
         
         {error && (
-          <div className="mb-4 rounded-xl bg-red-50 p-3 text-xs font-semibold text-red-600">
+          <div className="mb-4 rounded-xl bg-[var(--color-danger-soft)] p-3 text-xs font-semibold text-[var(--color-danger)]">
             {error}
           </div>
         )}
@@ -3064,7 +3064,7 @@ function EditMealModal({
             <input
               type="text"
               required
-              className="w-full rounded-2xl border border-[var(--border-warm)] px-4 py-2.5 text-sm focus:border-[#b9d9c0] focus:ring-1 focus:ring-[#b9d9c0] outline-none"
+              className="w-full rounded-2xl border border-[var(--border-warm)] px-4 py-2.5 text-sm focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] outline-none"
               placeholder="เช่น ข้าวมันไก่, แกงจืด"
               value={foodNames}
               onChange={(e) => setFoodNames(e.target.value)}
@@ -3077,7 +3077,7 @@ function EditMealModal({
               <input
                 data-testid="meal-edit-kcal"
                 type="text"
-                className="w-full rounded-2xl border border-[var(--border-warm)] px-4 py-2.5 text-sm focus:border-[#b9d9c0] focus:ring-1 focus:ring-[#b9d9c0] outline-none"
+                className="w-full rounded-2xl border border-[var(--border-warm)] px-4 py-2.5 text-sm focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] outline-none"
                 placeholder="ไม่ระบุ"
                 value={kcal}
                 onChange={(e) => setKcal(e.target.value)}
@@ -3087,7 +3087,7 @@ function EditMealModal({
               <label className="text-xs font-bold text-[var(--color-text-muted)]">โปรตีน (g)</label>
               <input
                 type="text"
-                className="w-full rounded-2xl border border-[var(--border-warm)] px-4 py-2.5 text-sm focus:border-[#b9d9c0] focus:ring-1 focus:ring-[#b9d9c0] outline-none"
+                className="w-full rounded-2xl border border-[var(--border-warm)] px-4 py-2.5 text-sm focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] outline-none"
                 placeholder="ไม่ระบุ"
                 value={protein}
                 onChange={(e) => setProtein(e.target.value)}
@@ -3097,7 +3097,7 @@ function EditMealModal({
               <label className="text-xs font-bold text-[var(--color-text-muted)]">คาร์บ (g)</label>
               <input
                 type="text"
-                className="w-full rounded-2xl border border-[var(--border-warm)] px-4 py-2.5 text-sm focus:border-[#b9d9c0] focus:ring-1 focus:ring-[#b9d9c0] outline-none"
+                className="w-full rounded-2xl border border-[var(--border-warm)] px-4 py-2.5 text-sm focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] outline-none"
                 placeholder="ไม่ระบุ"
                 value={carbs}
                 onChange={(e) => setCarbs(e.target.value)}
@@ -3107,7 +3107,7 @@ function EditMealModal({
               <label className="text-xs font-bold text-[var(--color-text-muted)]">ไขมัน (g)</label>
               <input
                 type="text"
-                className="w-full rounded-2xl border border-[var(--border-warm)] px-4 py-2.5 text-sm focus:border-[#b9d9c0] focus:ring-1 focus:ring-[#b9d9c0] outline-none"
+                className="w-full rounded-2xl border border-[var(--border-warm)] px-4 py-2.5 text-sm focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] outline-none"
                 placeholder="ไม่ระบุ"
                 value={fat}
                 onChange={(e) => setFat(e.target.value)}
@@ -3125,7 +3125,7 @@ function EditMealModal({
                     key={slot}
                     type="button"
                     onClick={() => setMealSlot(slot)}
-                    className={`rounded-full px-4 py-1.5 text-xs font-bold transition border ${mealSlot === slot ? "bg-[#17201d] text-white border-[#17201d]" : "bg-white text-[var(--color-text-muted)] border-[var(--border-warm)] hover:bg-[var(--surface-muted)]"}`}
+                    className={`rounded-full px-4 py-1.5 text-xs font-bold transition border ${mealSlot === slot ? "bg-[var(--primary)] text-[#0b1220] border-[var(--primary)]" : "bg-[var(--surface)] text-[var(--color-text-muted)] border-[var(--border-warm)] hover:bg-[var(--surface-muted)]"}`}
                   >
                     {label}
                   </button>
@@ -3141,7 +3141,7 @@ function EditMealModal({
               data-testid="meal-edit-date"
               type="date"
               required
-              className="w-full rounded-2xl border border-[var(--border-warm)] px-4 py-2.5 text-sm focus:border-[#b9d9c0] focus:ring-1 focus:ring-[#b9d9c0] outline-none"
+              className="w-full rounded-2xl border border-[var(--border-warm)] px-4 py-2.5 text-sm focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] outline-none"
               value={recordedDate}
               onChange={(e) => setRecordedDate(e.target.value)}
             />
@@ -3150,7 +3150,7 @@ function EditMealModal({
           <div className="space-y-1">
             <label className="text-xs font-bold text-[var(--color-text-muted)]">หมายเหตุ ถ้ามี</label>
             <textarea
-              className="w-full rounded-2xl border border-[var(--border-warm)] px-4 py-2.5 text-sm focus:border-[#b9d9c0] focus:ring-1 focus:ring-[#b9d9c0] outline-none min-h-16"
+              className="w-full rounded-2xl border border-[var(--border-warm)] px-4 py-2.5 text-sm focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] outline-none min-h-16"
               placeholder="หมายเหตุเพิ่มเติม..."
               value={note}
               onChange={(e) => setNote(e.target.value)}
@@ -3170,7 +3170,7 @@ function EditMealModal({
               type="submit"
               loading={saving}
               loadingText="กำลังบันทึก..."
-              className="rounded-full bg-[#17201d] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#2c3d38]"
+              className="rounded-full bg-[var(--primary)] px-5 py-2.5 text-sm font-bold text-[#0b1220] transition hover:bg-[var(--primary-strong)]"
             >
               บันทึกการแก้ไข
             </LoadingButton>
@@ -3209,13 +3209,13 @@ function WeeklyReviewCard({ review }: { review: WeeklyReview }) {
         </div>
         <div className="flex justify-between border-b border-[var(--border-warm)]/80 pb-1">
           <span className="text-[var(--color-text-soft)]">โหลดสะสม:</span>
-          <span className={`font-bold ${review.loadLevel === "สูง" || review.loadLevel === "สูงมาก" ? "text-[#9b742c]" : "text-[var(--color-success)]"}`}>
+          <span className={`font-bold ${review.loadLevel === "สูง" || review.loadLevel === "สูงมาก" ? "text-[var(--color-warning)]" : "text-[var(--color-success)]"}`}>
             {review.avgLoadScore != null ? `${review.avgLoadScore}/100 · ` : ""}{review.loadLevel}
           </span>
         </div>
         <div className="flex justify-between border-b border-[var(--border-warm)]/80 pb-1">
           <span className="text-[var(--color-text-soft)]">การนอน:</span>
-          <span className={`font-bold ${review.sleepDebtLevel === "สูง" ? "text-[var(--status-rest)]" : review.sleepDebtLevel === "ปานกลาง" ? "text-[#9b742c]" : "text-[var(--color-success)]"}`}>
+          <span className={`font-bold ${review.sleepDebtLevel === "สูง" ? "text-[var(--status-rest)]" : review.sleepDebtLevel === "ปานกลาง" ? "text-[var(--color-warning)]" : "text-[var(--color-success)]"}`}>
             {review.avgSleepHours != null ? `${review.avgSleepHours} ชม.` : "–"}{review.avgSleepScore != null ? ` · ${review.avgSleepScore}/100` : ""}
           </span>
         </div>
@@ -3231,7 +3231,7 @@ function WeeklyReviewCard({ review }: { review: WeeklyReview }) {
         </div>
       </div>
 
-      <p className="text-xs leading-relaxed text-[#2e4a5e] bg-blue-50/40 p-3 rounded-2xl border border-blue-100/50">
+      <p className="text-xs leading-relaxed text-[var(--color-text)] bg-[var(--color-info-soft)] p-3 rounded-2xl border border-[var(--color-info-border)]">
         💡 {review.recoveryTrendSummaryText}
       </p>
 
@@ -3282,9 +3282,9 @@ function WeeklyReviewCard({ review }: { review: WeeklyReview }) {
           )}
           {review.cautions.length > 0 && (
             <div className="space-y-1">
-              <p className="font-bold text-amber-600">⚠️ ควรระวัง</p>
+              <p className="font-bold text-[var(--color-warning)]">⚠️ ควรระวัง</p>
               {review.cautions.slice(0, 3).map((c, i) => (
-                <p key={i} className="text-amber-700">· {c}</p>
+                <p key={i} className="text-[var(--color-warning)]">· {c}</p>
               ))}
             </div>
           )}
@@ -3292,17 +3292,17 @@ function WeeklyReviewCard({ review }: { review: WeeklyReview }) {
       )}
 
       {review.nextFocus.length > 0 && (
-        <div className="rounded-2xl bg-[#eef4f8] border border-[#ccdce8] p-4 space-y-2">
+        <div className="rounded-2xl bg-[var(--color-info-soft)] border border-[var(--color-info-border)] p-4 space-y-2">
           <div className="flex items-center gap-2">
             <span className="text-base">🎯</span>
             <p className="text-xs font-bold uppercase tracking-wide text-[var(--recovery-blue)]">โฟกัสถัดไป</p>
           </div>
           {review.nextFocus.map((f, i) => (
             <div key={i} className="flex items-start gap-2">
-              <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#42677f] text-[9px] font-bold text-white">
+              <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[var(--recovery-blue)] text-[9px] font-bold text-[#0b1220]">
                 {i + 1}
               </span>
-              <p className="text-xs font-semibold text-[#2e4a5e] leading-5">{f}</p>
+              <p className="text-xs font-semibold text-[var(--color-text)] leading-5">{f}</p>
             </div>
           ))}
         </div>
