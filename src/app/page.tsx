@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { AppShell } from "@/components/AppShell";
 import { LoadingButton } from "@/components/LoadingButton";
 import { NutritionBalanceCard } from "@/components/NutritionBalanceCard";
@@ -359,10 +359,37 @@ export default function TodayPage() {
 
   const heroDecision = insight && coachCtx && !hasWorkoutToday ? getDecisionCard(insight, coachCtx) : null;
 
+  const dailyReadinessForSignals = coachCtx ? buildDailyReadiness(coachCtx) : null;
+
+  // 1b. สัญญาณ 4 มิติ — merged into the Snapshot card so it reads as one surface
+  const signalsSlot = coachCtx && !loading && dailyReadinessForSignals ? (
+    <details className="group" data-testid="signals-details">
+      <summary className="list-none cursor-pointer">
+        <div className="flex items-center gap-2">
+          <div className="flex flex-1 flex-wrap items-center gap-2.5">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-rm-muted">สัญญาณวันนี้</span>
+            <TodaySignalCircles
+              signals={dailyReadinessForSignals.signals}
+              sickHardStop={coachCtx.sickRiskLevel === "hard_stop"}
+              hasActivePain={coachCtx.activePain ?? false}
+            />
+          </div>
+          <span className="shrink-0 text-[10px] font-semibold text-[var(--color-text-soft)]">
+            <span className="group-open:hidden">ดูสัญญาณทั้งหมด ⌄</span>
+            <span className="hidden group-open:inline">ซ่อน ⌄</span>
+          </span>
+        </div>
+      </summary>
+      <div className="mt-1.5">
+        <ReadinessSignalBars signals={dailyReadinessForSignals.signals} />
+      </div>
+    </details>
+  ) : null;
+
   return (
     <AppShell title="โค้ชข้างทาง" subtitle={formatThaiDate()}>
 
-      {/* 1. Recovery overview first — ภาพรวมวันนี้ */}
+      {/* 1. Recovery overview first — ภาพรวมวันนี้ (สัญญาณวันนี้ now lives inside this same card) */}
       <TodaySnapshotCard
         insight={insight}
         readinessScore={readinessScore}
@@ -373,71 +400,50 @@ export default function TodayPage() {
         readinessCoverage={readinessCoverage}
         hasWorkoutToday={hasWorkoutToday}
         coachCtx={coachCtx}
+        signalsSlot={signalsSlot}
       />
 
-      {/* 1b. สัญญาณ 4 มิติ — readiness signal bars */}
-      {coachCtx && !loading && (() => {
-        const dr = buildDailyReadiness(coachCtx);
-        return (
-          <div className="space-y-1.5">
-            <details className="group" data-testid="signals-details">
+      {coachCtx && !loading && dailyReadinessForSignals && (dailyReadinessForSignals.sleepAdvice || goalProfile) && (
+        <div className="space-y-1.5">
+          {dailyReadinessForSignals.sleepAdvice && (
+            <p className="px-1 text-[11px] text-[var(--color-warning)] leading-snug">💡 {dailyReadinessForSignals.sleepAdvice}</p>
+          )}
+          {/* Goal-aware strip — collapsed by default */}
+          {goalProfile && (
+            <details className="group" data-testid="goal-details">
               <summary className="list-none cursor-pointer">
-                <div className="flex items-center gap-2 px-1">
-                  <div className="flex flex-1 flex-wrap items-center gap-2.5">
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-rm-muted">สัญญาณวันนี้</span>
-                    <TodaySignalCircles
-                      signals={dr.signals}
-                      sickHardStop={coachCtx.sickRiskLevel === "hard_stop"}
-                      hasActivePain={coachCtx.activePain ?? false}
-                    />
-                  </div>
-                  <span className="shrink-0 text-[10px] font-semibold text-[var(--color-text-soft)]">
-                    <span className="group-open:hidden">ดูสัญญาณทั้งหมด ⌄</span>
+                <div className="flex items-center justify-between px-1">
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-rm-muted">เป้าหมายวันนี้</span>
+                  <span className="text-[10px] text-[var(--color-text-soft)]">
+                    <span className="group-open:hidden">ดู ⌄</span>
                     <span className="hidden group-open:inline">ซ่อน ⌄</span>
                   </span>
                 </div>
               </summary>
               <div className="mt-1.5">
-                <ReadinessSignalBars signals={dr.signals} />
+                <GoalAwareTodayStrip
+                  goalProfile={goalProfile}
+                  band={dailyReadinessForSignals.band}
+                  loadTarget={dailyReadinessForSignals.loadTarget}
+                  hasPain={coachCtx.activePain ?? false}
+                />
               </div>
             </details>
-            {dr.sleepAdvice && (
-              <p className="px-1 text-[11px] text-[var(--color-warning)] leading-snug">💡 {dr.sleepAdvice}</p>
-            )}
-            {/* 1c. Goal-aware strip — collapsed by default */}
-            {goalProfile && (
-              <details className="group" data-testid="goal-details">
-                <summary className="list-none cursor-pointer">
-                  <div className="flex items-center justify-between px-1">
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-rm-muted">เป้าหมายวันนี้</span>
-                    <span className="text-[10px] text-[var(--color-text-soft)]">
-                      <span className="group-open:hidden">ดู ⌄</span>
-                      <span className="hidden group-open:inline">ซ่อน ⌄</span>
-                    </span>
-                  </div>
-                </summary>
-                <div className="mt-1.5">
-                  <GoalAwareTodayStrip
-                    goalProfile={goalProfile}
-                    band={dr.band}
-                    loadTarget={dr.loadTarget}
-                    hasPain={coachCtx.activePain ?? false}
-                  />
-                </div>
-              </details>
-            )}
-          </div>
-        );
-      })()}
+          )}
+        </div>
+      )}
 
       {/* Hard-stop sick card — shown prominently above recommendation when active */}
       {coachCtx?.sickRiskLevel === "hard_stop" && <SickDayEntryCard coachCtx={coachCtx} />}
 
-      {/* 2. วันนี้ควรทำอะไร — coach prescription */}
-      <section className={cn(
-        "rm-card overflow-hidden",
-        coachCtx?.sickRiskLevel === "hard_stop" ? "border-rm-stop/25" : "border-rm-primary/20",
-      )}>
+      {/* 2. วันนี้ควรทำอะไร — coach prescription. The one card on this page that should visually "float" above the rest. */}
+      <section
+        className={cn(
+          "rm-card overflow-hidden",
+          coachCtx?.sickRiskLevel === "hard_stop" ? "border-rm-stop/25" : "border-rm-primary/20",
+        )}
+        style={{ boxShadow: "var(--shadow-floating)" }}
+      >
         <div className="flex">
           <div className={cn(
             "w-1 shrink-0",
@@ -623,8 +629,7 @@ export default function TodayPage() {
         />
       )}
 
-      <p className="mt-1 px-1 rm-eyebrow">สรุป</p>
-
+      {/* "สรุปท้ายวัน" is already the card's own heading — no redundant outer label */}
       <EndOfDaySummaryCard
         item={dailySummaryItem}
         loading={dailySummaryLoading}
@@ -1759,6 +1764,7 @@ function TodaySnapshotCard({
   readinessCoverage,
   hasWorkoutToday,
   coachCtx,
+  signalsSlot,
 }: {
   insight: DailyCoachInsight | null;
   readinessScore: number | null;
@@ -1769,6 +1775,7 @@ function TodaySnapshotCard({
   readinessCoverage?: { used: string[]; missing: string[]; hasSleepToday: boolean };
   hasWorkoutToday?: boolean;
   coachCtx?: CoachContext | null;
+  signalsSlot?: ReactNode;
 }) {
   const missingChecklist = todayChecklist.filter((i) => !i.done);
   const hasSleepToday = readinessCoverage?.hasSleepToday ?? true;
@@ -1837,6 +1844,9 @@ function TodaySnapshotCard({
       {!loading && (
         <p className="text-[11px] font-medium text-rm-muted leading-tight" data-testid="today-overview-reason">{axisSummaryLine}</p>
       )}
+
+      {/* สัญญาณวันนี้ — merged into the same card surface instead of a separate block */}
+      {signalsSlot}
 
       {/* Caution note */}
       {!loading && displayStatus?.note && (

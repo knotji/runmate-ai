@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
+
 export type { GaugeStatus } from "@/lib/readiness/gaugeStatus";
 import type { GaugeStatus } from "@/lib/readiness/gaugeStatus";
 
@@ -14,18 +16,52 @@ export type ReadinessGaugeProps = {
 };
 
 const STATUS_COLORS: Record<GaugeStatus, { ring: string; track: string; text: string }> = {
-  good:     { ring: "#7aab8f", track: "#d5ede4", text: "#3d7a59" },
-  fair:     { ring: "#c8922a", track: "#f5e4c4", text: "#9b6820" },
-  caution:  { ring: "#c8922a", track: "#f5e4c4", text: "#9b6820" },
-  recovery: { ring: "#c97c3a", track: "#f5dcc8", text: "#a05c28" },
-  risk:     { ring: "#d25f5f", track: "#f5cece", text: "#a83030" },
-  unknown:  { ring: "#b0b8b0", track: "#e8ebe8", text: "#7a847a" },
+  good:     { ring: "#52d17c", track: "rgba(255,255,255,0.10)", text: "#52d17c" },
+  fair:     { ring: "#ffb648", track: "rgba(255,255,255,0.10)", text: "#ffb648" },
+  caution:  { ring: "#ffb648", track: "rgba(255,255,255,0.10)", text: "#ffb648" },
+  recovery: { ring: "#4dd0c4", track: "rgba(255,255,255,0.10)", text: "#4dd0c4" },
+  risk:     { ring: "#ff6b6b", track: "rgba(255,255,255,0.10)", text: "#ff6b6b" },
+  unknown:  { ring: "#6f767c", track: "rgba(255,255,255,0.08)", text: "#9aa3a8" },
 };
 
 const RADIUS = 48;
 const CENTER = 60;
 const STROKE_WIDTH = 9;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
+const COUNT_UP_MS = 700;
+
+type CountUpState = { value: number; forTarget: number };
+
+function useCountUp(target: number | null | undefined, active: boolean): number | null {
+  const [state, setState] = useState<CountUpState | null>(null);
+  const prevTargetRef = useRef<number | null | undefined>(undefined);
+
+  useEffect(() => {
+    const prev = prevTargetRef.current;
+    prevTargetRef.current = target;
+
+    const reduceMotion =
+      typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+    if (!active || target == null || prev === target || reduceMotion) {
+      return;
+    }
+
+    const start = performance.now();
+    let frame: number;
+    const tick = (now: number) => {
+      const progress = Math.min(1, (now - start) / COUNT_UP_MS);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setState({ value: Math.round(target * eased), forTarget: target });
+      if (progress < 1) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [target, active]);
+
+  if (target == null) return null;
+  return state && state.forTarget === target ? state.value : target;
+}
 
 export function ReadinessGauge({
   score,
@@ -37,13 +73,21 @@ export function ReadinessGauge({
   chipClassName,
 }: ReadinessGaugeProps) {
   const colors = STATUS_COLORS[status];
+  const displayScore = useCountUp(score, !loading && score != null);
   const progress =
-    score != null ? Math.min(1, Math.max(0, score / 100)) * CIRCUMFERENCE : 0;
+    displayScore != null ? Math.min(1, Math.max(0, displayScore / 100)) * CIRCUMFERENCE : 0;
 
   return (
     <div className="flex items-center gap-3" data-testid="readiness-gauge">
       {/* SVG Ring with score overlay */}
-      <div className="relative shrink-0" style={{ width: 80, height: 80 }}>
+      <div
+        className="relative shrink-0"
+        style={{
+          width: 80,
+          height: 80,
+          filter: !loading && score != null ? `drop-shadow(0 0 7px ${colors.ring}55)` : undefined,
+        }}
+      >
         <svg viewBox="0 0 120 120" width={80} height={80} aria-hidden="true">
           {/* Track ring */}
           <circle
@@ -51,7 +95,7 @@ export function ReadinessGauge({
             cy={CENTER}
             r={RADIUS}
             fill="none"
-            stroke={loading ? "#e8ebe8" : colors.track}
+            stroke={loading ? "rgba(255,255,255,0.08)" : colors.track}
             strokeWidth={STROKE_WIDTH}
           />
           {/* Progress ring or loading dashes */}
@@ -61,7 +105,7 @@ export function ReadinessGauge({
               cy={CENTER}
               r={RADIUS}
               fill="none"
-              stroke="#b0b8b0"
+              stroke="#6f767c"
               strokeWidth={STROKE_WIDTH}
               strokeDasharray="8 6"
             />
@@ -87,12 +131,12 @@ export function ReadinessGauge({
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <span
             className="font-black tabular-nums leading-none"
-            style={{ fontSize: 22, color: loading ? "#b0b8b0" : colors.text }}
+            style={{ fontSize: 22, color: loading ? "#6f767c" : colors.text }}
           >
-            {loading || score == null ? "—" : score}
+            {loading || displayScore == null ? "—" : displayScore}
           </span>
           <span
-            className="mt-0.5 leading-none text-slate-400"
+            className="mt-0.5 leading-none text-[var(--color-text-soft)]"
             style={{ fontSize: 8, fontWeight: 600 }}
           >
             Readiness
@@ -109,8 +153,8 @@ export function ReadinessGauge({
         {/* Chip — MUST remain visible; E2E tests query .rounded-full with "N Readiness Label" */}
         {!loading && score != null && label && (
           <span
-            className={`inline-block rounded-full px-2.5 py-1 text-[11px] font-black shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] ${
-              chipClassName ?? "bg-slate-100 text-slate-600"
+            className={`inline-block rounded-full px-2.5 py-1 text-[11px] font-black shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ${
+              chipClassName ?? "bg-[var(--surface-muted)] text-[var(--color-text-muted)]"
             }`}
           >
             {score} Readiness {label}
