@@ -22,6 +22,12 @@ import { ReadinessGauge, type GaugeStatus } from "@/components/ReadinessGauge";
 import { TodaySignalCircles } from "@/components/TodaySignalCircles";
 import { getGaugeStatus } from "@/lib/readiness/gaugeStatus";
 import { getTodayTrainingGuardrail } from "@/lib/trainingGuardrails";
+import { StatusHero } from "@/components/ui/StatusHero";
+import { DetailAccordion } from "@/components/ui/DetailAccordion";
+import { InsightCard } from "@/components/ui/InsightCard";
+import { EmptyState } from "@/components/ui/EmptyState";
+import type { RmTone } from "@/components/ui/tone";
+import { cn } from "@/lib/cn";
 import { createHistoryItem, loadHistoryItems, saveHistoryItems } from "@/lib/cloudHistory";
 import { loadActiveRaceGoalAndPlan } from "@/lib/raceStorage";
 import { loadGoalProfileFromSupabase } from "@/lib/goals/goalStorage";
@@ -428,11 +434,17 @@ export default function TodayPage() {
       {coachCtx?.sickRiskLevel === "hard_stop" && <SickDayEntryCard coachCtx={coachCtx} />}
 
       {/* 2. วันนี้ควรทำอะไร — coach prescription */}
-      <section className="rounded-3xl bg-[var(--surface)]/92 border border-[var(--border-warm)]/55 shadow-[0_12px_32px_rgba(72,82,72,0.055)] overflow-hidden">
+      <section className={cn(
+        "rm-card overflow-hidden",
+        coachCtx?.sickRiskLevel === "hard_stop" ? "border-rm-stop/25" : "border-rm-primary/20",
+      )}>
         <div className="flex">
-          <div className="w-1 shrink-0 rounded-l-3xl bg-gradient-to-b from-[var(--primary)]/85 via-[var(--primary)]/55 to-[var(--recovery-blue)]/45" />
+          <div className={cn(
+            "w-1 shrink-0",
+            coachCtx?.sickRiskLevel === "hard_stop" ? "bg-rm-stop/70" : "bg-gradient-to-b from-rm-primary/85 via-rm-primary/55 to-rm-recovery/45",
+          )} />
           <div className="flex-1 px-4 pt-3.5 pb-4 space-y-3.5">
-        <p className="text-xs font-semibold uppercase tracking-widest text-[var(--label-color)]" data-testid="recommendation-section-title">
+        <p className="rm-eyebrow" data-testid="recommendation-section-title">
           {hasWorkoutToday
             ? (coachCtx?.todayWorkouts.some((w) => w.kind === "strength") ? "หลังเวทวันนี้ควรทำอะไรต่อ" : "หลังซ้อมวันนี้ควรทำอะไรต่อ")
             : coachCtx?.sickRiskLevel === "hard_stop"
@@ -442,18 +454,18 @@ export default function TodayPage() {
 
         {loading && (
           <div className="flex items-center gap-3 py-2">
-            <div className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-[#e4d8c8] border-t-[var(--primary)]" />
-            <p className="text-sm text-slate-400">กำลังประเมินข้อมูลล่าสุด…</p>
+            <div className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-rm-border border-t-rm-primary" />
+            <p className="rm-caption">กำลังประเมินข้อมูลล่าสุด…</p>
           </div>
         )}
 
         {insightError && !loading && (
-          <div className="space-y-2 rounded-2xl bg-amber-50 px-3 py-2">
-            <p className="text-sm font-bold text-[var(--foreground)]">{insight ? "ใช้คำแนะนำสำรองจากข้อมูลล่าสุด" : "ยังประเมินไม่สำเร็จ"}</p>
-            <p className="text-xs leading-5 text-amber-700">
+          <div className="space-y-2 rounded-2xl bg-rm-caution-soft px-3 py-2">
+            <p className="text-sm font-bold text-rm-text">{insight ? "ใช้คำแนะนำสำรองจากข้อมูลล่าสุด" : "ยังประเมินไม่สำเร็จ"}</p>
+            <p className="text-xs leading-5 text-rm-caution">
               {insightErrorMessage || "ประเมินไม่สำเร็จ ลองใหม่อีกครั้ง"}
             </p>
-            <LoadingButton type="button" loading={loading} loadingText="กำลังวิเคราะห์..." onClick={() => void generateInsight(true)} className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600">
+            <LoadingButton type="button" loading={loading} loadingText="กำลังวิเคราะห์..." onClick={() => void generateInsight(true)} className="rounded-full bg-rm-surface-soft px-3 py-1.5 text-xs font-semibold text-rm-muted">
               วิเคราะห์ใหม่
             </LoadingButton>
           </div>
@@ -466,29 +478,28 @@ export default function TodayPage() {
         )}
 
         {!insight && !loading && !insightError && !hasHistory && (
-          <div className="space-y-2 py-1">
-            <p className="text-base font-semibold text-[var(--foreground)]">ยังไม่มีข้อมูลวันนี้</p>
-            <p className="text-sm leading-6 text-slate-500">
-              เริ่มจากเพิ่มข้อมูลการนอนหรือซ้อมล่าสุด เพื่อให้โค้ชประเมินได้แม่นขึ้น
-            </p>
-          </div>
+          <EmptyState
+            className="p-0 py-1 items-start text-left"
+            title="ยังไม่มีข้อมูลวันนี้"
+            description="เริ่มจากเพิ่มข้อมูลการนอนหรือซ้อมล่าสุด เพื่อให้โค้ชประเมินได้แม่นขึ้น"
+          />
         )}
 
         {!insight && !loading && !insightError && hasHistory && (
           <div className="flex items-center justify-between gap-3 py-1">
-            <p className="text-sm text-slate-500">มีข้อมูลพร้อมแล้ว</p>
-            <LoadingButton type="button" loading={loading} loadingText="กำลังวิเคราะห์..." onClick={() => void generateInsight(true)} className="shrink-0 rounded-full bg-[var(--primary)] px-4 py-1.5 text-xs font-bold text-white">
+            <p className="rm-body text-rm-muted">มีข้อมูลพร้อมแล้ว</p>
+            <LoadingButton type="button" loading={loading} loadingText="กำลังวิเคราะห์..." onClick={() => void generateInsight(true)} className="shrink-0 rounded-full bg-rm-primary px-4 py-1.5 text-xs font-bold text-rm-surface">
               วิเคราะห์
             </LoadingButton>
           </div>
         )}
 
         {!hasWorkoutToday && coachCtx?.sickRiskLevel === "hard_stop" ? (
-          <Link href="/sick" data-testid="primary-cta" className="btn-primary block w-full py-2.5 text-center text-sm font-bold shadow-[0_8px_20px_rgba(79,138,120,0.15)]">
+          <Link href="/sick" data-testid="primary-cta" className="block w-full rounded-full bg-gradient-to-b from-rm-primary to-rm-primary-strong py-2.5 text-center text-sm font-bold text-rm-surface shadow-[0_8px_20px_rgba(79,138,120,0.15)]">
             อัปเดตอาการวันนี้
           </Link>
         ) : (
-          <Link href="/upload" data-testid="primary-cta" className="btn-primary block w-full py-2.5 text-center text-sm font-bold shadow-[0_8px_20px_rgba(79,138,120,0.15)]">
+          <Link href="/upload" data-testid="primary-cta" className="block w-full rounded-full bg-gradient-to-b from-rm-primary to-rm-primary-strong py-2.5 text-center text-sm font-bold text-rm-surface shadow-[0_8px_20px_rgba(79,138,120,0.15)]">
             {hasWorkoutToday ? "อัปเดตข้อมูลวันนี้" : "บันทึกกิจกรรมวันนี้"}
           </Link>
         )}
@@ -499,22 +510,13 @@ export default function TodayPage() {
 
       {/* 3. Recovery Loop — collapsed by default to reduce clutter */}
       {coachCtx && (
-        <details className="group" data-testid="recovery-loop-details">
-          <summary className="list-none cursor-pointer">
-            <div className="flex items-center justify-between px-1 py-1">
-              <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--color-text-soft)]">ฟื้นตัวยังไงคืนนี้</span>
-              <span className="text-[10px] text-[var(--color-text-soft)]">
-                <span className="group-open:hidden">ดู ⌄</span>
-                <span className="hidden group-open:inline">ซ่อน ⌄</span>
-              </span>
-            </div>
-          </summary>
+        <DetailAccordion title="ฟื้นตัวยังไงคืนนี้" data-testid="recovery-loop-details">
           <RecoveryLoopCard coachCtx={coachCtx} />
-        </details>
+        </DetailAccordion>
       )}
 
       {/* Quick Actions Dock — compact, above strength card */}
-      <div className="rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface-muted)]/85 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.45)]">
+      <div className="rounded-2xl border border-rm-border bg-rm-surface-soft p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.45)]">
         <div className="flex gap-1">
           {[
             { href: "/upload?type=sleep", icon: "🌙", label: "นอน" },
@@ -524,9 +526,9 @@ export default function TodayPage() {
             { href: "/sick", icon: "🤒", label: "ป่วย" },
             { href: "#end-of-day-summary", icon: "📋", label: "สรุปวัน" },
           ].map(({ href, icon, label }) => (
-            <Link key={href} href={href} className="flex-1 flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-2 text-center transition active:scale-[0.98] hover:bg-[var(--surface)]/80">
+            <Link key={href} href={href} className="flex-1 flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-2 text-center transition active:scale-[0.98] hover:bg-rm-surface">
               <span className="text-[1.05rem] leading-none grayscale-[20%] saturate-[0.85]">{icon}</span>
-              <span className="mt-0.5 text-[9px] font-black leading-none text-[var(--color-text-muted)]/80">{label}</span>
+              <span className="mt-0.5 text-[9px] font-black leading-none text-rm-muted/80">{label}</span>
             </Link>
           ))}
         </div>
@@ -549,17 +551,17 @@ export default function TodayPage() {
         if (hasActivePain) {
           return (
             <>
-              <p className="mt-1 px-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--color-text-soft)]">Recovery / อาการ</p>
+              <p className="mt-1 px-1 rm-eyebrow">Recovery / อาการ</p>
               <CompactPainCard pains={coachCtx.latestPain ? [coachCtx.latestPain, ...coachCtx.recentPainLogs.filter((pain) => pain.id !== coachCtx.latestPain?.id)] : coachCtx.recentPainLogs} />
             </>
           );
         } else {
           return (
             <>
-              <p className="mt-1 px-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--color-text-soft)]">Recovery / อาการ</p>
-              <div className="flex items-center justify-between rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface)]/72 px-4 py-2.5 text-xs text-[var(--foreground)] shadow-[0_6px_18px_rgba(72,82,72,0.035)]">
-                <span className="font-semibold text-slate-700">🩹 อาการเจ็บ{latest.painLocation}ดีขึ้นแล้ว</span>
-                <Link href="/pain" className="text-[var(--primary)] font-bold hover:underline">
+              <p className="mt-1 px-1 rm-eyebrow">Recovery / อาการ</p>
+              <div className="flex items-center justify-between rounded-2xl border border-rm-border bg-rm-surface px-4 py-2.5 text-xs text-rm-text shadow-[0_6px_18px_rgba(72,82,72,0.035)]">
+                <span className="font-semibold text-rm-text">🩹 อาการเจ็บ{latest.painLocation}ดีขึ้นแล้ว</span>
+                <Link href="/pain" className="text-rm-primary-strong font-bold hover:underline">
                   อัปเดตอาการ →
                 </Link>
               </div>
@@ -579,26 +581,26 @@ export default function TodayPage() {
 
         return (
           <>
-            <p className="mt-1 px-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--color-text-soft)]" data-testid="food-section-label">
+            <p className="mt-1 px-1 rm-eyebrow" data-testid="food-section-label">
               {coachCtx.sickRiskLevel === "hard_stop" ? "มื้อถัดไปสำหรับวันที่ไม่สบาย" : "อาหารวันนี้"}
             </p>
-            <details className="group rounded-3xl border border-[var(--color-border-soft)] bg-[var(--surface)]/68 px-4 py-3 shadow-[0_6px_18px_rgba(72,82,72,0.035)] cursor-pointer">
-              <summary className="flex list-none items-center justify-between gap-3 text-sm font-semibold text-[var(--foreground)]">
+            <details className="group rm-card px-4 py-3 cursor-pointer">
+              <summary className="flex list-none items-center justify-between gap-3 text-sm font-semibold text-rm-text">
                 <div>
-                  <p className="text-sm font-bold text-[var(--foreground)]">อาหารและพลังงานวันนี้</p>
-                  <p className="text-xs text-[var(--muted-text)] font-medium mt-0.5">
+                  <p className="text-sm font-bold text-rm-text">อาหารและพลังงานวันนี้</p>
+                  <p className="text-xs text-rm-muted font-medium mt-0.5">
                     {coachCtx.sickRiskLevel === "hard_stop"
                       ? "เน้นย่อยง่าย เติมน้ำ และไม่มัน"
                       : fuelScore >= 80 ? "พลังงานวันนี้โอเค (คาร์บ/โปรตีนเพียงพอ)" : `พลังงานวันนี้ ${Math.round(fuelScore)}/100 · ควรรองรับเพิ่มเติม`}
                   </p>
                 </div>
-                <div className="flex items-center gap-1 text-[11px] text-[var(--primary)] font-bold shrink-0">
+                <div className="flex items-center gap-1 text-[11px] text-rm-primary font-bold shrink-0">
                   <span className="group-open:hidden">ดูรายละเอียด</span>
                   <span className="hidden group-open:inline">ซ่อน</span>
                   <span className="transition-transform group-open:rotate-180">▾</span>
                 </div>
               </summary>
-              <div className="mt-3 pt-3 border-t border-slate-100/60 space-y-2.5 cursor-default">
+              <div className="mt-3 pt-3 border-t border-rm-border space-y-2.5 cursor-default">
                 {coachCtx.nutritionToday && (
                   <CompactNutritionCard nutrition={coachCtx.nutritionToday} profile={coachCtx.profile} />
                 )}
@@ -621,7 +623,7 @@ export default function TodayPage() {
         />
       )}
 
-      <p className="mt-1 px-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--color-text-soft)]">สรุป</p>
+      <p className="mt-1 px-1 rm-eyebrow">สรุป</p>
 
       <EndOfDaySummaryCard
         item={dailySummaryItem}
@@ -634,7 +636,7 @@ export default function TodayPage() {
       {/* Footer: race goal + re-analyze */}
       <div className="flex items-center justify-between gap-3 px-1">
         {!goal ? (
-          <Link href="/race-goal" className="text-xs text-slate-400 hover:text-slate-600">
+          <Link href="/race-goal" className="text-xs text-rm-muted hover:text-rm-text">
             ยังไม่มี Race Goal · <span className="underline underline-offset-2">ตั้งเป้าหมาย</span>
           </Link>
         ) : <span />}
@@ -644,7 +646,7 @@ export default function TodayPage() {
             loading={loading}
             loadingText="กำลังวิเคราะห์..."
             onClick={() => void generateInsight(true)}
-            className="flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-500 hover:bg-slate-200 disabled:opacity-40"
+            className="flex items-center gap-1.5 rounded-full bg-rm-surface-soft px-3 py-1.5 text-xs font-medium text-rm-muted hover:bg-rm-border disabled:opacity-40"
           >
             วิเคราะห์ใหม่
           </LoadingButton>
@@ -762,48 +764,48 @@ function PreWorkoutFocusContent({
   return (
     <div className="space-y-2.5">
       {/* 1. Headline */}
-      <h2 className="line-clamp-2 text-[1.18rem] font-black leading-snug tracking-[-0.015em] text-[var(--foreground)]">{insight.workoutRec}</h2>
+      <h2 className="line-clamp-2 text-[1.18rem] font-black leading-snug tracking-[-0.015em] text-rm-text">{insight.workoutRec}</h2>
 
       {/* 2. Sick hard-stop compact badge — or pace target pill */}
       {context?.sickRiskLevel === "hard_stop" ? (
         <div data-testid="sick-rest-bullets">
-          <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-1 text-[11px] font-bold text-red-700">
+          <span className="inline-flex items-center gap-1 rounded-full bg-rm-stop-soft px-2.5 py-1 text-[11px] font-bold text-rm-stop">
             <span>·</span>
             <span>ไม่ซ้อมวันนี้</span>
           </span>
         </div>
       ) : hasPace ? (
-        <span className="inline-block rounded-full border border-[var(--color-border-soft)] bg-[var(--surface-muted)]/80 px-2.5 py-1 text-[11px] font-bold text-[var(--color-text-muted)]" data-testid="pace-target-pill">
+        <span className="inline-block rounded-full border border-rm-border bg-rm-surface-soft px-2.5 py-1 text-[11px] font-bold text-rm-muted" data-testid="pace-target-pill">
           {insight.workoutTarget}
         </span>
       ) : null}
 
       {/* 3. Collapsed reasons — "ดูเหตุผล" / "ซ่อนเหตุผล" toggle via <details> */}
       <details className="group" data-testid="hero-details">
-        <summary className="list-none cursor-pointer mt-0.5 flex w-full items-center justify-center gap-1 text-[11px] font-semibold text-[var(--color-text-soft)] transition-colors hover:text-[var(--foreground)]">
+        <summary className="list-none cursor-pointer mt-0.5 flex w-full items-center justify-center gap-1 text-[11px] font-semibold text-rm-muted transition-colors hover:text-rm-text">
           <span className="group-open:hidden">ดูเหตุผล</span>
           <span className="hidden group-open:inline">ซ่อนเหตุผล</span>
           <span className="transition-transform duration-200 group-open:rotate-180">⌄</span>
         </summary>
 
-        <div className="mt-3 rounded-2xl bg-slate-50 px-4 py-3 space-y-2">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">เหตุผลของคำแนะนำวันนี้</p>
+        <div className="mt-3 rounded-2xl bg-rm-surface-soft px-4 py-3 space-y-2">
+          <p className="rm-eyebrow">เหตุผลของคำแนะนำวันนี้</p>
 
           {/* Decision card */}
           {heroDecision && (
             <div className={`rounded-2xl border p-3.5 space-y-1.5 ${
-              insightError ? "bg-amber-50/80 border-amber-200 text-amber-900" :
-              heroDecision.type === "pain" ? "bg-red-50/80 border-red-200 text-red-900" :
-              heroDecision.type === "caution" ? "bg-amber-50/80 border-amber-200 text-amber-900" :
-              "bg-[#f5faf7] border-[var(--color-success-border)] text-[#1c472a]"
+              insightError ? "bg-rm-caution-soft border-rm-caution/30 text-rm-text" :
+              heroDecision.type === "pain" ? "bg-rm-stop-soft border-rm-stop/30 text-rm-text" :
+              heroDecision.type === "caution" ? "bg-rm-caution-soft border-rm-caution/30 text-rm-text" :
+              "bg-rm-primary-soft border-rm-primary/25 text-rm-text"
             }`}>
               <div className="flex items-center gap-2">
                 <span className="text-sm font-bold uppercase tracking-wider">{heroDecision.title}</span>
                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
-                  insightError ? "bg-amber-100 text-amber-700" :
-                  heroDecision.type === "pain" ? "bg-red-100 text-red-700" :
-                  heroDecision.type === "caution" ? "bg-amber-100 text-amber-700" :
-                  "bg-[var(--primary-soft)] text-[var(--color-success)]"
+                  insightError ? "bg-rm-caution-soft text-rm-caution" :
+                  heroDecision.type === "pain" ? "bg-rm-stop-soft text-rm-stop" :
+                  heroDecision.type === "caution" ? "bg-rm-caution-soft text-rm-caution" :
+                  "bg-rm-primary-soft text-rm-primary-strong"
                 }`}>
                   {insightError ? "คำแนะนำสำรอง" : (heroDecision.type === "pain" ? "งดวิ่ง" : heroDecision.type === "caution" ? "ปรับลดโหลด" : "ตามแผน")}
                 </span>
@@ -815,8 +817,8 @@ function PreWorkoutFocusContent({
           {/* Reason bullets */}
           <ul className="space-y-1">
             {buildTodayRecommendationReasons(context, insight, context?.readinessV2 ?? null, hasSleepToday).map((r, i) => (
-              <li key={i} className="flex items-start gap-1.5 text-xs text-slate-600 leading-5">
-                <span className="mt-0.5 shrink-0 text-[var(--primary)]">·</span>
+              <li key={i} className="flex items-start gap-1.5 text-xs text-rm-muted leading-5">
+                <span className="mt-0.5 shrink-0 text-rm-primary">·</span>
                 <span>{r}</span>
               </li>
             ))}
@@ -824,14 +826,14 @@ function PreWorkoutFocusContent({
 
           {/* Sleep fallback note */}
           {isUsingLatestSleepBecauseTodayMissing && (
-            <div className="rounded-2xl border border-[var(--color-info-soft)] bg-[var(--color-info-soft)] px-3 py-2 text-xs leading-relaxed text-[var(--color-info)] font-semibold">
+            <div className="rounded-2xl border border-rm-recovery/25 bg-rm-recovery-soft px-3 py-2 text-xs leading-relaxed text-rm-recovery font-semibold">
               ใช้ข้อมูลล่าสุดชั่วคราว — ยังไม่มีการนอนวันนี้
             </div>
           )}
 
           {/* Sick details copy */}
           {context?.sickRiskLevel === "hard_stop" && (
-            <p className="text-xs text-slate-500 leading-relaxed">วันนี้ช่วยเป้าหมายด้วยการฟื้น ไม่ใช่การฝืน</p>
+            <p className="text-xs text-rm-muted leading-relaxed">วันนี้ช่วยเป้าหมายด้วยการฟื้น ไม่ใช่การฝืน</p>
           )}
         </div>
       </details>
@@ -891,24 +893,24 @@ function PostWorkoutFocusContent({ insight, context }: { insight: DailyCoachInsi
   return (
     <div className="space-y-3">
       {/* 1. Headline first */}
-      <h2 className="text-2xl font-bold text-[var(--foreground)]">{title}</h2>
+      <h2 className="text-2xl font-bold text-rm-text">{title}</h2>
 
       {/* 2. Target plan line */}
-      <span className="inline-block rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+      <span className="inline-block rounded-full bg-rm-surface-soft px-3 py-1 text-xs font-semibold text-rm-muted">
         ไม่ต้องซ้อมเพิ่ม · เน้นฟื้นตัว
       </span>
 
       {/* 3. Reason line */}
-      <p className="text-xs font-medium text-slate-400 mt-1">{reasonLine}</p>
+      <p className="text-xs font-medium text-rm-muted mt-1">{reasonLine}</p>
 
       {/* Warnings & Notes */}
       {matching.isUncertain && (
-        <p className="rounded-2xl bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 border border-amber-200">
+        <p className="rounded-2xl bg-rm-caution-soft px-3 py-2 text-xs font-semibold text-rm-caution border border-rm-caution/30">
           ⚠️ วันนี้มีบันทึกกิจกรรมแล้ว (อาจแตกต่างจากแผนที่ตั้งไว้) แนะนำเน้นฟื้นตัวและงดซ้อมหนักซ้ำ
         </p>
       )}
       {isUsingLatestSleepBecauseTodayMissing && (
-        <div className="rounded-2xl border border-[var(--color-info-soft)] bg-[var(--color-info-soft)] px-3 py-2 text-xs leading-relaxed text-[var(--color-info)] font-semibold">
+        <div className="rounded-2xl border border-rm-recovery/25 bg-rm-recovery-soft px-3 py-2 text-xs leading-relaxed text-rm-recovery font-semibold">
           ใช้ข้อมูลล่าสุดชั่วคราว — ยังไม่มีการนอนวันนี้
         </div>
       )}
@@ -1730,6 +1732,23 @@ function buildGaugeSubline(ctx: CoachContext | null | undefined, status: GaugeSt
   return undefined;
 }
 
+/** Maps the existing readiness gauge status onto the v0.2 design system's tone palette (presentation only). */
+function mapGaugeStatusToTone(status: GaugeStatus): RmTone {
+  switch (status) {
+    case "good":
+    case "fair":
+      return "ready";
+    case "caution":
+      return "caution";
+    case "recovery":
+      return "recovery";
+    case "risk":
+      return "stop";
+    default:
+      return "neutral";
+  }
+}
+
 function TodaySnapshotCard({
   insight,
   readinessScore,
@@ -1775,47 +1794,56 @@ function TodaySnapshotCard({
   const gaugeHeadline = getGaugeHeadline(readinessScore, coachCtx, hasWorkoutToday ?? false);
   const chipLabel = hasSleepToday ? displayStatus.label : `ล่าสุด · ${displayStatus.label}`;
 
+  const hasGaugeData = !loading && readinessScore != null && !!insight;
+  // The gauge (when shown) already renders its own headline/subline text, and other
+  // cards below (e.g. sick hard-stop) may independently show the same headline copy —
+  // so StatusHero's own title/subtitle stay empty here, matching the original layout
+  // which showed no separate headline text when the gauge itself wasn't rendered.
+  const heroTone: RmTone = loading ? "neutral" : mapGaugeStatusToTone(gaugeStatus);
+  const heroTitle: string | undefined = undefined;
+  const heroSubtitle: string | undefined = undefined;
+  const heroMetric = loading ? (
+    <ReadinessGauge score={null} label="" status="unknown" headlineTh="กำลังประเมิน…" loading />
+  ) : hasGaugeData ? (
+    <ReadinessGauge
+      score={readinessScore}
+      label={chipLabel}
+      status={gaugeStatus}
+      headlineTh={gaugeHeadline}
+      sublineTh={buildGaugeSubline(coachCtx, gaugeStatus)}
+      chipClassName={readinessChipClass(readinessScore as number, displayStatus.label)}
+    />
+  ) : undefined;
+  const heroBadge = !loading && isFallback ? (
+    <span className="inline-block rounded-full bg-rm-neutral-soft px-3 py-1 text-xs font-semibold text-rm-muted">
+      ใช้ข้อมูลล่าสุด
+    </span>
+  ) : undefined;
+
   return (
-    <section className="health-score-card px-4 pt-4 pb-3 space-y-2.5">
-      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--label-color)]">ภาพรวมวันนี้</p>
-
-      {/* Circular gauge hero */}
-      {!loading && readinessScore != null && insight && (
-        <ReadinessGauge
-          score={readinessScore}
-          label={chipLabel}
-          status={gaugeStatus}
-          headlineTh={gaugeHeadline}
-          sublineTh={buildGaugeSubline(coachCtx, gaugeStatus)}
-          chipClassName={readinessChipClass(readinessScore, displayStatus.label)}
-        />
-      )}
-      {loading && (
-        <ReadinessGauge score={null} label="" status="unknown" headlineTh="กำลังประเมิน…" loading />
-      )}
-
-      {/* Fallback indicator */}
-      {!loading && isFallback && (
-        <span className="inline-block rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-500 font-semibold">
-          ใช้ข้อมูลล่าสุด
-        </span>
-      )}
-
+    <StatusHero
+      tone={heroTone}
+      eyebrow="ภาพรวมวันนี้"
+      title={heroTitle}
+      subtitle={heroSubtitle}
+      badge={heroBadge}
+      metric={heroMetric}
+    >
       {/* One-line axis summary — kept as separate element for today-overview-reason testid */}
       {!loading && (
-        <p className="text-[11px] font-medium text-[var(--color-text-soft)] leading-tight" data-testid="today-overview-reason">{axisSummaryLine}</p>
+        <p className="text-[11px] font-medium text-rm-muted leading-tight" data-testid="today-overview-reason">{axisSummaryLine}</p>
       )}
 
       {/* Caution note */}
       {!loading && displayStatus?.note && (
-        <p className="text-[11px] text-slate-500 leading-relaxed">
+        <p className="text-[11px] text-rm-muted leading-relaxed">
           {displayStatus.cautionLevel === "high" ? "⚠️" : "💡"} {displayStatus.note}
         </p>
       )}
 
       {/* Readiness explanation — why this recommendation */}
       {!loading && readinessExplanation && (
-        <p className="text-[11px] text-[var(--color-text-muted)] leading-snug" data-testid="readiness-explanation">
+        <p className="text-[11px] text-rm-muted leading-snug" data-testid="readiness-explanation">
           {readinessExplanation}
         </p>
       )}
@@ -1826,8 +1854,8 @@ function TodaySnapshotCard({
         const guardrail = getTodayTrainingGuardrail(recSys, !!(coachCtx?.activePain), coachCtx?.painRecoveryStatus, coachCtx?.sickRiskLevel);
         if (guardrail.tone === "neutral" || guardrail.tone === "success") return null;
 
-        const bgColor = guardrail.tone === "danger" ? "" : "rounded-2xl bg-[#fff8ed]/80 px-3 py-2 space-y-1.5";
-        const textColor = guardrail.tone === "danger" ? "text-[var(--status-rest)]" : "text-[#9b742c]";
+        const bgColor = guardrail.tone === "danger" ? "" : "rounded-2xl bg-rm-caution-soft px-3 py-2 space-y-1.5";
+        const textColor = guardrail.tone === "danger" ? "text-rm-stop" : "text-rm-caution";
 
         if (guardrail.tone === "danger") {
           return (
@@ -1842,7 +1870,7 @@ function TodaySnapshotCard({
               {guardrail.shortThaiCopy}
             </p>
             {(guardrail.tone === "warning" || guardrail.recommendedIntensity === "recovery") && (
-              <p className="text-[10px] text-[#9b742c]/80 leading-snug">
+              <p className="text-[10px] text-rm-caution/80 leading-snug">
                 เลือกได้: พักเต็มวัน · เดินเบา ๆ 20–40 นาที · mobility
                 {recSys.axes.load.score >= 70 ? " · หลีกเลี่ยงวิ่งหนัก" : ""}
               </p>
@@ -1872,18 +1900,18 @@ function TodaySnapshotCard({
         if (allowedKeys.length === 0) {
           const isPainRisk = dailyReadiness.band === "pain_risk";
           return (
-            <div className="rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface-muted)] px-3 py-2" data-testid="today-pace-card">
-              <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--label-color)]">ช่วงเพซวันนี้</p>
-              <p className="mt-1 text-sm font-semibold text-[var(--status-rest)]">
+            <div className="rounded-2xl border border-rm-border bg-rm-surface-soft px-3 py-2" data-testid="today-pace-card">
+              <p className="rm-eyebrow">ช่วงเพซวันนี้</p>
+              <p className="mt-1 text-sm font-semibold text-rm-stop">
                 {isPainRisk ? "วันนี้ยังไม่ควรใช้ pace เป็นเป้า" : "วันนี้ไม่ต้องไล่ pace"}
               </p>
-              <p className="mt-0.5 text-[10px] text-[var(--color-text-muted)] leading-snug">
+              <p className="mt-0.5 text-[10px] text-rm-muted leading-snug">
                 {isPainRisk
                   ? "ให้ใช้อาการเจ็บและความรู้สึกนำก่อน"
                   : `ถ้าจะขยับ: เดินเร็ว · mobility · Easy เบา ๆ ${formatPaceRange(paceBands.easy)}`}
               </p>
               {hrCapLine && (
-                <p className="mt-1 text-[10px] font-semibold text-[var(--foreground)] leading-snug" data-testid="today-hr-cap-line">
+                <p className="mt-1 text-[10px] font-semibold text-rm-text leading-snug" data-testid="today-hr-cap-line">
                   {hrCapLine}
                 </p>
               )}
@@ -1898,23 +1926,23 @@ function TodaySnapshotCard({
           (dailyReadiness.loadTarget === "build" || dailyReadiness.loadTarget === "moderate");
         const LABELS: Record<PaceBandKey, string> = { easy: "Easy", long: "Long", tempo: "Tempo", interval: "Interval" };
         return (
-          <div className="rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface-muted)] px-3 py-2" data-testid="today-pace-card">
-            <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--label-color)]">ช่วงเพซวันนี้</p>
+          <div className="rounded-2xl border border-rm-border bg-rm-surface-soft px-3 py-2" data-testid="today-pace-card">
+            <p className="rm-eyebrow">ช่วงเพซวันนี้</p>
             <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
               {displayKeys.map((key) => (
-                <span key={key} className="text-[10px] text-[var(--foreground)]">
+                <span key={key} className="text-[10px] text-rm-text">
                   <span className="font-semibold">{LABELS[key]}</span>{" "}
-                  <span className="tabular-nums text-[var(--primary-strong)]">{formatPaceRange(paceBands[key])}</span>
+                  <span className="tabular-nums text-rm-primary-strong">{formatPaceRange(paceBands[key])}</span>
                 </span>
               ))}
             </div>
             {hrCapLine && (
-              <p className="mt-1 text-[10px] font-semibold text-[var(--foreground)] leading-snug" data-testid="today-hr-cap-line">
+              <p className="mt-1 text-[10px] font-semibold text-rm-text leading-snug" data-testid="today-hr-cap-line">
                 {hrCapLine}
               </p>
             )}
             {!isFullTrainingDay && (
-              <p className="mt-1 text-[10px] text-[var(--color-text-muted)] leading-snug">
+              <p className="mt-1 text-[10px] text-rm-muted leading-snug">
                 วันนี้ไม่ต้องไล่ pace ให้ HR/RPE นำ ถ้ารู้สึกหนักให้ช้าลงได้
               </p>
             )}
@@ -1924,14 +1952,8 @@ function TodaySnapshotCard({
 
       {/* Details: full /100 values, coverage, missing, explanation */}
       {!loading && recSys && (
-        <details className="group cursor-pointer" data-testid="recovery-details">
-          <summary className="list-none inline-flex items-center gap-1 rounded-full px-1 py-0.5 text-[11px] font-bold text-[var(--color-text-soft)] transition-colors hover:text-[var(--primary)]">
-            <span className="group-open:hidden">ดูรายละเอียด Recovery</span>
-            <span className="hidden group-open:inline">ซ่อนรายละเอียด</span>
-            <span className="transition-transform duration-200 group-open:rotate-180">⌄</span>
-          </summary>
-
-          <div className="mt-2 space-y-3 cursor-default text-xs">
+        <DetailAccordion title="ดูรายละเอียด Recovery" data-testid="recovery-details">
+          <div className="space-y-3 cursor-default text-xs">
             {/* Factor bars — compact visual summary */}
             <div className="space-y-1.5 rounded-2xl bg-white/35 px-2.5 py-2" data-testid="factor-bars">
               {([
@@ -2055,16 +2077,16 @@ function TodaySnapshotCard({
               </details>
             )}
           </div>
-        </details>
+        </DetailAccordion>
       )}
 
       {/* Low data hint */}
       {!loading && !hasHistory && (
-        <p className="rounded-xl bg-[#fff6df] px-3 py-2 text-xs leading-5 text-[#8a6729]">
+        <p className="rounded-xl bg-rm-caution-soft px-3 py-2 text-xs leading-5 text-rm-caution">
           ลอง Upload ข้อมูลนอน อาหาร หรือซ้อม เพื่อให้คำแนะนำแม่นขึ้น
         </p>
       )}
-    </section>
+    </StatusHero>
   );
 }
 
@@ -2099,16 +2121,16 @@ function CompactPainCard({ pains }: { pains: PainSummary[] }) {
   const isHighRisk = latest.hasActivePain && latest.riskLevel === "high";
   const isMediumRisk = latest.hasActivePain && latest.riskLevel === "medium";
 
-  const borderClass = isHighRisk ? "border-red-200 bg-red-50"
-    : isMediumRisk ? "border-amber-200 bg-amber-50"
-    : "border-[var(--color-success-border)] bg-[#f5faf7]";
-  const badgeClass = isHighRisk ? "bg-red-100 text-red-700"
-    : isMediumRisk ? "bg-amber-100 text-amber-700"
-    : "bg-[var(--primary-soft)] text-[var(--color-success)]";
-  const textClass = isHighRisk ? "text-red-700" : isMediumRisk ? "text-amber-700" : "text-[var(--color-success)]";
-  const btnClass = isHighRisk ? "bg-red-100 text-red-700 hover:bg-red-200"
-    : isMediumRisk ? "bg-amber-100 text-amber-700 hover:bg-amber-200"
-    : "bg-[var(--primary-soft)] text-[var(--color-success)] hover:bg-[#d9e8df]";
+  const borderClass = isHighRisk ? "border-rm-stop/30 bg-rm-stop-soft"
+    : isMediumRisk ? "border-rm-caution/30 bg-rm-caution-soft"
+    : "border-rm-primary/25 bg-rm-primary-soft";
+  const badgeClass = isHighRisk ? "bg-rm-stop-soft text-rm-stop"
+    : isMediumRisk ? "bg-rm-caution-soft text-rm-caution"
+    : "bg-rm-primary-soft text-rm-primary-strong";
+  const textClass = isHighRisk ? "text-rm-stop" : isMediumRisk ? "text-rm-caution" : "text-rm-primary-strong";
+  const btnClass = isHighRisk ? "bg-rm-stop-soft text-rm-stop hover:bg-rm-stop-soft/70"
+    : isMediumRisk ? "bg-rm-caution-soft text-rm-caution hover:bg-rm-caution-soft/70"
+    : "bg-rm-primary-soft text-rm-primary-strong hover:bg-rm-primary-soft/70";
 
   async function markPainResolved() {
     if (savingResolved || isResolved) return;
@@ -2151,7 +2173,7 @@ function CompactPainCard({ pains }: { pains: PainSummary[] }) {
     : "ซ้อมเบา ๆ ได้ถ้าไม่เจ็บเพิ่ม";
 
   return (
-    <section className={`card border px-4 py-3 space-y-2.5 ${borderClass}`}>
+    <section className={`rm-card border px-4 py-3 space-y-2.5 ${borderClass}`}>
       <div className="flex items-center justify-between gap-2">
         <span className={`text-sm font-bold ${textClass}`}>🩹 {latest.painLocation}</span>
         <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-bold ${badgeClass}`}>
@@ -2159,7 +2181,7 @@ function CompactPainCard({ pains }: { pains: PainSummary[] }) {
         </span>
       </div>
       <p className={`text-xs leading-5 ${textClass}`}>{impactNote}</p>
-      {error ? <p className="rounded-xl bg-red-50 px-3 py-2 text-xs font-semibold text-red-600">{error}</p> : null}
+      {error ? <p className="rounded-xl bg-rm-stop-soft px-3 py-2 text-xs font-semibold text-rm-stop">{error}</p> : null}
       <div className="grid grid-cols-2 gap-2">
         <Link
           href={`/pain/${encodeURIComponent(latest.id)}`}
@@ -2169,7 +2191,7 @@ function CompactPainCard({ pains }: { pains: PainSummary[] }) {
         </Link>
         <Link
           href={`/pain?from=${encodeURIComponent(latest.id)}`}
-          className="rounded-full bg-[#17201d] py-2 text-center text-xs font-bold text-white hover:bg-[#2a3d35] transition-colors"
+          className="rounded-full bg-rm-primary-strong py-2 text-center text-xs font-bold text-rm-surface hover:bg-rm-primary transition-colors"
         >
           อัปเดต
         </Link>
@@ -2344,66 +2366,57 @@ function SickDayEntryCard({ coachCtx }: { coachCtx: CoachContext }) {
 
   if (isHardStop) {
     return (
-      <div
+      <InsightCard
         data-testid="sick-day-entry-card"
-        className="flex items-start justify-between gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3"
-      >
-        <div className="min-w-0 flex-1 space-y-0.5">
-          <p className="text-sm font-bold text-red-800">🔴 วันนี้ควรพักก่อน</p>
-          <p className="text-xs leading-5 text-red-700">
-            มีอาการที่ไม่เหมาะกับการซ้อม เช่น ไข้ หนาวสั่น หายใจลำบาก หรืออาเจียน
-          </p>
-        </div>
-        <Link
-          href="/sick"
-          className="shrink-0 rounded-xl border border-red-200 bg-white px-3 py-1.5 text-xs font-bold text-red-700"
-        >
-          ดู/อัปเดตอาการ
-        </Link>
-      </div>
+        tone="stop"
+        title="🔴 วันนี้ควรพักก่อน"
+        body="มีอาการที่ไม่เหมาะกับการซ้อม เช่น ไข้ หนาวสั่น หายใจลำบาก หรืออาเจียน"
+        action={
+          <Link
+            href="/sick"
+            className="inline-block rounded-xl border border-rm-stop/30 bg-rm-surface px-3 py-1.5 text-xs font-bold text-rm-stop"
+          >
+            ดู/อัปเดตอาการ
+          </Link>
+        }
+      />
     );
   }
 
   if (hasSickToday) {
     return (
-      <div
+      <InsightCard
         data-testid="sick-day-entry-card"
-        className="flex items-start justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3"
-      >
-        <div className="min-w-0 flex-1 space-y-0.5">
-          <p className="text-sm font-bold text-amber-800">🟡 วันนี้มีอาการป่วย</p>
-          <p className="text-xs leading-5 text-amber-700">
-            RunMate จะใช้ข้อมูลนี้เพื่อปรับคำแนะนำซ้อมวันนี้
-          </p>
-        </div>
-        <Link
-          href="/sick"
-          className="shrink-0 rounded-xl border border-amber-200 bg-white px-3 py-1.5 text-xs font-bold text-amber-700"
-        >
-          อัปเดตอาการ
-        </Link>
-      </div>
+        tone="caution"
+        title="🟡 วันนี้มีอาการป่วย"
+        body="RunMate จะใช้ข้อมูลนี้เพื่อปรับคำแนะนำซ้อมวันนี้"
+        action={
+          <Link
+            href="/sick"
+            className="inline-block rounded-xl border border-rm-caution/30 bg-rm-surface px-3 py-1.5 text-xs font-bold text-rm-caution"
+          >
+            อัปเดตอาการ
+          </Link>
+        }
+      />
     );
   }
 
   return (
-    <div
+    <InsightCard
       data-testid="sick-day-entry-card"
-      className="flex items-start justify-between gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3"
-    >
-      <div className="min-w-0 flex-1 space-y-0.5">
-        <p className="text-sm font-semibold text-[var(--foreground)]">วันนี้ไม่สบาย?</p>
-        <p className="text-xs leading-5 text-[var(--muted-text)]">
-          บันทึกอาการป่วย เพื่อให้ RunMate ปรับคำแนะนำซ้อมให้ปลอดภัยขึ้น
-        </p>
-      </div>
-      <Link
-        href="/sick"
-        className="shrink-0 rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-1.5 text-xs font-bold text-[var(--muted-text)]"
-      >
-        แจ้งว่าป่วย
-      </Link>
-    </div>
+      tone="neutral"
+      title="วันนี้ไม่สบาย?"
+      body="บันทึกอาการป่วย เพื่อให้ RunMate ปรับคำแนะนำซ้อมให้ปลอดภัยขึ้น"
+      action={
+        <Link
+          href="/sick"
+          className="inline-block rounded-xl border border-rm-border bg-rm-surface-soft px-3 py-1.5 text-xs font-bold text-rm-muted"
+        >
+          แจ้งว่าป่วย
+        </Link>
+      }
+    />
   );
 }
 
