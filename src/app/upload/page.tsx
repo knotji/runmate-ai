@@ -44,6 +44,85 @@ import {
   MEAL_TYPE_LABELS,
   CONFIDENCE_LABELS,
 } from "@/lib/upload/uploadConstants";
+import { StatusHero } from "@/components/ui/StatusHero";
+import { InsightCard } from "@/components/ui/InsightCard";
+import { DetailAccordion } from "@/components/ui/DetailAccordion";
+import { PrimaryCTA, SecondaryCTA } from "@/components/ui/ActionButton";
+import { cn } from "@/lib/cn";
+
+type IntakeChooserOption = {
+  key: string;
+  icon: string;
+  label: string;
+  caption: string;
+} & ({ kind: "type"; uploadType: UploadType } | { kind: "link"; href: string });
+
+const INTAKE_CHOOSER_OPTIONS: IntakeChooserOption[] = [
+  { key: "meal", kind: "type", uploadType: "meal", icon: "🍽️", label: "อาหาร", caption: "รูปอาหาร หรือบันทึกมื้ออาหาร" },
+  { key: "workout", kind: "type", uploadType: "workout", icon: "🏃", label: "ซ้อม", caption: "วิ่ง ว่ายน้ำ เวท หรือกิจกรรมอื่น" },
+  { key: "sleep", kind: "type", uploadType: "sleep", icon: "🌙", label: "นอน", caption: "ข้อมูลการนอน / sleep screenshot" },
+  { key: "pain", kind: "link", href: "/pain", icon: "🩹", label: "อาการเจ็บ", caption: "เจ็บตรงไหน ระดับไหน" },
+  { key: "sick", kind: "link", href: "/sick", icon: "🤒", label: "อาการป่วย", caption: "ไข้ ไอ เจ็บคอ หรืออาการวันนี้" },
+  { key: "health_check", kind: "type", uploadType: "health_check", icon: "🩺", label: "ไฟล์สุขภาพ", caption: "PDF / รูปเอกสารสุขภาพ" },
+  { key: "import", kind: "link", href: "/settings?tab=data", icon: "📥", label: "นำเข้าประวัติ", caption: "CSV / Samsung Health / Garmin / ข้อมูลย้อนหลัง" },
+];
+
+/** Safe local chooser opened by the universal intake card — routes straight into existing flows, never saves anything itself. */
+function IntakeChooserSheet({
+  open,
+  onClose,
+  onSelectType,
+  onNavigate,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onSelectType: (type: UploadType) => void;
+  onNavigate: (href: string) => void;
+}) {
+  if (!open) return null;
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 px-3 pb-3 sm:items-center"
+      role="presentation"
+      onClick={onClose}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="ข้อมูลนี้คืออะไร?"
+        className="w-full max-w-md rounded-3xl bg-rm-surface p-4 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <p className="rm-card-title">ข้อมูลนี้คืออะไร?</p>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="ปิด"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-rm-muted hover:bg-rm-surface-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-rm-primary"
+          >
+            ✕
+          </button>
+        </div>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {INTAKE_CHOOSER_OPTIONS.map((opt) => (
+            <button
+              key={opt.key}
+              type="button"
+              aria-label={`${opt.label} — ${opt.caption}`}
+              onClick={() => (opt.kind === "type" ? onSelectType(opt.uploadType) : onNavigate(opt.href))}
+              className="flex flex-col items-start gap-0.5 rounded-2xl border border-rm-border bg-rm-surface-soft px-3 py-2.5 text-left transition hover:bg-rm-primary-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-rm-primary"
+            >
+              <span className="text-lg leading-none">{opt.icon}</span>
+              <span className="mt-1 text-sm font-bold text-rm-text">{opt.label}</span>
+              <span className="rm-caption leading-snug">{opt.caption}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function SelectedDateBadge({ dateKey }: { dateKey: string }) {
   const isToday = dateKey === todayBangkokDateKey();
@@ -78,6 +157,8 @@ export default function UploadPage() {
   const [workoutSubtype, setWorkoutSubtype] = useState<WorkoutSubtype>("run");
   const [strengthInputMode, setStrengthInputMode] = useState<"image" | "manual">("image");
   const [mealInputMode, setMealInputMode] = useState<MealInputMode>("image");
+  const [showIntakeChooser, setShowIntakeChooser] = useState(false);
+  const inputPanelRef = useRef<HTMLDivElement>(null);
   const [manualMealText, setManualMealText] = useState("");
   const [imageMealText, setImageMealText] = useState("");
   const [manualMealError, setManualMealError] = useState("");
@@ -502,6 +583,31 @@ export default function UploadPage() {
     setManualMealError("");
   }
 
+  function scrollToInputPanel() {
+    // Runs after the type change re-renders the panel below the chooser/hero.
+    requestAnimationFrame(() => {
+      inputPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
+
+  function handleChooserSelectType(nextType: UploadType) {
+    selectUploadType(nextType);
+    setShowIntakeChooser(false);
+    scrollToInputPanel();
+  }
+
+  function handleChooserNavigate(href: string) {
+    setShowIntakeChooser(false);
+    router.push(href);
+  }
+
+  function startQuickTextEntry() {
+    // "พิมพ์บันทึกเอง" — the most direct existing free-text logging flow today.
+    selectUploadType("meal");
+    setMealInputMode("text");
+    scrollToInputPanel();
+  }
+
   async function saveWorkoutOnce(workout: WorkoutAnalysis): Promise<import("@/lib/localHistory").LocalHistoryItem> {
     if (workoutSavedItem) {
       if (process.env.NODE_ENV === "development") {
@@ -571,20 +677,48 @@ export default function UploadPage() {
   const selectedMeta = UPLOAD_DASHBOARD_META[type];
 
   return (
-    <AppShell title="เพิ่มข้อมูล" subtitle="บันทึกข้อมูลวันนี้ เพื่อให้โค้ชประเมินได้แม่นขึ้น">
+    <AppShell title="เพิ่มข้อมูล" subtitle="อัปโหลดรูป ไฟล์ หรือบันทึกข้อความ เพื่อให้ RunMate แนะนำได้แม่นขึ้น">
       <section className="space-y-3 pb-[calc(96px+env(safe-area-inset-bottom))]" data-testid="upload-dashboard">
+        <StatusHero
+          tone="ready"
+          title="วันนี้จะเพิ่มข้อมูลอะไร?"
+          subtitle="วางรูป ไฟล์ หรือพิมพ์ข้อความได้เลย RunMate จะช่วยแยกประเภทให้"
+          data-testid="universal-intake-hero"
+        >
+          <p className="rm-body text-rm-muted">
+            อัปโหลดรูป/ไฟล์ หรือเลือกประเภทด้านล่าง RunMate จะช่วยอ่านและสรุปให้ก่อนบันทึก
+          </p>
+          <div className="flex flex-wrap gap-2 pt-1">
+            <PrimaryCTA type="button" data-testid="universal-intake-cta" onClick={() => setShowIntakeChooser(true)}>
+              เลือกไฟล์หรือรูป
+            </PrimaryCTA>
+            <SecondaryCTA type="button" data-testid="universal-intake-text-cta" onClick={startQuickTextEntry}>
+              พิมพ์บันทึกเอง
+            </SecondaryCTA>
+          </div>
+        </StatusHero>
+
+        <InsightCard
+          tone="recovery"
+          icon="🔎"
+          title="RunMate จะสรุปก่อนบันทึก"
+          body="หลังอัปโหลด ระบบจะแสดงสิ่งที่อ่านได้ และให้คุณยืนยันหรือแก้ไขก่อนบันทึกทุกครั้ง"
+        />
+
         <div className="space-y-2">
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--label-color)]">เลือกประเภทข้อมูล</p>
+          <p className="rm-card-title">เลือกประเภทเอง</p>
+          <p className="rm-caption -mt-1">ถ้ารู้ว่าข้อมูลคืออะไร เลือกตรงนี้ได้เลย</p>
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-6" data-testid="upload-type-selector">
             {UPLOAD_ORDER.map((item) => (
               <button
                 key={item}
                 type="button"
-                className={`rounded-[18px] border px-3 py-2.5 text-center text-xs font-bold transition-all ${
+                className={cn(
+                  "rounded-[18px] border px-3 py-2.5 text-center text-xs font-bold transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-rm-primary",
                   type === item
-                    ? "border-[var(--primary-strong)] bg-[var(--primary)] text-white shadow-sm"
-                    : "border-[var(--border-warm)] bg-white/70 text-[var(--muted-text)] hover:bg-[var(--primary-soft)]/60"
-                }`}
+                    ? "border-rm-primary-strong bg-rm-primary text-rm-surface shadow-sm"
+                    : "border-rm-border bg-rm-surface/70 text-rm-muted hover:bg-rm-primary-soft/60",
+                )}
                 onClick={() => selectUploadType(item)}
               >
                 <span className="block text-base leading-none">{UPLOAD_DASHBOARD_META[item].icon}</span>
@@ -592,14 +726,44 @@ export default function UploadPage() {
               </button>
             ))}
             <Link
+              href="/pain"
+              className="rounded-[18px] border border-rm-border bg-rm-surface/70 px-3 py-2.5 text-center text-xs font-bold text-rm-muted transition-all hover:bg-rm-primary-soft/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-rm-primary"
+            >
+              <span className="block text-base leading-none">🩹</span>
+              <span className="mt-1 block">อาการเจ็บ</span>
+            </Link>
+            <Link
               href="/sick"
-              className="rounded-[18px] border border-[var(--border-warm)] bg-white/70 px-3 py-2.5 text-center text-xs font-bold text-[var(--muted-text)] transition-all hover:bg-[var(--primary-soft)]/60"
+              className="rounded-[18px] border border-rm-border bg-rm-surface/70 px-3 py-2.5 text-center text-xs font-bold text-rm-muted transition-all hover:bg-rm-primary-soft/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-rm-primary"
             >
               <span className="block text-base leading-none">🤒</span>
               <span className="mt-1 block">อาการป่วย</span>
             </Link>
+            <Link
+              href="/settings?tab=data"
+              className="rounded-[18px] border border-rm-border bg-rm-surface/70 px-3 py-2.5 text-center text-xs font-bold text-rm-muted transition-all hover:bg-rm-primary-soft/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-rm-primary"
+            >
+              <span className="block text-base leading-none">📥</span>
+              <span className="mt-1 block">นำเข้าประวัติ</span>
+            </Link>
           </div>
         </div>
+
+        <DetailAccordion title="ข้อมูลแต่ละแบบช่วยอะไร?">
+          <ul className="space-y-1">
+            <li>· นอน: ใช้ประเมิน readiness</li>
+            <li>· ซ้อม: ใช้คำนวณ load และ pace/HR</li>
+            <li>· อาหาร: ใช้ดูพลังงานก่อน/หลังซ้อม</li>
+            <li>· เจ็บ/ป่วย: ใช้ปรับแผนไม่ให้ฝืน</li>
+          </ul>
+        </DetailAccordion>
+
+        <IntakeChooserSheet
+          open={showIntakeChooser}
+          onClose={() => setShowIntakeChooser(false)}
+          onSelectType={handleChooserSelectType}
+          onNavigate={handleChooserNavigate}
+        />
 
         <div className="card-soft flex items-start gap-3 px-4 py-3" data-testid="upload-type-summary">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white text-xl shadow-sm">
@@ -664,7 +828,7 @@ export default function UploadPage() {
           )}
         </div>
 
-        <div className="card space-y-3 p-3.5" data-testid="upload-input-panel">
+        <div ref={inputPanelRef} className="card space-y-3 p-3.5" data-testid="upload-input-panel">
         {type === "meal" && (
           <div className="space-y-3">
             <div className="grid grid-cols-2 rounded-2xl bg-[var(--surface-muted)] p-1">
@@ -1074,32 +1238,28 @@ function UploadEmptyGuide({
   };
 
   return (
-    <div className="rounded-2xl border border-[var(--border-warm)] bg-white/60 px-3 py-2.5 text-xs text-[var(--muted-text)]" data-testid="upload-help">
-      <p className="mb-2 text-[11px] leading-5 text-[var(--color-text-soft)]">{UPLOAD_TYPE_HELPER_COPY[type]}</p>
-      <details className="group">
-        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 font-bold text-[var(--primary)]">
-          <span>อ่านอะไรได้บ้าง?</span>
-          <span className="transition-transform group-open:rotate-180">▾</span>
-        </summary>
-        <div className="mt-3 space-y-2 border-t border-[var(--color-border-soft)] pt-3 leading-5">
+    <div className="rounded-2xl border border-rm-border bg-rm-surface/60 px-3 py-2.5 text-xs text-rm-muted" data-testid="upload-help">
+      <p className="mb-2 text-[11px] leading-5 text-rm-muted">{UPLOAD_TYPE_HELPER_COPY[type]}</p>
+      <DetailAccordion title="อ่านอะไรได้บ้าง?" className="border-0 bg-transparent p-0 shadow-none">
+        <div className="space-y-2 leading-5">
           {items[type].map((item) => (
             <p key={item}>· {item}</p>
           ))}
-          <p className="rounded-xl bg-[var(--surface-muted)] px-3 py-2 text-[11px] leading-5 text-[var(--color-text-soft)]">
+          <p className="rounded-xl bg-rm-surface-soft px-3 py-2 text-[11px] leading-5 text-rm-muted">
             ไฟล์ต้นฉบับใช้เพื่อวิเคราะห์ครั้งนี้เท่านั้น Report จะเก็บเฉพาะข้อมูลที่สรุปแล้ว และ Coach Chat ใช้ Report เป็นบริบท
           </p>
           {type === "body" ? (
             <div className="flex flex-wrap gap-2">
-              <Link href="/pain" className="inline-flex rounded-full bg-white px-3 py-1.5 text-[11px] font-bold text-[var(--primary)] shadow-sm">
+              <Link href="/pain" className="inline-flex rounded-full bg-rm-surface px-3 py-1.5 text-[11px] font-bold text-rm-primary shadow-sm">
                 มีอาการเจ็บ? บันทึกที่หน้า &quot;เจ็บ&quot;
               </Link>
-              <Link href="/sick" className="inline-flex rounded-full bg-white px-3 py-1.5 text-[11px] font-bold text-[var(--primary)] shadow-sm">
+              <Link href="/sick" className="inline-flex rounded-full bg-rm-surface px-3 py-1.5 text-[11px] font-bold text-rm-primary shadow-sm">
                 ไม่สบาย? บันทึกอาการ
               </Link>
             </div>
           ) : null}
         </div>
-      </details>
+      </DetailAccordion>
     </div>
   );
 }
