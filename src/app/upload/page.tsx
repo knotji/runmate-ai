@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
@@ -31,6 +31,9 @@ import { fileToDataUrl } from "@/lib/storage";
 import { compressImage } from "@/lib/images/compressImage";
 import { DRAFT_MEAL_KEY, type DraftMeal } from "@/components/NextMealCard";
 import type { UploadType, WorkoutSubtype, MealInputMode } from "@/lib/upload/uploadTypes";
+import { classifyIntake, type IntakeCategory, type IntakeClassification } from "@/lib/upload/classifyIntake";
+import { DRAFT_INTAKE_NOTE_KEY } from "@/lib/upload/draftIntakeNote";
+import { normalizeMealFoodQuantities } from "@/lib/upload/normalizeMealFoodQuantities";
 import {
   formatThaiShortDate,
   formatDateKeyToThaiBE,
@@ -137,6 +140,107 @@ function SelectedDateBadge({ dateKey }: { dateKey: string }) {
   );
 }
 
+/** The single "one upload button" entry widget: pick a file or type text, RunMate classifies it. */
+function UniversalIntakeUploader({
+  loading,
+  error,
+  onSubmit,
+}: {
+  loading: boolean;
+  error: string;
+  onSubmit: (input: { file: File | null; text: string }) => void;
+}) {
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [text, setText] = useState("");
+  const [inputKey, setInputKey] = useState(0);
+
+  function handleFile(picked: File | null) {
+    setFile(picked);
+    setPreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return picked && picked.type.startsWith("image/") ? URL.createObjectURL(picked) : null;
+    });
+  }
+
+  function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    onSubmit({ file, text });
+  }
+
+  const canSubmit = (Boolean(file) || text.trim().length > 0) && !loading;
+
+  return (
+    <form onSubmit={handleSubmit} className="card space-y-3 p-4" data-testid="universal-intake-uploader">
+      <label
+        className={cn(
+          "flex min-h-[88px] cursor-pointer flex-col items-center justify-center gap-1.5 rounded-[22px] border border-dashed px-4 py-4 text-center transition-colors",
+          file ? "border-rm-primary-strong bg-rm-primary-soft/20" : "border-rm-border bg-rm-surface/70 hover:border-rm-primary/60",
+        )}
+      >
+        <input
+          key={inputKey}
+          type="file"
+          className="sr-only"
+          accept="image/*,application/pdf,.csv,text/csv"
+          data-testid="universal-intake-file-input"
+          onChange={(event) => handleFile(event.target.files?.[0] ?? null)}
+        />
+        {file ? (
+          <>
+            {preview ? (
+              <img src={preview} alt="ตัวอย่างไฟล์ที่เลือก" className="h-16 w-16 rounded-xl object-cover" />
+            ) : (
+              <span className="text-2xl">📄</span>
+            )}
+            <p className="text-sm font-semibold text-rm-text">{file.name}</p>
+            <p className="text-xs text-rm-primary-strong underline underline-offset-2">เปลี่ยนไฟล์</p>
+          </>
+        ) : (
+          <>
+            <span className="text-2xl">📎</span>
+            <p className="text-sm font-bold text-rm-text">แตะเพื่อเลือกรูปหรือไฟล์</p>
+            <p className="text-xs text-rm-muted">รองรับรูปภาพ, PDF, CSV — ไม่ต้องเลือกประเภทก่อน</p>
+          </>
+        )}
+      </label>
+
+      <textarea
+        className="control min-h-[64px]"
+        placeholder="หรือพิมพ์อธิบายสั้น ๆ เช่น ไข่ต้ม 2 ฟอง, วิ่ง 5 กม., เจ็บเข่าซ้าย"
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        data-testid="universal-intake-text-input"
+      />
+
+      <LoadingButton
+        className="btn-primary w-full"
+        type="submit"
+        loading={loading}
+        loadingText="กำลังจำแนกข้อมูล..."
+        disabled={!canSubmit}
+        data-testid="universal-intake-submit"
+      >
+        วิเคราะห์
+      </LoadingButton>
+      {error ? <p className="text-xs font-semibold text-[var(--status-rest)]">{error}</p> : null}
+
+      {file && (
+        <button
+          type="button"
+          onClick={() => {
+            handleFile(null);
+            setInputKey((k) => k + 1);
+          }}
+          className="text-xs font-semibold text-rm-muted underline underline-offset-2"
+        >
+          เอาไฟล์ออก
+        </button>
+      )}
+    </form>
+  );
+}
+
 export default function UploadPage() {
   const [type, setType] = useState<UploadType>("sleep");
   const [selectedDateKey, setSelectedDateKey] = useState(() => todayBangkokDateKey());
@@ -171,6 +275,20 @@ export default function UploadPage() {
   // Increment to force-remount form components after a successful save, resetting their internal state.
   const [walkResetKey, setWalkResetKey] = useState(0);
   const [healthCheckResetKey, setHealthCheckResetKey] = useState(0);
+
+  // ── Universal intake classifier (v0.2.4) ──────────────────────────────────────
+  // A file/text captured from the single "one upload button" entry widget, carried
+  // forward so the focused-mode uploader can auto-submit without asking the user
+  // to pick it again — whether we auto-routed it (high/medium confidence) or the
+  // user picked the type themselves after a low-confidence fallback.
+  const [pendingIntakeFile, setPendingIntakeFile] = useState<File | null>(null);
+  const [pendingIntakeText, setPendingIntakeText] = useState("");
+  const [classifiedAs, setClassifiedAs] = useState<UploadType | null>(null);
+  const [classificationConfidence, setClassificationConfidence] = useState<"low" | "medium" | "high" | null>(null);
+  const [intakeFallbackNotice, setIntakeFallbackNotice] = useState(false);
+  const [pendingIntakeRedirect, setPendingIntakeRedirect] = useState<{ kind: "pain" | "sick"; text: string } | null>(null);
+  const [universalIntakeLoading, setUniversalIntakeLoading] = useState(false);
+  const [universalIntakeError, setUniversalIntakeError] = useState("");
 
   const router = useRouter();
 
@@ -312,6 +430,11 @@ export default function UploadPage() {
     }
     setResult(next);
     setSaveStatus("saved");
+    setPendingIntakeFile(null);
+    setPendingIntakeText("");
+    setClassifiedAs(null);
+    setClassificationConfidence(null);
+    setIntakeFallbackNotice(false);
     invalidateCoachCache();
     if (overrideType === "sleep") {
       void buildCoachContextFromSupabase().then((context) => setCoachContext(context));
@@ -334,6 +457,8 @@ export default function UploadPage() {
   }
 
   async function handleAnalysisResult(next: unknown) {
+    // The captured file (if any) has now been consumed by the analyzer it was routed to.
+    setPendingIntakeFile(null);
     setRaceMatch(null);
     setRaceResultError("");
     setWorkoutSavedItem(null);
@@ -451,13 +576,14 @@ export default function UploadPage() {
     }
   }
 
-  async function analyzeManualMeal() {
-    const mealText = manualMealText.trim();
+  async function analyzeManualMeal(textOverride?: string) {
+    const mealText = (textOverride ?? manualMealText).trim();
     if (mealText.length < 2) {
       setManualMealError("พิมพ์เมนูที่กินก่อนครับ");
       return;
     }
 
+    setPendingIntakeText("");
     setManualMealError("");
     setManualMealLoading(true);
     setSaveStatus("idle");
@@ -585,6 +711,15 @@ export default function UploadPage() {
     setRaceDuplicateConfirm(null);
     setManualMealError("");
     setHasChosenType(true);
+
+    // A pending classified/preserved text capture with no image only has an existing
+    // auto-submit path for meal (text-only analysis) — reuse it here so tapping a
+    // type chip after a low-confidence classification doesn't force a re-type.
+    if (nextType === "meal" && !pendingIntakeFile && pendingIntakeText) {
+      setMealInputMode("text");
+      setManualMealText(pendingIntakeText);
+      void analyzeManualMeal(pendingIntakeText);
+    }
   }
 
   /** Back to the default entry/chooser screen. Keeps current form state so re-entering the same type resumes it. */
@@ -608,6 +743,97 @@ export default function UploadPage() {
     // for why a generic "text intent" chooser was not built in this pass).
     selectUploadType("meal");
     setMealInputMode("text");
+  }
+
+  const CLASSIFIED_TYPE_MAP: Partial<Record<IntakeCategory, UploadType>> = {
+    meal: "meal",
+    workout: "workout",
+    sleep: "sleep",
+    body: "body",
+    health_pdf: "health_check",
+  };
+
+  function isCsvFile(file: File): boolean {
+    return file.type === "text/csv" || file.name.toLowerCase().endsWith(".csv");
+  }
+
+  /** Single "one upload button" entry point on the default screen. Classifies, then routes — never saves anything itself. */
+  async function handleUniversalIntakeSubmit({ file, text }: { file: File | null; text: string }) {
+    setUniversalIntakeError("");
+
+    if (file && isCsvFile(file)) {
+      // CSV is a deterministic file-type routing decision, not an AI classification.
+      router.push("/settings?tab=data&import=sleep-csv");
+      return;
+    }
+
+    if (!file && !text.trim()) return;
+
+    setUniversalIntakeLoading(true);
+    try {
+      let imageDataUrl: string | undefined;
+      if (file) {
+        const compressed = await compressImage(file).catch(() => null);
+        imageDataUrl = await fileToDataUrl(compressed?.file ?? file);
+      }
+      const classification = await classifyIntake({ imageDataUrl, text: text.trim() || undefined });
+      applyClassification(classification, { file, text: text.trim() });
+    } catch {
+      setUniversalIntakeError("จำแนกข้อมูลไม่สำเร็จ ลองใหม่อีกครั้ง หรือเลือกประเภทเอง");
+      applyClassification({ type: "unknown", confidence: "low" }, { file, text: text.trim() });
+    } finally {
+      setUniversalIntakeLoading(false);
+    }
+  }
+
+  function applyClassification(
+    classification: IntakeClassification,
+    captured: { file: File | null; text: string },
+  ) {
+    const { type: category, confidence } = classification;
+
+    if (category === "pain" || category === "sick") {
+      setPendingIntakeRedirect({ kind: category, text: captured.text });
+      return;
+    }
+
+    const mappedType = CLASSIFIED_TYPE_MAP[category];
+    if (mappedType && confidence !== "low") {
+      setIntakeFallbackNotice(false);
+      setClassifiedAs(mappedType);
+      setClassificationConfidence(confidence);
+      setPendingIntakeFile(captured.file);
+      if (mappedType === "meal" && captured.file && captured.text) {
+        setImageMealText(captured.text);
+      }
+      selectUploadType(mappedType);
+      if (mappedType === "meal" && !captured.file && captured.text) {
+        setMealInputMode("text");
+        setManualMealText(captured.text);
+        void analyzeManualMeal(captured.text);
+      }
+      return;
+    }
+
+    // Low confidence, or a type we can't safely auto-route yet — never guess, ask the user.
+    setClassifiedAs(null);
+    setClassificationConfidence(null);
+    setIntakeFallbackNotice(true);
+    setPendingIntakeFile(captured.file);
+    setPendingIntakeText(captured.text);
+  }
+
+  function confirmIntakeRedirect() {
+    if (!pendingIntakeRedirect) return;
+    try {
+      sessionStorage.setItem(
+        DRAFT_INTAKE_NOTE_KEY,
+        JSON.stringify({ type: pendingIntakeRedirect.kind, text: pendingIntakeRedirect.text }),
+      );
+    } catch {
+      // sessionStorage unavailable — destination page just opens blank, still fine
+    }
+    router.push(pendingIntakeRedirect.kind === "pain" ? "/pain" : "/sick");
   }
 
   async function saveWorkoutOnce(workout: WorkoutAnalysis): Promise<import("@/lib/localHistory").LocalHistoryItem> {
@@ -701,8 +927,42 @@ export default function UploadPage() {
                   พิมพ์บันทึกเอง
                 </SecondaryCTA>
               </div>
-              <p className="rm-caption pt-0.5">เลือกประเภทก่อน แล้ว RunMate จะพาไปขั้นตอนที่ถูกต้อง</p>
+              <p className="rm-caption pt-0.5">หรืออัปโหลดรูป/พิมพ์ข้อความด้านล่าง แล้ว RunMate จะจำแนกให้อัตโนมัติ</p>
             </StatusHero>
+
+            <UniversalIntakeUploader
+              loading={universalIntakeLoading}
+              error={universalIntakeError}
+              onSubmit={handleUniversalIntakeSubmit}
+            />
+
+            {pendingIntakeRedirect && (
+              <div className="card-soft flex items-start gap-3 px-4 py-3" data-testid="intake-redirect-confirm">
+                <span className="text-xl">{pendingIntakeRedirect.kind === "pain" ? "🩹" : "🤒"}</span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-bold text-rm-text">
+                    ดูเหมือนเกี่ยวกับ{pendingIntakeRedirect.kind === "pain" ? "อาการเจ็บ" : "อาการไม่สบาย"} — ไปหน้าบันทึก{pendingIntakeRedirect.kind === "pain" ? "อาการเจ็บ" : "อาการป่วย"}?
+                  </p>
+                  <div className="mt-2 flex gap-2">
+                    <PrimaryCTA type="button" data-testid="intake-redirect-confirm-cta" onClick={confirmIntakeRedirect}>
+                      ไปหน้านั้นเลย
+                    </PrimaryCTA>
+                    <SecondaryCTA type="button" onClick={() => setPendingIntakeRedirect(null)}>
+                      ไม่ใช่ เลือกเอง
+                    </SecondaryCTA>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {intakeFallbackNotice && (
+              <p
+                className="rounded-2xl bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700"
+                data-testid="intake-fallback-notice"
+              >
+                ไม่แน่ใจว่าเป็นข้อมูลประเภทไหน กรุณาเลือกประเภทเอง — ไฟล์/ข้อความที่ใส่ไว้จะถูกใช้ต่อ ไม่ต้องอัปโหลดใหม่
+              </p>
+            )}
 
             <div className="space-y-1.5">
               <div className="flex items-baseline justify-between gap-2">
@@ -778,6 +1038,16 @@ export default function UploadPage() {
         >
           ← เลือกข้อมูลอื่น
         </button>
+
+        {classifiedAs === type && classificationConfidence && (
+          <p
+            className="rounded-2xl bg-rm-recovery-soft px-3 py-2 text-xs font-semibold text-rm-text/80"
+            data-testid="intake-classification-banner"
+          >
+            🔎 RunMate จัดประเภทเป็น: {UPLOAD_LABELS[type]}
+            {classificationConfidence === "medium" ? " (ไม่แน่ใจเต็มที่ — ตรวจสอบก่อนบันทึก)" : ""}
+          </p>
+        )}
 
         <div className="card-soft flex items-start gap-3 px-4 py-3" data-testid="upload-type-summary">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white text-xl shadow-sm">
@@ -978,6 +1248,8 @@ export default function UploadPage() {
                 context: coachContext,
               }}
               onResult={handleAnalysisResult}
+              initialFile={pendingIntakeFile ?? undefined}
+              autoSubmit={Boolean(pendingIntakeFile)}
             >
               {type === "meal" && (
                 <div className="space-y-1.5 my-3" data-testid="meal-image-text-container">
@@ -1813,7 +2085,6 @@ function MealReviewCard({
 }) {
   const [editing, setEditing] = useState(initialMeal.needsReview);
   const [meal, setMeal] = useState<MealAnalysis>(initialMeal);
-  const foodText = meal.detectedFoods.map((food) => food.name).join(", ");
   const cannotEstimateNutrition = meal.detectedFoods.length > 0 && !hasAnyNutrition(meal);
   const isTextEstimate = meal.inputMode === "text";
   const currentSlot = meal.mealSlot || normalizeMealSlot(meal.mealType || "meal", meal.createdAt || selectedDateKey);
@@ -1830,11 +2101,36 @@ function MealReviewCard({
     }));
   }
 
-  function updateFoods(value: string) {
-    const foods = value.split(",").map((name) => name.trim()).filter(Boolean);
+  function updateFoodName(index: number, name: string) {
     setMeal((current) => ({
       ...current,
-      detectedFoods: foods.map((name) => ({ name, portionEstimate: "แก้ไขโดยผู้ใช้", confidence: "medium" as const })),
+      detectedFoods: current.detectedFoods.map((food, i) => (i === index ? { ...food, name } : food)),
+      needsReview: false,
+    }));
+  }
+
+  function updateFoodQuantity(index: number, delta: number) {
+    setMeal((current) => ({
+      ...current,
+      detectedFoods: current.detectedFoods.map((food, i) =>
+        i === index ? { ...food, quantity: Math.max(1, (food.quantity ?? 1) + delta) } : food,
+      ),
+      needsReview: false,
+    }));
+  }
+
+  function removeFoodItem(index: number) {
+    setMeal((current) => ({
+      ...current,
+      detectedFoods: current.detectedFoods.filter((_, i) => i !== index),
+      needsReview: false,
+    }));
+  }
+
+  function addFoodItem() {
+    setMeal((current) => ({
+      ...current,
+      detectedFoods: [...current.detectedFoods, { name: "", quantity: 1, unit: "", confidence: "medium" as const }],
       needsReview: false,
     }));
   }
@@ -1891,7 +2187,58 @@ function MealReviewCard({
 
       {editing ? (
         <div className="space-y-3">
-          <input className="control" value={foodText} onChange={(event) => updateFoods(event.target.value)} placeholder="อาหารที่พบ เช่น ข้าว, ไข่, ไก่" />
+          <div className="space-y-2" data-testid="meal-food-list">
+            {meal.detectedFoods.map((food, index) => (
+              <div key={index} className="flex items-center gap-2" data-testid={`meal-food-row-${index}`}>
+                <input
+                  className="control flex-1"
+                  value={food.name}
+                  onChange={(event) => updateFoodName(index, event.target.value)}
+                  placeholder="เช่น ไข่ต้ม"
+                />
+                <div className="flex shrink-0 items-center gap-1.5 rounded-2xl bg-slate-100 px-1.5 py-1">
+                  <button
+                    type="button"
+                    aria-label="ลดจำนวน"
+                    data-testid={`meal-food-qty-minus-${index}`}
+                    onClick={() => updateFoodQuantity(index, -1)}
+                    className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-sm font-bold text-slate-600 shadow-sm"
+                  >
+                    −
+                  </button>
+                  <span className="w-6 text-center text-sm font-bold text-slate-700" data-testid={`meal-food-qty-${index}`}>
+                    {food.quantity ?? 1}
+                  </span>
+                  <button
+                    type="button"
+                    aria-label="เพิ่มจำนวน"
+                    data-testid={`meal-food-qty-plus-${index}`}
+                    onClick={() => updateFoodQuantity(index, 1)}
+                    className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-sm font-bold text-slate-600 shadow-sm"
+                  >
+                    +
+                  </button>
+                </div>
+                {food.unit ? <span className="shrink-0 text-xs font-semibold text-slate-500">{food.unit}</span> : null}
+                <button
+                  type="button"
+                  aria-label="ลบรายการนี้"
+                  data-testid={`meal-food-remove-${index}`}
+                  onClick={() => removeFoodItem(index)}
+                  className="shrink-0 text-xs font-bold text-slate-400 hover:text-slate-600"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={addFoodItem}
+              className="text-xs font-bold text-[var(--primary-strong)] underline underline-offset-2"
+            >
+              + เพิ่มรายการอาหาร
+            </button>
+          </div>
           <div className="grid grid-cols-2 gap-2">
             <NutritionInput label="Calories" placeholder="เช่น 550" value={meal.nutrition.caloriesKcal} range={meal.nutritionRange?.caloriesKcal} unit="kcal" onChange={(value) => updateNutrition("caloriesKcal", value)} />
             <NutritionInput label="Protein g" placeholder="เช่น 30" value={meal.nutrition.proteinG} range={meal.nutritionRange?.proteinG} onChange={(value) => updateNutrition("proteinG", value)} />
@@ -1955,7 +2302,9 @@ function NutritionInput({
 }
 
 function MealReviewSummary({ meal, profile, context }: { meal: MealAnalysis; profile: UserProfile | null; context: CoachContext | null }) {
-  const foods = meal.detectedFoods.map((food) => food.name).join(", ") || "มื้ออาหาร";
+  const foods = meal.detectedFoods
+    .map((food) => (food.quantity && food.quantity > 1 ? `${food.name} × ${food.quantity}${food.unit ? ` ${food.unit}` : ""}` : food.name))
+    .join(", ") || "มื้ออาหาร";
   const target = buildNutritionTargetSummary({ profile, context, meal });
   const isTextEstimate = meal.inputMode === "text";
   return (
@@ -2130,15 +2479,17 @@ function midpointFromRange(range?: { min: number; max: number } | null): number 
 function normalizeDetectedFoods(foods: MealAnalysis["detectedFoods"] | undefined, legacyFood?: string, inputMode?: MealAnalysis["inputMode"]): MealAnalysis["detectedFoods"] {
   const portionFallback = inputMode === "text" ? "จากข้อความ" : "จากภาพ";
   if (Array.isArray(foods) && foods.length) {
-    return foods
-      .map((food) => ({
+    return normalizeMealFoodQuantities(
+      foods.map((food) => ({
         name: typeof food.name === "string" ? food.name.trim() : "",
         portionEstimate: food.portionEstimate ?? portionFallback,
         confidence: food.confidence ?? "low",
-      }))
-      .filter((food) => food.name);
+        quantity: food.quantity,
+        unit: food.unit,
+      })),
+    ).filter((food) => food.name);
   }
-  return legacyFood ? [{ name: legacyFood, portionEstimate: portionFallback, confidence: "low" }] : [];
+  return legacyFood ? [{ name: legacyFood, portionEstimate: portionFallback, confidence: "low", quantity: 1, unit: "" }] : [];
 }
 
 function hasAnyNutrition(meal: MealAnalysis) {

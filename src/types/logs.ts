@@ -68,6 +68,10 @@ export type MealAnalysis = {
     name: string;
     portionEstimate?: string;
     confidence?: "low" | "medium" | "high";
+    /** Discrete count of this food item (e.g. 2 boiled eggs = 2). Defaults to 1 when the AI/user doesn't specify a count. */
+    quantity?: number;
+    /** Thai unit for quantity, e.g. "ฟอง", "ไม้", "จาน". Empty when not applicable. */
+    unit?: string;
   }[];
   nutrition: {
     caloriesKcal: number | null;

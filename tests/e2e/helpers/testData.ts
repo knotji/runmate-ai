@@ -24,8 +24,8 @@ export function mealAnalysis(mealType = "breakfast") {
       mealType,
       mealSlot: mealType,
       detectedFoods: [
-        { name: "ข้าวไข่ต้ม", portionEstimate: "1 จาน", confidence: "high" },
-        { name: "นมโปรตีน", portionEstimate: "1 ขวด", confidence: "high" },
+        { name: "ข้าวไข่ต้ม", portionEstimate: "1 จาน, ไข่ต้ม 2 ฟอง", confidence: "high", quantity: 2, unit: "ฟอง" },
+        { name: "นมโปรตีน", portionEstimate: "1 ขวด", confidence: "high", quantity: 1, unit: "ขวด" },
       ],
       nutrition: {
         caloriesKcal: 450,
@@ -57,6 +57,16 @@ export function mealAnalysis(mealType = "breakfast") {
       originalMealText: "ข้าวไข่ต้ม 2 ฟอง นมโปรตีน",
       unclearFields: [],
     },
+  };
+}
+
+export function intakeClassification(
+  type: "meal" | "workout" | "sleep" | "body" | "health_pdf" | "pain" | "sick" | "unknown",
+  confidence: "low" | "medium" | "high" = "high",
+) {
+  return {
+    source: "mock",
+    data: { type, confidence, reasoning: "mocked classification" },
   };
 }
 

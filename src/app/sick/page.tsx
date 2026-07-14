@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppShell } from "@/components/AppShell";
 import { LoadingButton } from "@/components/LoadingButton";
 import { createHistoryItem, saveHistoryItems } from "@/lib/cloudHistory";
 import { todayBangkokDateKey } from "@/lib/date";
 import { buildSickLog } from "@/lib/health/illnessGuardrail";
+import { readDraftIntakeNote } from "@/lib/upload/draftIntakeNote";
 import { SYMPTOM_GROUPS, SICK_SYMPTOM_LABELS } from "@/types/sick";
 import type { SickSymptom, SickSeverity, SickHealthStatus } from "@/types/sick";
 
@@ -36,6 +37,16 @@ export default function SickPage() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    const draftNote = readDraftIntakeNote("sick");
+    if (draftNote) {
+      queueMicrotask(() => {
+        setNote(draftNote);
+        setHealthStatus("sick");
+      });
+    }
+  }, []);
 
   const isSick = healthStatus === "sick";
   const needsSymptomOrNote = isSick && symptoms.length === 0 && !note.trim();

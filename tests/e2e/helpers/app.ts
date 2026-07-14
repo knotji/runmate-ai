@@ -79,6 +79,12 @@ export async function installMockBackend(
     await json(route, { message: "วันนี้แนะนำ 3 ตัวเลือกที่ทำได้จริงครับ", source: "mock" });
   });
 
+  // Safe default: tests that exercise the universal intake classifier should override
+  // this with page.route("**/api/classify-intake", ...) registered afterwards.
+  await page.route("**/api/classify-intake", async (route) => {
+    await json(route, { data: { type: "unknown", confidence: "low" }, source: "fallback" });
+  });
+
   return state;
 }
 

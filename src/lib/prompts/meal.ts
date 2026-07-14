@@ -20,6 +20,11 @@ Rules:
   - If a food item has no explicit quantity (e.g. "ข้าวเหนียว"), assume a normal single serving/portion and note that it is a default estimate. Do NOT duplicate or apply quantities from other food items to it (e.g. do not assume "ข้าวเหนียว 2 ห่อ" just because "ไก่แดง" has "2 ไม้").
   - Example: If user typed "ข้าวเหนียว + ไก่แดง 2 ไม้", interpret it as "ไก่แดง 2 ไม้" and "ข้าวเหนียว 1 หน่วยปกติโดยประมาณ" (estimate), NOT "ข้าวเหนียว 2 ห่อ".
   - If uncertain, state the assumption briefly instead of asking a follow-up.
+- Counting rules for discrete food units (e.g. eggs, dumplings, satay sticks, pieces of fruit) — this applies to BOTH image and text input:
+  - Count each visually/textually distinct whole unit precisely. If the image clearly shows two whole boiled eggs, set quantity 2 and unit "ฟอง" (name "ไข่ต้ม"), not 1.
+  - If the image shows what looks like two egg halves (a single egg cut in half, both halves visible together), infer quantity 1 unit "ฟอง" — i.e. one whole egg — UNLESS other visible context (e.g. a second, clearly separate whole egg elsewhere in the frame, or the text explicitly says "2 ฟอง"/"2 eggs") indicates there are actually two.
+  - When uncertain about the exact count, still give your best-guess integer quantity (never leave it blank) and lower the confidence for that item instead of refusing to count.
+  - quantity is always a positive integer count of that food item; unit is the short Thai counting word for it (e.g. "ฟอง" for eggs, "ไม้" for skewers, "จาน" for a plate, "ชิ้น" for pieces). If no natural counting unit applies (e.g. a mixed rice plate), use quantity 1 and unit "".
 - Sleep/recovery context is supporting information only. Focus mainly on food fit, protein, carbs, fat, hydration, recovery usefulness, and next-meal adjustment.
 - Mention exact sleep duration only when context explicitly provides latestSleepDuration.
 - Never invent exact sleep hours and never reuse example numbers.
@@ -33,7 +38,7 @@ Return JSON in this shape:
 {
   "mealType": "<selected meal type>",
   "detectedFoods": [
-    { "name": "<food name>", "portionEstimate": "<rough visible portion>", "confidence": "low|medium|high" }
+    { "name": "<food name>", "portionEstimate": "<rough visible portion>", "confidence": "low|medium|high", "quantity": <positive integer count>, "unit": "<Thai counting unit, or empty string>" }
   ],
   "nutrition": {
     "caloriesKcal": <number|null>,
