@@ -216,8 +216,8 @@ function CsvImportPanel({
 
   return (
     <div className="space-y-3 rounded-[22px] bg-[var(--surface-muted)]/70 p-3" data-testid="csv-import-panel">
-      <p className="rounded-2xl bg-white/75 px-3 py-2 text-xs leading-5 text-slate-500">{helperText}</p>
-      <label className="flex min-h-[104px] cursor-pointer flex-col items-center justify-center gap-2 rounded-[22px] border border-dashed border-[var(--border-warm)] bg-white/70 px-4 py-5 text-center hover:border-[var(--primary)]/60">
+      <p className="rounded-2xl bg-[var(--surface)]/75 px-3 py-2 text-xs leading-5 text-[var(--color-text-muted)]">{helperText}</p>
+      <label className="flex min-h-[104px] cursor-pointer flex-col items-center justify-center gap-2 rounded-[22px] border border-dashed border-[var(--border-warm)] bg-[var(--surface)]/70 px-4 py-5 text-center hover:border-[var(--primary)]/60">
         <input
           ref={inputRef}
           type="file"
@@ -262,14 +262,14 @@ function CsvImportPreview({
 }) {
   const records = preview.records.slice(0, 5);
   return (
-    <section className="rounded-[20px] bg-white p-3 shadow-sm" data-testid="csv-import-preview">
+    <section className="rounded-[20px] bg-[var(--surface)] p-3 shadow-sm" data-testid="csv-import-preview">
       <div className="mb-3">
         <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--label-color)]">{preview.detectedFormat}</p>
         <h3 className="text-base font-bold text-[var(--foreground)]">พรีวิวข้อมูลนำเข้า {preview.records.length} รายการ</h3>
         {preview.warnings.length > 0 && (
-          <p className="mt-1 text-xs text-amber-700">ข้าม {preview.warnings.length} รายการที่ข้อมูลไม่พอ</p>
+          <p className="mt-1 text-xs text-[var(--color-warning)]">ข้าม {preview.warnings.length} รายการที่ข้อมูลไม่พอ</p>
         )}
-        {duplicateCount > 0 && <p className="mt-1 text-xs text-slate-500">ข้ามรายการซ้ำ {duplicateCount} รายการ</p>}
+        {duplicateCount > 0 && <p className="mt-1 text-xs text-[var(--color-text-muted)]">ข้ามรายการซ้ำ {duplicateCount} รายการ</p>}
       </div>
       <div className="space-y-2">
         {records.map((record, index) => (
@@ -288,7 +288,7 @@ function CsvImportPreview({
           <LoadingButton type="button" loading={status === "saving"} loadingText="กำลังนำเข้า..." onClick={onSave} className="btn-primary flex-1 py-2.5 text-sm">
             บันทึกข้อมูลที่นำเข้า
           </LoadingButton>
-          <button type="button" onClick={onCancel} className="rounded-full bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-500">
+          <button type="button" onClick={onCancel} className="rounded-full bg-[var(--surface-muted)] px-4 py-2.5 text-sm font-bold text-[var(--color-text-muted)]">
             ยกเลิก
           </button>
         </div>

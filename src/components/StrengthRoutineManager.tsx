@@ -203,7 +203,7 @@ export function StrengthRoutineManager() {
 
   if (loading) {
     return (
-      <section className="card p-5 text-sm text-slate-500">กำลังโหลดโปรแกรมเวท...</section>
+      <section className="card p-5 text-sm text-[var(--color-text-muted)]">กำลังโหลดโปรแกรมเวท...</section>
     );
   }
 
@@ -212,17 +212,17 @@ export function StrengthRoutineManager() {
       <section className="card p-5 space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-bold text-[#17201d]">
+            <h3 className="text-lg font-bold text-[var(--foreground)]">
               {isAdding ? "สร้างโปรแกรมเวทใหม่" : `แก้ไข: ${editingRoutine.name}`}
             </h3>
-            <p className="text-xs text-slate-500">ปรับเปลี่ยนโครงสร้างและจำนวนครั้ง</p>
+            <p className="text-xs text-[var(--color-text-muted)]">ปรับเปลี่ยนโครงสร้างและจำนวนครั้ง</p>
           </div>
           {!isAdding && !isDefaultRoutine(editingRoutine.id) && (
             <button
               type="button"
               onClick={() => handleDelete(editingRoutine)}
               disabled={deleting}
-              className="text-xs font-bold text-red-600 hover:underline"
+              className="text-xs font-bold text-[var(--color-danger)] hover:underline"
             >
               {deleting ? "กำลังลบ..." : "ลบโปรแกรมนี้"}
             </button>
@@ -231,7 +231,7 @@ export function StrengthRoutineManager() {
 
         <div className="space-y-3">
           <div>
-            <label className="text-xs font-semibold text-slate-500 mb-1 block">ชื่อโปรแกรม</label>
+            <label className="text-xs font-semibold text-[var(--color-text-muted)] mb-1 block">ชื่อโปรแกรม</label>
             <input
               className="control font-bold"
               placeholder="เช่น ขาและแกนกลางลำตัว"
@@ -242,7 +242,7 @@ export function StrengthRoutineManager() {
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-slate-500 mb-1 block">คำอธิบาย</label>
+            <label className="text-xs font-semibold text-[var(--color-text-muted)] mb-1 block">คำอธิบาย</label>
             <input
               className="control"
               placeholder="คำแนะนำหรือลักษณะโปรแกรม"
@@ -253,7 +253,7 @@ export function StrengthRoutineManager() {
 
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="text-xs font-semibold text-slate-500 mb-1 block">วอร์ม (นาที)</label>
+              <label className="text-xs font-semibold text-[var(--color-text-muted)] mb-1 block">วอร์ม (นาที)</label>
               <input
                 type="number"
                 className="control"
@@ -262,7 +262,7 @@ export function StrengthRoutineManager() {
               />
             </div>
             <div>
-              <label className="text-xs font-semibold text-slate-500 mb-1 block">คูลดาวน์ (นาที)</label>
+              <label className="text-xs font-semibold text-[var(--color-text-muted)] mb-1 block">คูลดาวน์ (นาที)</label>
               <input
                 type="number"
                 className="control"
@@ -274,23 +274,23 @@ export function StrengthRoutineManager() {
 
           <div className="space-y-2.5">
             <div className="flex justify-between items-center">
-              <label className="text-xs font-bold text-slate-500">ท่าออกกำลังกาย</label>
+              <label className="text-xs font-bold text-[var(--color-text-muted)]">ท่าออกกำลังกาย</label>
               <button
                 type="button"
                 onClick={handleAddExercise}
-                className="text-xs text-[#42677f] font-bold hover:underline"
+                className="text-xs text-[var(--recovery-blue)] font-bold hover:underline"
               >
                 + เพิ่มท่า
               </button>
             </div>
 
             {editingRoutine.exercises.map((ex, index) => (
-              <div key={index} className="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-2 relative">
+              <div key={index} className="bg-[var(--surface-muted)] p-3 rounded-xl border border-[var(--border-warm)] space-y-2 relative">
                 {editingRoutine.exercises.length > 1 && (
                   <button
                     type="button"
                     onClick={() => handleRemoveExercise(index)}
-                    className="absolute right-2 top-2 text-slate-400 hover:text-red-500 text-xs"
+                    className="absolute right-2 top-2 text-[var(--color-text-soft)] hover:text-[var(--color-danger)] text-xs"
                     title="ลบท่านี้"
                   >
                     ✕
@@ -305,7 +305,7 @@ export function StrengthRoutineManager() {
                 />
                 <div className="grid grid-cols-3 gap-2">
                   <label className="block">
-                    <span className="text-[10px] text-slate-400">เซ็ต</span>
+                    <span className="text-[10px] text-[var(--color-text-soft)]">เซ็ต</span>
                     <input
                       type="number"
                       className="control text-xs"
@@ -314,7 +314,7 @@ export function StrengthRoutineManager() {
                     />
                   </label>
                   <label className="block">
-                    <span className="text-[10px] text-slate-400">ครั้ง/เซ็ต</span>
+                    <span className="text-[10px] text-[var(--color-text-soft)]">ครั้ง/เซ็ต</span>
                     <input
                       className="control text-xs"
                       value={ex.reps}
@@ -323,7 +323,7 @@ export function StrengthRoutineManager() {
                     />
                   </label>
                   <label className="block">
-                    <span className="text-[10px] text-slate-400">พัก (วิ)</span>
+                    <span className="text-[10px] text-[var(--color-text-soft)]">พัก (วิ)</span>
                     <input
                       type="number"
                       className="control text-xs"
@@ -336,7 +336,7 @@ export function StrengthRoutineManager() {
             ))}
           </div>
 
-          {error && <p className="text-xs font-semibold text-red-600 bg-red-50 p-3 rounded-2xl">{error}</p>}
+          {error && <p className="text-xs font-semibold text-[var(--color-danger)] bg-[var(--color-danger-soft)] p-3 rounded-2xl">{error}</p>}
 
           <div className="grid grid-cols-2 gap-2 pt-2">
             <button
@@ -364,26 +364,26 @@ export function StrengthRoutineManager() {
     <section className="card p-5 space-y-4">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-[#17201d]">รูทีนเวท</h2>
-          <p className="text-xs text-slate-500 leading-relaxed mt-0.5">
+          <h2 className="text-xl font-bold text-[var(--foreground)]">รูทีนเวท</h2>
+          <p className="text-xs text-[var(--color-text-muted)] leading-relaxed mt-0.5">
             ตั้งค่า routine ไว้ตรงนี้ แล้วใช้จริงผ่าน Today หรือ Upload
           </p>
         </div>
         <button
           type="button"
           onClick={handleStartAdd}
-          className="rounded-full bg-slate-100 hover:bg-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600 whitespace-nowrap flex-shrink-0"
+          className="rounded-full bg-[var(--surface-muted)] hover:bg-[var(--surface-muted)] px-3 py-1.5 text-xs font-bold text-[var(--color-text-muted)] whitespace-nowrap flex-shrink-0"
         >
           + เพิ่มรูทีน
         </button>
       </div>
 
-      {feedback && <p className="text-xs font-semibold text-green-700 bg-green-50 p-3 rounded-2xl">{feedback}</p>}
-      {error && <p className="text-xs font-semibold text-red-600 bg-red-50 p-3 rounded-2xl">{error}</p>}
+      {feedback && <p className="text-xs font-semibold text-[var(--color-success)] bg-[var(--color-success-soft)] p-3 rounded-2xl">{feedback}</p>}
+      {error && <p className="text-xs font-semibold text-[var(--color-danger)] bg-[var(--color-danger-soft)] p-3 rounded-2xl">{error}</p>}
 
       {/* Routine Selector Dropdown/Tabs */}
       <div className="space-y-3">
-        <div className="flex flex-wrap gap-2 border-b border-slate-100 pb-3">
+        <div className="flex flex-wrap gap-2 border-b border-[var(--border-warm)] pb-3">
           {routines.map((r) => (
             <button
               key={r.id}
@@ -392,7 +392,7 @@ export function StrengthRoutineManager() {
                 setSelectedRoutine(r);
                 setPrescription(null);
               }}
-              className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition-all border ${selectedRoutine?.id === r.id ? "bg-[#17201d] text-white border-[#17201d]" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"}`}
+              className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition-all border ${selectedRoutine?.id === r.id ? "bg-[var(--primary)] text-[#0b1220] border-[var(--primary)]" : "bg-[var(--surface)] text-[var(--color-text-muted)] border-[var(--border-warm)] hover:bg-[var(--surface-muted)]"}`}
             >
               {getShortName(r)}
             </button>
@@ -403,9 +403,9 @@ export function StrengthRoutineManager() {
           <div className="space-y-4">
             <div className="flex justify-between items-center gap-4">
               <div>
-                <h4 className="text-base font-bold text-[#17201d]">{selectedRoutine.name}</h4>
-                <p className="text-xs text-slate-500 mt-0.5">{selectedRoutine.description}</p>
-                <p className="text-xs text-slate-400 mt-1.5">
+                <h4 className="text-base font-bold text-[var(--foreground)]">{selectedRoutine.name}</h4>
+                <p className="text-xs text-[var(--color-text-muted)] mt-0.5">{selectedRoutine.description}</p>
+                <p className="text-xs text-[var(--color-text-soft)] mt-1.5">
                   Warm-up {selectedRoutine.warmupMin} นาที · Cool down {selectedRoutine.cooldownMin} นาที
                 </p>
               </div>
@@ -413,18 +413,18 @@ export function StrengthRoutineManager() {
                 <button
                   type="button"
                   onClick={() => setEditingRoutine({ ...selectedRoutine })}
-                  className="text-xs text-[#42677f] font-bold hover:underline"
+                  className="text-xs text-[var(--recovery-blue)] font-bold hover:underline"
                 >
                   แก้ไข
                 </button>
                 {!isDefaultRoutine(selectedRoutine.id) && (
                   <>
-                    <span className="text-slate-200">|</span>
+                    <span className="text-[var(--color-text-soft)]">|</span>
                     <button
                       type="button"
                       onClick={() => handleDelete(selectedRoutine)}
                       disabled={deleting}
-                      className="text-xs text-red-600 font-bold hover:underline"
+                      className="text-xs text-[var(--color-danger)] font-bold hover:underline"
                     >
                       {deleting ? "กำลังลบ..." : "ลบ"}
                     </button>
@@ -434,13 +434,13 @@ export function StrengthRoutineManager() {
             </div>
 
             {/* List Exercises */}
-            <div className="space-y-2 bg-slate-50/50 rounded-2xl p-3 border border-slate-100">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">ท่าในรูทีน</p>
-              <div className="divide-y divide-slate-100">
+            <div className="space-y-2 bg-[var(--surface-muted)]/50 rounded-2xl p-3 border border-[var(--border-warm)]">
+              <p className="text-[10px] font-bold text-[var(--color-text-soft)] uppercase tracking-wide">ท่าในรูทีน</p>
+              <div className="divide-y divide-[var(--border-warm)]">
                 {selectedRoutine.exercises.map((ex, i) => (
                   <div key={i} className="text-xs flex justify-between items-center py-2">
-                    <p className="font-semibold text-slate-700">{ex.name}</p>
-                    <p className="text-slate-500 font-medium shrink-0 ml-2">
+                    <p className="font-semibold text-[var(--foreground)]">{ex.name}</p>
+                    <p className="text-[var(--color-text-muted)] font-medium shrink-0 ml-2">
                       {formatRepsDuration(ex)}
                     </p>
                   </div>
@@ -450,20 +450,20 @@ export function StrengthRoutineManager() {
 
             {/* AI Prescription Display */}
             {prescription ? (
-              <div className="rounded-2xl border border-green-200 bg-[#f5faf7] p-4 space-y-3">
+              <div className="rounded-2xl border border-[var(--color-success-border)] bg-[var(--color-success-soft)] p-4 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="rounded-full bg-green-100 text-green-700 px-2.5 py-0.5 text-[10px] font-bold">AI Prescription</span>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${prescription.intensity === "easy" ? "bg-green-100 text-green-700" : prescription.intensity === "hard" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>
+                  <span className="rounded-full bg-[var(--color-success-soft)] text-[var(--color-success)] px-2.5 py-0.5 text-[10px] font-bold">AI Prescription</span>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${prescription.intensity === "easy" ? "bg-[var(--color-success-soft)] text-[var(--color-success)]" : prescription.intensity === "hard" ? "bg-[var(--color-danger-soft)] text-[var(--color-danger)]" : "bg-[var(--color-warning-soft)] text-[var(--color-warning)]"}`}>
                     ระดับ {prescription.intensity}
                   </span>
                 </div>
-                <h5 className="text-sm font-bold text-[#17201d]">{prescription.recommendedTitle}</h5>
-                <p className="text-xs text-slate-600 leading-relaxed"><strong>คำวิเคราะห์จากโค้ช AI:</strong> {prescription.reason}</p>
+                <h5 className="text-sm font-bold text-[var(--foreground)]">{prescription.recommendedTitle}</h5>
+                <p className="text-xs text-[var(--color-text-muted)] leading-relaxed"><strong>คำวิเคราะห์จากโค้ช AI:</strong> {prescription.reason}</p>
 
                 {prescription.warnings && prescription.warnings.length > 0 && (
-                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 space-y-1">
+                  <div className="rounded-xl border border-[var(--color-warning-border)] bg-[var(--color-warning-soft)] p-3 space-y-1">
                     {prescription.warnings.map((w, i) => (
-                      <p key={i} className="text-[10px] font-semibold text-amber-800 flex items-start gap-1">
+                      <p key={i} className="text-[10px] font-semibold text-[var(--color-warning)] flex items-start gap-1">
                         <span className="shrink-0">⚠️</span>
                         <span>{w}</span>
                       </p>
@@ -473,16 +473,16 @@ export function StrengthRoutineManager() {
 
                 <div className="space-y-1.5 pt-1">
                   {prescription.exercises.map((ex, i) => (
-                    <div key={i} className="text-xs flex justify-between items-start border-b border-slate-100/50 pb-1.5 last:border-0">
+                    <div key={i} className="text-xs flex justify-between items-start border-b border-[var(--border-warm)]/50 pb-1.5 last:border-0">
                       <div>
-                        <p className="font-semibold text-slate-800">{ex.name}</p>
+                        <p className="font-semibold text-[var(--foreground)]">{ex.name}</p>
                         {ex.modificationNote && (
-                          <p className="text-[10px] text-slate-500 mt-0.5 italic">
+                          <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5 italic">
                             💡 {ex.modificationNote}
                           </p>
                         )}
                       </div>
-                      <p className="text-slate-500 font-medium shrink-0 ml-2">
+                      <p className="text-[var(--color-text-muted)] font-medium shrink-0 ml-2">
                         {formatRepsDuration(ex)}
                       </p>
                     </div>
@@ -515,7 +515,7 @@ export function StrengthRoutineManager() {
                   onClick={handleAIPrescription}
                   className="btn-primary flex-1 py-2.5 text-xs font-bold flex items-center justify-center gap-1.5"
                 >
-                  {loadingAI && <div className="h-3 w-3 animate-spin rounded-full border border-slate-300 border-t-slate-600" />}
+                  {loadingAI && <div className="h-3 w-3 animate-spin rounded-full border border-[var(--border-warm)] border-t-slate-600" />}
                   {loadingAI ? "กำลังปรับ…" : "ปรับเป็นเวอร์ชันวันนี้"}
                 </button>
                 <button

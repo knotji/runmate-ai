@@ -405,10 +405,10 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
   /* ── Loading ─────────────────────────────────────────────── */
   if (state === "loading") {
     return (
-      <div className="flex flex-col items-center gap-3 rounded-2xl bg-slate-50 p-6">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-[#42677f]" />
-        <p className="text-sm text-slate-600">กำลังวิเคราะห์และอัปเดตโปรไฟล์…</p>
-        <p className="text-xs text-slate-400">อ่านสถิติ 90 วันล่าสุด</p>
+      <div className="flex flex-col items-center gap-3 rounded-2xl bg-[var(--surface-muted)] p-6">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--border-warm)] border-t-[var(--recovery-blue)]" />
+        <p className="text-sm text-[var(--color-text-muted)]">กำลังวิเคราะห์และอัปเดตโปรไฟล์…</p>
+        <p className="text-xs text-[var(--color-text-soft)]">อ่านสถิติ 90 วันล่าสุด</p>
       </div>
     );
   }
@@ -416,9 +416,9 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
   /* ── Error ───────────────────────────────────────────────── */
   if (state === "error") {
     return (
-      <div className="rounded-2xl bg-red-50 p-4 space-y-2">
-        <p className="text-sm font-bold text-red-600">วิเคราะห์จากประวัติไม่สำเร็จ ลองใหม่อีกครั้ง</p>
-        {error && <p className="text-xs text-red-500">{error}</p>}
+      <div className="rounded-2xl bg-[var(--color-danger-soft)] p-4 space-y-2">
+        <p className="text-sm font-bold text-[var(--color-danger)]">วิเคราะห์จากประวัติไม่สำเร็จ ลองใหม่อีกครั้ง</p>
+        {error && <p className="text-xs text-[var(--color-danger)]">{error}</p>}
         <button type="button" className="btn-secondary w-full text-sm" onClick={reset}>ลองใหม่</button>
       </div>
     );
@@ -450,7 +450,7 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
           data-testid="auto-sync-toggle"
           className={`shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold transition-colors ${
             autoSyncEnabled
-              ? "bg-[var(--primary)] text-white"
+              ? "bg-[var(--primary)] text-[#0b1220]"
               : "bg-[var(--surface)] border border-[var(--border-warm)] text-[var(--foreground)]"
           }`}
         >
@@ -482,37 +482,37 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
           )}
 
           {result.summary.confidence === "low" ? (
-            <div className="rounded-2xl bg-amber-50 p-4 space-y-1">
-              <p className="text-sm font-bold text-amber-700">ข้อมูลยังน้อยเกินไป</p>
-              <p className="text-xs text-amber-600">เลยยังไม่อัปเดตโปรไฟล์ให้อัตโนมัติ</p>
+            <div className="rounded-2xl bg-[var(--color-warning-soft)] p-4 space-y-1">
+              <p className="text-sm font-bold text-[var(--color-warning)]">ข้อมูลยังน้อยเกินไป</p>
+              <p className="text-xs text-[var(--color-warning)]">เลยยังไม่อัปเดตโปรไฟล์ให้อัตโนมัติ</p>
               {result.summary.notes && (
-                <p className="mt-1 text-xs text-slate-500">{result.summary.notes}</p>
+                <p className="mt-1 text-xs text-[var(--color-text-muted)]">{result.summary.notes}</p>
               )}
             </div>
           ) : (
             <>
               {/* Section A: อัปเดตแล้ว */}
-              <div className="rounded-2xl border border-green-200 bg-[#f5faf7] p-4 space-y-2">
-                <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#2a5a39]">อัปเดตแล้ว</p>
+              <div className="rounded-2xl border border-[var(--color-success-border)] bg-[var(--color-success-soft)] p-4 space-y-2">
+                <p className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--color-success)]">อัปเดตแล้ว</p>
                 {savedKeys.length > 0 ? (
                   <div className="space-y-1.5 pt-1">
                     {savedKeys.map((k) => (
-                      <div key={k} className="text-xs flex justify-between items-center border-b border-slate-100/50 pb-1.5 last:border-0 last:pb-0">
-                        <span className="text-slate-500">{SHORT_LABEL_ALL[k] ?? fieldLabel(k as keyof ProfileAnalysisSuggestions)}</span>
-                        <span className="font-bold text-slate-800">
+                      <div key={k} className="text-xs flex justify-between items-center border-b border-[var(--border-warm)]/50 pb-1.5 last:border-0 last:pb-0">
+                        <span className="text-[var(--color-text-muted)]">{SHORT_LABEL_ALL[k] ?? fieldLabel(k as keyof ProfileAnalysisSuggestions)}</span>
+                        <span className="font-bold text-[var(--foreground)]">
                           {formatValueWithUnit(k, currentProfile?.[k as keyof UserProfile])}
                         </span>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-xs text-slate-500">ไม่มีการอัปเดตค่าอัตโนมัติ (คงค่าเดิมไว้ทั้งหมด)</p>
+                  <p className="text-xs text-[var(--color-text-muted)]">ไม่มีการอัปเดตค่าอัตโนมัติ (คงค่าเดิมไว้ทั้งหมด)</p>
                 )}
               </div>
 
               {/* Section B: คำแนะนำที่รอการตัดสินใจ */}
               {manualItems.length > 0 ? (
-                <div className="rounded-2xl border border-[var(--border-warm)] bg-white p-4 space-y-3">
+                <div className="rounded-2xl border border-[var(--border-warm)] bg-[var(--surface)] p-4 space-y-3">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--label-color)]">
                       คำแนะนำที่รอการตัดสินใจ
@@ -529,37 +529,37 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
                   <p className="text-[11px] text-[var(--muted-text)]">
                     ค่าด้านล่างนี้คุณเคยแก้เอง ระบบจึงไม่ทับอัตโนมัติ — เลือกว่าจะใช้ค่าที่แนะนำหรือคงค่าเดิมไว้
                   </p>
-                  <div className="divide-y divide-slate-100">
+                  <div className="divide-y divide-[var(--border-warm)]">
                     {manualItems.map((item) => {
                       const status = statusMap[item.key] ?? "idle";
                       const isEditing = editingKey === item.key;
                       return (
                         <div key={item.key} className="py-3 first:pt-0 last:pb-0 space-y-2" data-testid="suggestion-item">
                           <div className="flex items-center justify-between">
-                            <p className="text-xs font-bold text-slate-800">{item.label}</p>
+                            <p className="text-xs font-bold text-[var(--foreground)]">{item.label}</p>
                             <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                              status === "applied" ? "bg-green-100 text-green-700" :
-                              status === "ignored" ? "bg-slate-100 text-slate-600" :
-                              status === "edited" ? "bg-amber-100 text-amber-700" :
+                              status === "applied" ? "bg-[var(--color-success-soft)] text-[var(--color-success)]" :
+                              status === "ignored" ? "bg-[var(--surface-muted)] text-[var(--color-text-muted)]" :
+                              status === "edited" ? "bg-[var(--color-warning-soft)] text-[var(--color-warning)]" :
                               "bg-[var(--primary-soft)] text-[var(--primary-strong)]"
                             }`}>
                               {getSuggestedValueLabel(status)}
                             </span>
                           </div>
                           <div className="text-xs space-y-0.5">
-                            <p className="text-slate-500">
-                              ค่าที่ใช้อยู่: <span className="font-semibold text-slate-700">{formatValueWithUnit(item.key, currentProfile?.[item.key as keyof UserProfile] ?? item.currentValue)}</span>
-                              <span className="ml-1.5 rounded bg-slate-100 px-1 py-0.5 text-[10px] font-medium text-slate-500">แก้เอง</span>
+                            <p className="text-[var(--color-text-muted)]">
+                              ค่าที่ใช้อยู่: <span className="font-semibold text-[var(--foreground)]">{formatValueWithUnit(item.key, currentProfile?.[item.key as keyof UserProfile] ?? item.currentValue)}</span>
+                              <span className="ml-1.5 rounded bg-[var(--surface-muted)] px-1 py-0.5 text-[10px] font-medium text-[var(--color-text-muted)]">แก้เอง</span>
                             </p>
-                            <p className="text-slate-500">
-                              ค่าที่แนะนำ: <span className="font-semibold text-[#42677f]" data-testid="suggested-value">{formatValueWithUnit(item.key, item.suggestedValue)}</span>
+                            <p className="text-[var(--color-text-muted)]">
+                              ค่าที่แนะนำ: <span className="font-semibold text-[var(--recovery-blue)]" data-testid="suggested-value">{formatValueWithUnit(item.key, item.suggestedValue)}</span>
                             </p>
-                            <p className="text-[10px] text-slate-400">อิงจากประวัติการวิ่งล่าสุด</p>
+                            <p className="text-[10px] text-[var(--color-text-soft)]">อิงจากประวัติการวิ่งล่าสุด</p>
                           </div>
                           {isEditing ? (
                             <div className="flex items-center gap-2 pt-1">
                               <input
-                                className="control min-w-0 flex-1 px-3 py-1.5 text-xs rounded-full border border-slate-200 focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+                                className="control min-w-0 flex-1 px-3 py-1.5 text-xs rounded-full border border-[var(--border-warm)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
                                 value={editVal}
                                 onChange={(e) => setEditVal(e.target.value)}
                                 placeholder="ใส่ค่าใหม่..."
@@ -567,14 +567,14 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
                               <button
                                 type="button"
                                 onClick={() => void saveInlineEdit(item.key)}
-                                className="rounded-full bg-[var(--foreground)] px-3.5 py-1.5 text-[11px] font-bold text-white"
+                                className="rounded-full bg-[var(--primary)] px-3.5 py-1.5 text-[11px] font-bold text-[#0b1220]"
                               >
                                 บันทึก
                               </button>
                               <button
                                 type="button"
                                 onClick={() => setEditingKey(null)}
-                                className="rounded-full bg-slate-100 px-3.5 py-1.5 text-[11px] font-bold text-slate-500"
+                                className="rounded-full bg-[var(--surface-muted)] px-3.5 py-1.5 text-[11px] font-bold text-[var(--color-text-muted)]"
                               >
                                 ยกเลิก
                               </button>
@@ -584,7 +584,7 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
                               <button
                                 type="button"
                                 onClick={() => void overrideManual(item.key, item.suggestedValue)}
-                                className="rounded-full bg-[#e7efea] px-3.5 py-1.5 text-[11px] font-bold text-[#2a5a39]"
+                                className="rounded-full bg-[var(--color-success-soft)] px-3.5 py-1.5 text-[11px] font-bold text-[var(--color-success)]"
                                 data-testid="accept-suggestion-btn"
                               >
                                 ใช้ค่าที่แนะนำ
@@ -592,7 +592,7 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
                               <button
                                 type="button"
                                 onClick={() => keepCurrent(item.key, item.suggestedValue)}
-                                className="rounded-full bg-slate-50 border border-slate-200 px-3.5 py-1.5 text-[11px] font-bold text-slate-600"
+                                className="rounded-full bg-[var(--surface-muted)] border border-[var(--border-warm)] px-3.5 py-1.5 text-[11px] font-bold text-[var(--color-text-muted)]"
                                 data-testid="keep-current-btn"
                               >
                                 คงค่าเดิม
@@ -600,7 +600,7 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
                               <button
                                 type="button"
                                 onClick={() => startInlineEdit(item.key, currentProfile?.[item.key as keyof UserProfile] ?? item.currentValue)}
-                                className="rounded-full bg-slate-50 border border-slate-200 px-3.5 py-1.5 text-[11px] font-bold text-slate-600"
+                                className="rounded-full bg-[var(--surface-muted)] border border-[var(--border-warm)] px-3.5 py-1.5 text-[11px] font-bold text-[var(--color-text-muted)]"
                               >
                                 แก้ค่าเอง
                               </button>
@@ -623,16 +623,16 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
 
               {/* Training preference summary */}
               {result.suggestions.trainingPreferenceSummary && (
-                <div className="rounded-2xl bg-slate-50 p-3">
-                  <p className="text-xs font-bold uppercase tracking-wide text-slate-500 mb-1">สรุปรูปแบบการซ้อม</p>
-                  <p className="text-sm text-slate-700">{result.suggestions.trainingPreferenceSummary}</p>
+                <div className="rounded-2xl bg-[var(--surface-muted)] p-3">
+                  <p className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-muted)] mb-1">สรุปรูปแบบการซ้อม</p>
+                  <p className="text-sm text-[var(--foreground)]">{result.suggestions.trainingPreferenceSummary}</p>
                 </div>
               )}
 
               {result.warnings && result.warnings.length > 0 && (
-                <div className="rounded-2xl bg-slate-50 p-3 space-y-1">
+                <div className="rounded-2xl bg-[var(--surface-muted)] p-3 space-y-1">
                   {result.warnings.map((w, i) => (
-                    <p key={i} className="text-xs text-slate-500">⚠️ {w}</p>
+                    <p key={i} className="text-xs text-[var(--color-text-muted)]">⚠️ {w}</p>
                   ))}
                 </div>
               )}
@@ -649,7 +649,7 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
       >
         {autoSyncEnabled ? "ซิงก์โปรไฟล์ตอนนี้" : "วิเคราะห์ตอนนี้"}
       </button>
-      <p className="text-center text-xs text-slate-400">
+      <p className="text-center text-xs text-[var(--color-text-soft)]">
         ระบบจะไม่ทับค่าที่คุณแก้เอง
       </p>
     </div>

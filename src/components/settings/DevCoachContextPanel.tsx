@@ -67,27 +67,27 @@ export function DevCoachContextPanel() {
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--label-color)]">Dev QA</p>
           <h2 className="mt-1 text-xl font-bold text-[var(--foreground)]">Coach Context Inspector</h2>
-          <p className="mt-1 text-sm leading-6 text-slate-500">
+          <p className="mt-1 text-sm leading-6 text-[var(--color-text-muted)]">
             ข้อมูลที่ส่งไปให้ AI Coach — ใช้ QA ว่า context ถูกต้องไหม
           </p>
         </div>
         <button
           type="button"
           onClick={() => void fetchContext()}
-          className="shrink-0 rounded-full bg-[var(--primary-soft)] px-3 py-1.5 text-xs font-bold text-[var(--primary)] hover:bg-[var(--primary)] hover:text-white transition-colors"
+          className="shrink-0 rounded-full bg-[var(--primary-soft)] px-3 py-1.5 text-xs font-bold text-[var(--primary)] hover:bg-[var(--primary)] hover:text-[#0b1220] transition-colors"
         >
           {loading ? "..." : "Refresh"}
         </button>
       </div>
 
       {error && (
-        <p className="rounded-2xl bg-red-50 px-4 py-3 text-xs font-semibold text-red-600">{error}</p>
+        <p className="rounded-2xl bg-[var(--color-danger-soft)] px-4 py-3 text-xs font-semibold text-[var(--color-danger)]">{error}</p>
       )}
 
       {data && (
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <span className="rounded-full bg-[var(--surface-muted)] px-3 py-1 text-[11px] font-semibold text-slate-500">
+            <span className="rounded-full bg-[var(--surface-muted)] px-3 py-1 text-[11px] font-semibold text-[var(--color-text-muted)]">
               📅 Today (Bangkok): {String(data.todayDate ?? "—")}
             </span>
           </div>
@@ -99,20 +99,20 @@ export function DevCoachContextPanel() {
               typeof sectionData !== "object" || Object.keys(sectionData as object).length > 0
             );
             return (
-              <div key={key} className="rounded-2xl border border-slate-100 bg-slate-50 overflow-hidden">
+              <div key={key} className="rounded-2xl border border-[var(--border-warm)] bg-[var(--surface-muted)] overflow-hidden">
                 <button
                   type="button"
                   onClick={() => toggleSection(key)}
-                  className="w-full flex items-center justify-between gap-2 px-4 py-3 text-left hover:bg-slate-100 transition-colors"
+                  className="w-full flex items-center justify-between gap-2 px-4 py-3 text-left hover:bg-[var(--surface-muted)] transition-colors"
                 >
                   <span className="flex items-center gap-2 text-xs font-bold text-[var(--foreground)]">
                     <span>{emoji}</span>
                     <span>{label}</span>
                     {!hasData && (
-                      <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] text-slate-400">ไม่มีข้อมูล</span>
+                      <span className="rounded-full bg-[var(--surface-muted)] px-2 py-0.5 text-[10px] text-[var(--color-text-soft)]">ไม่มีข้อมูล</span>
                     )}
                   </span>
-                  <span className="text-xs text-slate-400">{isOpen ? "▲" : "▼"}</span>
+                  <span className="text-xs text-[var(--color-text-soft)]">{isOpen ? "▲" : "▼"}</span>
                 </button>
                 {isOpen && (
                   <div className="px-4 pb-4">
@@ -121,7 +121,7 @@ export function DevCoachContextPanel() {
                     ) : key === "contextNotes" && Array.isArray(sectionData) ? (
                       <ul className="space-y-1">
                         {(sectionData as string[]).map((note, i) => (
-                          <li key={i} className="text-[11px] text-slate-600 font-mono bg-white rounded-lg px-3 py-1.5 border border-slate-100">
+                          <li key={i} className="text-[11px] text-[var(--color-text-muted)] font-mono bg-[var(--surface)] rounded-lg px-3 py-1.5 border border-[var(--border-warm)]">
                             {note}
                           </li>
                         ))}
@@ -133,7 +133,7 @@ export function DevCoachContextPanel() {
                     ) : key === "meals" && typeof sectionData === "object" && sectionData !== null ? (
                       <DevMealsSection data={sectionData as Record<string, unknown>} />
                     ) : (
-                      <pre className="text-[10px] leading-4 text-slate-600 font-mono whitespace-pre-wrap break-all bg-white rounded-xl p-3 border border-slate-100 overflow-auto max-h-60">
+                      <pre className="text-[10px] leading-4 text-[var(--color-text-muted)] font-mono whitespace-pre-wrap break-all bg-[var(--surface)] rounded-xl p-3 border border-[var(--border-warm)] overflow-auto max-h-60">
                         {JSON.stringify(sectionData, null, 2)}
                       </pre>
                     )}
@@ -165,15 +165,15 @@ function DevProfileSection({ data }: { data: Record<string, unknown> }) {
       <div className="space-y-1">
         {rows.map(([label, val]) => (
           <div key={label} className="flex gap-2 text-[11px]">
-            <span className="shrink-0 w-36 text-slate-400 font-semibold">{label}</span>
-            <span className="text-slate-700 font-mono break-all">{val != null && String(val) !== "" ? String(val) : <span className="text-slate-300">—</span>}</span>
+            <span className="shrink-0 w-36 text-[var(--color-text-soft)] font-semibold">{label}</span>
+            <span className="text-[var(--foreground)] font-mono break-all">{val != null && String(val) !== "" ? String(val) : <span className="text-[var(--color-text-soft)]">—</span>}</span>
           </div>
         ))}
       </div>
       {Boolean(data.profileText) && (
         <details className="mt-2">
           <summary className="cursor-pointer text-[11px] font-bold text-[var(--primary)]">Profile Context Text ▾</summary>
-          <pre className="mt-1 text-[10px] leading-4 text-slate-600 font-mono whitespace-pre-wrap bg-white rounded-xl p-3 border border-slate-100 overflow-auto max-h-40">
+          <pre className="mt-1 text-[10px] leading-4 text-[var(--color-text-muted)] font-mono whitespace-pre-wrap bg-[var(--surface)] rounded-xl p-3 border border-[var(--border-warm)] overflow-auto max-h-40">
             {String(data.profileText)}
           </pre>
         </details>
@@ -196,7 +196,7 @@ function DevSleepSection({ data }: { data: Record<string, unknown> }) {
     <div className="space-y-2 text-[11px]">
       <div className="flex flex-wrap gap-2">
         {rows.map(([label, val]) => (
-          <span key={String(label)} className="rounded-full bg-blue-50 px-3 py-1 text-blue-700 font-semibold">
+          <span key={String(label)} className="rounded-full bg-[var(--color-info-soft)] px-3 py-1 text-[var(--color-info)] font-semibold">
             {String(label)}: {val != null ? String(val) : "—"}
           </span>
         ))}
@@ -218,16 +218,16 @@ function DevWorkoutsSection({ data }: { data: Record<string, unknown> }) {
     <div className="space-y-2 text-[11px]">
       <div className="flex flex-wrap gap-2">
         {rows.map(([label, val]) => (
-          <span key={label} className="rounded-full bg-green-50 px-3 py-1 text-green-700 font-semibold">
+          <span key={label} className="rounded-full bg-[var(--color-success-soft)] px-3 py-1 text-[var(--color-success)] font-semibold">
             {label}: {val != null ? val : "—"}
           </span>
         ))}
       </div>
       {Array.isArray(data.todayWorkouts) && (data.todayWorkouts as unknown[]).length > 0 && (
         <div>
-          <p className="font-bold text-slate-500 mb-1">วันนี้:</p>
+          <p className="font-bold text-[var(--color-text-muted)] mb-1">วันนี้:</p>
           {(data.todayWorkouts as Record<string, unknown>[]).map((w, i) => (
-            <div key={i} className="rounded-xl bg-white border border-slate-100 px-3 py-2 text-[10px] font-mono text-slate-600 mb-1">
+            <div key={i} className="rounded-xl bg-[var(--surface)] border border-[var(--border-warm)] px-3 py-2 text-[10px] font-mono text-[var(--color-text-muted)] mb-1">
               {String(w.label)} · {w.distanceKm != null ? String(w.distanceKm) + " km" : ""} {w.durationMin != null ? String(w.durationMin) + " min" : ""}
             </div>
           ))}
@@ -263,7 +263,7 @@ function DevMealsSection({ data }: { data: Record<string, unknown> }) {
       {todayRows.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {todayRows.map(([label, val]) => (
-            <span key={label} className="rounded-full bg-orange-50 px-3 py-1 text-orange-700 font-semibold">
+            <span key={label} className="rounded-full bg-[var(--color-warning-soft)] px-3 py-1 text-[var(--color-warning)] font-semibold">
               {label}: {val != null ? val : "—"}
             </span>
           ))}
@@ -272,7 +272,7 @@ function DevMealsSection({ data }: { data: Record<string, unknown> }) {
       {balanceRows.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {balanceRows.map(([label, val]) => (
-            <span key={label} className={`rounded-full px-3 py-1 font-semibold ${val === "low" || val === "high" ? "bg-red-50 text-red-700" : "bg-slate-100 text-slate-600"}`}>
+            <span key={label} className={`rounded-full px-3 py-1 font-semibold ${val === "low" || val === "high" ? "bg-[var(--color-danger-soft)] text-[var(--color-danger)]" : "bg-[var(--surface-muted)] text-[var(--color-text-muted)]"}`}>
               {label}: {val != null ? val : "—"}
             </span>
           ))}
@@ -280,9 +280,9 @@ function DevMealsSection({ data }: { data: Record<string, unknown> }) {
       )}
       {mealsToday && mealsToday.length > 0 && (
         <div>
-          <p className="font-bold text-slate-500 mb-1">มื้อวันนี้ ({mealsToday.length}):</p>
+          <p className="font-bold text-[var(--color-text-muted)] mb-1">มื้อวันนี้ ({mealsToday.length}):</p>
           {mealsToday.map((m, i) => (
-            <div key={i} className="rounded-xl bg-white border border-slate-100 px-3 py-2 text-[10px] font-mono text-slate-600 mb-1">
+            <div key={i} className="rounded-xl bg-[var(--surface)] border border-[var(--border-warm)] px-3 py-2 text-[10px] font-mono text-[var(--color-text-muted)] mb-1">
               [{String(m.mealType ?? "?")}] {(m.foods as string[] | undefined)?.slice(0, 3).join(", ") ?? "—"}
               {(m.foods as string[] | undefined)?.length ?? 0 > 3 ? ` +${(m.foods as string[]).length - 3} อีก` : ""}
               {m.caloriesKcal != null ? ` · ${String(m.caloriesKcal)} kcal` : ""}

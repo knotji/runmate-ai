@@ -235,7 +235,7 @@ export default function RaceGoalPage() {
                     รีเฟรชแผน
                   </LoadingButton>
                 </div>
-                {refreshError ? <p className="text-xs text-red-500">อัปเดตแผนไม่สำเร็จ ลองใหม่อีกครั้ง</p> : null}
+                {refreshError ? <p className="text-xs text-[var(--color-danger)]">อัปเดตแผนไม่สำเร็จ ลองใหม่อีกครั้ง</p> : null}
                 <p className="card-soft text-xs leading-relaxed text-[var(--muted-text)] font-medium p-3">{sanitizePaceInText(plan.planSummary)}</p>
                 <div className="space-y-2 mt-2">
                   {plan.phases?.map((phase) => <TrainingPhaseCard key={phase.name} phase={phase} />)}
@@ -309,7 +309,7 @@ function ConfirmReplaceSection({
         {newGoal.raceDistance ? <span className="ml-1 text-[var(--muted-text)]">· {newGoal.raceDistance}</span> : null}
       </div>
       {replaceError && (
-        <p className="text-xs text-red-500">สร้างแผนใหม่ไม่สำเร็จ ลองใหม่อีกครั้ง</p>
+        <p className="text-xs text-[var(--color-danger)]">สร้างแผนใหม่ไม่สำเร็จ ลองใหม่อีกครั้ง</p>
       )}
       <div className="flex gap-2">
         <button
@@ -325,7 +325,7 @@ function ConfirmReplaceSection({
           loading={replacing}
           loadingText="กำลังบันทึก..."
           onClick={onConfirm}
-          className="flex-1 rounded-2xl bg-[var(--primary)] py-3 text-sm font-bold text-white disabled:opacity-40"
+          className="flex-1 rounded-2xl bg-[var(--primary)] py-3 text-sm font-bold text-[#0b1220] disabled:opacity-40"
         >
           ยืนยันสร้างแผนใหม่
         </LoadingButton>
@@ -682,7 +682,7 @@ function PaceBandsCard({ goal, coachContext }: { goal: RaceGoal; coachContext: C
         </p>
       )}
       {coachContext?.sickRiskLevel === "hard_stop" && (
-        <p className="mt-2 text-[10px] font-semibold text-red-600 leading-snug" data-testid="pace-bands-sick-note">
+        <p className="mt-2 text-[10px] font-semibold text-[var(--color-danger)] leading-snug" data-testid="pace-bands-sick-note">
           🔴 วันนี้ยังไม่แนะนำให้ซ้อม — ดูเพซนี้เป็นข้อมูลอ้างอิงเมื่ออาการดีขึ้น
         </p>
       )}
@@ -753,12 +753,12 @@ function ActionableWeekCard({ workouts, coachContext }: { workouts: WeekWorkout[
                   <span className="text-xs font-bold text-[var(--label-color)] flex items-center gap-1.5">
                     {workout.day}
                     {isToday && (
-                      <span className="rounded bg-[var(--primary)] px-1.5 py-0.5 text-[9px] font-bold text-white">
+                      <span className="rounded bg-[var(--primary)] px-1.5 py-0.5 text-[9px] font-bold text-[#0b1220]">
                         วันนี้
                       </span>
                     )}
                     {showRecoveryBadge && (
-                      <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold text-amber-700" data-testid="recovery-check-badge">
+                      <span className="rounded bg-[var(--color-warning-soft)] px-1.5 py-0.5 text-[9px] font-bold text-[var(--color-warning)]" data-testid="recovery-check-badge">
                         รอเช็ก recovery
                       </span>
                     )}
@@ -788,7 +788,7 @@ function ActionableWeekCard({ workouts, coachContext }: { workouts: WeekWorkout[
                   </>
                 )}
                 {adaptiveNote && (
-                  <div className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800 font-semibold border border-amber-200">
+                  <div className="mt-2 rounded-xl bg-[var(--color-warning-soft)] px-3 py-2 text-xs leading-5 text-[var(--color-warning)] font-semibold border border-[var(--color-warning-border)]">
                     ⚠️ {adaptiveNote}
                   </div>
                 )}

@@ -141,7 +141,7 @@ export function RaceGoalForm({
       <div>
         <h2 className="text-xl font-bold">สร้าง Race Goal</h2>
         {hasAnyAutoFill && (
-          <p className="mt-1 text-xs text-[#42677f] font-semibold bg-[#e7efea] px-3 py-2 rounded-xl">
+          <p className="mt-1 text-xs text-[var(--recovery-blue)] font-semibold bg-[var(--color-success-soft)] px-3 py-2 rounded-xl">
             ✨ บางค่าถูกเติมจากโปรไฟล์และประวัติการซ้อมล่าสุด คุณแก้ไขได้ก่อนสร้างแผน
           </p>
         )}
@@ -191,17 +191,17 @@ export function RaceGoalForm({
       </Field>
 
       {/* ── Section 2: Collapsible Baseline info ── */}
-      <div className="rounded-2xl border border-slate-100 overflow-hidden bg-white/40">
+      <div className="rounded-2xl border border-[var(--border-warm)] overflow-hidden bg-[var(--surface)]/40">
         <button
           type="button"
           onClick={() => setSectionOpen(!sectionOpen)}
-          className="flex w-full items-center justify-between px-4 py-3 text-left font-bold text-xs text-slate-500 uppercase tracking-wide"
+          className="flex w-full items-center justify-between px-4 py-3 text-left font-bold text-xs text-[var(--color-text-muted)] uppercase tracking-wide"
         >
           <span>ข้อมูลพื้นฐานจากโปรไฟล์</span>
-          <span className="text-slate-400 text-lg leading-none">{sectionOpen ? "−" : "+"}</span>
+          <span className="text-[var(--color-text-soft)] text-lg leading-none">{sectionOpen ? "−" : "+"}</span>
         </button>
         {sectionOpen && (
-          <div className="space-y-4 border-t border-slate-100 px-4 pb-4 pt-3 bg-white/10">
+          <div className="space-y-4 border-t border-[var(--border-warm)] px-4 pb-4 pt-3 bg-[var(--surface)]/10">
             <div className="grid grid-cols-2 gap-3">
               <Field label="วิ่งนานสุดตอนนี้ (km)" isAutoFilled={autoFilledFields.currentLongestRunKm}>
                 <input
@@ -253,7 +253,7 @@ export function RaceGoalForm({
         )}
       </div>
 
-      {submitError && <p className="rounded-xl bg-red-50 px-3 py-2 text-xs text-red-600">{submitError}</p>}
+      {submitError && <p className="rounded-xl bg-[var(--color-danger-soft)] px-3 py-2 text-xs text-[var(--color-danger)]">{submitError}</p>}
       <LoadingButton className="btn-primary w-full py-3 font-bold" loading={loading} loadingText="กำลังสร้าง..." type="submit">
         สร้างแผนซ้อม
       </LoadingButton>
@@ -315,7 +315,7 @@ function RaceDateInput({ value, onChange }: { value: string; onChange: (value: s
         type="button"
         aria-label="เลือกวันแข่ง"
         onClick={openPicker}
-        className="absolute right-2 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-xl text-slate-500 hover:bg-slate-100"
+        className="absolute right-2 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-xl text-[var(--color-text-muted)] hover:bg-[var(--surface-muted)]"
       >
         <span aria-hidden="true" className="text-xs font-bold">เลือก</span>
       </button>
@@ -370,9 +370,9 @@ function Field({ label, isAutoFilled, children }: { label: string; isAutoFilled?
   return (
     <div className="space-y-1.5">
       <div className="flex items-center gap-1.5">
-        <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">{label}</p>
+        <p className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wide">{label}</p>
         {isAutoFilled && (
-          <span className="rounded-full bg-[#e7efea] px-1.5 py-0.5 text-[9px] font-bold text-[#42677f]">
+          <span className="rounded-full bg-[var(--color-success-soft)] px-1.5 py-0.5 text-[9px] font-bold text-[var(--recovery-blue)]">
             จากโปรไฟล์
           </span>
         )}

@@ -340,8 +340,8 @@ export default function SettingsPage() {
               <div className="flex items-center gap-3">
                 <span className="text-lg">✅</span>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-800">ติดตั้ง RunMate เรียบร้อยแล้ว</h3>
-                  <p className="text-xs text-slate-500 mt-0.5">คุณกำลังใช้งานผ่านแอปหน้าจอหลักโดยตรง</p>
+                  <h3 className="text-sm font-bold text-[var(--foreground)]">ติดตั้ง RunMate เรียบร้อยแล้ว</h3>
+                  <p className="text-xs text-[var(--color-text-muted)] mt-0.5">คุณกำลังใช้งานผ่านแอปหน้าจอหลักโดยตรง</p>
                 </div>
               </div>
             </section>
@@ -360,7 +360,7 @@ export default function SettingsPage() {
                   <span className="transition-transform group-open:rotate-180">▾</span>
                 </div>
               </summary>
-              <div className="mt-4 divide-y divide-slate-100/70 border-t border-slate-100 pt-3 cursor-default">
+              <div className="mt-4 divide-y divide-slate-100/70 border-t border-[var(--border-warm)] pt-3 cursor-default">
                 <PrivacyItem icon="🗂️" title="Report คือข้อมูลหลัก" desc="ข้อมูลที่กดบันทึกจาก Upload จะเข้า Report และถูกใช้เป็นบริบทให้โค้ชตอบได้แม่นขึ้น" />
                 <PrivacyItem icon="💬" title="แชทกับโค้ชเป็นชั่วคราว" desc="ข้อความในแชทจะไม่ถูกเพิ่มเข้า Report อัตโนมัติ เว้นแต่คุณบันทึกผ่าน Upload/Report" />
                 <PrivacyItem icon="📎" title="ไฟล์อัปโหลดไม่ถูกเก็บเป็นต้นฉบับ" desc="ระบบใช้รูปหรือ PDF เพื่อวิเคราะห์เท่านั้น และบันทึกเฉพาะผลสรุปที่คุณกดยืนยัน" />
@@ -377,32 +377,32 @@ export default function SettingsPage() {
                 <div>
                   <p className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--label-color)]">Deployment Debug</p>
                   <h2 className="mt-1 text-xl font-bold text-[var(--foreground)]">ตรวจ Supabase Runtime</h2>
-                  <p className="mt-1 text-sm leading-6 text-slate-500">
+                  <p className="mt-1 text-sm leading-6 text-[var(--color-text-muted)]">
                     ใช้เช็คว่า Vercel อ่าน env ถูกชุดไหม โดยไม่แสดงค่า secret
                   </p>
                 </div>
                 <div className="space-y-2 rounded-2xl bg-[var(--surface-muted)] p-4 text-xs">
-                  <p className="font-semibold text-slate-600">
+                  <p className="font-semibold text-[var(--color-text-muted)]">
                     Runtime: {envDebug?.runtime.vercel ? `Vercel (${envDebug.runtime.vercelEnv ?? "unknown"})` : "Local browser"}
                   </p>
                   {envDebug ? (
-                    <div className="space-y-1 text-slate-500">
+                    <div className="space-y-1 text-[var(--color-text-muted)]">
                       {Object.entries(envDebug.env).map(([name, info]) => (
                         <div key={name} className="flex items-center justify-between gap-3">
                           <span className="font-mono text-[10px]">{name}</span>
-                          <span className={info.exists ? "font-bold text-green-600" : "font-bold text-red-500"}>
+                          <span className={info.exists ? "font-bold text-[var(--color-success)]" : "font-bold text-[var(--color-danger)]"}>
                             {info.exists ? "มีค่า" : "ไม่มีค่า"}
                           </span>
                         </div>
                       ))}
                       {envDebug.env.NEXT_PUBLIC_SUPABASE_URL?.value && (
-                        <p className="break-all pt-2 font-mono text-[10px] text-slate-400">
+                        <p className="break-all pt-2 font-mono text-[10px] text-[var(--color-text-soft)]">
                           Supabase URL (dev): {envDebug.env.NEXT_PUBLIC_SUPABASE_URL.value}
                         </p>
                       )}
                     </div>
                   ) : (
-                    <p className="text-slate-400">กำลังตรวจ env...</p>
+                    <p className="text-[var(--color-text-soft)]">กำลังตรวจ env...</p>
                   )}
                 </div>
               </section>
@@ -513,7 +513,7 @@ function PrivacyItem({ icon, title, desc }: { icon: string; title: string; desc:
       <span className="shrink-0 text-lg leading-none select-none">{icon}</span>
       <div className="space-y-0.5">
         <h4 className="text-sm font-bold text-[var(--foreground)]">{title}</h4>
-        <p className="text-xs leading-5 text-slate-500">{desc}</p>
+        <p className="text-xs leading-5 text-[var(--color-text-muted)]">{desc}</p>
       </div>
     </div>
   );
