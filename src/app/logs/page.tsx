@@ -307,9 +307,15 @@ export default function ReportPage() {
         />
       ) : (
         <>
-          <section className="rounded-3xl border border-[var(--color-border-soft)] bg-[var(--surface)]/70 px-4 py-3 text-xs leading-5 text-[var(--color-text-muted)] shadow-sm">
-            Report คือข้อมูลจริงจาก Upload และการบันทึก ส่วนแชทกับโค้ชจะไม่ถูกเพิ่มเข้าหน้านี้อัตโนมัติ
-          </section>
+          <details className="group" data-testid="report-info-hint">
+            <summary className="list-none cursor-pointer px-0.5 text-[11px] font-semibold text-[var(--color-text-soft)] flex items-center gap-1">
+              <span>ⓘ Report คืออะไร</span>
+              <span className="transition-transform group-open:rotate-180">▾</span>
+            </summary>
+            <p className="mt-1.5 rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface)]/70 px-4 py-3 text-xs leading-5 text-[var(--color-text-muted)] shadow-sm">
+              Report คือข้อมูลจริงจาก Upload และการบันทึก ส่วนแชทกับโค้ชจะไม่ถูกเพิ่มเข้าหน้านี้อัตโนมัติ
+            </p>
+          </details>
 
           {/* Calendar navigation */}
           <CalendarNav
@@ -506,19 +512,38 @@ function CalendarNav({
 
   return (
     <div className="space-y-2" data-testid="calendar-nav">
-      <div className="flex rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface-muted)] p-1">
-        {(["week", "month"] as const).map((m) => (
+      <div className="flex items-center gap-2">
+        <div className="flex flex-1 rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface-muted)] p-1">
+          {(["week", "month"] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              disabled={transitioning}
+              onClick={() => onModeChange(m)}
+              className={`flex-1 rounded-xl py-2 text-xs font-bold transition-all disabled:cursor-not-allowed disabled:opacity-55 ${mode === m ? "bg-[var(--surface)] shadow-sm text-[var(--primary)]" : "text-[var(--color-text-muted)]"}`}
+            >
+              {m === "week" ? "สัปดาห์" : "เดือน"}
+            </button>
+          ))}
+        </div>
+        {onExport !== undefined && (
           <button
-            key={m}
             type="button"
-            disabled={transitioning}
-            onClick={() => onModeChange(m)}
-            className={`flex-1 rounded-xl py-2 text-xs font-bold transition-all disabled:cursor-not-allowed disabled:opacity-55 ${mode === m ? "bg-[var(--surface)] shadow-sm text-[var(--primary)]" : "text-[var(--color-text-muted)]"}`}
+            title="ส่งออกข้อมูลช่วงนี้เป็นไฟล์ JSON"
+            disabled={exportPreparing}
+            onClick={onExport}
+            data-testid="report-export-control"
+            className="shrink-0 self-stretch whitespace-nowrap rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface)] px-3 text-[11px] font-bold text-[var(--primary)] transition hover:bg-[var(--surface-muted)] disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {m === "week" ? "สัปดาห์" : "เดือน"}
+            {exportPreparing ? "กำลังเตรียมไฟล์..." : "ส่งออก JSON"}
           </button>
-        ))}
+        )}
       </div>
+      {exportStatus && (
+        <p className={`px-0.5 text-[11px] font-semibold ${exportStatus.includes("ไม่สำเร็จ") ? "text-[var(--color-danger)]" : "text-[var(--color-success)]"}`} data-testid="report-export-status">
+          {exportStatus}
+        </p>
+      )}
       <div className="flex items-center gap-2">
         <button
           type="button"
@@ -565,24 +590,6 @@ function CalendarNav({
           </button>
         )}
       </div>
-      {onExport !== undefined && (
-        <div className="flex items-center justify-end gap-2 px-0.5" data-testid="report-export-control">
-          {exportStatus && (
-            <p className={`text-[11px] font-semibold ${exportStatus.includes("ไม่สำเร็จ") ? "text-[var(--color-danger)]" : "text-[var(--color-success)]"}`} data-testid="report-export-status">
-              {exportStatus}
-            </p>
-          )}
-          <button
-            type="button"
-            title="ส่งออกข้อมูลช่วงนี้เป็นไฟล์ JSON"
-            disabled={exportPreparing}
-            onClick={onExport}
-            className="rounded-full border border-[var(--color-border-soft)] bg-[var(--surface)]/80 px-3 py-1.5 text-[11px] font-bold text-[var(--primary)] transition hover:bg-[var(--surface-muted)] disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {exportPreparing ? "กำลังเตรียมไฟล์..." : "ส่งออก JSON"}
-          </button>
-        </div>
-      )}
     </div>
   );
 }
@@ -594,25 +601,21 @@ function PeriodMetrics({
   totals: { runDistanceKm: number; workoutDays: number };
   averages: { sleepHours?: number; readiness?: number };
 }) {
+  const metrics = [
+    { label: "ระยะวิ่ง", value: totals.runDistanceKm > 0 ? `${totals.runDistanceKm} กม.` : "0 กม." },
+    { label: "กิจกรรม", value: totals.workoutDays > 0 ? `${totals.workoutDays} วัน` : "0 วัน" },
+    { label: "นอนเฉลี่ย", value: averages.sleepHours != null ? `${averages.sleepHours} ชม.` : "—" },
+    { label: "ความพร้อม", value: averages.readiness != null ? `${averages.readiness}` : "—" },
+  ];
   return (
     <div className="rounded-3xl border border-rm-primary/20 bg-rm-primary-soft/40 p-3 shadow-sm">
-      <div className="grid grid-cols-4 gap-2" data-testid="period-metrics">
-        <div className="rounded-2xl bg-rm-surface p-3 text-center shadow-sm">
-          <p className="text-[10px] text-rm-muted">ระยะวิ่ง</p>
-          <p className="mt-0.5 text-sm font-bold text-rm-text">{totals.runDistanceKm > 0 ? `${totals.runDistanceKm} กม.` : "0 กม."}</p>
-        </div>
-        <div className="rounded-2xl bg-rm-surface p-3 text-center shadow-sm">
-          <p className="text-[10px] text-rm-muted">กิจกรรม</p>
-          <p className="mt-0.5 text-sm font-bold text-rm-text">{totals.workoutDays > 0 ? `${totals.workoutDays} วัน` : "0 วัน"}</p>
-        </div>
-        <div className="rounded-2xl bg-rm-surface p-3 text-center shadow-sm">
-          <p className="text-[10px] text-rm-muted">นอนเฉลี่ย</p>
-          <p className="mt-0.5 text-sm font-bold text-rm-text">{averages.sleepHours != null ? `${averages.sleepHours} ชม.` : "—"}</p>
-        </div>
-        <div className="rounded-2xl bg-rm-surface p-3 text-center shadow-sm">
-          <p className="text-[10px] text-rm-muted">ความพร้อม</p>
-          <p className="mt-0.5 text-sm font-bold text-rm-text">{averages.readiness != null ? `${averages.readiness}` : "—"}</p>
-        </div>
+      <div className="grid grid-cols-4 divide-x divide-[var(--color-border-soft)]" data-testid="period-metrics">
+        {metrics.map((m) => (
+          <div key={m.label} className="px-1 text-center">
+            <p className="text-[10px] text-rm-muted">{m.label}</p>
+            <p className="mt-0.5 text-sm font-bold text-rm-text">{m.value}</p>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -621,19 +624,22 @@ function PeriodMetrics({
 function DaySlot({ day }: { day: import("@/lib/reportSummary").DailyReportItem }) {
   const nutritionText = formatDayNutritionSummary(day);
   const activityText = formatDayActivitySummary(day);
-  const baseClass = `rounded-2xl p-3 ${day.isToday ? "border border-rm-primary/25 bg-rm-primary-soft/40" : "bg-rm-surface-soft"}`;
+  const baseClass = `rounded-2xl p-3 ${
+    day.isToday ? "border border-rm-primary/25 bg-rm-primary-soft/40" : day.hasData ? "bg-rm-surface-soft" : "bg-[var(--surface-muted)]/40"
+  }`;
+  const todayGlow = day.isToday && day.hasData ? { boxShadow: "var(--shadow-floating)" } : undefined;
 
   if (!day.hasData) {
     return (
       <div className={baseClass} data-testid="day-slot">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-bold text-[var(--foreground)]">
+          <span className={`text-xs ${day.isToday ? "font-bold text-[var(--foreground)]" : "font-semibold text-[var(--color-text-muted)]"}`}>
             {day.weekdayLabel}
             {day.isToday && (
               <span className="ml-2 rounded-full bg-[var(--primary)] px-2 py-0.5 text-[10px] text-[#0b1220]">วันนี้</span>
             )}
           </span>
-          <span className="text-[10px] text-[var(--color-text-muted)]">ยังไม่มีข้อมูล</span>
+          <span className="text-[10px] text-[var(--color-text-soft)]">ยังไม่มีข้อมูล</span>
         </div>
       </div>
     );
@@ -642,6 +648,7 @@ function DaySlot({ day }: { day: import("@/lib/reportSummary").DailyReportItem }
   return (
     <details
       className={`${baseClass} group`}
+      style={todayGlow}
       data-testid="day-slot"
     >
       <summary className="list-none cursor-pointer">
@@ -796,11 +803,13 @@ function RollingSevenDayInsight({
           <div className="min-w-0">
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--label-color)]">Insight 7 วันล่าสุด</p>
             <p className="text-[9px] text-[var(--color-text-muted)] mt-0.5" data-testid="rolling-7-day-note">รวมข้อมูลย้อนหลัง 7 วัน แม้ข้ามสัปดาห์</p>
-            <p className="mt-1 text-xs leading-5 text-[var(--color-text-muted)]">{preview}</p>
-            {coachNote && <p className="mt-0.5 text-xs font-medium leading-5 text-[var(--primary-strong)]">{coachNote}</p>}
+            <p className="mt-1 text-xs leading-5 text-[var(--color-text-muted)] line-clamp-1">{preview}</p>
             {nextAction && (
-              <p className="mt-1 text-xs font-bold leading-5 text-[var(--primary-strong)]" data-testid="weekly-next-action">
-                โฟกัสถัดไป: {nextAction}
+              <p
+                className="mt-1.5 inline-block rounded-full bg-[var(--primary-soft)] px-2 py-0.5 text-[10px] font-bold leading-5 text-[var(--primary-strong)]"
+                data-testid="weekly-next-action"
+              >
+                🎯 โฟกัสถัดไป: {nextAction}
               </p>
             )}
           </div>
@@ -812,6 +821,7 @@ function RollingSevenDayInsight({
       </summary>
 
       <div className="mt-4 space-y-3 border-t border-[var(--color-border-soft)] pt-4">
+        {coachNote && <p className="text-xs font-medium leading-5 text-[var(--primary-strong)]">{coachNote}</p>}
         {/* Short weekly summary */}
         {review && (() => {
           const summary = buildWeeklyInsightSummary(review);
