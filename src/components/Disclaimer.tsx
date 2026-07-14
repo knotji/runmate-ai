@@ -3,11 +3,11 @@ import { safetyDisclaimer } from "@/lib/constants";
 export function Disclaimer({ compact = true }: { compact?: boolean }) {
   if (compact) {
     return (
-      <details className="rounded-2xl border border-[var(--border-warm)] bg-[var(--surface)]/55 px-3 py-2 text-[11px] leading-5 text-[var(--muted-text)]">
-        <summary className="cursor-pointer list-none font-medium">
+      <details className="rounded-2xl border border-[var(--border-warm)] bg-[var(--surface)]/55 px-3 py-2 text-[11px] leading-5 text-[var(--foreground)]/70">
+        <summary className="cursor-pointer list-none font-medium text-[var(--foreground)]/80">
           คำแนะนำเป็นแนวทางทั่วไป ไม่ใช่คำแนะนำทางการแพทย์ <span className="font-semibold underline">อ่านเพิ่มเติม</span>
         </summary>
-        <p className="mt-2 text-[var(--muted-text)]">{safetyDisclaimer}</p>
+        <p className="mt-2 text-[var(--foreground)]/70">{safetyDisclaimer}</p>
       </details>
     );
   }

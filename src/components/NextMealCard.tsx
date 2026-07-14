@@ -141,7 +141,7 @@ export function NextMealCard({ recommendation, loading, onRequest, compact = fal
           type="button"
           onClick={onRequest}
           disabled={loading}
-          className="mt-3 w-full rounded-2xl bg-[var(--primary)] py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+          className="mt-3 w-full rounded-2xl border border-[var(--primary)]/40 bg-[var(--primary-soft)] py-2.5 text-sm font-semibold text-[var(--primary-strong)] disabled:opacity-60"
         >
           {loading ? "กำลังคิดเมนูที่เหมาะกับวันนี้..." : "แนะนำมื้อต่อไป"}
         </button>
