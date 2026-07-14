@@ -1409,21 +1409,21 @@ function EditableSection({
   renderEditable: () => React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-100 overflow-hidden bg-white/40">
+    <div className="rounded-2xl border border-rm-border overflow-hidden bg-rm-surface">
       <div className="flex items-center">
         <button
           type="button"
           onClick={onToggle}
           className="flex flex-1 items-center justify-between px-4 py-3 text-left"
         >
-          <p className="text-sm font-bold text-[var(--foreground)]">{title}</p>
-          <span className="text-slate-400 text-lg leading-none">{open ? "−" : "+"}</span>
+          <p className="text-sm font-bold text-rm-text">{title}</p>
+          <span className="text-rm-muted text-lg leading-none">{open ? "−" : "+"}</span>
         </button>
         {open && !isEditing && (
           <button
             type="button"
             onClick={onStartEdit}
-            className="mr-4 shrink-0 text-xs font-semibold text-[#42677f] hover:underline"
+            className="mr-4 shrink-0 text-xs font-semibold text-rm-recovery hover:underline"
           >
             แก้ไข
           </button>
@@ -1433,14 +1433,14 @@ function EditableSection({
             <button
               type="button"
               onClick={onSaveEdit}
-              className="text-xs font-semibold text-[#42677f] hover:underline"
+              className="text-xs font-semibold text-rm-recovery hover:underline"
             >
               บันทึก
             </button>
             <button
               type="button"
               onClick={onCancelEdit}
-              className="text-xs font-semibold text-slate-400 hover:underline"
+              className="text-xs font-semibold text-rm-muted hover:underline"
             >
               ยกเลิก
             </button>
@@ -1449,12 +1449,12 @@ function EditableSection({
       </div>
 
       {open && (
-        <div className="space-y-3 border-t border-slate-100 px-4 pb-4 pt-3">
+        <div className="space-y-3 border-t border-rm-border px-4 pb-4 pt-3">
           {hasHistoryAnalysis && !isEditing && (
-            <p className="text-[11px] text-[#42677f]">✨ ค่าบางส่วนอัปเดตจากประวัติการซ้อมล่าสุด</p>
+            <p className="text-[11px] text-rm-recovery">✨ ค่าบางส่วนอัปเดตจากประวัติการซ้อมล่าสุด</p>
           )}
           {isSaved && !isEditing && (
-            <p className="text-[11px] text-green-600 font-semibold">✓ บันทึก{title}แล้ว</p>
+            <p className="text-[11px] text-rm-primary-strong font-semibold">✓ บันทึก{title}แล้ว</p>
           )}
           {isEditing ? renderEditable() : renderReadonly()}
         </div>
@@ -1510,10 +1510,10 @@ function runTimeLabel(t: string) {
 
 function StatCard({ label, value, note }: { label: string; value: string; note?: string }) {
   return (
-    <div className="rounded-xl bg-slate-50 px-3 py-2.5">
-      <p className="text-[11px] text-slate-400">{label}</p>
-      <p className="text-sm font-semibold text-[var(--foreground)]">{value}</p>
-      {note && <p className="mt-0.5 text-[10px] leading-tight text-slate-400">{note}</p>}
+    <div className="rounded-xl bg-rm-surface-soft px-3 py-2.5">
+      <p className="text-[11px] text-rm-muted">{label}</p>
+      <p className="text-sm font-semibold text-rm-text">{value}</p>
+      {note && <p className="mt-0.5 text-[10px] leading-tight text-rm-muted">{note}</p>}
     </div>
   );
 }
@@ -1536,17 +1536,17 @@ function SrcField({
   return (
     <div className="space-y-1">
       <div className="flex items-center gap-1.5">
-        <span className="text-xs font-semibold text-slate-500">
+        <span className="text-xs font-semibold text-rm-muted">
           {label}
-          {unit && <span className="ml-1 font-normal text-slate-400">{unit}</span>}
+          {unit && <span className="ml-1 font-normal text-rm-muted/80">{unit}</span>}
         </span>
         {src === "history_analysis" && (
-          <span className="rounded-full bg-[#e7efea] px-1.5 py-0.5 text-[10px] font-bold text-[#42677f]">
+          <span className="rounded-full bg-rm-recovery-soft px-1.5 py-0.5 text-[10px] font-bold text-rm-recovery">
             จากประวัติ
           </span>
         )}
         {src === "manual" && (
-          <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-500">
+          <span className="rounded-full bg-rm-surface-soft px-1.5 py-0.5 text-[10px] font-bold text-rm-muted">
             แก้เอง
           </span>
         )}

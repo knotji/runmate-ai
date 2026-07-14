@@ -28,14 +28,14 @@ const TRI_LABELS: Record<string, string> = { yes: "ใช่", no: "ไม่ม
 const BEAR_LABELS: Record<string, string> = { yes: "รับได้ปกติ", no: "รับไม่ได้", unknown: "ไม่แน่ใจ" };
 
 function riskBadgeClass(risk: PainRiskLevel | string) {
-  if (risk === "high")   return "bg-red-100 text-red-700";
-  if (risk === "medium") return "bg-amber-100 text-amber-700";
-  return "bg-[#e7efea] text-[#2a5a39]";
+  if (risk === "high")   return "bg-rm-stop-soft text-rm-stop";
+  if (risk === "medium") return "bg-rm-caution-soft text-rm-caution";
+  return "bg-rm-primary-soft text-rm-primary-strong";
 }
 function cardClass(risk: PainRiskLevel | string) {
-  if (risk === "high")   return "border-red-200 bg-red-50";
-  if (risk === "medium") return "border-amber-200 bg-amber-50";
-  return "border-[#d9e8df] bg-[#f5faf7]";
+  if (risk === "high")   return "border-rm-stop/30 bg-rm-stop-soft";
+  if (risk === "medium") return "border-rm-caution/30 bg-rm-caution-soft";
+  return "border-rm-primary/25 bg-rm-primary-soft/60";
 }
 function riskLabel(risk: PainRiskLevel | string) {
   if (risk === "high")   return "ต้องระวังสูง";
@@ -88,11 +88,11 @@ export default function PainDetailPage() {
   return (
     <AppShell title="รายละเอียดอาการเจ็บ" subtitle="บันทึกที่ผ่านมา" medicalDisclaimer>
       {loading && (
-        <section className="card p-5 text-sm text-slate-500">กำลังโหลดข้อมูล...</section>
+        <section className="card p-5 text-sm text-rm-muted">กำลังโหลดข้อมูล...</section>
       )}
 
       {error && (
-        <section className="card p-5 text-sm text-red-600">{error}</section>
+        <section className="card p-5 text-sm text-rm-stop">{error}</section>
       )}
 
       {painLog && !loading && (
@@ -101,20 +101,20 @@ export default function PainDetailPage() {
           <section className={`card rounded-2xl border p-5 space-y-3 ${cardClass(painLog.riskLevel)}`}>
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.15em] text-slate-500">
+                <p className="text-xs font-bold uppercase tracking-[0.15em] text-rm-muted">
                   {formatThaiDate(painLog.createdAt)}
                 </p>
-                <h2 className="mt-1 text-xl font-bold text-[#17201d]">
+                <h2 className="mt-1 text-xl font-bold text-rm-text">
                   🩹 {painLog.painLocation}
                   {painLog.painSide && painLog.painSide !== "unknown" && (
-                    <span className="ml-1.5 text-base font-normal text-slate-500">
+                    <span className="ml-1.5 text-base font-normal text-rm-muted">
                       ({SIDE_LABELS[painLog.painSide] ?? painLog.painSide})
                     </span>
                   )}
                 </h2>
               </div>
               <div className="shrink-0 text-right">
-                <p className={`text-2xl font-bold ${painLog.riskLevel === "high" ? "text-red-600" : painLog.riskLevel === "medium" ? "text-amber-600" : "text-[#2a5a39]"}`}>
+                <p className={`text-2xl font-bold ${painLog.riskLevel === "high" ? "text-rm-stop" : painLog.riskLevel === "medium" ? "text-rm-caution" : "text-rm-primary-strong"}`}>
                   {painLog.painLevel}<span className="text-sm font-normal">/10</span>
                 </p>
                 <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${riskBadgeClass(painLog.riskLevel)}`}>
@@ -123,20 +123,20 @@ export default function PainDetailPage() {
               </div>
             </div>
 
-            <div className="rounded-xl bg-white/60 px-3 py-2.5">
-              <p className="text-[11px] text-slate-400">ผลกระทบต่อการซ้อม</p>
-              <p className="text-sm font-semibold text-[#17201d]">{impactLabel(painLog.trainingImpact)}</p>
+            <div className="rounded-xl bg-rm-surface/60 px-3 py-2.5">
+              <p className="text-[11px] text-rm-muted/80">ผลกระทบต่อการซ้อม</p>
+              <p className="text-sm font-semibold text-rm-text">{impactLabel(painLog.trainingImpact)}</p>
             </div>
 
             {painLog.coachAdvice && (
-              <p className="text-sm leading-6 text-slate-700">{painLog.coachAdvice}</p>
+              <p className="text-sm leading-6 text-rm-text">{painLog.coachAdvice}</p>
             )}
 
             {Array.isArray(painLog.redFlags) && painLog.redFlags.length > 0 && (
-              <div className="rounded-xl bg-red-100/70 px-3 py-2.5 space-y-1">
-                <p className="text-xs font-bold text-red-700">สัญญาณที่ควรระวัง</p>
+              <div className="rounded-xl bg-rm-stop-soft px-3 py-2.5 space-y-1">
+                <p className="text-xs font-bold text-rm-stop">สัญญาณที่ควรระวัง</p>
                 {painLog.redFlags.map((f, i) => (
-                  <p key={i} className="text-xs text-red-600">· {f}</p>
+                  <p key={i} className="text-xs text-rm-stop">· {f}</p>
                 ))}
               </div>
             )}
@@ -144,7 +144,7 @@ export default function PainDetailPage() {
 
           {/* ── Form details ──────────────────────────────── */}
           <section className="card p-4 space-y-3">
-            <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">รายละเอียดอาการ</p>
+            <p className="text-xs font-bold uppercase tracking-[0.15em] text-rm-muted">รายละเอียดอาการ</p>
 
             <div className="grid grid-cols-2 gap-2">
               <DetailItem label="เริ่มเจ็บตอน" value={STARTED_LABELS[painLog.startedWhen] ?? painLog.startedWhen} />
@@ -154,10 +154,10 @@ export default function PainDetailPage() {
 
             {Array.isArray(painLog.painType) && painLog.painType.length > 0 && (
               <div>
-                <p className="text-[11px] text-slate-400 mb-1.5">ลักษณะอาการ</p>
+                <p className="text-[11px] text-rm-muted/80 mb-1.5">ลักษณะอาการ</p>
                 <div className="flex flex-wrap gap-1.5">
                   {painLog.painType.map((t) => (
-                    <span key={t} className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
+                    <span key={t} className="rounded-full bg-rm-surface-soft px-2.5 py-1 text-xs font-semibold text-rm-muted">
                       {PAIN_TYPE_LABELS[t] ?? t}
                     </span>
                   ))}
@@ -167,10 +167,10 @@ export default function PainDetailPage() {
 
             {Array.isArray(painLog.painfulWhen) && painLog.painfulWhen.length > 0 && (
               <div>
-                <p className="text-[11px] text-slate-400 mb-1.5">เจ็บเมื่อ</p>
+                <p className="text-[11px] text-rm-muted/80 mb-1.5">เจ็บเมื่อ</p>
                 <div className="flex flex-wrap gap-1.5">
                   {painLog.painfulWhen.map((w) => (
-                    <span key={w} className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
+                    <span key={w} className="rounded-full bg-rm-surface-soft px-2.5 py-1 text-xs font-semibold text-rm-muted">
                       {PAINFUL_WHEN_LABELS[w] ?? w}
                     </span>
                   ))}
@@ -180,12 +180,12 @@ export default function PainDetailPage() {
 
             {painLog.notes && (
               <div>
-                <p className="text-[11px] text-slate-400 mb-1">หมายเหตุ</p>
-                <p className="text-sm text-slate-700 leading-6">{painLog.notes}</p>
+                <p className="text-[11px] text-rm-muted/80 mb-1">หมายเหตุ</p>
+                <p className="text-sm text-rm-text leading-6">{painLog.notes}</p>
               </div>
             )}
 
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-rm-muted/80">
               รูปช่วยบอกตำแหน่งได้ แต่คำแนะนำนี้ไม่ใช่การวินิจฉัยทางการแพทย์
             </p>
           </section>
@@ -219,9 +219,9 @@ function SelfCareGuideCard({ painLog }: { painLog: PainLog }) {
   return (
     <section className="card p-5 space-y-4">
       <div>
-        <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#6f8fa6]">Self-care</p>
-        <h2 className="mt-1 text-xl font-bold text-[#17201d]">วิธีดูแลตัวเองวันนี้</h2>
-        <p className="mt-1 text-xs leading-5 text-slate-500">
+        <p className="text-xs font-bold uppercase tracking-[0.15em] text-rm-muted">Self-care</p>
+        <h2 className="mt-1 text-xl font-bold text-rm-text">วิธีดูแลตัวเองวันนี้</h2>
+        <p className="mt-1 text-xs leading-5 text-rm-muted">
           คำแนะนำสำหรับการดูแลเบื้องต้น ไม่ใช่การวินิจฉัยทางการแพทย์
         </p>
       </div>
@@ -238,9 +238,9 @@ function SelfCareGuideCard({ painLog }: { painLog: PainLog }) {
       ) : null}
 
       {guidance.redFlags.length > 0 ? (
-        <div className="rounded-2xl bg-red-50 p-4">
-          <p className="text-sm font-bold text-red-700">สัญญาณที่ควรพบแพทย์/นักกายภาพ</p>
-          <ul className="mt-2 space-y-1 text-sm leading-6 text-red-700">
+        <div className="rounded-2xl bg-rm-stop-soft p-4">
+          <p className="text-sm font-bold text-rm-stop">สัญญาณที่ควรพบแพทย์/นักกายภาพ</p>
+          <ul className="mt-2 space-y-1 text-sm leading-6 text-rm-stop">
             {guidance.redFlags.map((item) => (
               <li key={item}>- {item}</li>
             ))}
@@ -248,7 +248,7 @@ function SelfCareGuideCard({ painLog }: { painLog: PainLog }) {
         </div>
       ) : null}
 
-      <p className="text-[11px] leading-5 text-slate-400">
+      <p className="text-[11px] leading-5 text-rm-muted/80">
         ใช้เป็นแนวทางดูแลตัวเองและปรับโหลดซ้อมแบบระมัดระวัง หากอาการรุนแรงหรือกังวล ควรปรึกษาผู้เชี่ยวชาญ
       </p>
     </section>
@@ -257,10 +257,10 @@ function SelfCareGuideCard({ painLog }: { painLog: PainLog }) {
 
 function GuideBlock({ title, items, tone = "slate" }: { title: string; items: string[]; tone?: "slate" | "blue" | "amber" | "green" }) {
   const toneClass =
-    tone === "blue" ? "bg-blue-50 text-blue-800"
-    : tone === "amber" ? "bg-amber-50 text-amber-800"
-    : tone === "green" ? "bg-[#e7efea] text-[#2a5a39]"
-    : "bg-slate-50 text-slate-700";
+    tone === "blue" ? "bg-rm-recovery-soft text-rm-recovery"
+    : tone === "amber" ? "bg-rm-caution-soft text-rm-caution"
+    : tone === "green" ? "bg-rm-primary-soft text-rm-primary-strong"
+    : "bg-rm-surface-soft text-rm-text";
 
   return (
     <div className={`rounded-2xl p-4 ${toneClass}`}>
@@ -377,9 +377,9 @@ function buildSelfCareRedFlags(painLog: PainLog) {
 
 function DetailItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl bg-slate-50 px-3 py-2.5">
-      <p className="text-[11px] text-slate-400">{label}</p>
-      <p className="text-sm font-semibold text-[#17201d]">{value}</p>
+    <div className="rounded-xl bg-rm-surface-soft px-3 py-2.5">
+      <p className="text-[11px] text-rm-muted/80">{label}</p>
+      <p className="text-sm font-semibold text-rm-text">{value}</p>
     </div>
   );
 }

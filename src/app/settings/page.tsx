@@ -214,7 +214,7 @@ export default function SettingsPage() {
                 className={`text-left p-4 rounded-2xl border transition-all ${
                   historyImportMode === "samsung"
                     ? "border-[var(--primary-strong)] bg-[var(--primary-soft)]/40"
-                    : "border-[var(--border-warm)] bg-white/70 hover:bg-[var(--primary-soft)]/20"
+                    : "border-[var(--border-warm)] bg-rm-surface hover:bg-rm-primary-soft/40"
                 }`}
                 data-testid="import-samsung-btn"
               >
@@ -233,7 +233,7 @@ export default function SettingsPage() {
                 className={`text-left p-4 rounded-2xl border transition-all ${
                   historyImportMode === "sleep-csv"
                     ? "border-[var(--primary-strong)] bg-[var(--primary-soft)]/40"
-                    : "border-[var(--border-warm)] bg-white/70 hover:bg-[var(--primary-soft)]/20"
+                    : "border-[var(--border-warm)] bg-rm-surface hover:bg-rm-primary-soft/40"
                 }`}
                 data-testid="import-sleep-csv-btn"
               >
@@ -252,7 +252,7 @@ export default function SettingsPage() {
                 className={`text-left p-4 rounded-2xl border transition-all ${
                   historyImportMode === "workout-csv"
                     ? "border-[var(--primary-strong)] bg-[var(--primary-soft)]/40"
-                    : "border-[var(--border-warm)] bg-white/70 hover:bg-[var(--primary-soft)]/20"
+                    : "border-[var(--border-warm)] bg-rm-surface hover:bg-rm-primary-soft/40"
                 }`}
                 data-testid="import-workout-csv-btn"
               >

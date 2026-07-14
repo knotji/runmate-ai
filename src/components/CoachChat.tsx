@@ -453,7 +453,7 @@ export function CoachChat() {
                     <img
                       src={message.imageUrl}
                       alt="Attachment"
-                      className="mb-2 max-h-60 max-w-full rounded-2xl border border-slate-200 object-contain"
+                      className="mb-2 max-h-60 max-w-full rounded-2xl border border-rm-border object-contain"
                     />
                   ) : null}
                   <FormattedCoachText text={message.content} />
@@ -483,7 +483,7 @@ export function CoachChat() {
             <img
               src={previewUrl}
               alt="Upload preview"
-              className="h-16 w-16 rounded-2xl border border-slate-200 object-cover shadow-sm"
+              className="h-16 w-16 rounded-2xl border border-rm-border object-cover shadow-sm"
             />
             <div className="flex-1 text-xs">
               <p className="font-bold text-[var(--foreground)]">เลือกรูปเรียบร้อย</p>

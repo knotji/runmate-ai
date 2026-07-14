@@ -595,22 +595,24 @@ function PeriodMetrics({
   averages: { sleepHours?: number; readiness?: number };
 }) {
   return (
-    <div className="grid grid-cols-4 gap-2" data-testid="period-metrics">
-      <div className="rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface)] p-3 text-center">
-        <p className="text-[10px] text-[var(--color-text-muted)]">ระยะวิ่ง</p>
-        <p className="mt-0.5 text-sm font-bold text-[var(--foreground)]">{totals.runDistanceKm > 0 ? `${totals.runDistanceKm} กม.` : "0 กม."}</p>
-      </div>
-      <div className="rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface)] p-3 text-center">
-        <p className="text-[10px] text-[var(--color-text-muted)]">กิจกรรม</p>
-        <p className="mt-0.5 text-sm font-bold text-[var(--foreground)]">{totals.workoutDays > 0 ? `${totals.workoutDays} วัน` : "0 วัน"}</p>
-      </div>
-      <div className="rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface)] p-3 text-center">
-        <p className="text-[10px] text-[var(--color-text-muted)]">นอนเฉลี่ย</p>
-        <p className="mt-0.5 text-sm font-bold text-[var(--foreground)]">{averages.sleepHours != null ? `${averages.sleepHours} ชม.` : "—"}</p>
-      </div>
-      <div className="rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface)] p-3 text-center">
-        <p className="text-[10px] text-[var(--color-text-muted)]">ความพร้อม</p>
-        <p className="mt-0.5 text-sm font-bold text-[var(--foreground)]">{averages.readiness != null ? `${averages.readiness}` : "—"}</p>
+    <div className="rounded-3xl border border-rm-primary/20 bg-rm-primary-soft/40 p-3 shadow-sm">
+      <div className="grid grid-cols-4 gap-2" data-testid="period-metrics">
+        <div className="rounded-2xl bg-rm-surface p-3 text-center shadow-sm">
+          <p className="text-[10px] text-rm-muted">ระยะวิ่ง</p>
+          <p className="mt-0.5 text-sm font-bold text-rm-text">{totals.runDistanceKm > 0 ? `${totals.runDistanceKm} กม.` : "0 กม."}</p>
+        </div>
+        <div className="rounded-2xl bg-rm-surface p-3 text-center shadow-sm">
+          <p className="text-[10px] text-rm-muted">กิจกรรม</p>
+          <p className="mt-0.5 text-sm font-bold text-rm-text">{totals.workoutDays > 0 ? `${totals.workoutDays} วัน` : "0 วัน"}</p>
+        </div>
+        <div className="rounded-2xl bg-rm-surface p-3 text-center shadow-sm">
+          <p className="text-[10px] text-rm-muted">นอนเฉลี่ย</p>
+          <p className="mt-0.5 text-sm font-bold text-rm-text">{averages.sleepHours != null ? `${averages.sleepHours} ชม.` : "—"}</p>
+        </div>
+        <div className="rounded-2xl bg-rm-surface p-3 text-center shadow-sm">
+          <p className="text-[10px] text-rm-muted">ความพร้อม</p>
+          <p className="mt-0.5 text-sm font-bold text-rm-text">{averages.readiness != null ? `${averages.readiness}` : "—"}</p>
+        </div>
       </div>
     </div>
   );
@@ -619,7 +621,7 @@ function PeriodMetrics({
 function DaySlot({ day }: { day: import("@/lib/reportSummary").DailyReportItem }) {
   const nutritionText = formatDayNutritionSummary(day);
   const activityText = formatDayActivitySummary(day);
-  const baseClass = `rounded-2xl border p-3 ${day.isToday ? "border-[var(--primary)]/30 bg-[var(--primary)]/5" : "border-[var(--color-border-soft)] bg-[var(--surface)]"}`;
+  const baseClass = `rounded-2xl p-3 ${day.isToday ? "border border-rm-primary/25 bg-rm-primary-soft/40" : "bg-rm-surface-soft"}`;
 
   if (!day.hasData) {
     return (

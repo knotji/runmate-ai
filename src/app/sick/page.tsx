@@ -94,7 +94,7 @@ export default function SickPage() {
   }
 
   return (
-    <AppShell title="วันนี้ร่างกายเป็นยังไง">
+    <AppShell title="วันนี้ไม่สบายไหม?" subtitle="บันทึกอาการเพื่อให้ RunMate ปรับแผนไม่ให้ฝืน">
       <div className="max-w-lg mx-auto px-4 py-6 space-y-5">
         {/* Status selection */}
         <div className="space-y-2">
@@ -165,7 +165,7 @@ export default function SickPage() {
                           className={[
                             "rounded-full px-3 py-1.5 text-xs font-semibold border transition-colors",
                             symptoms.includes(sym)
-                              ? "bg-red-100 border-red-300 text-red-700"
+                              ? "bg-rm-caution-soft border-rm-caution/40 text-rm-caution"
                               : "bg-[var(--surface-muted)] border-[var(--border)] text-[var(--muted-text)]",
                           ].join(" ")}
                         >
@@ -220,7 +220,7 @@ export default function SickPage() {
 
         {/* Validation hint */}
         {needsSymptomOrNote && (
-          <p className="text-xs text-amber-600 font-medium">
+          <p className="text-xs text-rm-caution font-medium">
             กรุณาเลือกอาการหรือเพิ่มบันทึกก่อนบันทึก
           </p>
         )}
@@ -236,7 +236,7 @@ export default function SickPage() {
           });
           if (preview.riskLevel === "hard_stop") {
             return (
-              <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-xs font-medium text-red-700 leading-5">
+              <div className="rounded-xl border border-rm-stop/30 bg-rm-stop-soft px-3 py-2.5 text-xs font-medium text-rm-stop leading-5">
                 🔴 <strong>วันนี้ควรพัก</strong> — อาการที่เลือกบ่งชี้ว่าควรงดออกกำลังกายและเน้นพักผ่อน
                 {preview.fever && <span> ถ้ามีไข้สูงหรือไข้ไม่ลดควรพบแพทย์</span>}
               </div>
@@ -244,7 +244,7 @@ export default function SickPage() {
           }
           if (preview.riskLevel === "mild") {
             return (
-              <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs font-medium text-amber-700 leading-5">
+              <div className="rounded-xl border border-rm-caution/30 bg-rm-caution-soft px-3 py-2.5 text-xs font-medium text-rm-caution leading-5">
                 🟡 <strong>ลดความหนักไว้ก่อน</strong> — มีอาการเหนือคอเล็กน้อย ถ้าจะขยับให้เบามากและหยุดทันทีถ้าอาการแย่ลง
               </div>
             );
@@ -265,20 +265,20 @@ export default function SickPage() {
 
         {/* Success */}
         {saved && !saveError && (
-          <div className="rounded-xl bg-[var(--surface)] border border-green-200 px-3 py-2.5 text-xs font-medium text-green-700">
+          <div className="rounded-xl bg-rm-primary-soft border border-rm-primary/30 px-3 py-2.5 text-xs font-medium text-rm-primary-strong">
             ✅ บันทึกเรียบร้อย — Today และ Coach จะปรับคำแนะนำตามอาการวันนี้
           </div>
         )}
 
         {/* Error */}
         {saveError && (
-          <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-xs font-medium text-red-700">
+          <div className="rounded-xl border border-rm-stop/30 bg-rm-stop-soft px-3 py-2.5 text-xs font-medium text-rm-stop">
             {saveError}
           </div>
         )}
 
         {/* Safety note */}
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-2.5 text-[11px] leading-5 text-[var(--muted-text)] space-y-1">
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-2.5 text-xs leading-5 text-rm-text/70 space-y-1">
           <p className="font-semibold text-[var(--foreground)]">ข้อมูลสำคัญ</p>
           <p>RunMate ไม่ได้วินิจฉัยโรคและไม่ใช่บริการทางการแพทย์</p>
           <p>หากมีไข้สูง หายใจลำบาก เจ็บหน้าอก เวียนหัวมาก หรืออาการแย่ลงเร็ว ควรพบแพทย์</p>
