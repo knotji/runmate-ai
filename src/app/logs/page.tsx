@@ -876,23 +876,23 @@ function WeeklyReadinessDots({ items }: { items: LocalHistoryItem[] }) {
     green: "bg-[var(--color-success)] ring-[var(--color-success)]/30",
     yellow: "bg-amber-400 ring-amber-300/40",
     red: "bg-red-400 ring-red-300/40",
-    no_data: "bg-slate-200 ring-slate-200/40",
+    no_data: "bg-[var(--surface-muted)] ring-[var(--border-warm)]/40",
   };
 
   return (
-    <div className="rounded-2xl border border-[var(--color-border-soft)] bg-slate-50/60 px-3 py-2.5" data-testid="weekly-readiness-dots">
+    <div className="rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface-muted)]/60 px-3 py-2.5" data-testid="weekly-readiness-dots">
       <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--label-color)] mb-2">Readiness 7 วัน</p>
       <div className="flex items-center gap-2 flex-wrap">
         {days.map(({ dateKey, score, band }) => (
           <div key={dateKey} className="flex flex-col items-center gap-0.5">
             <div className={`h-3 w-3 rounded-full ring-2 ${DOT[band]}`} title={dateKey ?? ""} />
-            <span className="text-[8px] font-bold text-slate-400 tabular-nums">
+            <span className="text-[8px] font-bold text-[var(--color-text-soft)] tabular-nums">
               {score != null ? Math.round(score) : "–"}
             </span>
           </div>
         ))}
       </div>
-      <p className="mt-1.5 text-[10px] text-slate-400">
+      <p className="mt-1.5 text-[10px] text-[var(--color-text-soft)]">
         <span className="inline-flex items-center gap-1 mr-2"><span className="inline-block h-2 w-2 rounded-full bg-[var(--color-success)]" />ดี</span>
         <span className="inline-flex items-center gap-1 mr-2"><span className="inline-block h-2 w-2 rounded-full bg-amber-400" />ปานกลาง</span>
         <span className="inline-flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-red-400" />ต่ำ</span>
@@ -1224,7 +1224,7 @@ function getTypeBadgeStyles(type: string): string {
   if (type === "sick") return "bg-amber-50 text-amber-700 border border-amber-200";
   if (type === "body") return "bg-purple-50 text-purple-700 border border-purple-100";
   if (type === "health") return "bg-blue-50 text-blue-700 border border-blue-100";
-  return "bg-slate-50 text-slate-700 border border-slate-100";
+  return "bg-[var(--surface-muted)] text-[var(--foreground)] border border-[var(--border-warm)]";
 }
 
 function formatItemDateTime(item: LocalHistoryItem): string {
@@ -1337,7 +1337,7 @@ function WeeklyDashboard({ dashboard, proteinTarget, items, cutoff }: { dashboar
   const assessmentText = getDayMealsAssessmentText(meals7d);
 
   return (
-    <details className="group cursor-pointer rounded-3xl border border-slate-100 bg-white p-4 shadow-sm">
+    <details className="group cursor-pointer rounded-3xl border border-[var(--border-warm)] bg-white p-4 shadow-sm">
       <summary className="list-none flex items-center justify-between font-bold text-[var(--foreground)]">
         <div className="flex flex-col gap-0.5">
           <span className="text-[10px] uppercase tracking-[0.15em] text-[var(--label-color)]">ตัวเลขสำคัญ 7 วัน</span>
@@ -1350,10 +1350,10 @@ function WeeklyDashboard({ dashboard, proteinTarget, items, cutoff }: { dashboar
         </div>
       </summary>
 
-      <div className="mt-3 pt-3 border-t border-slate-100/60 cursor-default space-y-4">
+      <div className="mt-3 pt-3 border-t border-[var(--border-warm)]/60 cursor-default space-y-4">
         <div>
-          <p className="text-xs text-slate-400">สรุป metrics หลักจาก Report</p>
-          <p className="mt-1 text-xs leading-relaxed text-slate-600 font-medium bg-slate-50 p-3 rounded-2xl border border-slate-100">{dashboard.coachNote}</p>
+          <p className="text-xs text-[var(--color-text-soft)]">สรุป metrics หลักจาก Report</p>
+          <p className="mt-1 text-xs leading-relaxed text-[var(--color-text-muted)] font-medium bg-[var(--surface-muted)] p-3 rounded-2xl border border-[var(--border-warm)]">{dashboard.coachNote}</p>
         </div>
         <div className="grid grid-cols-2 gap-2">
           <DashboardMetric label="ระยะวิ่งรวม" value={dashboard.runKm > 0 ? formatDistanceKm(dashboard.runKm) : "-"} sub={`${dashboard.runSessions} ครั้ง`} />
@@ -1375,10 +1375,10 @@ function WeeklyDashboard({ dashboard, proteinTarget, items, cutoff }: { dashboar
 
 function DashboardMetric({ label, value, sub, compact = false }: { label: string; value: string; sub?: string; compact?: boolean }) {
   return (
-    <div className="rounded-2xl bg-slate-50 p-3">
-      <p className="text-xs text-slate-400">{label}</p>
+    <div className="rounded-2xl bg-[var(--surface-muted)] p-3">
+      <p className="text-xs text-[var(--color-text-soft)]">{label}</p>
       <p className={`${compact ? "text-base" : "text-xl"} mt-1 font-bold text-[var(--foreground)]`}>{value}</p>
-      {sub ? <p className="text-xs text-slate-400">{sub}</p> : null}
+      {sub ? <p className="text-xs text-[var(--color-text-soft)]">{sub}</p> : null}
     </div>
   );
 }
@@ -1604,17 +1604,17 @@ function DayCard({
             {readiness !== null && (
               <div>
                 <p className={`text-2xl font-bold ${readinessColor(readiness)}`}>{readiness}</p>
-                <p className="text-xs text-slate-400">Readiness</p>
+                <p className="text-xs text-[var(--color-text-soft)]">Readiness</p>
               </div>
             )}
             {readiness === null && totalKm !== null && (
               <div>
                 <p className="text-2xl font-bold text-[var(--recovery-blue)]">{formatDecimal(totalKm)}</p>
-                <p className="text-xs text-slate-400">km</p>
+                <p className="text-xs text-[var(--color-text-soft)]">km</p>
               </div>
             )}
             {readiness === null && totalKm === null && mealCount > 0 && (
-              <p className="text-sm text-slate-500">{mealCount} มื้อ</p>
+              <p className="text-sm text-[var(--color-text-muted)]">{mealCount} มื้อ</p>
             )}
             <p className="mt-1 text-[11px] font-semibold text-[var(--label-color)]">
               {expanded ? "ย่อ" : "ดูรายละเอียด"}
@@ -1634,13 +1634,13 @@ function DayCard({
           {groupedMeals.map((group, idx) => {
             const subtotal = getGroupSubtotalLabel(group.meals);
             return (
-              <div key={group.key} className={`space-y-2 ${idx > 0 ? "border-t border-slate-100/70 pt-3 mt-3" : ""}`}>
+              <div key={group.key} className={`space-y-2 ${idx > 0 ? "border-t border-[var(--border-warm)]/70 pt-3 mt-3" : ""}`}>
                 <div className="flex flex-wrap items-baseline justify-between gap-x-2 px-1">
-                  <h4 className="text-sm font-bold text-slate-700">
+                  <h4 className="text-sm font-bold text-[var(--foreground)]">
                     {group.icon} {group.label}
                   </h4>
                   {subtotal && (
-                    <span className="text-[11px] font-medium text-slate-400">
+                    <span className="text-[11px] font-medium text-[var(--color-text-soft)]">
                       {subtotal}
                     </span>
                   )}
@@ -1656,16 +1656,16 @@ function DayCard({
           {healthChecks.map((item) => <HealthCheckDetail key={item.id} item={item} onDelete={onDeleteItem} deleting={deletingKey === item.id} />)}
           {latestBodies.map((item) => <BodyDetail key={item.id} item={item} onDelete={onDeleteItem} deleting={deletingKey === item.id} />)}
           {hasMultipleBodies && (
-            <p className="px-1 text-xs text-slate-400">มีบันทึกร่างกายหลายรายการ แสดงรายการล่าสุด</p>
+            <p className="px-1 text-xs text-[var(--color-text-soft)]">มีบันทึกร่างกายหลายรายการ แสดงรายการล่าสุด</p>
           )}
           {summaries.length > 0 && (dedupedSleeps.length + workouts.length + meals.length + bodies.length + pains.length + strengths.length + healthChecks.length === 0) &&
             summaries.map((item) => <SummaryDetail key={item.id} item={item} onDelete={onDeleteItem} deleting={deletingKey === item.id} />)}
           {summaries.length > 0 && (dedupedSleeps.length + workouts.length + meals.length + bodies.length + pains.length + strengths.length + healthChecks.length > 0) && (
-            <div className="rounded-2xl bg-slate-50 p-3">
-              <p className="text-xs font-bold text-slate-500 mb-1">สรุปท้ายวัน ({summaries.length})</p>
+            <div className="rounded-2xl bg-[var(--surface-muted)] p-3">
+              <p className="text-xs font-bold text-[var(--color-text-muted)] mb-1">สรุปท้ายวัน ({summaries.length})</p>
               {summaries.slice(0, 2).map((item) => (
                 <div key={item.id} className="mt-2 rounded-xl bg-white/80 p-3">
-                  <p className="text-sm text-slate-700 leading-5">
+                  <p className="text-sm text-[var(--foreground)] leading-5">
                     {truncate(getSummaryText(item), 120)}
                   </p>
                   <DeleteRecordButton onDelete={() => onDeleteItem(item)} loading={deletingKey === item.id} />
@@ -1689,7 +1689,7 @@ function RaceResultDetail({ result, onDelete, deleting }: { result: RaceResult; 
         <Metric label="Pace" value={result.actualPace ? `${result.actualPace}/km` : "-"} />
         <Metric label="Result" value={raceResultLabel(result.goalResult)} />
       </div>
-      {result.coachSummary ? <p className="mt-3 text-sm leading-6 text-slate-700">{truncate(result.coachSummary, 160)}</p> : null}
+      {result.coachSummary ? <p className="mt-3 text-sm leading-6 text-[var(--foreground)]">{truncate(result.coachSummary, 160)}</p> : null}
       <DeleteRecordButton onDelete={() => onDelete(result)} loading={deleting} />
     </div>
   );
@@ -1715,17 +1715,17 @@ function SleepDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; onD
         {ext.hrv != null && <Metric label="HRV" value={formatScore(ext.hrv)} sub="ms" />}
         {ext.restingHR != null && <Metric label="Resting HR" value={formatScore(ext.restingHR)} sub="bpm" />}
       </div>
-      {coach.aiSummary && <p className="text-sm leading-6 text-slate-700">{polishSleepInsightText(coach.aiSummary)}</p>}
+      {coach.aiSummary && <p className="text-sm leading-6 text-[var(--foreground)]">{polishSleepInsightText(coach.aiSummary)}</p>}
       {coach.todayRecommendation && (
         <p className="mt-2 text-sm font-bold text-[var(--foreground)]">→ {polishSleepInsightText(coach.todayRecommendation)}</p>
       )}
       {coach.readinessScore != null && (
-        <p className="mt-2 text-[11px] text-slate-400 leading-normal">
+        <p className="mt-2 text-[11px] text-[var(--color-text-soft)] leading-normal">
           * Readiness เป็นคะแนนความพร้อมจากข้อมูล recovery ของวันนั้น ไม่ใช่คะแนนสรุปทั้งวัน
         </p>
       )}
       {merged.mergedFromDuplicates && (
-        <p className="mt-2 text-xs text-slate-400">รวมข้อมูลจากหลายบันทึก{merged.duplicateCount ? ` (${merged.duplicateCount})` : ""}</p>
+        <p className="mt-2 text-xs text-[var(--color-text-soft)]">รวมข้อมูลจากหลายบันทึก{merged.duplicateCount ? ` (${merged.duplicateCount})` : ""}</p>
       )}
       <DeleteRecordButton onDelete={() => onDelete(item)} loading={deleting} />
     </div>
@@ -1767,7 +1767,7 @@ function WorkoutDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; o
     : null;
 
   return (
-    <div data-testid="report-workout-card" className="rounded-2xl bg-slate-50 p-4">
+    <div data-testid="report-workout-card" className="rounded-2xl bg-[var(--surface-muted)] p-4">
       <p className="text-xs font-bold uppercase tracking-wide text-[var(--recovery-blue)] mb-2">{icon} {kindLabel}</p>
       {hasAnyMetric && (
         <div className="grid grid-cols-3 gap-2 mb-3">
@@ -1786,17 +1786,17 @@ function WorkoutDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; o
       )}
       {/* Strength-specific info */}
       {muscleGroupsText && (
-        <p className="text-xs text-slate-500 mb-1">
+        <p className="text-xs text-[var(--color-text-muted)] mb-1">
           <span className="font-semibold">กล้ามเนื้อหลัก:</span> {muscleGroupsText}
         </p>
       )}
       {exercisesText && (
-        <p className="text-xs text-slate-500 mb-2">
+        <p className="text-xs text-[var(--color-text-muted)] mb-2">
           <span className="font-semibold">ท่า:</span> {exercisesText}
         </p>
       )}
       {coach.workoutSummary && (
-        <p className="text-sm leading-6 text-slate-700">{truncate(formatSummaryText(coach.workoutSummary), 160)}</p>
+        <p className="text-sm leading-6 text-[var(--foreground)]">{truncate(formatSummaryText(coach.workoutSummary), 160)}</p>
       )}
       <DeleteRecordButton onDelete={() => onDelete(item)} loading={deleting} />
     </div>
@@ -1860,7 +1860,7 @@ function MealDetail({
         <p className="mb-2 text-xs text-orange-700">{sourceInfo.assessmentText}</p>
       )}
       {note && (
-        <p className="text-sm leading-6 text-slate-700">{truncate(note, 140)}</p>
+        <p className="text-sm leading-6 text-[var(--foreground)]">{truncate(note, 140)}</p>
       )}
       <div className="mt-3 flex items-center justify-between">
         <button
@@ -1936,14 +1936,14 @@ function HealthCheckDetail({ item, onDelete, deleting }: { item: LocalHistoryIte
         <div>
           <h3 className="font-bold text-[var(--foreground)] text-base">ผลตรวจสุขภาพล่าสุด</h3>
           <p className="mt-0.5 text-xs text-[var(--recovery-blue)] font-semibold">ใช้เพื่อช่วยปรับคำแนะนำอาหารและไลฟ์สไตล์</p>
-          <p className="mt-0.5 text-[11px] text-slate-500">{d.checkupDate ?? formatDayLabel(bangkokDateKey(item.createdAt))}</p>
+          <p className="mt-0.5 text-[11px] text-[var(--color-text-muted)]">{d.checkupDate ?? formatDayLabel(bangkokDateKey(item.createdAt))}</p>
         </div>
         <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-[var(--recovery-blue)]">{d.confidence ?? "low"}</span>
       </div>
 
       <div className="mt-4 space-y-3">
         {/* ควรระวัง */}
-        <div className="rounded-xl bg-white/70 p-3 ring-1 ring-slate-100">
+        <div className="rounded-xl bg-white/70 p-3 ring-1 ring-[var(--border-warm)]">
           <p className="text-xs font-bold text-amber-800">⚠️ ควรระวัง</p>
           {warningLabs.length > 0 ? (
             <ul className="mt-1.5 list-disc pl-4 space-y-1 text-sm text-[var(--foreground)]">
@@ -1952,15 +1952,15 @@ function HealthCheckDetail({ item, onDelete, deleting }: { item: LocalHistoryIte
               ))}
             </ul>
           ) : (
-            <p className="mt-1.5 text-sm text-slate-600 font-medium">ยังไม่พบค่าที่ต้องระวังเด่น ๆ จากข้อมูลที่อ่านได้</p>
+            <p className="mt-1.5 text-sm text-[var(--color-text-muted)] font-medium">ยังไม่พบค่าที่ต้องระวังเด่น ๆ จากข้อมูลที่อ่านได้</p>
           )}
         </div>
 
         {/* อยู่ในเกณฑ์ */}
-        <div className="rounded-xl bg-white/70 p-3 ring-1 ring-slate-100">
+        <div className="rounded-xl bg-white/70 p-3 ring-1 ring-[var(--border-warm)]">
           <p className="text-xs font-bold text-emerald-800">✅ อยู่ในเกณฑ์</p>
           {normalLabs.length > 0 ? (
-            <p className="mt-1.5 text-sm text-slate-700 leading-relaxed font-medium">
+            <p className="mt-1.5 text-sm text-[var(--foreground)] leading-relaxed font-medium">
               {normalLabs.map(([key, lab]) => {
                 const categoryNames: Record<string, string> = {
                   fbs: "น้ำตาล (FBS)",
@@ -1981,15 +1981,15 @@ function HealthCheckDetail({ item, onDelete, deleting }: { item: LocalHistoryIte
               }).join(" · ")}
             </p>
           ) : (
-            <p className="mt-1.5 text-sm text-slate-500 italic">ไม่มีข้อมูลค่าอ้างอิงที่เป็นปกติ</p>
+            <p className="mt-1.5 text-sm text-[var(--color-text-muted)] italic">ไม่มีข้อมูลค่าอ้างอิงที่เป็นปกติ</p>
           )}
         </div>
 
         {/* โภชนาการที่เหมาะ */}
-        <div className="rounded-xl bg-white/70 p-3 ring-1 ring-slate-100">
+        <div className="rounded-xl bg-white/70 p-3 ring-1 ring-[var(--border-warm)]">
           <p className="text-xs font-bold text-[var(--recovery-blue)]">🥗 โภชนาการที่เหมาะ</p>
           {(d.foodGuidance?.prefer?.length || d.foodGuidance?.limit?.length) ? (
-            <ul className="mt-1.5 list-disc pl-4 space-y-1 text-sm text-slate-700 font-medium">
+            <ul className="mt-1.5 list-disc pl-4 space-y-1 text-sm text-[var(--foreground)] font-medium">
               {d.foodGuidance.prefer?.map((item, idx) => (
                 <li key={`pref-${idx}`}>เพิ่ม/เน้น {item}</li>
               ))}
@@ -1998,7 +1998,7 @@ function HealthCheckDetail({ item, onDelete, deleting }: { item: LocalHistoryIte
               ))}
             </ul>
           ) : (
-            <p className="mt-1.5 text-sm text-slate-500 italic">ไม่มีข้อมูลคำแนะนำโภชนาการ</p>
+            <p className="mt-1.5 text-sm text-[var(--color-text-muted)] italic">ไม่มีข้อมูลคำแนะนำโภชนาการ</p>
           )}
         </div>
       </div>
@@ -2010,13 +2010,13 @@ function HealthCheckDetail({ item, onDelete, deleting }: { item: LocalHistoryIte
       )}
 
       {isMissingLabs && (
-        <div className="mt-3 rounded-2xl bg-blue-100/50 px-3 py-2 text-xs leading-5 text-slate-600">
+        <div className="mt-3 rounded-2xl bg-blue-100/50 px-3 py-2 text-xs leading-5 text-[var(--color-text-muted)]">
           ℹ️ ยังไม่มีค่าบางรายการ เช่น HbA1c หรือ eGFR หากต้องการให้คำแนะนำแม่นขึ้น สามารถเพิ่มผลตรวจรอบถัดไปได้
         </div>
       )}
 
       {allLabs.length > 0 ? (
-        <details className="mt-4 border-t border-slate-200/60 pt-3">
+        <details className="mt-4 border-t border-[var(--border-warm)]/60 pt-3">
           <summary className="cursor-pointer text-xs font-bold text-[var(--recovery-blue)] hover:underline focus:outline-none select-none">
             ดูค่าตรวจทั้งหมด ({allLabs.length} รายการ)
           </summary>
@@ -2028,7 +2028,7 @@ function HealthCheckDetail({ item, onDelete, deleting }: { item: LocalHistoryIte
         </details>
       ) : null}
 
-      <div className="mt-4 flex items-center justify-between border-t border-slate-200/60 pt-3 text-xs leading-5 text-slate-500">
+      <div className="mt-4 flex items-center justify-between border-t border-[var(--border-warm)]/60 pt-3 text-xs leading-5 text-[var(--color-text-muted)]">
         <p>🛡️ ระบบบันทึกเฉพาะค่าที่สรุปแล้ว ไม่บันทึกไฟล์ PDF ต้นฉบับหรือข้อความดิบ</p>
         <DeleteRecordButton onDelete={() => onDelete(item)} loading={deleting} />
       </div>
@@ -2049,12 +2049,12 @@ function MealNutritionDaySummary({ summary, mealCount, proteinTarget, meals }: {
       {/* Protein — hero metric */}
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-xs text-slate-400">💪 Protein</p>
+          <p className="text-xs text-[var(--color-text-soft)]">💪 Protein</p>
           <p className="text-xl font-bold leading-tight text-[var(--foreground)]">
             {summary.proteinG != null ? `${summary.proteinG} / ${proteinTarget} g` : "-"}
           </p>
           {remaining != null && (
-            <p className="mt-0.5 text-xs text-slate-500">ยังขาดอีก {remaining} g</p>
+            <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">ยังขาดอีก {remaining} g</p>
           )}
         </div>
         {status && (
@@ -2087,7 +2087,7 @@ function BodyDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; onDe
     : null;
 
   return (
-    <div className="rounded-2xl bg-slate-50 p-4">
+    <div className="rounded-2xl bg-[var(--surface-muted)] p-4">
       <p className="text-xs font-bold uppercase tracking-wide text-[var(--recovery-blue)] mb-2">⚖️ ร่างกาย</p>
       <div className="grid grid-cols-3 gap-2 mb-2">
         {ext.weightKg != null && <Metric label="น้ำหนัก" value={`${formatDecimal(ext.weightKg)} kg`} />}
@@ -2095,10 +2095,10 @@ function BodyDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; onDe
         {ext.skeletalMuscleKg != null && <Metric label="กล้ามเนื้อ" value={`${formatDecimal(ext.skeletalMuscleKg)} kg`} />}
       </div>
       {typeof coach.bodySummary === "string" && coach.bodySummary && (
-        <p className="text-sm leading-6 text-slate-700">{truncate(coach.bodySummary, 140)}</p>
+        <p className="text-sm leading-6 text-[var(--foreground)]">{truncate(coach.bodySummary, 140)}</p>
       )}
       {confidenceLabel && (
-        <p className="mt-2 text-xs text-slate-400">{confidenceLabel}</p>
+        <p className="mt-2 text-xs text-[var(--color-text-soft)]">{confidenceLabel}</p>
       )}
       <DeleteRecordButton onDelete={() => onDelete(item)} loading={deleting} />
     </div>
@@ -2109,9 +2109,9 @@ function SummaryDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; o
   const d = item.data as DailySummary & { coachMessage?: string };
 
   return (
-    <div className="rounded-2xl bg-slate-50 p-4">
+    <div className="rounded-2xl bg-[var(--surface-muted)] p-4">
       <p className="text-xs font-bold uppercase tracking-wide text-[var(--label-color)] mb-1">💬 สรุปท้ายวัน</p>
-      <p className="text-sm leading-6 text-slate-700 whitespace-pre-line">
+      <p className="text-sm leading-6 text-[var(--foreground)] whitespace-pre-line">
         {truncate(d?.coachMessage ?? d?.overallSummary ?? "", 240)}
       </p>
       <DeleteRecordButton onDelete={() => onDelete(item)} loading={deleting} />
@@ -2164,16 +2164,16 @@ function PainDetail({ item, meta, onDelete, deleting }: { item: LocalHistoryItem
     <div className={`rounded-2xl border p-3 space-y-2.5 ${cardClass(painLog.riskLevel)}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-bold uppercase tracking-wide text-slate-500">🩹 อาการเจ็บ</p>
+          <p className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-muted)]">🩹 อาการเจ็บ</p>
           <h4 className="mt-1 truncate text-base font-bold text-[var(--foreground)]">
             {painLog.painLocation}
             {painLog.painSide && painLog.painSide !== "unknown" && (
-              <span className="ml-1 text-xs font-normal text-slate-500">
+              <span className="ml-1 text-xs font-normal text-[var(--color-text-muted)]">
                 ({SIDE_LABELS[painLog.painSide] ?? painLog.painSide})
               </span>
             )}
           </h4>
-          {metaLabel && <p className="mt-0.5 text-[11px] font-semibold text-slate-500">{metaLabel}</p>}
+          {metaLabel && <p className="mt-0.5 text-[11px] font-semibold text-[var(--color-text-muted)]">{metaLabel}</p>}
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1">
           <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${isResolved ? "bg-[var(--primary-soft)] text-[var(--color-success)]" : painLog.riskLevel === "high" ? "bg-red-100 text-red-700" : painLog.riskLevel === "medium" ? "bg-amber-100 text-amber-700" : "bg-[var(--primary-soft)] text-[var(--color-success)]"}`}>
@@ -2198,7 +2198,7 @@ function PainDetail({ item, meta, onDelete, deleting }: { item: LocalHistoryItem
         </div>
       )}
 
-      <div className="flex flex-wrap gap-1.5 text-[10px] text-slate-500">
+      <div className="flex flex-wrap gap-1.5 text-[10px] text-[var(--color-text-muted)]">
         <span className="rounded-full bg-white/60 px-2 py-0.5">เริ่ม: {STARTED_LABELS[painLog.startedWhen] ?? painLog.startedWhen}</span>
         <span className="rounded-full bg-white/60 px-2 py-0.5">บวม/แดง: {TRI_LABELS[painLog.swellingOrRedness] ?? painLog.swellingOrRedness}</span>
         <span className="rounded-full bg-white/60 px-2 py-0.5">ลงน้ำหนัก: {BEAR_LABELS[painLog.canBearWeight] ?? painLog.canBearWeight}</span>
@@ -2229,14 +2229,14 @@ function SickDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; onDe
   const SEVERITY_LABELS: Record<string, string> = { mild: "เบา", moderate: "ปานกลาง", severe: "หนัก" };
   const RISK_LABELS: Record<string, string> = { none: "ปกติ", mild: "ลดโหลด", caution: "ระวัง", hard_stop: "งดซ้อม" };
 
-  const cardBg = log.riskLevel === "hard_stop" ? "bg-red-50 border-red-200" : log.riskLevel === "none" ? "bg-slate-50 border-slate-200" : "bg-amber-50 border-amber-200";
-  const riskTagBg = log.riskLevel === "hard_stop" ? "bg-red-100 text-red-700" : log.riskLevel === "none" ? "bg-slate-100 text-slate-600" : "bg-amber-100 text-amber-700";
+  const cardBg = log.riskLevel === "hard_stop" ? "bg-red-50 border-red-200" : log.riskLevel === "none" ? "bg-[var(--surface-muted)] border-[var(--border-warm)]" : "bg-amber-50 border-amber-200";
+  const riskTagBg = log.riskLevel === "hard_stop" ? "bg-red-100 text-red-700" : log.riskLevel === "none" ? "bg-[var(--surface-muted)] text-[var(--color-text-muted)]" : "bg-amber-100 text-amber-700";
 
   return (
     <div className={`rounded-2xl border p-3 space-y-2.5 ${cardBg}`}>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-bold uppercase tracking-wide text-slate-500">🤒 สุขภาพวันนี้</p>
+          <p className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-muted)]">🤒 สุขภาพวันนี้</p>
           <h4 className="mt-1 text-base font-bold text-[var(--foreground)]">
             {log.healthStatus === "normal" ? "ปกติ" : log.healthStatus === "fatigue" ? "เพลีย" : "ไม่สบาย / ป่วย"}
           </h4>
@@ -2249,12 +2249,12 @@ function SickDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; onDe
       {(log.symptoms ?? []).length > 0 && (
         <div className="flex flex-wrap gap-1">
           {(log.symptoms ?? []).map((s) => (
-            <span key={s} className="rounded-full bg-white/60 px-2 py-0.5 text-[10px] text-slate-600 font-medium">
+            <span key={s} className="rounded-full bg-white/60 px-2 py-0.5 text-[10px] text-[var(--color-text-muted)] font-medium">
               {SICK_SYMPTOM_LABELS[s] ?? s}
             </span>
           ))}
           {log.severity && (
-            <span className="rounded-full bg-white/60 px-2 py-0.5 text-[10px] text-slate-600 font-medium">
+            <span className="rounded-full bg-white/60 px-2 py-0.5 text-[10px] text-[var(--color-text-muted)] font-medium">
               ความรุนแรง: {SEVERITY_LABELS[log.severity] ?? log.severity}
             </span>
           )}
@@ -2262,7 +2262,7 @@ function SickDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; onDe
       )}
 
       {log.note && (
-        <p className="rounded-xl bg-white/65 px-3 py-2 text-xs leading-5 text-slate-600">{log.note}</p>
+        <p className="rounded-xl bg-white/65 px-3 py-2 text-xs leading-5 text-[var(--color-text-muted)]">{log.note}</p>
       )}
 
       {log.riskLevel !== "none" && (
@@ -2271,11 +2271,11 @@ function SickDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; onDe
         </p>
       )}
 
-      <div className="flex flex-wrap gap-1.5 text-[10px] text-slate-500">
+      <div className="flex flex-wrap gap-1.5 text-[10px] text-[var(--color-text-muted)]">
         {log.fever && <span className="rounded-full bg-red-100/70 px-2 py-0.5 text-red-600 font-semibold">มีไข้</span>}
         {log.chestSymptoms && <span className="rounded-full bg-red-100/70 px-2 py-0.5 text-red-600 font-semibold">อาการที่หน้าอก</span>}
         {log.giSymptoms && <span className="rounded-full bg-amber-100/70 px-2 py-0.5 text-amber-700 font-semibold">ระบบย่อยอาหาร</span>}
-        {log.aboveNeckOnly && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-slate-600 font-semibold">เหนือคอเท่านั้น</span>}
+        {log.aboveNeckOnly && <span className="rounded-full bg-[var(--surface-muted)] px-2 py-0.5 text-[var(--color-text-muted)] font-semibold">เหนือคอเท่านั้น</span>}
       </div>
 
       <div className="flex gap-2 pt-0.5">
@@ -2314,26 +2314,26 @@ function StrengthDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; 
           </h4>
         </div>
         <div className="shrink-0 text-right">
-          <p className="text-sm font-bold text-slate-700">{safeStrengthMins(log.durationMin)} นาที</p>
-          <span className="text-[10px] text-slate-500">{SOURCE_LABELS[log.source] ?? log.source}</span>
+          <p className="text-sm font-bold text-[var(--foreground)]">{safeStrengthMins(log.durationMin)} นาที</p>
+          <span className="text-[10px] text-[var(--color-text-muted)]">{SOURCE_LABELS[log.source] ?? log.source}</span>
         </div>
       </div>
 
       {log.coachReason && (
-        <div className="rounded-xl bg-white/60 p-2 text-xs text-slate-700">
-          <p className="font-semibold text-slate-800">คำแนะนำจากโค้ช:</p>
+        <div className="rounded-xl bg-white/60 p-2 text-xs text-[var(--foreground)]">
+          <p className="font-semibold text-[var(--foreground)]">คำแนะนำจากโค้ช:</p>
           <p>{log.coachReason}</p>
         </div>
       )}
 
       {Array.isArray(log.exercises) && log.exercises.length > 0 && (
         <div className="space-y-1 bg-white/40 p-2 rounded-xl">
-          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">ท่าที่ฝึกซ้อม</p>
+          <p className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wide">ท่าที่ฝึกซ้อม</p>
           <div className="divide-y divide-slate-100/50">
             {log.exercises.map((ex, i) => (
-              <div key={i} className="flex justify-between py-1 text-xs text-slate-700">
+              <div key={i} className="flex justify-between py-1 text-xs text-[var(--foreground)]">
                 <span className="font-medium">{ex.name}</span>
-                <span className="text-slate-500 shrink-0 ml-2">
+                <span className="text-[var(--color-text-muted)] shrink-0 ml-2">
                   {ex.sets} เซต × {ex.reps} ครั้ง {ex.durationSec ? `(${ex.durationSec} วิ)` : ""}
                 </span>
               </div>
@@ -2343,10 +2343,10 @@ function StrengthDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; 
       )}
 
       {log.notes && (
-        <p className="text-xs text-slate-600 italic">หมายเหตุ: {log.notes}</p>
+        <p className="text-xs text-[var(--color-text-muted)] italic">หมายเหตุ: {log.notes}</p>
       )}
 
-      <div className="text-[10px] text-slate-400">
+      <div className="text-[10px] text-[var(--color-text-soft)]">
         ความเหนื่อย: {INTENSITY_LABELS[log.intensity] ?? log.intensity}
       </div>
       <DeleteRecordButton onDelete={() => onDelete(item)} loading={deleting} />
@@ -2377,7 +2377,7 @@ function Badge({ icon, label, color }: { icon?: string; label: string; color?: "
     : color === "orange" ? "bg-orange-50 text-orange-700"
     : color === "red" ? "bg-red-50 text-red-700"
     : color === "yellow" ? "bg-amber-50 text-amber-700"
-    : "bg-slate-100 text-slate-600";
+    : "bg-[var(--surface-muted)] text-[var(--color-text-muted)]";
   return (
     <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold ${bg}`}>
       {icon ? `${icon} ` : null}{label}
@@ -2388,9 +2388,9 @@ function Badge({ icon, label, color }: { icon?: string; label: string; color?: "
 function Metric({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
     <div className="rounded-xl bg-white p-2.5 text-center">
-      <p className="text-xs text-slate-400 truncate">{label}</p>
+      <p className="text-xs text-[var(--color-text-soft)] truncate">{label}</p>
       <p className="mt-0.5 text-sm font-bold leading-tight">{value}</p>
-      {sub && <p className="text-xs text-slate-400">{sub}</p>}
+      {sub && <p className="text-xs text-[var(--color-text-soft)]">{sub}</p>}
     </div>
   );
 }
@@ -2854,7 +2854,7 @@ function PainHistoryCompactList({
     .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
   if (painItems.length === 0) {
     return (
-      <div className="card p-5 text-sm text-slate-500 text-center">ไม่พบประวัติอาการเจ็บ</div>
+      <div className="card p-5 text-sm text-[var(--color-text-muted)] text-center">ไม่พบประวัติอาการเจ็บ</div>
     );
   }
 
@@ -2876,12 +2876,12 @@ function PainHistoryCompactList({
     <section className="card p-5 space-y-4 bg-white">
       <div>
         <h3 className="text-base font-bold text-[var(--foreground)]">ประวัติอาการเจ็บ</h3>
-        <p className="text-xs text-slate-500 mt-0.5">ประวัติและคำแนะนำผลกระทบการซ้อมสะสม</p>
+        <p className="text-xs text-[var(--color-text-muted)] mt-0.5">ประวัติและคำแนะนำผลกระทบการซ้อมสะสม</p>
       </div>
       <div className="overflow-x-auto -mx-5 px-5">
         <table className="w-full text-left border-collapse text-xs min-w-[450px]">
           <thead>
-            <tr className="text-slate-400 border-b border-slate-100">
+            <tr className="text-[var(--color-text-soft)] border-b border-[var(--border-warm)]">
               <th className="py-2.5 font-semibold">วันที่</th>
               <th className="py-2.5 font-semibold">ตำแหน่ง</th>
               <th className="py-2.5 font-semibold text-center">ระดับ</th>
@@ -2898,16 +2898,16 @@ function PainHistoryCompactList({
                 day: "numeric", month: "short"
               });
               return (
-                <tr key={item.id} className="hover:bg-slate-50/50">
-                  <td className="py-2.5 font-medium text-slate-500">{formattedDate}</td>
-                  <td className="py-2.5 font-bold text-slate-700">🩹 {p.painLocation}</td>
-                  <td className="py-2.5 font-bold text-center text-slate-800">{p.painLevel}/10</td>
+                <tr key={item.id} className="hover:bg-[var(--surface-muted)]/50">
+                  <td className="py-2.5 font-medium text-[var(--color-text-muted)]">{formattedDate}</td>
+                  <td className="py-2.5 font-bold text-[var(--foreground)]">🩹 {p.painLocation}</td>
+                  <td className="py-2.5 font-bold text-center text-[var(--foreground)]">{p.painLevel}/10</td>
                   <td className="py-2.5 text-center">
-                    <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${RISK_COLORS[p.riskLevel] || "bg-slate-50 text-slate-500"}`}>
+                    <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${RISK_COLORS[p.riskLevel] || "bg-[var(--surface-muted)] text-[var(--color-text-muted)]"}`}>
                       {RISK_LABELS[p.riskLevel] || p.riskLevel}
                     </span>
                   </td>
-                  <td className="py-2.5 text-slate-600 font-medium">{IMPACT_LABELS[p.trainingImpact] || p.trainingImpact}</td>
+                  <td className="py-2.5 text-[var(--color-text-muted)] font-medium">{IMPACT_LABELS[p.trainingImpact] || p.trainingImpact}</td>
                   <td className="py-2.5 text-right">
                     <LoadingButton
                       type="button"
@@ -3048,7 +3048,7 @@ function EditMealModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <div
         data-testid="meal-edit-modal"
-        className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl border border-slate-100 flex flex-col max-h-[90vh] overflow-y-auto"
+        className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl border border-[var(--border-warm)] flex flex-col max-h-[90vh] overflow-y-auto"
       >
         <h3 className="text-lg font-bold text-[var(--foreground)] mb-4">แก้ไขมื้ออาหาร</h3>
         
@@ -3060,11 +3060,11 @@ function EditMealModal({
 
         <form onSubmit={handleSave} className="space-y-4">
           <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-500">ชื่อมื้อ / รายการอาหาร</label>
+            <label className="text-xs font-bold text-[var(--color-text-muted)]">ชื่อมื้อ / รายการอาหาร</label>
             <input
               type="text"
               required
-              className="w-full rounded-2xl border border-slate-200 px-4 py-2.5 text-sm focus:border-[#b9d9c0] focus:ring-1 focus:ring-[#b9d9c0] outline-none"
+              className="w-full rounded-2xl border border-[var(--border-warm)] px-4 py-2.5 text-sm focus:border-[#b9d9c0] focus:ring-1 focus:ring-[#b9d9c0] outline-none"
               placeholder="เช่น ข้าวมันไก่, แกงจืด"
               value={foodNames}
               onChange={(e) => setFoodNames(e.target.value)}
@@ -3073,41 +3073,41 @@ function EditMealModal({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-500">kcal</label>
+              <label className="text-xs font-bold text-[var(--color-text-muted)]">kcal</label>
               <input
                 data-testid="meal-edit-kcal"
                 type="text"
-                className="w-full rounded-2xl border border-slate-200 px-4 py-2.5 text-sm focus:border-[#b9d9c0] focus:ring-1 focus:ring-[#b9d9c0] outline-none"
+                className="w-full rounded-2xl border border-[var(--border-warm)] px-4 py-2.5 text-sm focus:border-[#b9d9c0] focus:ring-1 focus:ring-[#b9d9c0] outline-none"
                 placeholder="ไม่ระบุ"
                 value={kcal}
                 onChange={(e) => setKcal(e.target.value)}
               />
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-500">โปรตีน (g)</label>
+              <label className="text-xs font-bold text-[var(--color-text-muted)]">โปรตีน (g)</label>
               <input
                 type="text"
-                className="w-full rounded-2xl border border-slate-200 px-4 py-2.5 text-sm focus:border-[#b9d9c0] focus:ring-1 focus:ring-[#b9d9c0] outline-none"
+                className="w-full rounded-2xl border border-[var(--border-warm)] px-4 py-2.5 text-sm focus:border-[#b9d9c0] focus:ring-1 focus:ring-[#b9d9c0] outline-none"
                 placeholder="ไม่ระบุ"
                 value={protein}
                 onChange={(e) => setProtein(e.target.value)}
               />
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-500">คาร์บ (g)</label>
+              <label className="text-xs font-bold text-[var(--color-text-muted)]">คาร์บ (g)</label>
               <input
                 type="text"
-                className="w-full rounded-2xl border border-slate-200 px-4 py-2.5 text-sm focus:border-[#b9d9c0] focus:ring-1 focus:ring-[#b9d9c0] outline-none"
+                className="w-full rounded-2xl border border-[var(--border-warm)] px-4 py-2.5 text-sm focus:border-[#b9d9c0] focus:ring-1 focus:ring-[#b9d9c0] outline-none"
                 placeholder="ไม่ระบุ"
                 value={carbs}
                 onChange={(e) => setCarbs(e.target.value)}
               />
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-500">ไขมัน (g)</label>
+              <label className="text-xs font-bold text-[var(--color-text-muted)]">ไขมัน (g)</label>
               <input
                 type="text"
-                className="w-full rounded-2xl border border-slate-200 px-4 py-2.5 text-sm focus:border-[#b9d9c0] focus:ring-1 focus:ring-[#b9d9c0] outline-none"
+                className="w-full rounded-2xl border border-[var(--border-warm)] px-4 py-2.5 text-sm focus:border-[#b9d9c0] focus:ring-1 focus:ring-[#b9d9c0] outline-none"
                 placeholder="ไม่ระบุ"
                 value={fat}
                 onChange={(e) => setFat(e.target.value)}
@@ -3116,7 +3116,7 @@ function EditMealModal({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-500 block">ช่วงเวลาของมื้อนี้</label>
+            <label className="text-xs font-bold text-[var(--color-text-muted)] block">ช่วงเวลาของมื้อนี้</label>
             <div className="flex flex-wrap gap-1.5">
               {(["breakfast", "lunch", "dinner", "snack", "other"] as const).map((slot) => {
                 const label = getMealSlotLabel(slot);
@@ -3125,7 +3125,7 @@ function EditMealModal({
                     key={slot}
                     type="button"
                     onClick={() => setMealSlot(slot)}
-                    className={`rounded-full px-4 py-1.5 text-xs font-bold transition border ${mealSlot === slot ? "bg-[#17201d] text-white border-[#17201d]" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"}`}
+                    className={`rounded-full px-4 py-1.5 text-xs font-bold transition border ${mealSlot === slot ? "bg-[#17201d] text-white border-[#17201d]" : "bg-white text-[var(--color-text-muted)] border-[var(--border-warm)] hover:bg-[var(--surface-muted)]"}`}
                   >
                     {label}
                   </button>
@@ -3135,22 +3135,22 @@ function EditMealModal({
           </div>
 
           <div className="space-y-1">
-            <label htmlFor="meal-edit-date-input" className="text-xs font-bold text-slate-500">วันที่ของข้อมูลนี้</label>
+            <label htmlFor="meal-edit-date-input" className="text-xs font-bold text-[var(--color-text-muted)]">วันที่ของข้อมูลนี้</label>
             <input
               id="meal-edit-date-input"
               data-testid="meal-edit-date"
               type="date"
               required
-              className="w-full rounded-2xl border border-slate-200 px-4 py-2.5 text-sm focus:border-[#b9d9c0] focus:ring-1 focus:ring-[#b9d9c0] outline-none"
+              className="w-full rounded-2xl border border-[var(--border-warm)] px-4 py-2.5 text-sm focus:border-[#b9d9c0] focus:ring-1 focus:ring-[#b9d9c0] outline-none"
               value={recordedDate}
               onChange={(e) => setRecordedDate(e.target.value)}
             />
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-500">หมายเหตุ ถ้ามี</label>
+            <label className="text-xs font-bold text-[var(--color-text-muted)]">หมายเหตุ ถ้ามี</label>
             <textarea
-              className="w-full rounded-2xl border border-slate-200 px-4 py-2.5 text-sm focus:border-[#b9d9c0] focus:ring-1 focus:ring-[#b9d9c0] outline-none min-h-16"
+              className="w-full rounded-2xl border border-[var(--border-warm)] px-4 py-2.5 text-sm focus:border-[#b9d9c0] focus:ring-1 focus:ring-[#b9d9c0] outline-none min-h-16"
               placeholder="หมายเหตุเพิ่มเติม..."
               value={note}
               onChange={(e) => setNote(e.target.value)}
@@ -3162,7 +3162,7 @@ function EditMealModal({
               type="button"
               disabled={saving}
               onClick={onClose}
-              className="rounded-full border border-slate-200 px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-50 transition"
+              className="rounded-full border border-[var(--border-warm)] px-5 py-2.5 text-sm font-bold text-[var(--color-text-muted)] hover:bg-[var(--surface-muted)] transition"
             >
               ยกเลิก
             </button>
@@ -3195,39 +3195,39 @@ function WeeklyReviewCard({ review }: { review: WeeklyReview }) {
         <span className="text-xl">📈</span>
         <div>
           <h3 className="text-sm font-bold text-[var(--foreground)]">แนวโน้ม Recovery 7 วัน</h3>
-          <p className="text-[10px] text-slate-400">ประเมินความพร้อมและแนวโน้มการฟื้นตัวสะสม</p>
+          <p className="text-[10px] text-[var(--color-text-soft)]">ประเมินความพร้อมและแนวโน้มการฟื้นตัวสะสม</p>
         </div>
       </div>
 
       {/* Dynamic parameters for recovery trend */}
-      <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs bg-slate-50/70 p-3 rounded-2xl border border-slate-100">
-        <div className="flex justify-between border-b border-slate-100/80 pb-1">
-          <span className="text-slate-400">ฟื้นตัวเฉลี่ย:</span>
-          <span className="font-bold text-slate-700">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs bg-[var(--surface-muted)]/70 p-3 rounded-2xl border border-[var(--border-warm)]">
+        <div className="flex justify-between border-b border-[var(--border-warm)]/80 pb-1">
+          <span className="text-[var(--color-text-soft)]">ฟื้นตัวเฉลี่ย:</span>
+          <span className="font-bold text-[var(--foreground)]">
             {review.avgRecoveryScore != null ? `${review.avgRecoveryScore}/100` : "–"}
           </span>
         </div>
-        <div className="flex justify-between border-b border-slate-100/80 pb-1">
-          <span className="text-slate-400">โหลดสะสม:</span>
+        <div className="flex justify-between border-b border-[var(--border-warm)]/80 pb-1">
+          <span className="text-[var(--color-text-soft)]">โหลดสะสม:</span>
           <span className={`font-bold ${review.loadLevel === "สูง" || review.loadLevel === "สูงมาก" ? "text-[#9b742c]" : "text-[var(--color-success)]"}`}>
             {review.avgLoadScore != null ? `${review.avgLoadScore}/100 · ` : ""}{review.loadLevel}
           </span>
         </div>
-        <div className="flex justify-between border-b border-slate-100/80 pb-1">
-          <span className="text-slate-400">การนอน:</span>
+        <div className="flex justify-between border-b border-[var(--border-warm)]/80 pb-1">
+          <span className="text-[var(--color-text-soft)]">การนอน:</span>
           <span className={`font-bold ${review.sleepDebtLevel === "สูง" ? "text-[var(--status-rest)]" : review.sleepDebtLevel === "ปานกลาง" ? "text-[#9b742c]" : "text-[var(--color-success)]"}`}>
             {review.avgSleepHours != null ? `${review.avgSleepHours} ชม.` : "–"}{review.avgSleepScore != null ? ` · ${review.avgSleepScore}/100` : ""}
           </span>
         </div>
-        <div className="flex justify-between border-b border-slate-100/80 pb-1">
-          <span className="text-slate-400">สารอาหาร:</span>
-          <span className="font-bold text-slate-700">
+        <div className="flex justify-between border-b border-[var(--border-warm)]/80 pb-1">
+          <span className="text-[var(--color-text-soft)]">สารอาหาร:</span>
+          <span className="font-bold text-[var(--foreground)]">
             {review.avgFuelScore != null ? `${getRecoveryAxisLabel("fuel", review.avgFuelScore)} · ${review.avgFuelScore}/100` : "–"}
           </span>
         </div>
         <div className="flex justify-between col-span-2 pt-0.5">
-          <span className="text-slate-400">อาการเจ็บ:</span>
-          <span className="font-bold text-slate-700">{review.painStatusText}</span>
+          <span className="text-[var(--color-text-soft)]">อาการเจ็บ:</span>
+          <span className="font-bold text-[var(--foreground)]">{review.painStatusText}</span>
         </div>
       </div>
 
@@ -3237,34 +3237,34 @@ function WeeklyReviewCard({ review }: { review: WeeklyReview }) {
 
       {/* Stats Summary Grid (Collapsible/smaller visual weight) */}
       <div className="border-t border-[var(--border-warm)] pt-3.5 space-y-2">
-        <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400">ตัวเลขสรุปรวม 7 วัน</p>
+        <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--color-text-soft)]">ตัวเลขสรุปรวม 7 วัน</p>
         <div className="grid grid-cols-4 gap-1.5 text-center">
-          <div className="rounded-xl bg-slate-50/50 p-2">
-            <p className="text-[9px] text-slate-400">วิ่งรวม</p>
-            <p className="text-xs font-bold text-slate-700 mt-0.5">{review.runningKmTotal > 0 ? `${review.runningKmTotal} กม.` : "–"}</p>
-            <p className="text-[9px] text-slate-400 mt-0.5">{review.runCount} ครั้ง</p>
+          <div className="rounded-xl bg-[var(--surface-muted)]/50 p-2">
+            <p className="text-[9px] text-[var(--color-text-soft)]">วิ่งรวม</p>
+            <p className="text-xs font-bold text-[var(--foreground)] mt-0.5">{review.runningKmTotal > 0 ? `${review.runningKmTotal} กม.` : "–"}</p>
+            <p className="text-[9px] text-[var(--color-text-soft)] mt-0.5">{review.runCount} ครั้ง</p>
           </div>
-          <div className="rounded-xl bg-slate-50/50 p-2">
-            <p className="text-[9px] text-slate-400">เวท</p>
-            <p className="text-xs font-bold text-slate-700 mt-0.5">{review.strengthCount > 0 ? `${review.strengthCount} ครั้ง` : "–"}</p>
-            <p className="text-[9px] text-slate-400 mt-0.5">{review.walkCount > 0 ? `เดิน ${review.walkCount}` : "–"}</p>
+          <div className="rounded-xl bg-[var(--surface-muted)]/50 p-2">
+            <p className="text-[9px] text-[var(--color-text-soft)]">เวท</p>
+            <p className="text-xs font-bold text-[var(--foreground)] mt-0.5">{review.strengthCount > 0 ? `${review.strengthCount} ครั้ง` : "–"}</p>
+            <p className="text-[9px] text-[var(--color-text-soft)] mt-0.5">{review.walkCount > 0 ? `เดิน ${review.walkCount}` : "–"}</p>
           </div>
-          <div className="rounded-xl bg-slate-50/50 p-2">
-            <p className="text-[9px] text-slate-400">นอนเฉลี่ย</p>
-            <p className="text-xs font-bold text-slate-700 mt-0.5">{review.avgSleepHours != null ? `${review.avgSleepHours} ชม.` : "–"}</p>
-            <p className="text-[9px] text-slate-400 mt-0.5">{review.sleepNights} คืน</p>
+          <div className="rounded-xl bg-[var(--surface-muted)]/50 p-2">
+            <p className="text-[9px] text-[var(--color-text-soft)]">นอนเฉลี่ย</p>
+            <p className="text-xs font-bold text-[var(--foreground)] mt-0.5">{review.avgSleepHours != null ? `${review.avgSleepHours} ชม.` : "–"}</p>
+            <p className="text-[9px] text-[var(--color-text-soft)] mt-0.5">{review.sleepNights} คืน</p>
             {(review.readinessCount > 0 || review.avgReadiness != null) && (
-              <p className="text-[8px] text-slate-400 mt-0.5 leading-tight">
+              <p className="text-[8px] text-[var(--color-text-soft)] mt-0.5 leading-tight">
                 {review.readinessCount > 0
                   ? `Readiness เฉลี่ย ${review.avgReadiness} (${review.readinessCount} วัน)`
                   : `Readiness ${readinessLabel}`}
               </p>
             )}
           </div>
-          <div className="rounded-xl bg-slate-50/50 p-2">
-            <p className="text-[9px] text-slate-400">อาหาร</p>
-            <p className="text-xs font-bold text-slate-700 mt-0.5">{review.mealCount > 0 ? `${review.mealCount} มื้อ` : "–"}</p>
-            <p className="text-[9px] text-slate-400 mt-0.5">เจ็บ {review.activePainDays} วัน</p>
+          <div className="rounded-xl bg-[var(--surface-muted)]/50 p-2">
+            <p className="text-[9px] text-[var(--color-text-soft)]">อาหาร</p>
+            <p className="text-xs font-bold text-[var(--foreground)] mt-0.5">{review.mealCount > 0 ? `${review.mealCount} มื้อ` : "–"}</p>
+            <p className="text-[9px] text-[var(--color-text-soft)] mt-0.5">เจ็บ {review.activePainDays} วัน</p>
           </div>
         </div>
       </div>
@@ -3276,7 +3276,7 @@ function WeeklyReviewCard({ review }: { review: WeeklyReview }) {
             <div className="space-y-1">
               <p className="font-bold text-[var(--primary-strong)]">✓ จุดที่ดี</p>
               {review.highlights.slice(0, 3).map((h, i) => (
-                <p key={i} className="text-slate-600">· {h}</p>
+                <p key={i} className="text-[var(--color-text-muted)]">· {h}</p>
               ))}
             </div>
           )}

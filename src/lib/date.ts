@@ -25,11 +25,6 @@ export function dateKeyToRecordedAt(dateKey: string): string {
   return `${dateKey}T12:00:00+07:00`;
 }
 
-export function todayISO() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-
 export function formatThaiDate(date = new Date()) {
   return new Intl.DateTimeFormat("th-TH", {
     weekday: "long",

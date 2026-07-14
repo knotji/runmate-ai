@@ -181,7 +181,7 @@ function UniversalIntakeUploader({
         <input
           key={inputKey}
           type="file"
-          className="sr-only"
+          className="hidden"
           accept="image/*,application/pdf,.csv,text/csv"
           data-testid="universal-intake-file-input"
           onChange={(event) => handleFile(event.target.files?.[0] ?? null)}
@@ -2804,7 +2804,7 @@ function OtherWorkoutForm({
               accept="image/*"
               multiple
               aria-label="เพิ่มรูปกิจกรรม"
-              className="sr-only"
+              className="hidden"
               onChange={handleFileChange}
             />
           </>

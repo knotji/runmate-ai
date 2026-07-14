@@ -252,7 +252,7 @@ export function ImageUploader({
         <input
           key={inputKey}
           type="file"
-          className="sr-only"
+          className="hidden"
           accept="image/*"
           multiple={maxFiles > 1}
           onChange={(event) => {
