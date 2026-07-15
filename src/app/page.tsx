@@ -365,20 +365,18 @@ export default function TodayPage() {
   const signalsSlot = coachCtx && !loading && dailyReadinessForSignals ? (
     <details className="group" data-testid="signals-details">
       <summary className="list-none cursor-pointer">
-        <div className="flex items-center gap-2">
-          <div className="flex flex-1 flex-wrap items-center gap-2.5">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-rm-muted">สัญญาณวันนี้</span>
-            <TodaySignalCircles
-              signals={dailyReadinessForSignals.signals}
-              sickHardStop={coachCtx.sickRiskLevel === "hard_stop"}
-              hasActivePain={coachCtx.activePain ?? false}
-            />
-          </div>
+        <div className="mb-1.5 flex items-center justify-between gap-2">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-rm-muted">สัญญาณวันนี้</span>
           <span className="shrink-0 text-[10px] font-semibold text-[var(--color-text-soft)]">
-            <span className="group-open:hidden">ดูสัญญาณทั้งหมด ⌄</span>
+            <span className="group-open:hidden">ดูรายละเอียด ⌄</span>
             <span className="hidden group-open:inline">ซ่อน ⌄</span>
           </span>
         </div>
+        <TodaySignalCircles
+          signals={dailyReadinessForSignals.signals}
+          sickHardStop={coachCtx.sickRiskLevel === "hard_stop"}
+          hasActivePain={coachCtx.activePain ?? false}
+        />
       </summary>
       <div className="mt-1.5">
         <ReadinessSignalBars signals={dailyReadinessForSignals.signals} />
