@@ -444,7 +444,7 @@ export function CoachChat() {
                 <div
                   className={`rounded-3xl px-4 py-3 text-sm leading-6 shadow-xs ${
                     isUser
-                      ? "bg-[var(--primary)] text-[#fff5f0] max-w-[85%]"
+                      ? "bg-[var(--primary)] text-[#f5f8ff] max-w-[85%]"
                       : "bg-[var(--surface-muted)]/90 text-[var(--foreground)] max-w-[90%]"
                   }`}
                 >
@@ -506,7 +506,7 @@ export function CoachChat() {
                   onClick={() => setImageIntent(opt.key)}
                   className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-all ${
                     imageIntent === opt.key
-                      ? "border-[var(--primary)] bg-[var(--primary)] text-[#fff5f0]"
+                      ? "border-[var(--primary)] bg-[var(--primary)] text-[#f5f8ff]"
                       : "border-[var(--border-warm)] bg-[var(--surface-muted)] text-[var(--muted-text)] hover:bg-[var(--primary-soft)]"
                   }`}
                 >
@@ -537,7 +537,7 @@ export function CoachChat() {
           placeholder={previewUrl ? "ถามต่อเกี่ยวกับรูปนี้ หรือกดส่ง..." : "ถามโค้ชได้เลย..."}
         />
         <LoadingButton
-          className="rounded-2xl bg-[var(--primary)] px-5 py-3 text-sm font-bold text-[#fff5f0] transition-all disabled:bg-[var(--surface-muted)] disabled:text-[var(--muted-text)] disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-2xl bg-[var(--primary)] px-5 py-3 text-sm font-bold text-[#f5f8ff] transition-all disabled:bg-[var(--surface-muted)] disabled:text-[var(--muted-text)] disabled:cursor-not-allowed disabled:opacity-60"
           type="submit"
           loading={loading}
           loadingText="กำลังตอบ..."

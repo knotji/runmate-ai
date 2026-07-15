@@ -450,7 +450,7 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
           data-testid="auto-sync-toggle"
           className={`shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold transition-colors ${
             autoSyncEnabled
-              ? "bg-[var(--primary)] text-[#fff5f0]"
+              ? "bg-[var(--primary)] text-[#f5f8ff]"
               : "bg-[var(--surface)] border border-[var(--border-warm)] text-[var(--foreground)]"
           }`}
         >
@@ -567,7 +567,7 @@ export function ProfileHistoryAnalyzer({ onProfileUpdated }: { onProfileUpdated?
                               <button
                                 type="button"
                                 onClick={() => void saveInlineEdit(item.key)}
-                                className="rounded-full bg-[var(--primary)] px-3.5 py-1.5 text-[11px] font-bold text-[#fff5f0]"
+                                className="rounded-full bg-[var(--primary)] px-3.5 py-1.5 text-[11px] font-bold text-[#f5f8ff]"
                               >
                                 บันทึก
                               </button>

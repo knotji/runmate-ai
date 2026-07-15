@@ -91,7 +91,7 @@ export function PostRunAnalysisCard({ workout }: { workout: WorkoutAnalysis }) {
           onClick={analyze}
           loading={loading}
           loadingText="กำลังวิเคราะห์..."
-          className="shrink-0 rounded-full bg-[var(--primary)] px-4 py-2 text-xs font-bold text-[#fff5f0] disabled:opacity-50"
+          className="shrink-0 rounded-full bg-[var(--primary)] px-4 py-2 text-xs font-bold text-[#f5f8ff] disabled:opacity-50"
         >
           {analysis ? "วิเคราะห์ใหม่" : "วิเคราะห์"}
         </LoadingButton>

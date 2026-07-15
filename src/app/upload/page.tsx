@@ -1077,7 +1077,7 @@ export default function UploadPage() {
                   setDateSelectionMode("today");
                   setSelectedDateKey(todayBangkokDateKey());
                 }}
-                className={`rounded-xl px-2.5 py-1.5 transition-colors ${dateSelectionMode === "today" ? "bg-[var(--primary)] text-[#fff5f0]" : "text-[var(--muted-text)]"}`}
+                className={`rounded-xl px-2.5 py-1.5 transition-colors ${dateSelectionMode === "today" ? "bg-[var(--primary)] text-[#f5f8ff]" : "text-[var(--muted-text)]"}`}
               >
                 วันนี้
               </button>
@@ -1087,14 +1087,14 @@ export default function UploadPage() {
                   setDateSelectionMode("yesterday");
                   setSelectedDateKey(yesterdayBangkokDateKey());
                 }}
-                className={`rounded-xl px-2.5 py-1.5 transition-colors ${dateSelectionMode === "yesterday" ? "bg-[var(--primary)] text-[#fff5f0]" : "text-[var(--muted-text)]"}`}
+                className={`rounded-xl px-2.5 py-1.5 transition-colors ${dateSelectionMode === "yesterday" ? "bg-[var(--primary)] text-[#f5f8ff]" : "text-[var(--muted-text)]"}`}
               >
                 เมื่อวาน
               </button>
               <button
                 type="button"
                 onClick={() => setDateSelectionMode("custom")}
-                className={`rounded-xl px-2.5 py-1.5 transition-colors ${dateSelectionMode === "custom" ? "bg-[var(--primary)] text-[#fff5f0]" : "text-[var(--muted-text)]"}`}
+                className={`rounded-xl px-2.5 py-1.5 transition-colors ${dateSelectionMode === "custom" ? "bg-[var(--primary)] text-[#f5f8ff]" : "text-[var(--muted-text)]"}`}
               >
                 เลือกวันที่
               </button>
@@ -1142,7 +1142,7 @@ export default function UploadPage() {
                   key={m}
                   type="button"
                   onClick={() => setMealType(m)}
-                  className={`rounded-full px-3 py-1.5 text-sm font-semibold transition-colors ${mealType === m ? "bg-[var(--primary)] text-[#fff5f0]" : "bg-[var(--surface-muted)] text-[var(--muted-text)] hover:bg-[var(--primary-soft)]"}`}
+                  className={`rounded-full px-3 py-1.5 text-sm font-semibold transition-colors ${mealType === m ? "bg-[var(--primary)] text-[#f5f8ff]" : "bg-[var(--surface-muted)] text-[var(--muted-text)] hover:bg-[var(--primary-soft)]"}`}
                 >
                   {MEAL_TYPE_LABELS[m]}
                 </button>
@@ -1167,7 +1167,7 @@ export default function UploadPage() {
                     setSaveStatus("idle");
                     setSaveFeedback("");
                   }}
-                  className={`rounded-full px-3 py-1.5 text-sm font-semibold transition-colors ${workoutSubtype === sub ? "bg-[var(--primary)] text-[#fff5f0]" : "bg-[var(--surface-muted)] text-[var(--muted-text)] hover:bg-[var(--primary-soft)]"}`}
+                  className={`rounded-full px-3 py-1.5 text-sm font-semibold transition-colors ${workoutSubtype === sub ? "bg-[var(--primary)] text-[#f5f8ff]" : "bg-[var(--surface-muted)] text-[var(--muted-text)] hover:bg-[var(--primary-soft)]"}`}
                 >
                   {sub === "run" ? "วิ่ง" : sub === "strength" ? "เวท" : sub === "walk" ? "เดิน" : "อื่น ๆ"}
                 </button>
@@ -1365,7 +1365,7 @@ export default function UploadPage() {
                 loadingText="กำลังบันทึก..."
                 disabled={saveStatus === "saving"}
                 onClick={() => void store(result)}
-                className="rounded-full bg-[var(--primary)] px-5 py-2.5 text-sm font-bold text-[#fff5f0] transition hover:bg-[var(--primary-strong)] disabled:opacity-60"
+                className="rounded-full bg-[var(--primary)] px-5 py-2.5 text-sm font-bold text-[#f5f8ff] transition hover:bg-[var(--primary-strong)] disabled:opacity-60"
               >
                 บันทึกผลการนอน
               </LoadingButton>
@@ -2168,7 +2168,7 @@ function MealReviewCard({
                   }}
                   className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors flex items-center gap-1 ${
                     isSelected
-                      ? "bg-[var(--primary)] text-[#fff5f0] shadow-sm font-bold"
+                      ? "bg-[var(--primary)] text-[#f5f8ff] shadow-sm font-bold"
                       : "bg-[var(--surface-muted)] text-[var(--color-text-muted)] hover:bg-[var(--surface-muted)]"
                   }`}
                 >
