@@ -361,6 +361,7 @@ export function CoachChat() {
           {buildQuickQuestions(raceQuickContext, recoveryCtx).map((item) => (
             <button
               key={item.label}
+              data-testid="coach-quick-question"
               className="whitespace-nowrap rounded-full border border-[var(--border-warm)] bg-[var(--surface-muted)] px-3 py-2 text-sm font-semibold text-[var(--foreground)] transition hover:bg-[var(--primary-soft)]"
               onClick={() => void ask(item.prompt)}
             >

@@ -10,7 +10,7 @@ export default function CoachPage() {
         <div className="flex items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-extrabold text-[var(--foreground)]">โค้ชพร้อมช่วยวันนี้</h2>
-            <p className="mt-0.5 text-sm text-[var(--muted-text)]">ใช้ข้อมูล Report เป็นพื้นหลัง · อัปเดตทุกครั้งที่บันทึกข้อมูล</p>
+            <p className="mt-0.5 text-sm text-[var(--muted-text)]">อัปเดตทุกครั้งที่บันทึกข้อมูลใหม่</p>
           </div>
           <Link href="/pain" className="btn-danger-soft shrink-0 px-3 py-2 text-xs font-bold">
             แจ้งเจ็บ

@@ -5,7 +5,7 @@ import { buildCoachContextFromSupabase, type CoachContext } from "@/lib/buildCoa
 import { getRunMateReadinessLabel } from "@/lib/readinessV2";
 import { formatAxisScore, getRecoveryAxisLabel } from "@/lib/recoverySystem";
 import type { RunMateRecoverySystem } from "@/lib/recoverySystem";
-import { getTodayTrainingGuardrail, getGuardrailSuggestedChips } from "@/lib/trainingGuardrails";
+import { getTodayTrainingGuardrail } from "@/lib/trainingGuardrails";
 
 export function CoachContextDashboard() {
   const [context, setContext] = useState<CoachContext | null>(null);
@@ -97,7 +97,6 @@ export function CoachContextDashboard() {
     : "rgba(255,107,107,0.35)";
 
   const guardrail = getTodayTrainingGuardrail(recSys, context.activePain, context.painRecoveryStatus);
-  const suggestedChips = getGuardrailSuggestedChips(guardrail);
   const contextChips = buildContextChips(context, recSys);
   const hasUsefulData = context.sleep7d.length > 0 || context.workouts7d.length > 0 ||
     context.recentPainLogs.length > 0 || Boolean(context.raceGoal);
@@ -175,24 +174,6 @@ export function CoachContextDashboard() {
       ) : !hasUsefulData ? (
         <p className="mt-2.5 text-xs text-[var(--muted-text)]">ยังมีข้อมูลไม่มาก ลองอัปโหลด Report เพิ่ม</p>
       ) : null}
-
-      {/* Suggested question chips — capped to 2 here; the full interactive set lives in CoachChat below */}
-      {hasUsefulData && suggestedChips.length > 0 && (
-        <div className="mt-2.5">
-          <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--label-color)]">คำถามที่เหมาะกับวันนี้</p>
-          <div className="flex flex-wrap gap-1.5">
-            {suggestedChips.slice(0, 2).map((chip) => (
-              <span
-                key={chip.label}
-                className="rounded-full border border-rm-border bg-rm-surface px-2.5 py-1 text-xs font-semibold text-rm-text cursor-default"
-                data-testid="coach-suggested-chip"
-              >
-                {chip.label}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Details toggle */}
       <details className="group mt-2.5 cursor-pointer">

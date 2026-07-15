@@ -283,8 +283,8 @@ test("Guardrail 6: Coach page shows suggested question chips", async ({ page }) 
 
   await expect(page.getByTestId("coach-context-dashboard")).toBeVisible();
 
-  // Suggested chips should appear
-  const chips = page.getByTestId("coach-suggested-chip");
+  // Interactive quick-question chips should appear in the chat section
+  const chips = page.getByTestId("coach-quick-question");
   const count = await chips.count();
   expect(count).toBeGreaterThanOrEqual(2);
 });
