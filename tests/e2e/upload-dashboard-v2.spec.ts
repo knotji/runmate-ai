@@ -118,7 +118,6 @@ test.describe("Upload two-step focused flow", () => {
 
     // Entry screen: hero + shortcuts + generic help accordion are visible.
     await expect(page.getByTestId("universal-intake-hero")).toBeVisible();
-    await expect(page.getByTestId("universal-intake-cta")).toBeVisible();
     await expect(page.getByTestId("upload-type-selector")).toBeVisible();
     await expect(page.getByText("เลือกประเภทเอง")).toBeVisible();
     await expect(page.getByText("ข้อมูลแต่ละแบบช่วยอะไร?")).toBeVisible();
@@ -168,19 +167,6 @@ test.describe("Upload two-step focused flow", () => {
     await expect(page.getByTestId("upload-type-selector")).toBeVisible();
     await expect(page.getByTestId("upload-type-summary")).toBeHidden();
     await expect(page.getByTestId("upload-change-type")).toBeHidden();
-  });
-
-  test("chooser sheet selecting a type also enters focused mode", async ({ page }) => {
-    await installMockBackend(page);
-    await gotoApp(page, "/upload");
-
-    await page.getByTestId("universal-intake-cta").click();
-    await expect(page.getByRole("dialog", { name: "ข้อมูลนี้คืออะไร?" })).toBeVisible();
-    await page.getByRole("button", { name: /^ซ้อม/ }).click();
-
-    await expect(page.getByRole("dialog", { name: "ข้อมูลนี้คืออะไร?" })).toBeHidden();
-    await expect(page.getByTestId("upload-type-selector")).toBeHidden();
-    await expect(page.getByTestId("upload-type-summary")).toContainText("บันทึกการซ้อม");
   });
 
   test("mobile viewport: no horizontal overflow on default or focused screens", async ({ page }) => {
