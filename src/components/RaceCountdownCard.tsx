@@ -1,11 +1,29 @@
 import { daysUntil, formatDate, formatRaceDisplayName } from "@/lib/date";
 import type { RaceGoal } from "@/types/race";
 
-export function RaceCountdownCard({ goal, phase }: { goal?: RaceGoal | null; phase?: string }) {
+export function RaceCountdownCard({
+  goal,
+  phase,
+  weeksRemaining,
+  planStartLabel,
+  updatedLabel,
+}: {
+  goal?: RaceGoal | null;
+  phase?: string;
+  weeksRemaining?: number | null;
+  planStartLabel?: string | null;
+  updatedLabel?: string | null;
+}) {
   const days = daysUntil(goal?.raceDate);
 
   const racePassed = days != null && days < 0;
   const raceToday = days === 0;
+
+  const facts = [
+    weeksRemaining != null ? `เหลือ ${weeksRemaining} สัปดาห์` : null,
+    planStartLabel ? `เริ่มแผน ${planStartLabel}` : null,
+    updatedLabel ? `อัปเดต ${updatedLabel}` : null,
+  ].filter((f): f is string => Boolean(f));
 
   return (
     <section className="card p-5">
@@ -42,6 +60,15 @@ export function RaceCountdownCard({ goal, phase }: { goal?: RaceGoal | null; pha
           )}
         </div>
       </div>
+      {facts.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-1.5 border-t border-dashed border-[var(--border-warm)] pt-3" data-testid="race-countdown-facts">
+          {facts.map((fact) => (
+            <span key={fact} className="rounded-full bg-[var(--surface-muted)] px-2.5 py-1 text-[10px] font-bold text-[var(--muted-text)]">
+              {fact}
+            </span>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
