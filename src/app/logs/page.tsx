@@ -307,15 +307,17 @@ export default function ReportPage() {
         />
       ) : (
         <>
-          <details className="group" data-testid="report-info-hint">
-            <summary className="list-none cursor-pointer px-0.5 text-[11px] font-semibold text-[var(--color-text-soft)] flex items-center gap-1">
-              <span>ⓘ Report คืออะไร</span>
-              <span className="transition-transform group-open:rotate-180">▾</span>
-            </summary>
-            <p className="mt-1.5 rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface)]/70 px-4 py-3 text-xs leading-5 text-[var(--color-text-muted)] shadow-sm">
-              Report คือข้อมูลจริงจาก Upload และการบันทึก ส่วนแชทกับโค้ชจะไม่ถูกเพิ่มเข้าหน้านี้อัตโนมัติ
-            </p>
-          </details>
+          <div className="flex justify-end">
+            <details className="group" data-testid="report-info-hint">
+              <summary className="list-none cursor-pointer inline-flex w-fit items-center gap-1 rounded-full bg-[var(--surface-muted)] px-2 py-1 text-[10px] font-bold text-[var(--color-text-soft)]">
+                <span>ⓘ Report คืออะไร</span>
+                <span className="transition-transform group-open:rotate-180">▾</span>
+              </summary>
+              <p className="mt-1.5 w-64 max-w-[80vw] rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface)]/70 px-4 py-3 text-xs leading-5 text-[var(--color-text-muted)] shadow-sm">
+                Report คือข้อมูลจริงจาก Upload และการบันทึก ส่วนแชทกับโค้ชจะไม่ถูกเพิ่มเข้าหน้านี้อัตโนมัติ
+              </p>
+            </details>
+          </div>
 
           {/* Calendar navigation */}
           <CalendarNav
@@ -342,22 +344,22 @@ export default function ReportPage() {
           >
             {reportMode === "week" ? (
               <>
-                {/* 2. Selected period summary */}
-                {weekSummary && (
-                  <>
-                    <p className="px-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--color-text-muted)]">สรุปสัปดาห์นี้</p>
-                    <PeriodMetrics totals={weekSummary.totals} averages={weekSummary.averages} />
-                  </>
-                )}
-
-                {/* 3. Insight 7 วันล่าสุด */}
-                <RollingSevenDayInsight
-                  dashboard={dashboard}
-                  proteinTarget={pTarget}
-                  items={items}
-                  cutoff={dashboardCutoff}
-                  review={weeklyReview}
-                />
+                {/* 2+3. Selected period summary, with rolling 7d insight nested as a sub-strip */}
+                <div className="rounded-3xl border border-rm-primary/20 bg-rm-primary-soft/40 p-3 shadow-sm space-y-2">
+                  {weekSummary && (
+                    <>
+                      <p className="px-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--color-text-muted)]">สรุปสัปดาห์นี้</p>
+                      <PeriodMetrics totals={weekSummary.totals} averages={weekSummary.averages} />
+                    </>
+                  )}
+                  <RollingSevenDayInsight
+                    dashboard={dashboard}
+                    proteinTarget={pTarget}
+                    items={items}
+                    cutoff={dashboardCutoff}
+                    review={weeklyReview}
+                  />
+                </div>
 
                 {/* 4. Goal progress */}
                 {profile?.goalProfile && weeklyReview && (() => {
@@ -390,22 +392,22 @@ export default function ReportPage() {
               </>
             ) : (
               <>
-                {/* 2. Selected period summary */}
-                {monthSummary && (
-                  <>
-                    <p className="px-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--color-text-muted)]">สรุปเดือนนี้</p>
-                    <PeriodMetrics totals={monthSummary.totals} averages={monthSummary.averages} />
-                  </>
-                )}
-
-                {/* 3. Insight 7 วันล่าสุด */}
-                <RollingSevenDayInsight
-                  dashboard={dashboard}
-                  proteinTarget={pTarget}
-                  items={items}
-                  cutoff={dashboardCutoff}
-                  review={weeklyReview}
-                />
+                {/* 2+3. Selected period summary, with rolling 7d insight nested as a sub-strip */}
+                <div className="rounded-3xl border border-rm-primary/20 bg-rm-primary-soft/40 p-3 shadow-sm space-y-2">
+                  {monthSummary && (
+                    <>
+                      <p className="px-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--color-text-muted)]">สรุปเดือนนี้</p>
+                      <PeriodMetrics totals={monthSummary.totals} averages={monthSummary.averages} />
+                    </>
+                  )}
+                  <RollingSevenDayInsight
+                    dashboard={dashboard}
+                    proteinTarget={pTarget}
+                    items={items}
+                    cutoff={dashboardCutoff}
+                    review={weeklyReview}
+                  />
+                </div>
 
                 {/* 4. Goal progress */}
                 {profile?.goalProfile && weeklyReview && (() => {
@@ -608,15 +610,13 @@ function PeriodMetrics({
     { label: "ความพร้อม", value: averages.readiness != null ? `${averages.readiness}` : "—" },
   ];
   return (
-    <div className="rounded-3xl border border-rm-primary/20 bg-rm-primary-soft/40 p-3 shadow-sm">
-      <div className="grid grid-cols-4 divide-x divide-[var(--color-border-soft)]" data-testid="period-metrics">
-        {metrics.map((m) => (
-          <div key={m.label} className="px-1 text-center">
-            <p className="text-[10px] text-rm-muted">{m.label}</p>
-            <p className="mt-0.5 text-sm font-bold text-rm-text">{m.value}</p>
-          </div>
-        ))}
-      </div>
+    <div className="grid grid-cols-4 divide-x divide-[var(--color-border-soft)]" data-testid="period-metrics">
+      {metrics.map((m) => (
+        <div key={m.label} className="px-1 text-center">
+          <p className="text-[10px] text-rm-muted">{m.label}</p>
+          <p className="mt-0.5 text-sm font-bold text-rm-text">{m.value}</p>
+        </div>
+      ))}
     </div>
   );
 }
@@ -636,7 +636,7 @@ function DaySlot({ day }: { day: import("@/lib/reportSummary").DailyReportItem }
           <span className={`text-xs ${day.isToday ? "font-bold text-[var(--foreground)]" : "font-semibold text-[var(--color-text-muted)]"}`}>
             {day.weekdayLabel}
             {day.isToday && (
-              <span className="ml-2 rounded-full bg-[var(--primary)] px-2 py-0.5 text-[10px] text-[#fff5f0]">วันนี้</span>
+              <span className="ml-2 rounded-full bg-[var(--primary)] px-2 py-0.5 text-[10px] text-[#f5f8ff]">วันนี้</span>
             )}
           </span>
           <span className="text-[10px] text-[var(--color-text-soft)]">ยังไม่มีข้อมูล</span>
@@ -656,7 +656,7 @@ function DaySlot({ day }: { day: import("@/lib/reportSummary").DailyReportItem }
           <span className="text-xs font-bold text-[var(--foreground)]">
             {day.weekdayLabel}
             {day.isToday && (
-              <span className="ml-2 rounded-full bg-[var(--primary)] px-2 py-0.5 text-[10px] text-[#fff5f0]">วันนี้</span>
+              <span className="ml-2 rounded-full bg-[var(--primary)] px-2 py-0.5 text-[10px] text-[#f5f8ff]">วันนี้</span>
             )}
           </span>
           <span className="shrink-0 text-[10px] font-bold text-[var(--primary)]">
@@ -797,7 +797,7 @@ function RollingSevenDayInsight({
     : null;
 
   return (
-    <details className="group rounded-3xl border border-[var(--color-border-soft)] bg-[var(--surface)] p-4 shadow-sm" data-testid="rolling-insight">
+    <details className="group rounded-2xl bg-[var(--surface)]/70 p-3" data-testid="rolling-insight">
       <summary className="list-none cursor-pointer">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -3135,7 +3135,7 @@ function EditMealModal({
                     key={slot}
                     type="button"
                     onClick={() => setMealSlot(slot)}
-                    className={`rounded-full px-4 py-1.5 text-xs font-bold transition border ${mealSlot === slot ? "bg-[var(--primary)] text-[#fff5f0] border-[var(--primary)]" : "bg-[var(--surface)] text-[var(--color-text-muted)] border-[var(--border-warm)] hover:bg-[var(--surface-muted)]"}`}
+                    className={`rounded-full px-4 py-1.5 text-xs font-bold transition border ${mealSlot === slot ? "bg-[var(--primary)] text-[#f5f8ff] border-[var(--primary)]" : "bg-[var(--surface)] text-[var(--color-text-muted)] border-[var(--border-warm)] hover:bg-[var(--surface-muted)]"}`}
                   >
                     {label}
                   </button>
@@ -3180,7 +3180,7 @@ function EditMealModal({
               type="submit"
               loading={saving}
               loadingText="กำลังบันทึก..."
-              className="rounded-full bg-[var(--primary)] px-5 py-2.5 text-sm font-bold text-[#fff5f0] transition hover:bg-[var(--primary-strong)]"
+              className="rounded-full bg-[var(--primary)] px-5 py-2.5 text-sm font-bold text-[#f5f8ff] transition hover:bg-[var(--primary-strong)]"
             >
               บันทึกการแก้ไข
             </LoadingButton>
@@ -3309,7 +3309,7 @@ function WeeklyReviewCard({ review }: { review: WeeklyReview }) {
           </div>
           {review.nextFocus.map((f, i) => (
             <div key={i} className="flex items-start gap-2">
-              <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[var(--recovery-blue)] text-[9px] font-bold text-[#fff5f0]">
+              <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[var(--recovery-blue)] text-[9px] font-bold text-[#f5f8ff]">
                 {i + 1}
               </span>
               <p className="text-xs font-semibold text-[var(--color-text)] leading-5">{f}</p>

@@ -410,7 +410,7 @@ export function ProfileSetupForm({
                 key={t}
                 type="button"
                 onClick={() => update("coachingTone", t)}
-                className={`rounded-2xl border py-2 text-sm font-semibold ${profile.coachingTone === t ? "border-[var(--primary)] bg-[var(--primary)] text-[#fff5f0]" : "border-[var(--border-warm)] text-[var(--color-text-muted)]"}`}
+                className={`rounded-2xl border py-2 text-sm font-semibold ${profile.coachingTone === t ? "border-[var(--primary)] bg-[var(--primary)] text-[#f5f8ff]" : "border-[var(--border-warm)] text-[var(--color-text-muted)]"}`}
               >
                 {toneLabel(t)}
               </button>
@@ -520,7 +520,7 @@ export function ProfileSetupForm({
                     key={d}
                     type="button"
                     onClick={() => update("targetDistance", d)}
-                    className={`rounded-full border px-3 py-1 text-xs font-semibold ${profile.targetDistance === d ? "border-[var(--primary)] bg-[var(--primary)] text-[#fff5f0]" : "border-[var(--border-warm)] text-[var(--color-text-muted)]"}`}
+                    className={`rounded-full border px-3 py-1 text-xs font-semibold ${profile.targetDistance === d ? "border-[var(--primary)] bg-[var(--primary)] text-[#f5f8ff]" : "border-[var(--border-warm)] text-[var(--color-text-muted)]"}`}
                   >
                     {d}
                   </button>
@@ -535,7 +535,7 @@ export function ProfileSetupForm({
                     key={g}
                     type="button"
                     onClick={() => update("goalPriority", g)}
-                    className={`rounded-2xl border py-2 text-xs font-semibold ${profile.goalPriority === g ? "border-[var(--primary)] bg-[var(--primary)] text-[#fff5f0]" : "border-[var(--border-warm)] text-[var(--color-text-muted)]"}`}
+                    className={`rounded-2xl border py-2 text-xs font-semibold ${profile.goalPriority === g ? "border-[var(--primary)] bg-[var(--primary)] text-[#f5f8ff]" : "border-[var(--border-warm)] text-[var(--color-text-muted)]"}`}
                   >
                     {priorityLabel(g)}
                   </button>
@@ -743,7 +743,7 @@ export function ProfileSetupForm({
                     key={t}
                     type="button"
                     onClick={() => update("preferredRunTime", t)}
-                    className={`rounded-full border px-3 py-1 text-xs font-semibold ${profile.preferredRunTime === t ? "border-[var(--primary)] bg-[var(--primary)] text-[#fff5f0]" : "border-[var(--border-warm)] text-[var(--color-text-muted)]"}`}
+                    className={`rounded-full border px-3 py-1 text-xs font-semibold ${profile.preferredRunTime === t ? "border-[var(--primary)] bg-[var(--primary)] text-[#f5f8ff]" : "border-[var(--border-warm)] text-[var(--color-text-muted)]"}`}
                   >
                     {runTimeLabel(t)}
                   </button>
@@ -1002,7 +1002,7 @@ export function ProfileSetupForm({
                       key={s}
                       type="button"
                       onClick={() => updateField("spicy", s)}
-                      className={`flex-1 rounded-2xl border py-2 text-sm font-semibold transition ${foodPrefs.spicy === s ? "border-[var(--primary)] bg-[var(--primary)] text-[#fff5f0]" : "border-[var(--border-warm)] text-[var(--color-text-muted)] bg-[var(--surface)] hover:bg-[var(--surface-muted)]"}`}
+                      className={`flex-1 rounded-2xl border py-2 text-sm font-semibold transition ${foodPrefs.spicy === s ? "border-[var(--primary)] bg-[var(--primary)] text-[#f5f8ff]" : "border-[var(--border-warm)] text-[var(--color-text-muted)] bg-[var(--surface)] hover:bg-[var(--surface-muted)]"}`}
                     >
                       {s}
                     </button>
@@ -1020,7 +1020,7 @@ export function ProfileSetupForm({
                         key={item}
                         type="button"
                         onClick={() => handleCheckbox("convenience", item, !isChecked)}
-                        className={`rounded-full border px-4 py-1.5 text-xs font-semibold transition ${isChecked ? "border-[var(--primary)] bg-[var(--primary)] text-[#fff5f0]" : "border-[var(--border-warm)] text-[var(--color-text-muted)] bg-[var(--surface)] hover:bg-[var(--surface-muted)]"}`}
+                        className={`rounded-full border px-4 py-1.5 text-xs font-semibold transition ${isChecked ? "border-[var(--primary)] bg-[var(--primary)] text-[#f5f8ff]" : "border-[var(--border-warm)] text-[var(--color-text-muted)] bg-[var(--surface)] hover:bg-[var(--surface-muted)]"}`}
                       >
                         {item}
                       </button>
@@ -1037,7 +1037,7 @@ export function ProfileSetupForm({
                       key={b}
                       type="button"
                       onClick={() => updateField("budget", b)}
-                      className={`flex-1 rounded-2xl border py-2 text-sm font-semibold transition ${foodPrefs.budget === b ? "border-[var(--primary)] bg-[var(--primary)] text-[#fff5f0]" : "border-[var(--border-warm)] text-[var(--color-text-muted)] bg-[var(--surface)] hover:bg-[var(--surface-muted)]"}`}
+                      className={`flex-1 rounded-2xl border py-2 text-sm font-semibold transition ${foodPrefs.budget === b ? "border-[var(--primary)] bg-[var(--primary)] text-[#f5f8ff]" : "border-[var(--border-warm)] text-[var(--color-text-muted)] bg-[var(--surface)] hover:bg-[var(--surface-muted)]"}`}
                     >
                       {b}
                     </button>
@@ -1055,7 +1055,7 @@ export function ProfileSetupForm({
                         key={item}
                         type="button"
                         onClick={() => handleCheckbox("goals", item, !isChecked)}
-                        className={`rounded-full border px-4 py-1.5 text-xs font-semibold transition ${isChecked ? "border-[var(--primary)] bg-[var(--primary)] text-[#fff5f0]" : "border-[var(--border-warm)] text-[var(--color-text-muted)] bg-[var(--surface)] hover:bg-[var(--surface-muted)]"}`}
+                        className={`rounded-full border px-4 py-1.5 text-xs font-semibold transition ${isChecked ? "border-[var(--primary)] bg-[var(--primary)] text-[#f5f8ff]" : "border-[var(--border-warm)] text-[var(--color-text-muted)] bg-[var(--surface)] hover:bg-[var(--surface-muted)]"}`}
                       >
                         {item}
                       </button>
@@ -1116,7 +1116,7 @@ export function ProfileSetupForm({
                       key={t}
                       type="button"
                       onClick={() => update("coachingTone", t)}
-                      className={`rounded-2xl border py-2 text-sm font-semibold ${profile.coachingTone === t ? "border-[var(--primary)] bg-[var(--primary)] text-[#fff5f0]" : "border-[var(--border-warm)] text-[var(--color-text-muted)]"}`}
+                      className={`rounded-2xl border py-2 text-sm font-semibold ${profile.coachingTone === t ? "border-[var(--primary)] bg-[var(--primary)] text-[#f5f8ff]" : "border-[var(--border-warm)] text-[var(--color-text-muted)]"}`}
                     >
                       {toneLabel(t)}
                     </button>
@@ -1131,7 +1131,7 @@ export function ProfileSetupForm({
                       key={d}
                       type="button"
                       onClick={() => update("responseDetail", d)}
-                      className={`flex-1 rounded-2xl border py-2 text-sm font-semibold ${profile.responseDetail === d ? "border-[var(--primary)] bg-[var(--primary)] text-[#fff5f0]" : "border-[var(--border-warm)] text-[var(--color-text-muted)]"}`}
+                      className={`flex-1 rounded-2xl border py-2 text-sm font-semibold ${profile.responseDetail === d ? "border-[var(--primary)] bg-[var(--primary)] text-[#f5f8ff]" : "border-[var(--border-warm)] text-[var(--color-text-muted)]"}`}
                     >
                       {detailLabel(d)}
                     </button>
@@ -1146,7 +1146,7 @@ export function ProfileSetupForm({
                       key={l}
                       type="button"
                       onClick={() => update("language", l)}
-                      className={`flex-1 rounded-2xl border py-2 text-sm font-semibold ${profile.language === l ? "border-[var(--primary)] bg-[var(--primary)] text-[#fff5f0]" : "border-[var(--border-warm)] text-[var(--color-text-muted)]"}`}
+                      className={`flex-1 rounded-2xl border py-2 text-sm font-semibold ${profile.language === l ? "border-[var(--primary)] bg-[var(--primary)] text-[#f5f8ff]" : "border-[var(--border-warm)] text-[var(--color-text-muted)]"}`}
                     >
                       {langLabel(l)}
                     </button>

@@ -5,6 +5,7 @@ test.describe("Settings — release notes collapsible", () => {
   test("shows ประวัติอัปเดต section with latest version preview", async ({ page }) => {
     await installMockBackend(page);
     await gotoApp(page, "/settings");
+    await page.getByRole("button", { name: "บัญชี" }).click();
 
     const section = page.getByTestId("release-notes-section");
     await expect(section).toBeVisible({ timeout: 10000 });
@@ -16,6 +17,7 @@ test.describe("Settings — release notes collapsible", () => {
   test("older versions are hidden by default", async ({ page }) => {
     await installMockBackend(page);
     await gotoApp(page, "/settings");
+    await page.getByRole("button", { name: "บัญชี" }).click();
 
     await expect(page.getByTestId("release-notes-expanded")).toBeHidden({ timeout: 10000 });
     await expect(page.getByText("v0.1.2")).not.toBeVisible();
@@ -25,6 +27,7 @@ test.describe("Settings — release notes collapsible", () => {
   test("tapping ดูทั้งหมด reveals v0.1.2 and v0.1.0 Beta", async ({ page }) => {
     await installMockBackend(page);
     await gotoApp(page, "/settings");
+    await page.getByRole("button", { name: "บัญชี" }).click();
 
     await page.getByTestId("release-notes-toggle").click();
 
@@ -36,6 +39,7 @@ test.describe("Settings — release notes collapsible", () => {
   test("tapping ย่อ collapses the expanded release notes", async ({ page }) => {
     await installMockBackend(page);
     await gotoApp(page, "/settings");
+    await page.getByRole("button", { name: "บัญชี" }).click();
 
     // Expand first
     await page.getByTestId("release-notes-toggle").click();

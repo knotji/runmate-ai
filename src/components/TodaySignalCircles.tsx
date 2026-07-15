@@ -3,102 +3,59 @@
 import type { TodaySignal, SignalTone } from "@/lib/readiness/readinessTypes";
 
 // Status colors aligned with ReadinessGauge palette
-const RING_COLOR: Record<SignalTone, string> = {
-  good:    "#7aab8f",
-  warn:    "#c8922a",
-  bad:     "#d25f5f",
-  neutral: "#b0b8b0",
+const CARD_STYLE: Record<SignalTone, { border: string; bg: string; text: string }> = {
+  good:    { border: "rgba(122,171,143,0.35)", bg: "rgba(122,171,143,0.08)", text: "#3d7a59" },
+  warn:    { border: "rgba(200,146,42,0.35)",   bg: "rgba(200,146,42,0.08)",  text: "#9b6820" },
+  bad:     { border: "rgba(210,95,95,0.35)",    bg: "rgba(210,95,95,0.08)",   text: "#a83030" },
+  neutral: { border: "rgba(139,147,160,0.30)",  bg: "rgba(139,147,160,0.06)", text: "#7a8296" },
 };
 
-const TRACK_COLOR: Record<SignalTone, string> = {
-  good:    "#d5ede4",
-  warn:    "#f5e4c4",
-  bad:     "#f5cece",
-  neutral: "#e8ebe8",
+// How many of the 5 segments light up per tone. Neutral (no data) stays
+// fully empty so "ไม่มีข้อมูล" reads as missing data, not a low score.
+const SEGMENTS_ON: Record<SignalTone, number> = {
+  good: 5,
+  warn: 3,
+  bad: 2,
+  neutral: 0,
 };
 
-const TEXT_COLOR: Record<SignalTone, string> = {
-  good:    "#3d7a59",
-  warn:    "#9b6820",
-  bad:     "#a83030",
-  neutral: "#7a847a",
-};
+const SEGMENT_COUNT = 5;
 
-const SMALL_RADIUS = 20;
-const SMALL_CENTER = 26;
-const SMALL_STROKE = 4;
-const SMALL_CIRC = 2 * Math.PI * SMALL_RADIUS;
-
-type SignalCircleProps = {
+type SignalGaugePillProps = {
   icon: string;
   label: string;
   value: string;
   tone: SignalTone;
 };
 
-function SignalCircle({ icon, label, value, tone }: SignalCircleProps) {
-  const ringColor = RING_COLOR[tone];
-  const trackColor = TRACK_COLOR[tone];
-  const textColor = TEXT_COLOR[tone];
-
-  // Partial fill based on tone to give a visual hint
-  const fillFraction = tone === "good" ? 1 : tone === "warn" ? 0.65 : tone === "bad" ? 0.4 : 0.5;
-  const progress = fillFraction * SMALL_CIRC;
+function SignalGaugePill({ icon, label, value, tone }: SignalGaugePillProps) {
+  const style = CARD_STYLE[tone];
+  const segmentsOn = SEGMENTS_ON[tone];
 
   return (
     <div
-      className="flex flex-col items-center gap-0.5"
+      className="flex flex-col gap-1.5 rounded-2xl border px-2.5 py-2"
+      style={{ borderColor: style.border, background: style.bg }}
       data-testid="signal-circle"
     >
-      {/* Ring with icon overlay */}
-      <div className="relative" style={{ width: 52, height: 52 }}>
-        <svg viewBox="0 0 52 52" width={52} height={52} aria-hidden="true">
-          {/* Track */}
-          <circle
-            cx={SMALL_CENTER}
-            cy={SMALL_CENTER}
-            r={SMALL_RADIUS}
-            fill="none"
-            stroke={trackColor}
-            strokeWidth={SMALL_STROKE}
-          />
-          {/* Arc */}
-          <circle
-            cx={SMALL_CENTER}
-            cy={SMALL_CENTER}
-            r={SMALL_RADIUS}
-            fill="none"
-            stroke={ringColor}
-            strokeWidth={SMALL_STROKE}
-            strokeLinecap="round"
-            strokeDasharray={`${progress} ${SMALL_CIRC}`}
-            style={{
-              transformOrigin: `${SMALL_CENTER}px ${SMALL_CENTER}px`,
-              transform: "rotate(-90deg)",
-            }}
-          />
-        </svg>
-        {/* Icon overlay */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span style={{ fontSize: 18, lineHeight: 1 }}>{icon}</span>
-        </div>
+      <div className="flex items-center justify-between gap-1.5">
+        <span className="flex items-center gap-1 text-[10.5px] font-bold leading-none" style={{ color: style.text }}>
+          <span style={{ fontSize: 13 }} aria-hidden="true">{icon}</span>
+          <span>{label}</span>
+        </span>
+        <span className="text-[10.5px] font-black leading-none whitespace-nowrap" style={{ color: style.text }}>
+          {value}
+        </span>
       </div>
-
-      {/* Label */}
-      <span
-        className="text-[9px] font-semibold leading-none text-center"
-        style={{ color: textColor }}
-      >
-        {label}
-      </span>
-
-      {/* Value */}
-      <span
-        className="text-[9px] font-bold leading-none text-center"
-        style={{ color: textColor }}
-      >
-        {value}
-      </span>
+      <div className="flex gap-[3px]" aria-hidden="true">
+        {Array.from({ length: SEGMENT_COUNT }, (_, i) => (
+          <div
+            key={i}
+            className="h-1.5 flex-1 rounded-full"
+            style={{ background: i < segmentsOn ? style.text : "var(--surface-muted)" }}
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -122,11 +79,11 @@ export function TodaySignalCircles({ signals, sickHardStop, hasActivePain }: Tod
 
   return (
     <div
-      className="flex flex-wrap gap-2"
+      className="grid flex-1 grid-cols-2 gap-1.5"
       data-testid="signal-circles"
     >
       {displaySignals.map((signal) => (
-        <SignalCircle
+        <SignalGaugePill
           key={signal.key}
           icon={signal.icon}
           label={signal.label}

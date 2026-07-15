@@ -104,6 +104,7 @@ test("Settings: changelog section shows recent updates", async ({ page }) => {
   await installMockBackend(page);
 
   await gotoApp(page, "/settings");
+  await page.getByRole("button", { name: "บัญชี" }).click();
 
   // Latest version preview is visible without expanding
   await expect(page.getByTestId("release-notes-preview").getByText("v0.2.2")).toBeVisible();

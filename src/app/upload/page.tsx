@@ -41,7 +41,6 @@ import {
   extractDateFromResult,
   IMAGE_REPORT_KEYS,
   UPLOAD_LABELS,
-  UPLOAD_ORDER,
   UPLOAD_DASHBOARD_META,
   WORKOUT_SUBTYPE_HELPER,
   MEAL_TYPE_LABELS,
@@ -51,80 +50,6 @@ import { StatusHero } from "@/components/ui/StatusHero";
 import { DetailAccordion } from "@/components/ui/DetailAccordion";
 import { PrimaryCTA, SecondaryCTA } from "@/components/ui/ActionButton";
 import { cn } from "@/lib/cn";
-
-type IntakeChooserOption = {
-  key: string;
-  icon: string;
-  label: string;
-  caption: string;
-} & ({ kind: "type"; uploadType: UploadType } | { kind: "link"; href: string });
-
-const INTAKE_CHOOSER_OPTIONS: IntakeChooserOption[] = [
-  { key: "meal", kind: "type", uploadType: "meal", icon: "🍽️", label: "อาหาร", caption: "รูปอาหาร หรือบันทึกมื้ออาหาร" },
-  { key: "workout", kind: "type", uploadType: "workout", icon: "🏃", label: "ซ้อม", caption: "วิ่ง ว่ายน้ำ เวท หรือกิจกรรมอื่น" },
-  { key: "sleep", kind: "type", uploadType: "sleep", icon: "🌙", label: "นอน", caption: "ข้อมูลการนอน / sleep screenshot" },
-  { key: "pain", kind: "link", href: "/pain", icon: "🩹", label: "อาการเจ็บ", caption: "เจ็บตรงไหน ระดับไหน" },
-  { key: "sick", kind: "link", href: "/sick", icon: "🤒", label: "อาการป่วย", caption: "ไข้ ไอ เจ็บคอ หรืออาการวันนี้" },
-  { key: "health_check", kind: "type", uploadType: "health_check", icon: "🩺", label: "ไฟล์สุขภาพ", caption: "PDF / รูปเอกสารสุขภาพ" },
-  { key: "import", kind: "link", href: "/settings?tab=data", icon: "📥", label: "นำเข้าประวัติ", caption: "CSV / Samsung Health / Garmin / ข้อมูลย้อนหลัง" },
-];
-
-/** Safe local chooser opened by the universal intake card — routes straight into existing flows, never saves anything itself. */
-function IntakeChooserSheet({
-  open,
-  onClose,
-  onSelectType,
-  onNavigate,
-}: {
-  open: boolean;
-  onClose: () => void;
-  onSelectType: (type: UploadType) => void;
-  onNavigate: (href: string) => void;
-}) {
-  if (!open) return null;
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 px-3 pb-3 sm:items-center"
-      role="presentation"
-      onClick={onClose}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label="ข้อมูลนี้คืออะไร?"
-        className="w-full max-w-md rounded-3xl bg-rm-surface p-4 shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="mb-3 flex items-center justify-between">
-          <p className="rm-card-title">ข้อมูลนี้คืออะไร?</p>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="ปิด"
-            className="flex h-8 w-8 items-center justify-center rounded-full text-rm-muted hover:bg-rm-surface-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-rm-primary"
-          >
-            ✕
-          </button>
-        </div>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {INTAKE_CHOOSER_OPTIONS.map((opt) => (
-            <button
-              key={opt.key}
-              type="button"
-              aria-label={`${opt.label} — ${opt.caption}`}
-              onClick={() => (opt.kind === "type" ? onSelectType(opt.uploadType) : onNavigate(opt.href))}
-              className="flex flex-col items-start gap-0.5 rounded-2xl border border-rm-border bg-rm-surface-soft px-3 py-2.5 text-left transition hover:bg-rm-primary-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-rm-primary"
-            >
-              <span className="text-lg leading-none">{opt.icon}</span>
-              <span className="mt-1 text-sm font-bold text-rm-text">{opt.label}</span>
-              <span className="rm-caption leading-snug">{opt.caption}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function SelectedDateBadge({ dateKey }: { dateKey: string }) {
   const isToday = dateKey === todayBangkokDateKey();
@@ -260,7 +185,6 @@ export default function UploadPage() {
   const [workoutSubtype, setWorkoutSubtype] = useState<WorkoutSubtype>("run");
   const [strengthInputMode, setStrengthInputMode] = useState<"image" | "manual">("image");
   const [mealInputMode, setMealInputMode] = useState<MealInputMode>("image");
-  const [showIntakeChooser, setShowIntakeChooser] = useState(false);
   // Two-step flow: false = default entry/chooser screen, true = focused single-type form.
   const [hasChosenType, setHasChosenType] = useState(false);
   const inputPanelRef = useRef<HTMLDivElement>(null);
@@ -727,24 +651,6 @@ export default function UploadPage() {
     setHasChosenType(false);
   }
 
-  function handleChooserSelectType(nextType: UploadType) {
-    selectUploadType(nextType);
-    setShowIntakeChooser(false);
-  }
-
-  function handleChooserNavigate(href: string) {
-    setShowIntakeChooser(false);
-    router.push(href);
-  }
-
-  function startQuickTextEntry() {
-    // "พิมพ์บันทึกเอง" — the most direct existing free-text logging flow today.
-    // NOTE: this is intentionally still meal-text specific (see deliverables report
-    // for why a generic "text intent" chooser was not built in this pass).
-    selectUploadType("meal");
-    setMealInputMode("text");
-  }
-
   const CLASSIFIED_TYPE_MAP: Partial<Record<IntakeCategory, UploadType>> = {
     meal: "meal",
     workout: "workout",
@@ -912,22 +818,13 @@ export default function UploadPage() {
             <StatusHero
               tone="ready"
               title="วันนี้จะเพิ่มข้อมูลอะไร?"
-              subtitle="วางรูป ไฟล์ หรือพิมพ์ข้อความได้เลย RunMate จะช่วยแยกประเภทให้"
+              subtitle="วางรูป ไฟล์ หรือพิมพ์ข้อความ RunMate จะจำแนกให้เอง"
               data-testid="universal-intake-hero"
             >
               <p className="inline-flex items-start gap-1.5 rounded-2xl bg-rm-recovery-soft px-3 py-2 text-xs leading-5 text-rm-text/80">
                 <span aria-hidden="true">🔎</span>
                 <span>RunMate จะสรุปให้ก่อนบันทึก คุณยืนยันหรือแก้ไขได้ทุกครั้ง</span>
               </p>
-              <div className="flex flex-wrap items-center gap-2 pt-1">
-                <PrimaryCTA type="button" data-testid="universal-intake-cta" onClick={() => setShowIntakeChooser(true)}>
-                  เริ่มเพิ่มข้อมูล
-                </PrimaryCTA>
-                <SecondaryCTA type="button" data-testid="universal-intake-text-cta" onClick={startQuickTextEntry}>
-                  พิมพ์บันทึกเอง
-                </SecondaryCTA>
-              </div>
-              <p className="rm-caption pt-0.5">หรืออัปโหลดรูป/พิมพ์ข้อความด้านล่าง แล้ว RunMate จะจำแนกให้อัตโนมัติ</p>
             </StatusHero>
 
             <UniversalIntakeUploader
@@ -964,49 +861,78 @@ export default function UploadPage() {
               </p>
             )}
 
-            <div className="space-y-1.5">
+            <div className="space-y-2.5" data-testid="upload-type-selector">
               <div className="flex items-baseline justify-between gap-2">
-                <p className="text-sm font-bold text-rm-text">เลือกประเภทเอง</p>
+                <p className="text-sm font-bold text-rm-text">หรือเลือกประเภทเอง</p>
                 <p className="rm-caption">ถ้ารู้ว่าข้อมูลคืออะไร เลือกตรงนี้ได้เลย</p>
               </div>
-              <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-8" data-testid="upload-type-selector">
-                {UPLOAD_ORDER.map((item) => (
+
+              <div className="space-y-1">
+                <p className="text-[10px] font-bold text-rm-muted">บันทึกประจำวัน</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {(["sleep", "meal", "workout", "body"] as UploadType[]).map((item) => (
+                    <button
+                      key={item}
+                      type="button"
+                      className={cn(
+                        "flex items-center gap-1.5 rounded-full border px-3 py-2 text-[12px] font-bold transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-rm-primary",
+                        type === item
+                          ? "border-rm-primary-strong bg-rm-primary text-rm-surface shadow-sm"
+                          : "border-rm-border bg-rm-surface/70 text-rm-text hover:bg-rm-primary-soft/60",
+                      )}
+                      onClick={() => selectUploadType(item)}
+                    >
+                      <span className="text-sm leading-none">{UPLOAD_DASHBOARD_META[item].icon}</span>
+                      <span>{UPLOAD_LABELS[item]}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <p className="text-[10px] font-bold text-rm-muted">อาการวันนี้</p>
+                <div className="flex flex-wrap gap-1.5">
+                  <Link
+                    href="/pain"
+                    className="flex items-center gap-1.5 rounded-full border border-rm-border bg-rm-surface/70 px-3 py-2 text-[12px] font-bold text-rm-text transition-all hover:bg-rm-primary-soft/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-rm-primary"
+                  >
+                    <span className="text-sm leading-none">🩹</span>
+                    <span>อาการเจ็บ</span>
+                  </Link>
+                  <Link
+                    href="/sick"
+                    className="flex items-center gap-1.5 rounded-full border border-rm-border bg-rm-surface/70 px-3 py-2 text-[12px] font-bold text-rm-text transition-all hover:bg-rm-primary-soft/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-rm-primary"
+                  >
+                    <span className="text-sm leading-none">🤒</span>
+                    <span>อาการป่วย</span>
+                  </Link>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <p className="text-[10px] font-bold text-rm-muted">อื่น ๆ</p>
+                <div className="flex flex-wrap gap-1.5">
                   <button
-                    key={item}
                     type="button"
                     className={cn(
-                      "rounded-2xl border px-2 py-2 text-center text-[11px] font-bold transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-rm-primary",
-                      type === item
+                      "flex items-center gap-1.5 rounded-full border px-3 py-2 text-[12px] font-bold transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-rm-primary",
+                      type === "health_check"
                         ? "border-rm-primary-strong bg-rm-primary text-rm-surface shadow-sm"
-                        : "border-rm-border bg-rm-surface/70 text-rm-muted hover:bg-rm-primary-soft/60",
+                        : "border-rm-border bg-rm-surface/70 text-rm-text hover:bg-rm-primary-soft/60",
                     )}
-                    onClick={() => selectUploadType(item)}
+                    onClick={() => selectUploadType("health_check")}
                   >
-                    <span className="block text-sm leading-none">{UPLOAD_DASHBOARD_META[item].icon}</span>
-                    <span className="mt-1 block">{UPLOAD_LABELS[item]}</span>
+                    <span className="text-sm leading-none">{UPLOAD_DASHBOARD_META.health_check.icon}</span>
+                    <span>{UPLOAD_LABELS.health_check}</span>
                   </button>
-                ))}
-                <Link
-                  href="/pain"
-                  className="rounded-2xl border border-rm-border bg-rm-surface/70 px-2 py-2 text-center text-[11px] font-bold text-rm-muted transition-all hover:bg-rm-primary-soft/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-rm-primary"
-                >
-                  <span className="block text-sm leading-none">🩹</span>
-                  <span className="mt-1 block">อาการเจ็บ</span>
-                </Link>
-                <Link
-                  href="/sick"
-                  className="rounded-2xl border border-rm-border bg-rm-surface/70 px-2 py-2 text-center text-[11px] font-bold text-rm-muted transition-all hover:bg-rm-primary-soft/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-rm-primary"
-                >
-                  <span className="block text-sm leading-none">🤒</span>
-                  <span className="mt-1 block">อาการป่วย</span>
-                </Link>
-                <Link
-                  href="/settings?tab=data"
-                  className="rounded-2xl border border-rm-border bg-rm-surface/70 px-2 py-2 text-center text-[11px] font-bold text-rm-muted transition-all hover:bg-rm-primary-soft/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-rm-primary"
-                >
-                  <span className="block text-sm leading-none">📥</span>
-                  <span className="mt-1 block">นำเข้าประวัติ</span>
-                </Link>
+                  <Link
+                    href="/settings?tab=data"
+                    className="flex items-center gap-1.5 rounded-full border border-rm-border bg-rm-surface/70 px-3 py-2 text-[12px] font-bold text-rm-text transition-all hover:bg-rm-primary-soft/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-rm-primary"
+                  >
+                    <span className="text-sm leading-none">📥</span>
+                    <span>นำเข้าประวัติ</span>
+                  </Link>
+                </div>
               </div>
             </div>
 
@@ -1020,13 +946,6 @@ export default function UploadPage() {
             </DetailAccordion>
           </>
         )}
-
-        <IntakeChooserSheet
-          open={showIntakeChooser}
-          onClose={() => setShowIntakeChooser(false)}
-          onSelectType={handleChooserSelectType}
-          onNavigate={handleChooserNavigate}
-        />
 
         {hasChosenType && (
         <>
@@ -1077,7 +996,7 @@ export default function UploadPage() {
                   setDateSelectionMode("today");
                   setSelectedDateKey(todayBangkokDateKey());
                 }}
-                className={`rounded-xl px-2.5 py-1.5 transition-colors ${dateSelectionMode === "today" ? "bg-[var(--primary)] text-[#fff5f0]" : "text-[var(--muted-text)]"}`}
+                className={`rounded-xl px-2.5 py-1.5 transition-colors ${dateSelectionMode === "today" ? "bg-[var(--primary)] text-[#f5f8ff]" : "text-[var(--muted-text)]"}`}
               >
                 วันนี้
               </button>
@@ -1087,14 +1006,14 @@ export default function UploadPage() {
                   setDateSelectionMode("yesterday");
                   setSelectedDateKey(yesterdayBangkokDateKey());
                 }}
-                className={`rounded-xl px-2.5 py-1.5 transition-colors ${dateSelectionMode === "yesterday" ? "bg-[var(--primary)] text-[#fff5f0]" : "text-[var(--muted-text)]"}`}
+                className={`rounded-xl px-2.5 py-1.5 transition-colors ${dateSelectionMode === "yesterday" ? "bg-[var(--primary)] text-[#f5f8ff]" : "text-[var(--muted-text)]"}`}
               >
                 เมื่อวาน
               </button>
               <button
                 type="button"
                 onClick={() => setDateSelectionMode("custom")}
-                className={`rounded-xl px-2.5 py-1.5 transition-colors ${dateSelectionMode === "custom" ? "bg-[var(--primary)] text-[#fff5f0]" : "text-[var(--muted-text)]"}`}
+                className={`rounded-xl px-2.5 py-1.5 transition-colors ${dateSelectionMode === "custom" ? "bg-[var(--primary)] text-[#f5f8ff]" : "text-[var(--muted-text)]"}`}
               >
                 เลือกวันที่
               </button>
@@ -1142,7 +1061,7 @@ export default function UploadPage() {
                   key={m}
                   type="button"
                   onClick={() => setMealType(m)}
-                  className={`rounded-full px-3 py-1.5 text-sm font-semibold transition-colors ${mealType === m ? "bg-[var(--primary)] text-[#fff5f0]" : "bg-[var(--surface-muted)] text-[var(--muted-text)] hover:bg-[var(--primary-soft)]"}`}
+                  className={`rounded-full px-3 py-1.5 text-sm font-semibold transition-colors ${mealType === m ? "bg-[var(--primary)] text-[#f5f8ff]" : "bg-[var(--surface-muted)] text-[var(--muted-text)] hover:bg-[var(--primary-soft)]"}`}
                 >
                   {MEAL_TYPE_LABELS[m]}
                 </button>
@@ -1167,7 +1086,7 @@ export default function UploadPage() {
                     setSaveStatus("idle");
                     setSaveFeedback("");
                   }}
-                  className={`rounded-full px-3 py-1.5 text-sm font-semibold transition-colors ${workoutSubtype === sub ? "bg-[var(--primary)] text-[#fff5f0]" : "bg-[var(--surface-muted)] text-[var(--muted-text)] hover:bg-[var(--primary-soft)]"}`}
+                  className={`rounded-full px-3 py-1.5 text-sm font-semibold transition-colors ${workoutSubtype === sub ? "bg-[var(--primary)] text-[#f5f8ff]" : "bg-[var(--surface-muted)] text-[var(--muted-text)] hover:bg-[var(--primary-soft)]"}`}
                 >
                   {sub === "run" ? "วิ่ง" : sub === "strength" ? "เวท" : sub === "walk" ? "เดิน" : "อื่น ๆ"}
                 </button>
@@ -1365,7 +1284,7 @@ export default function UploadPage() {
                 loadingText="กำลังบันทึก..."
                 disabled={saveStatus === "saving"}
                 onClick={() => void store(result)}
-                className="rounded-full bg-[var(--primary)] px-5 py-2.5 text-sm font-bold text-[#fff5f0] transition hover:bg-[var(--primary-strong)] disabled:opacity-60"
+                className="rounded-full bg-[var(--primary)] px-5 py-2.5 text-sm font-bold text-[#f5f8ff] transition hover:bg-[var(--primary-strong)] disabled:opacity-60"
               >
                 บันทึกผลการนอน
               </LoadingButton>
@@ -2168,7 +2087,7 @@ function MealReviewCard({
                   }}
                   className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors flex items-center gap-1 ${
                     isSelected
-                      ? "bg-[var(--primary)] text-[#fff5f0] shadow-sm font-bold"
+                      ? "bg-[var(--primary)] text-[#f5f8ff] shadow-sm font-bold"
                       : "bg-[var(--surface-muted)] text-[var(--color-text-muted)] hover:bg-[var(--surface-muted)]"
                   }`}
                 >

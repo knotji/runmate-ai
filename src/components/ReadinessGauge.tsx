@@ -16,12 +16,12 @@ export type ReadinessGaugeProps = {
 };
 
 const STATUS_COLORS: Record<GaugeStatus, { ring: string; track: string; text: string }> = {
-  good:     { ring: "#1f9d55", track: "rgba(20,24,28,0.08)", text: "#1f9d55" },
-  fair:     { ring: "#e0a100", track: "rgba(20,24,28,0.08)", text: "#e0a100" },
-  caution:  { ring: "#e0a100", track: "rgba(20,24,28,0.08)", text: "#e0a100" },
-  recovery: { ring: "#0b6e6e", track: "rgba(20,24,28,0.08)", text: "#0b6e6e" },
-  risk:     { ring: "#c9384a", track: "rgba(20,24,28,0.08)", text: "#c9384a" },
-  unknown:  { ring: "#8b93a0", track: "rgba(20,24,28,0.06)", text: "#5b6570" },
+  good:     { ring: "#1f9d55", track: "rgba(26,31,46,0.08)", text: "#1f9d55" },
+  fair:     { ring: "#d9a123", track: "rgba(26,31,46,0.08)", text: "#d9a123" },
+  caution:  { ring: "#d9a123", track: "rgba(26,31,46,0.08)", text: "#d9a123" },
+  recovery: { ring: "#0891b2", track: "rgba(26,31,46,0.08)", text: "#0891b2" },
+  risk:     { ring: "#c9384a", track: "rgba(26,31,46,0.08)", text: "#c9384a" },
+  unknown:  { ring: "#8b93a0", track: "rgba(26,31,46,0.06)", text: "#5b6570" },
 };
 
 const RADIUS = 48;
@@ -95,7 +95,7 @@ export function ReadinessGauge({
             cy={CENTER}
             r={RADIUS}
             fill="none"
-            stroke={loading ? "rgba(20,24,28,0.06)" : colors.track}
+            stroke={loading ? "rgba(26,31,46,0.06)" : colors.track}
             strokeWidth={STROKE_WIDTH}
           />
           {/* Progress ring or loading dashes */}

@@ -365,20 +365,18 @@ export default function TodayPage() {
   const signalsSlot = coachCtx && !loading && dailyReadinessForSignals ? (
     <details className="group" data-testid="signals-details">
       <summary className="list-none cursor-pointer">
-        <div className="flex items-center gap-2">
-          <div className="flex flex-1 flex-wrap items-center gap-2.5">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-rm-muted">สัญญาณวันนี้</span>
-            <TodaySignalCircles
-              signals={dailyReadinessForSignals.signals}
-              sickHardStop={coachCtx.sickRiskLevel === "hard_stop"}
-              hasActivePain={coachCtx.activePain ?? false}
-            />
-          </div>
+        <div className="mb-1.5 flex items-center justify-between gap-2">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-rm-muted">สัญญาณวันนี้</span>
           <span className="shrink-0 text-[10px] font-semibold text-[var(--color-text-soft)]">
-            <span className="group-open:hidden">ดูสัญญาณทั้งหมด ⌄</span>
+            <span className="group-open:hidden">ดูรายละเอียด ⌄</span>
             <span className="hidden group-open:inline">ซ่อน ⌄</span>
           </span>
         </div>
+        <TodaySignalCircles
+          signals={dailyReadinessForSignals.signals}
+          sickHardStop={coachCtx.sickRiskLevel === "hard_stop"}
+          hasActivePain={coachCtx.activePain ?? false}
+        />
       </summary>
       <div className="mt-1.5">
         <ReadinessSignalBars signals={dailyReadinessForSignals.signals} />
@@ -490,7 +488,7 @@ export default function TodayPage() {
 
       {/* 3. Recovery Loop — collapsed by default to reduce clutter */}
       {coachCtx && (
-        <DetailAccordion title="ฟื้นตัวยังไงคืนนี้" data-testid="recovery-loop-details">
+        <DetailAccordion title="🌙 ฟื้นตัวยังไงคืนนี้" data-testid="recovery-loop-details">
           <RecoveryLoopCard coachCtx={coachCtx} />
         </DetailAccordion>
       )}
@@ -537,7 +535,7 @@ export default function TodayPage() {
           people actually interact with daily (nutrition, next meal) stays visible above. */}
       {((goalProfile && dailyReadinessForSignals) ||
         (coachCtx?.latestPain && !(coachCtx.latestPain.hasActivePain && coachCtx.latestPain.painLevel > 0))) && (
-        <DetailAccordion title="ดูเพิ่มเติมวันนี้" data-testid="today-more-details">
+        <DetailAccordion title="🎯 ดูเพิ่มเติมวันนี้" data-testid="today-more-details">
           <div className="space-y-3">
             {goalProfile && dailyReadinessForSignals && (
               <GoalAwareTodayStrip
@@ -564,51 +562,69 @@ export default function TodayPage() {
         if (!coachCtx) return null;
         const fuelScore = coachCtx.recoverySystem?.axes?.fuel?.score ?? 65;
         const hasNutrition = coachCtx.nutritionToday || coachCtx.nutritionBalanceToday;
-        if (!hasNutrition) return null;
 
+        // No nutrition data yet — NextMealCard stands alone, nothing to merge it with.
+        if (!hasNutrition) {
+          return (
+            <NextMealCard
+              recommendation={nextMealRec}
+              loading={nextMealLoading}
+              onRequest={() => void requestNextMeal()}
+              compact
+              fuelScore={coachCtx.recoverySystem?.axes?.fuel?.score}
+            />
+          );
+        }
+
+        // Nutrition data exists — merge "อาหารวันนี้" and "มื้อต่อไปกินอะไรดี?" into one
+        // card since they're a continuous question (eaten so far → what's next), separated
+        // by a dashed divider instead of two adjacent cards saying similar things.
         return (
           <>
             <p className="mt-1 px-1 rm-eyebrow" data-testid="food-section-label">
               {coachCtx.sickRiskLevel === "hard_stop" ? "มื้อถัดไปสำหรับวันที่ไม่สบาย" : "อาหารวันนี้"}
             </p>
-            <details className="group rm-card px-4 py-3 cursor-pointer">
-              <summary className="flex list-none items-center justify-between gap-3 text-sm font-semibold text-rm-text">
-                <div>
-                  <p className="text-sm font-bold text-rm-text">อาหารและพลังงานวันนี้</p>
-                  <p className="text-xs text-rm-muted font-medium mt-0.5">
-                    {coachCtx.sickRiskLevel === "hard_stop"
-                      ? "เน้นย่อยง่าย เติมน้ำ และไม่มัน"
-                      : fuelScore >= 80 ? "พลังงานวันนี้โอเค (คาร์บ/โปรตีนเพียงพอ)" : `พลังงานวันนี้ ${Math.round(fuelScore)}/100 · ควรรองรับเพิ่มเติม`}
-                  </p>
+            <div className="rm-card px-4 py-3 space-y-3">
+              <details className="group cursor-pointer">
+                <summary className="flex list-none items-center justify-between gap-3 text-sm font-semibold text-rm-text">
+                  <div>
+                    <p className="text-sm font-bold text-rm-text">อาหารและพลังงานวันนี้</p>
+                    <p className="text-xs text-rm-muted font-medium mt-0.5">
+                      {coachCtx.sickRiskLevel === "hard_stop"
+                        ? "เน้นย่อยง่าย เติมน้ำ และไม่มัน"
+                        : fuelScore >= 80 ? "พลังงานวันนี้โอเค (คาร์บ/โปรตีนเพียงพอ)" : `พลังงานวันนี้ ${Math.round(fuelScore)}/100 · ควรรองรับเพิ่มเติม`}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1 text-[11px] text-rm-primary font-bold shrink-0">
+                    <span className="group-open:hidden">ดูรายละเอียด</span>
+                    <span className="hidden group-open:inline">ซ่อน</span>
+                    <span className="transition-transform group-open:rotate-180">▾</span>
+                  </div>
+                </summary>
+                <div className="mt-3 pt-3 border-t border-rm-border space-y-2.5 cursor-default">
+                  {coachCtx.nutritionToday && (
+                    <CompactNutritionCard nutrition={coachCtx.nutritionToday} profile={coachCtx.profile} />
+                  )}
+                  {coachCtx.nutritionBalanceToday && (
+                    <NutritionBalanceCard balance={coachCtx.nutritionBalanceToday} />
+                  )}
                 </div>
-                <div className="flex items-center gap-1 text-[11px] text-rm-primary font-bold shrink-0">
-                  <span className="group-open:hidden">ดูรายละเอียด</span>
-                  <span className="hidden group-open:inline">ซ่อน</span>
-                  <span className="transition-transform group-open:rotate-180">▾</span>
-                </div>
-              </summary>
-              <div className="mt-3 pt-3 border-t border-rm-border space-y-2.5 cursor-default">
-                {coachCtx.nutritionToday && (
-                  <CompactNutritionCard nutrition={coachCtx.nutritionToday} profile={coachCtx.profile} />
-                )}
-                {coachCtx.nutritionBalanceToday && (
-                  <NutritionBalanceCard balance={coachCtx.nutritionBalanceToday} />
-                )}
+              </details>
+
+              <div className="border-t border-dashed border-rm-border pt-3">
+                <NextMealCard
+                  recommendation={nextMealRec}
+                  loading={nextMealLoading}
+                  onRequest={() => void requestNextMeal()}
+                  compact
+                  fuelScore={coachCtx.recoverySystem?.axes?.fuel?.score}
+                  bare
+                />
               </div>
-            </details>
+            </div>
           </>
         );
       })()}
-
-      {coachCtx && (
-        <NextMealCard
-          recommendation={nextMealRec}
-          loading={nextMealLoading}
-          onRequest={() => void requestNextMeal()}
-          compact
-          fuelScore={coachCtx.recoverySystem?.axes?.fuel?.score}
-        />
-      )}
 
       {/* "สรุปท้ายวัน" is already the card's own heading — no redundant outer label */}
       <EndOfDaySummaryCard
@@ -620,9 +636,9 @@ export default function TodayPage() {
       />
 
       {/* Footer: race goal + re-analyze */}
-      <div className="flex items-center justify-between gap-3 px-1">
+      <div className="flex items-center justify-between gap-3 rounded-2xl bg-rm-surface-soft px-3 py-2">
         {!goal ? (
-          <Link href="/race-goal" className="text-xs text-rm-muted hover:text-rm-text">
+          <Link href="/race-goal" className="text-xs font-medium text-rm-muted hover:text-rm-text">
             ยังไม่มี Race Goal · <span className="underline underline-offset-2">ตั้งเป้าหมาย</span>
           </Link>
         ) : <span />}
@@ -632,7 +648,7 @@ export default function TodayPage() {
             loading={loading}
             loadingText="กำลังวิเคราะห์..."
             onClick={() => void generateInsight(true)}
-            className="flex items-center gap-1.5 rounded-full bg-rm-surface-soft px-3 py-1.5 text-xs font-medium text-rm-muted hover:bg-rm-border disabled:opacity-40"
+            className="flex items-center gap-1.5 rounded-full bg-rm-surface px-3 py-1.5 text-xs font-bold text-rm-muted shadow-sm hover:bg-rm-border disabled:opacity-40"
           >
             วิเคราะห์ใหม่
           </LoadingButton>
@@ -1947,7 +1963,7 @@ function TodaySnapshotCard({
 
       {/* Details: full /100 values, coverage, missing, explanation */}
       {!loading && recSys && (
-        <DetailAccordion title="ดูรายละเอียด Recovery" data-testid="recovery-details">
+        <DetailAccordion title="💚 ดูรายละเอียด Recovery" data-testid="recovery-details">
           <div className="space-y-3 cursor-default text-xs">
             {/* Factor bars — compact visual summary */}
             <div className="space-y-1.5 rounded-2xl bg-[var(--surface)]/35 px-2.5 py-2" data-testid="factor-bars">

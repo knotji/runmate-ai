@@ -74,7 +74,7 @@ export function DevCoachContextPanel() {
         <button
           type="button"
           onClick={() => void fetchContext()}
-          className="shrink-0 rounded-full bg-[var(--primary-soft)] px-3 py-1.5 text-xs font-bold text-[var(--primary)] hover:bg-[var(--primary)] hover:text-[#fff5f0] transition-colors"
+          className="shrink-0 rounded-full bg-[var(--primary-soft)] px-3 py-1.5 text-xs font-bold text-[var(--primary)] hover:bg-[var(--primary)] hover:text-[#f5f8ff] transition-colors"
         >
           {loading ? "..." : "Refresh"}
         </button>

@@ -417,33 +417,33 @@ export default function SettingsPage() {
           <button type="button" onClick={logout} className="btn-danger-soft w-full px-6 py-3 text-center text-sm">
             ออกจากระบบ
           </button>
+
+          <ReleaseNotesSection />
+
+          <section className="soft-panel px-4 py-3 text-xs text-[var(--muted-text)]">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="font-bold uppercase tracking-[0.15em] text-[var(--label-color)]">เกี่ยวกับแอป</p>
+                <p className="mt-1 font-semibold text-[var(--foreground)]">
+                  {buildMeta.version === "dev" ? "RunMate AI" : `RunMate AI v${buildMeta.version}`}
+                </p>
+                {buildMeta.version === "dev" && <p className="mt-0.5">Version dev</p>}
+                <p className="mt-0.5">
+                  Build {buildMeta.shortSha} · {buildMeta.environment}
+                </p>
+                {buildMeta.hasBuildTime && <p className="mt-0.5">Updated {buildMeta.displayBuildTime}</p>}
+              </div>
+              <button
+                type="button"
+                onClick={() => void copyBuildInfo()}
+                className="shrink-0 rounded-full bg-[var(--surface-muted)] px-3 py-1.5 text-[11px] font-bold text-[var(--muted-text)] hover:bg-[var(--primary-soft)]"
+              >
+                {versionCopied ? "คัดลอกแล้ว" : "คัดลอก"}
+              </button>
+            </div>
+          </section>
         </div>
       )}
-
-      <ReleaseNotesSection />
-
-      <section className="soft-panel mt-3 px-4 py-3 text-xs text-[var(--muted-text)]">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="font-bold uppercase tracking-[0.15em] text-[var(--label-color)]">เกี่ยวกับแอป</p>
-            <p className="mt-1 font-semibold text-[var(--foreground)]">
-              {buildMeta.version === "dev" ? "RunMate AI" : `RunMate AI v${buildMeta.version}`}
-            </p>
-            {buildMeta.version === "dev" && <p className="mt-0.5">Version dev</p>}
-            <p className="mt-0.5">
-              Build {buildMeta.shortSha} · {buildMeta.environment}
-            </p>
-            {buildMeta.hasBuildTime && <p className="mt-0.5">Updated {buildMeta.displayBuildTime}</p>}
-          </div>
-          <button
-            type="button"
-            onClick={() => void copyBuildInfo()}
-            className="shrink-0 rounded-full bg-[var(--surface-muted)] px-3 py-1.5 text-[11px] font-bold text-[var(--muted-text)] hover:bg-[var(--primary-soft)]"
-          >
-            {versionCopied ? "คัดลอกแล้ว" : "คัดลอก"}
-          </button>
-        </div>
-      </section>
     </AppShell>
   );
 }

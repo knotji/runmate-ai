@@ -201,13 +201,25 @@ export default function RaceGoalPage() {
       ) : (
         /* ── View mode: existing plan ── */
         <>
-          <RaceCountdownCard goal={goal} phase={plan.currentPhase} />
+          <RaceCountdownCard
+            goal={goal}
+            phase={plan.currentPhase}
+            weeksRemaining={plan.weeksRemaining != null ? plan.weeksRemaining : plan.totalWeeks}
+            planStartLabel={formatShortDate(plan.planStartDate)}
+            updatedLabel={planFreshness?.planTime ? formatShortDate(planFreshness.planTime) : null}
+          />
           {coachContext?.sickRiskLevel === "hard_stop" && <SickHardStopRaceAdvisory />}
           {selectedTodayWorkout ? <TodayWorkoutCard workout={normalizeForDisplay(selectedTodayWorkout)} coachContext={coachContext} /> : null}
           {goal ? <PaceBandsCard goal={goal} coachContext={coachContext} /> : null}
-          {plan.weeklyPlan?.length ? <ActionableWeekCard workouts={plan.weeklyPlan.map(normalizeForDisplay)} coachContext={coachContext} /> : null}
+          {plan.weeklyPlan?.length ? (
+            <ActionableWeekCard
+              workouts={plan.weeklyPlan.map(normalizeForDisplay)}
+              coachContext={coachContext}
+              todayAlreadyShownAbove={Boolean(selectedTodayWorkout)}
+            />
+          ) : null}
           <RecoveryGuardrailsCard coachContext={coachContext} />
-          <PlanAtGlance plan={plan} freshness={planFreshness} />
+          <PlanNotes plan={plan} freshness={planFreshness} />
 
           <section className="card p-4">
             <details className="group cursor-pointer">
@@ -325,7 +337,7 @@ function ConfirmReplaceSection({
           loading={replacing}
           loadingText="กำลังบันทึก..."
           onClick={onConfirm}
-          className="flex-1 rounded-2xl bg-[var(--primary)] py-3 text-sm font-bold text-[#fff5f0] disabled:opacity-40"
+          className="flex-1 rounded-2xl bg-[var(--primary)] py-3 text-sm font-bold text-[#f5f8ff] disabled:opacity-40"
         >
           ยืนยันสร้างแผนใหม่
         </LoadingButton>
@@ -350,50 +362,37 @@ function LatestRacePrompt({ result }: { result: RaceResult }) {
   );
 }
 
-function PlanAtGlance({ plan, freshness }: { plan: RacePlan; freshness: PlanFreshness | null }) {
+/** Freshness explanation + safety notes only — weeks/date/phase facts now live in RaceCountdownCard's facts row, so this stays compact and skips itself when there's nothing new to say. */
+function PlanNotes({ plan, freshness }: { plan: RacePlan; freshness: PlanFreshness | null }) {
+  const hasFreshnessNote = !freshness?.planTime || freshness.isStale;
+  if (!hasFreshnessNote && !plan.safetyNotes) return null;
+
   return (
-    <section className="card px-5 py-4">
-      <p className="text-xs font-bold uppercase tracking-[0.22em] text-[var(--label-color)]">ภาพรวมแผน</p>
-      <div className="mt-3 flex flex-wrap gap-2">
-        <span className="rounded-full bg-[var(--primary-soft)] px-3 py-1.5 text-xs font-bold text-[var(--primary-strong)]">
-          เหลือ {plan.weeksRemaining != null ? plan.weeksRemaining : plan.totalWeeks} wk
-        </span>
-        <span className="rounded-full bg-[var(--surface-muted)] px-3 py-1.5 text-xs font-bold text-[var(--foreground)]">
-          เริ่ม {formatShortDate(plan.planStartDate)}
-        </span>
-        <span className="rounded-full bg-[var(--surface-muted)] px-3 py-1.5 text-xs font-bold text-[var(--foreground)]">
-          เฟส {plan.currentPhase || "Base"}
-        </span>
-      </div>
-      <RacePlanFreshnessNote freshness={freshness} />
-      {plan.safetyNotes ? <p className="mt-3 text-xs leading-5 text-[var(--muted-text)]">{sanitizePaceInText(plan.safetyNotes)}</p> : null}
-    </section>
+    <>
+      {hasFreshnessNote && <RacePlanFreshnessNote freshness={freshness} />}
+      {plan.safetyNotes ? (
+        <p className="px-1 text-xs leading-5 text-[var(--muted-text)]">{sanitizePaceInText(plan.safetyNotes)}</p>
+      ) : null}
+    </>
   );
 }
 
+/** Only ever called for the two non-redundant cases (no plan time yet, or stale) — see PlanNotes. */
 function RacePlanFreshnessNote({ freshness }: { freshness: PlanFreshness | null }) {
   if (!freshness?.planTime) {
     return (
-      <p className="mt-4 rounded-2xl bg-[var(--surface-muted)] px-3 py-2 text-xs leading-5 text-[var(--color-text-muted)]">
+      <p className="rounded-2xl bg-[var(--surface-muted)] px-3 py-2 text-xs leading-5 text-[var(--color-text-muted)]">
         กดรีเฟรชแผนเพื่อปรับตามข้อมูลล่าสุดเมื่อพร้อม
       </p>
     );
   }
 
-  if (freshness.isStale) {
-    return (
-      <div className="mt-4 rounded-2xl border border-[var(--color-info-soft)] bg-[var(--color-info-soft)] px-3 py-2 text-xs leading-5 text-[var(--color-info)]">
-        <p className="font-bold">อัปเดตจากข้อมูลล่าสุด</p>
-        <p className="mt-0.5 text-[var(--foreground)]/70">แผนวันนี้ปรับตามข้อมูลล่าสุด เช่น sleep / pain / workout เพื่อให้ซ้อมเหมาะกับสภาพร่างกายมากขึ้น</p>
-        {freshness.latestReportTime ? <p className="mt-1 text-[var(--color-text-muted)]">อัปเดตล่าสุด: {formatDateTimeThai(freshness.latestReportTime)}</p> : null}
-      </div>
-    );
-  }
-
   return (
-    <p className="mt-4 text-xs leading-5 text-[var(--color-text-soft)]">
-      อัปเดตล่าสุด: {formatDateTimeThai(freshness.planTime)}
-    </p>
+    <div className="rounded-2xl border border-[var(--color-info-soft)] bg-[var(--color-info-soft)] px-3 py-2 text-xs leading-5 text-[var(--color-info)]">
+      <p className="font-bold">อัปเดตจากข้อมูลล่าสุด</p>
+      <p className="mt-0.5 text-[var(--foreground)]/70">แผนวันนี้ปรับตามข้อมูลล่าสุด เช่น sleep / pain / workout เพื่อให้ซ้อมเหมาะกับสภาพร่างกายมากขึ้น</p>
+      {freshness.latestReportTime ? <p className="mt-1 text-[var(--color-text-muted)]">อัปเดตล่าสุด: {formatDateTimeThai(freshness.latestReportTime)}</p> : null}
+    </div>
   );
 }
 
@@ -730,7 +729,15 @@ function isTodayWorkout(dayStr: string): boolean {
   return false;
 }
 
-function ActionableWeekCard({ workouts, coachContext }: { workouts: WeekWorkout[]; coachContext: CoachContext | null }) {
+function ActionableWeekCard({
+  workouts,
+  coachContext,
+  todayAlreadyShownAbove,
+}: {
+  workouts: WeekWorkout[];
+  coachContext: CoachContext | null;
+  todayAlreadyShownAbove?: boolean;
+}) {
   return (
     <section className="card overflow-hidden p-0">
       <div className="flex items-center justify-between gap-2 px-5 py-4">
@@ -743,6 +750,27 @@ function ActionableWeekCard({ workouts, coachContext }: { workouts: WeekWorkout[
           const isToday = isTodayWorkout(workout.day);
           const adaptiveNote = getAdaptiveLongRunNote(workout, coachContext, isToday);
           const showRecoveryBadge = !isToday && isHardWorkoutType(workout.workoutType);
+
+          // Today's full detail is already shown above in TodayWorkoutCard — avoid
+          // repeating the same description/purpose/adjustment content here.
+          if (isToday && todayAlreadyShownAbove) {
+            return (
+              <div
+                key={`${workout.day}-${workout.workoutType}-${index}`}
+                className="flex items-center justify-between gap-3 border-b border-[var(--color-border-soft)] px-5 py-3 last:border-b-0"
+              >
+                <div className="flex flex-col gap-0.5 min-w-0">
+                  <span className="text-xs font-bold text-[var(--label-color)] flex items-center gap-1.5">
+                    {workout.day}
+                    <span className="rounded bg-[var(--primary)] px-1.5 py-0.5 text-[9px] font-bold text-[#f5f8ff]">วันนี้</span>
+                  </span>
+                  <span className="font-bold text-[var(--foreground)] truncate">{workout.workoutType}</span>
+                </div>
+                <span className="shrink-0 text-[10px] font-semibold italic text-[var(--color-text-soft)]">ดูรายละเอียดด้านบน</span>
+              </div>
+            );
+          }
+
           return (
             <details
               key={`${workout.day}-${workout.workoutType}-${index}`}
@@ -753,7 +781,7 @@ function ActionableWeekCard({ workouts, coachContext }: { workouts: WeekWorkout[
                   <span className="text-xs font-bold text-[var(--label-color)] flex items-center gap-1.5">
                     {workout.day}
                     {isToday && (
-                      <span className="rounded bg-[var(--primary)] px-1.5 py-0.5 text-[9px] font-bold text-[#fff5f0]">
+                      <span className="rounded bg-[var(--primary)] px-1.5 py-0.5 text-[9px] font-bold text-[#f5f8ff]">
                         วันนี้
                       </span>
                     )}
