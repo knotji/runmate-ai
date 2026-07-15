@@ -119,6 +119,7 @@ function PainPageContent() {
   // image
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [showPhotoField, setShowPhotoField] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // page state
@@ -155,6 +156,7 @@ function PainPageContent() {
         setNotes(draftNote ?? "");
         setImageFile(null);
         setImagePreview(null);
+        setShowPhotoField(false);
         setResult(null);
         setSavedStatus(null);
         setError("");
@@ -310,6 +312,7 @@ function PainPageContent() {
     setNotes("");
     setImageFile(null);
     setImagePreview(null);
+    setShowPhotoField(false);
     setResult(null);
     setSavedStatus(null);
     setError("");
@@ -460,40 +463,52 @@ function PainPageContent() {
         {/* ── Full form (active_pain / improving) ──────────────────────── */}
         {showFullForm && (
           <>
-            {/* Image upload (optional) */}
-            <div className="card p-4 space-y-2">
-              <p className="text-xs font-bold uppercase tracking-[0.15em] text-rm-muted">รูปบริเวณที่เจ็บ <span className="normal-case font-normal text-rm-muted/80">(ถ้ามี)</span></p>
-              <label className={`flex min-h-[100px] cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed transition-colors ${imageFile ? "border-rm-recovery bg-rm-recovery-soft/40" : "border-rm-border bg-rm-surface-soft hover:border-rm-primary/40 hover:bg-rm-surface"}`}>
-                <input
-                  ref={inputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => void handleImageChange(e.target.files?.[0] ?? null)}
-                />
-                {imagePreview ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={imagePreview} alt="ตัวอย่าง" className="max-h-32 rounded-xl object-contain" />
-                ) : (
-                  <>
-                    <span className="text-2xl">📷</span>
-                    <p className="text-xs text-rm-muted">กดเพื่อเลือกรูป (ไม่บังคับ)</p>
-                  </>
-                )}
-              </label>
-              {imageFile && (
-                <button type="button" onClick={() => void handleImageChange(null)} className="text-xs text-rm-muted/80 underline underline-offset-2">
-                  ลบรูป
-                </button>
-              )}
-            </div>
-
-            {/* Location */}
+            {/* Location + optional photo + pain level */}
             <div className="card p-4 space-y-3">
-              <p className="text-xs font-bold uppercase tracking-[0.15em] text-rm-muted">
-                ตำแหน่งที่เจ็บ
-                {painStatusChoice === "improving" && <span className="normal-case font-normal text-rm-muted/80"> (ถ้ามี)</span>}
-              </p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-bold uppercase tracking-[0.15em] text-rm-muted">
+                  ตำแหน่งที่เจ็บ
+                  {painStatusChoice === "improving" && <span className="normal-case font-normal text-rm-muted/80"> (ถ้ามี)</span>}
+                </p>
+                {!imageFile && (
+                  <button
+                    type="button"
+                    onClick={() => setShowPhotoField((v) => !v)}
+                    className="shrink-0 rounded-full border border-rm-border px-2.5 py-1 text-[11px] font-semibold text-rm-muted hover:border-rm-primary/40"
+                  >
+                    📷 {showPhotoField ? "ซ่อนรูป" : "แนบรูป"}
+                  </button>
+                )}
+              </div>
+
+              {(showPhotoField || imageFile) && (
+                <div className="space-y-2">
+                  <label className={`flex min-h-[88px] cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed transition-colors ${imageFile ? "border-rm-recovery bg-rm-recovery-soft/40" : "border-rm-border bg-rm-surface-soft hover:border-rm-primary/40 hover:bg-rm-surface"}`}>
+                    <input
+                      ref={inputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => void handleImageChange(e.target.files?.[0] ?? null)}
+                    />
+                    {imagePreview ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={imagePreview} alt="ตัวอย่าง" className="max-h-28 rounded-xl object-contain" />
+                    ) : (
+                      <>
+                        <span className="text-2xl">📷</span>
+                        <p className="text-xs text-rm-muted">กดเพื่อเลือกรูป (ไม่บังคับ)</p>
+                      </>
+                    )}
+                  </label>
+                  {imageFile && (
+                    <button type="button" onClick={() => void handleImageChange(null)} className="text-xs text-rm-muted/80 underline underline-offset-2">
+                      ลบรูป
+                    </button>
+                  )}
+                </div>
+              )}
+
               <input
                 className="control"
                 placeholder="เช่น เข่าซ้าย, น่องขวา, ข้อเท้า"
@@ -524,33 +539,32 @@ function PainPageContent() {
                   ))}
                 </div>
               </div>
+
+              <div>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold text-rm-muted">ระดับความเจ็บปวด</p>
+                  <span className={`text-xl font-bold ${painLevel >= 7 ? "text-rm-stop" : painLevel >= 4 ? "text-rm-caution" : "text-rm-primary-strong"}`}>{painLevel}</span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={10}
+                  step={1}
+                  value={painLevel}
+                  onChange={(e) => setPainLevel(Number(e.target.value))}
+                  className="mt-1 w-full accent-[var(--recovery-blue)]"
+                  title="ระดับความเจ็บปวด 0-10"
+                  aria-label="ระดับความเจ็บปวด"
+                />
+                <div className="flex justify-between text-[11px] text-rm-muted/80">
+                  <span>0 — ไม่เจ็บ</span>
+                  <span>5 — ปานกลาง</span>
+                  <span>10 — ทนไม่ได้</span>
+                </div>
+              </div>
             </div>
 
-            {/* Pain level */}
-            <div className="card p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-bold uppercase tracking-[0.15em] text-rm-muted">ระดับความเจ็บปวด</p>
-                <span className={`text-2xl font-bold ${painLevel >= 7 ? "text-rm-stop" : painLevel >= 4 ? "text-rm-caution" : "text-rm-primary-strong"}`}>{painLevel}</span>
-              </div>
-              <input
-                type="range"
-                min={0}
-                max={10}
-                step={1}
-                value={painLevel}
-                onChange={(e) => setPainLevel(Number(e.target.value))}
-                className="w-full accent-[var(--recovery-blue)]"
-                title="ระดับความเจ็บปวด 0-10"
-                aria-label="ระดับความเจ็บปวด"
-              />
-              <div className="flex justify-between text-[11px] text-rm-muted/80">
-                <span>0 — ไม่เจ็บ</span>
-                <span>5 — ปานกลาง</span>
-                <span>10 — ทนไม่ได้</span>
-              </div>
-            </div>
-
-            {/* Pain type + started when */}
+            {/* Pain type + started when + painful when */}
             <div className="card p-4 space-y-4">
               <div>
                 <p className="mb-1.5 text-xs font-bold uppercase tracking-[0.15em] text-rm-muted">ลักษณะอาการ <span className="normal-case font-normal text-rm-muted/80">(เลือกได้หลายข้อ)</span></p>
@@ -576,19 +590,18 @@ function PainPageContent() {
                   ))}
                 </div>
               </div>
-            </div>
 
-            {/* Painful when */}
-            <div className="card p-4 space-y-3">
-              <p className="text-xs font-bold uppercase tracking-[0.15em] text-rm-muted">เจ็บเมื่อ <span className="normal-case font-normal text-rm-muted/80">(เลือกได้หลายข้อ)</span></p>
-              <div className="flex flex-wrap gap-2">
-                {PAINFUL_WHEN_OPTIONS.map((opt) => (
-                  <button key={opt.value} type="button"
-                    onClick={() => toggleMulti(painfulWhen, opt.value, setPainfulWhen)}
-                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${painfulWhen.includes(opt.value) ? "border-rm-primary-strong bg-rm-primary-strong text-rm-surface" : "border-rm-border text-rm-muted hover:border-rm-primary/40"}`}>
-                    {opt.label}
-                  </button>
-                ))}
+              <div>
+                <p className="mb-1.5 text-xs font-bold uppercase tracking-[0.15em] text-rm-muted">เจ็บเมื่อ <span className="normal-case font-normal text-rm-muted/80">(เลือกได้หลายข้อ)</span></p>
+                <div className="flex flex-wrap gap-2">
+                  {PAINFUL_WHEN_OPTIONS.map((opt) => (
+                    <button key={opt.value} type="button"
+                      onClick={() => toggleMulti(painfulWhen, opt.value, setPainfulWhen)}
+                      className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${painfulWhen.includes(opt.value) ? "border-rm-primary-strong bg-rm-primary-strong text-rm-surface" : "border-rm-border text-rm-muted hover:border-rm-primary/40"}`}>
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 

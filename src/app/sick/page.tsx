@@ -106,9 +106,10 @@ export default function SickPage() {
 
   return (
     <AppShell title="วันนี้ไม่สบายไหม?" subtitle="บันทึกอาการเพื่อให้ RunMate ปรับแผนไม่ให้ฝืน">
-      <div className="max-w-lg mx-auto px-4 py-6 space-y-5">
+      <div className="max-w-lg mx-auto px-4 py-6 space-y-3">
         {/* Status selection */}
-        <div className="space-y-2">
+        <div className="card p-4 space-y-2">
+          <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--label-color)]">สถานะวันนี้</p>
           {STATUS_OPTIONS.map((opt) => (
             <button
               key={opt.value}
@@ -122,7 +123,7 @@ export default function SickPage() {
                 "w-full flex items-center gap-3 rounded-xl px-4 py-3 text-left transition-colors border",
                 healthStatus === opt.value
                   ? "border-[var(--primary)] bg-[var(--primary-soft)] text-[var(--foreground)]"
-                  : "border-[var(--border)] bg-[var(--surface)] text-[var(--muted-text)]",
+                  : "border-[var(--border-warm)] bg-[var(--surface)] text-[var(--muted-text)]",
               ].join(" ")}
             >
               <span className="text-lg">{opt.emoji}</span>
@@ -134,9 +135,9 @@ export default function SickPage() {
           ))}
         </div>
 
-        {/* Symptom section — shown only when sick */}
+        {/* Symptom + severity — shown only when sick */}
         {isSick && (
-          <>
+          <div className="card p-4 space-y-4">
             {/* Group picker */}
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--label-color)] mb-1">
@@ -155,7 +156,7 @@ export default function SickPage() {
                       "rounded-xl px-2 py-2 text-xs font-semibold border transition-colors text-center leading-tight",
                       selectedGroups.includes(group.id)
                         ? "border-[var(--primary)] bg-[var(--primary-soft)] text-[var(--foreground)]"
-                        : "border-[var(--border)] bg-[var(--surface)] text-[var(--muted-text)]",
+                        : "border-[var(--border-warm)] bg-[var(--surface)] text-[var(--muted-text)]",
                     ].join(" ")}
                   >
                     {group.label}
@@ -177,7 +178,7 @@ export default function SickPage() {
                             "rounded-full px-3 py-1.5 text-xs font-semibold border transition-colors",
                             symptoms.includes(sym)
                               ? "bg-rm-caution-soft border-rm-caution/40 text-rm-caution"
-                              : "bg-[var(--surface-muted)] border-[var(--border)] text-[var(--muted-text)]",
+                              : "bg-[var(--surface-muted)] border-[var(--border-warm)] text-[var(--muted-text)]",
                           ].join(" ")}
                         >
                           {SICK_SYMPTOM_LABELS[sym]}
@@ -204,7 +205,7 @@ export default function SickPage() {
                       "flex-1 rounded-xl py-2 text-sm font-semibold border transition-colors",
                       severity === opt.value
                         ? "border-[var(--primary)] bg-[var(--primary-soft)] text-[var(--foreground)]"
-                        : "border-[var(--border)] bg-[var(--surface)] text-[var(--muted-text)]",
+                        : "border-[var(--border-warm)] bg-[var(--surface)] text-[var(--muted-text)]",
                     ].join(" ")}
                   >
                     {opt.label}
@@ -212,12 +213,12 @@ export default function SickPage() {
                 ))}
               </div>
             </div>
-          </>
+          </div>
         )}
 
         {/* Note */}
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--label-color)] mb-2">
+        <div className="card p-4 space-y-2">
+          <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--label-color)]">
             บันทึกเพิ่มเติม
           </p>
           <textarea
@@ -225,7 +226,7 @@ export default function SickPage() {
             value={note}
             onChange={(e) => { setNote(e.target.value); setSaved(false); }}
             placeholder={isSick ? "เช่น เริ่มเจ็บคอตั้งแต่เมื่อคืน มีน้ำมูก ไม่มีไข้" : "เช่น เพลียหลังนอนน้อย"}
-            className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--foreground)] placeholder:text-[var(--muted-text)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] resize-none"
+            className="w-full rounded-xl border border-[var(--border-warm)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--foreground)] placeholder:text-[var(--muted-text)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] resize-none"
           />
         </div>
 
@@ -288,12 +289,10 @@ export default function SickPage() {
           </div>
         )}
 
-        {/* Safety note */}
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-2.5 text-xs leading-5 text-rm-text/70 space-y-1">
-          <p className="font-semibold text-[var(--foreground)]">ข้อมูลสำคัญ</p>
-          <p>RunMate ไม่ได้วินิจฉัยโรคและไม่ใช่บริการทางการแพทย์</p>
-          <p>หากมีไข้สูง หายใจลำบาก เจ็บหน้าอก เวียนหัวมาก หรืออาการแย่ลงเร็ว ควรพบแพทย์</p>
-        </div>
+        {/* Safety note — compact, not a full card */}
+        <p className="px-1 text-[11px] leading-5 text-rm-muted/80">
+          ⓘ RunMate ไม่ได้วินิจฉัยโรคและไม่ใช่บริการทางการแพทย์ — หากมีไข้สูง หายใจลำบาก เจ็บหน้าอก เวียนหัวมาก หรืออาการแย่ลงเร็ว ควรพบแพทย์
+        </p>
       </div>
     </AppShell>
   );
