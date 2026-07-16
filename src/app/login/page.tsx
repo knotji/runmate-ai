@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { loadProfileFromSupabase } from "@/lib/profileStorage";
 
 const GOOGLE_SIGNIN_ERROR = "เข้าสู่ระบบด้วย Google ไม่สำเร็จ ลองใหม่อีกครั้ง";
 
@@ -28,7 +29,10 @@ export default function LoginPage() {
     if (mode === "signin") {
       const { error: err } = await supabase.auth.signInWithPassword({ email, password });
       if (err) { setError(err.message); setLoading(false); return; }
-      router.replace("/");
+      // First-time users (no profiles row yet) land on the onboarding form instead of
+      // the Today page with an empty profile.
+      const profileResult = await loadProfileFromSupabase();
+      router.replace(profileResult.ok && !profileResult.profile ? "/onboarding" : "/");
     } else {
       const { error: err } = await supabase.auth.signUp({ email, password });
       if (err) { setError(err.message); setLoading(false); return; }
