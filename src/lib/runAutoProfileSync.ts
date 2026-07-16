@@ -87,19 +87,38 @@ export async function runAutoProfileSync(
     let totalAutoSaved = 0;
     let totalSilentSkipped = manualSilentSkipped.length;
 
-    const updatedKeys = Object.keys(toSave);
-    if (updatedKeys.length > 0) {
-      const merged: UserProfile = {
-        ...latestProfile,
-        ...(toSave as Partial<UserProfile>),
-        fieldSources: {
-          ...latestProfile.fieldSources,
-          ...buildSourceUpdates(updatedKeys),
-        },
-      };
-      await saveProfileToSupabase(merged);
-      latestProfile = merged;
-      totalAutoSaved += updatedKeys.length;
+    // Re-fetch immediately before writing rather than reusing the snapshot loaded at the
+    // top of this function — this sync can take a while (analysis API call in between),
+    // and writing a full-row upsert built from a stale snapshot would silently overwrite
+    // any edit the user made in the UI (or a previous concurrent sync) in the meantime.
+    // Re-filtering against the fresh fieldSources also catches a field that became
+    // "manual" after this sync's toSave decision was made.
+    const updatedKeysInitial = Object.keys(toSave);
+    if (updatedKeysInitial.length > 0) {
+      const freshResult = await loadProfileFromSupabase();
+      const freshBase = freshResult.ok && freshResult.profile ? freshResult.profile : latestProfile;
+      const { toSave: safeToSave, manualSilentSkipped: raceSkipped } = filterManualFields({
+        updates: toSave as Partial<UserProfile>,
+        existingSources: freshBase.fieldSources ?? {},
+        existingProfile: freshBase,
+      });
+      totalSilentSkipped += raceSkipped.length;
+      const updatedKeys = Object.keys(safeToSave);
+      if (updatedKeys.length > 0) {
+        const merged: UserProfile = {
+          ...freshBase,
+          ...safeToSave,
+          fieldSources: {
+            ...freshBase.fieldSources,
+            ...buildSourceUpdates(updatedKeys),
+          },
+        };
+        await saveProfileToSupabase(merged);
+        latestProfile = merged;
+        totalAutoSaved += updatedKeys.length;
+      } else {
+        latestProfile = freshBase;
+      }
     }
 
     // Nutrition targets from body history
@@ -116,34 +135,42 @@ export async function runAutoProfileSync(
         carbTargetEasyDayG: targets.carbTargetEasyDayG,
         carbTargetHardDayG: targets.carbTargetHardDayG,
       };
+      // Re-fetch again before this second write, for the same reason as above.
+      const freshResult2 = await loadProfileFromSupabase();
+      const freshBase2 = freshResult2.ok && freshResult2.profile ? freshResult2.profile : latestProfile;
       const {
         toSave: nutritionToSave,
         manualSilentSkipped: nutSilent,
       } = filterManualFields({
         updates: nutritionUpdates,
-        existingSources: latestProfile.fieldSources ?? {},
-        existingProfile: latestProfile,
+        existingSources: freshBase2.fieldSources ?? {},
+        existingProfile: freshBase2,
       });
       totalSilentSkipped += nutSilent.length;
       const nutKeys = Object.keys(nutritionToSave);
       if (nutKeys.length > 0) {
         const merged: UserProfile = {
-          ...latestProfile,
+          ...freshBase2,
           ...nutritionToSave,
           fieldSources: {
-            ...latestProfile.fieldSources,
+            ...freshBase2.fieldSources,
             ...buildSourceUpdates(nutKeys),
           },
         };
         await saveProfileToSupabase(merged);
         latestProfile = merged;
         totalAutoSaved += nutKeys.length;
+      } else {
+        latestProfile = freshBase2;
       }
     }
 
-    // Persist lastAutoProfileSyncAt
+    // Persist lastAutoProfileSyncAt onto a fresh reload too — this is the last write of
+    // the sync and should not stomp on anything the user changed while the sync ran.
     const now = new Date().toISOString();
-    await saveProfileToSupabase({ ...latestProfile, lastAutoProfileSyncAt: now });
+    const freshResult3 = await loadProfileFromSupabase();
+    const freshBase3 = freshResult3.ok && freshResult3.profile ? freshResult3.profile : latestProfile;
+    await saveProfileToSupabase({ ...freshBase3, lastAutoProfileSyncAt: now });
     invalidateCoachCache();
 
     if (process.env.NODE_ENV === "development") {

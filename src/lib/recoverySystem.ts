@@ -315,6 +315,11 @@ export function buildRunMateRecoverySystem(
       recoveryScore -= 20;
       recReasons.push(`มีอาการเจ็บ${context.latestPain.painLocation}ระดับ ${painLevel}/10 ควรรอบคอบ`);
     }
+  } else if (activePain) {
+    // activePain can be set by a manual override toggle with no underlying pain-log
+    // record — still apply a penalty instead of falling through to "no pain reported".
+    recoveryScore -= 20;
+    recReasons.push("มีอาการเจ็บอยู่ ควรรอบคอบ");
   } else if (context.painResolved || context.recentPainHistory) {
     recoveryScore -= 5;
     if (context.latestPain) {
@@ -700,14 +705,30 @@ export function buildRunMateRecoverySystem(
   // Dynamic override adjustments also affect overallScore
   let baseV2 = context.readinessV2?.score ?? Math.round((recoveryScore * 0.45) + (sleepScoreVal * 0.25) + (fuelScore * 0.15) + (100 - loadScore) * 0.15);
   if (overrides) {
-    // Dynamically re-evaluate baseV2 using weights if overrides are active
-    baseV2 = Math.round((recoveryScore * 0.45) + (sleepScoreVal * 0.25) + (fuelScore * 0.15) + (100 - loadScore) * 0.15);
-
-    // Re-apply the pain-safety cap that would otherwise be lost by not using readinessV2.score
+    // Re-evaluate using the SAME weight→axis mapping readinessV2 documents (Sleep 45% /
+    // Load 25% / Nutrition 15% / Pain-safety 15%) — the axis scores computed above already
+    // reflect the active overrides, so this keeps the override path consistent with the
+    // base formula instead of applying the weights to different axes.
     const painLevel = context.latestPain?.painLevel;
     const hasRedFlag = Boolean(context.latestPain?.redFlags?.length);
-    if (activePain && painLevel != null) {
-      const cap = painLevel >= 4 || hasRedFlag ? 45 : painLevel >= 2 ? 60 : null;
+    let painSafetyRaw = 100;
+    if (activePain) {
+      if (hasRedFlag || (painLevel != null && painLevel >= 7)) painSafetyRaw = 10;
+      else if (painLevel != null && painLevel >= 4) painSafetyRaw = 30;
+      else if (painLevel != null && painLevel >= 2) painSafetyRaw = 55;
+      else if (painLevel != null) painSafetyRaw = 80; // level 1
+      else painSafetyRaw = 30; // pain flagged (e.g. manual override) with no logged severity — assume moderate rather than skip the penalty
+    }
+    baseV2 = Math.round((sleepScoreVal * 0.45) + (loadScore * 0.25) + (fuelScore * 0.15) + (painSafetyRaw * 0.15));
+
+    // Re-apply the pain-safety cap. Gated on the resolved `activePain` flag — which can be
+    // set by a manual override toggle with no underlying pain-log record — rather than
+    // requiring context.latestPain to exist, so an override-only pain flag can't skip the
+    // cap while coachingState below still reports "recover".
+    if (activePain) {
+      const cap = hasRedFlag || (painLevel != null && painLevel >= 4) ? 45
+        : (painLevel == null || painLevel >= 2) ? 60
+        : null;
       if (cap != null) baseV2 = Math.min(baseV2, cap);
     }
   }
@@ -771,6 +792,8 @@ export function buildRunMateRecoverySystem(
 
     if (activePain && context.latestPain) {
       guardrails.push(`มีอาการเจ็บ${context.latestPain.painLocation} ระดับ ${context.latestPain.painLevel}/10 เน้นประคบเย็นและพักผ่อนฟื้นฟูอาการเจ็บ`);
+    } else if (activePain) {
+      guardrails.push("มีอาการเจ็บอยู่ เน้นประคบเย็นและพักผ่อนฟื้นฟูอาการเจ็บ");
     } else if (recoveryScore < 50 || sleepScoreVal < 50 || loadScore >= 75) {
       guardrails.push("ถ้าขาหนักหรือ HR ยังสูง ให้เหลือแค่เดินเบา/ยืดเบา");
     }
@@ -785,6 +808,8 @@ export function buildRunMateRecoverySystem(
   } else {
     if (activePain && context.latestPain) {
       guardrails.push(`มีอาการเจ็บ${context.latestPain.painLocation} ระดับ ${context.latestPain.painLevel}/10 แนะนำให้พักจากการวิ่งหรือเลือกจ็อก/เดินเบามาก ๆ เท่านั้น`);
+    } else if (activePain) {
+      guardrails.push("มีอาการเจ็บอยู่ แนะนำให้พักจากการวิ่งหรือเลือกจ็อก/เดินเบามาก ๆ เท่านั้น");
     }
 
     if (recoveryScore < 50 || sleepScoreVal < 50) {

@@ -62,7 +62,12 @@ export async function jsonFromAI<T>({
       return { data: parseJson<T>(raw), source: "gemini", usedFallback: false };
     } catch (error) {
       logAIError(error);
-      return fallbackResult(fallback, classifyAIError(error), error);
+      // Fall through to the OpenAI branch below when it's configured, instead
+      // of returning here — otherwise a Gemini failure never actually falls
+      // back to OpenAI despite that being the documented behavior.
+      if (!openai) {
+        return fallbackResult(fallback, classifyAIError(error), error);
+      }
     }
   }
 
@@ -125,7 +130,10 @@ export async function textFromAI({
       return { message: response.text || fallback, source: "gemini" };
     } catch (error) {
       logAIError(error);
-      return { message: fallback, source: "fallback" };
+      // Fall through to OpenAI when configured — same fallback fix as jsonFromAI.
+      if (!openai) {
+        return { message: fallback, source: "fallback" };
+      }
     }
   }
 

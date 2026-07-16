@@ -1,6 +1,6 @@
 // Pure helper — no "use client". Safe for server and client contexts.
 import type { LocalHistoryItem } from "@/lib/localHistory";
-import { getHistoryItemDateKey } from "@/lib/date";
+import { getHistoryItemDateKey, getBangkokDateKey } from "@/lib/date";
 import { dedupeSleepItems } from "@/lib/sleepDedupe";
 
 export type WeeklyReview = {
@@ -70,9 +70,11 @@ function readSleepHoursFromItem(item: LocalHistoryItem): number | null {
 }
 
 export function buildWeeklyReview(items: LocalHistoryItem[], todayDateKey: string, easyHrCapBpm?: number | null): WeeklyReview {
-  // Build the 7-day window [cutoff, todayDateKey]
+  // Build the 7-day window [cutoff, todayDateKey]. Must read the Bangkok calendar date of
+  // cutoffMs, not the UTC one — Bangkok midnight is 17:00 UTC the previous day, so a plain
+  // .toISOString().slice(0,10) here silently included an 8th day in every "7-day" window.
   const cutoffMs = Date.parse(`${todayDateKey}T00:00:00+07:00`) - 6 * 86_400_000;
-  const cutoffDate = new Date(cutoffMs).toISOString().slice(0, 10);
+  const cutoffDate = getBangkokDateKey(cutoffMs);
 
   const window = items.filter((i) => {
     const dk = getHistoryItemDateKey(i);

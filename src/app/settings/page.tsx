@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { useIsomorphicLayoutEffect } from "@/lib/useIsomorphicLayoutEffect";
 import { AppShell } from "@/components/AppShell";
 import { ProfileSetupForm } from "@/components/ProfileSetupForm";
 import { ProfileHistoryAnalyzer } from "@/components/ProfileHistoryAnalyzer";
@@ -26,6 +27,25 @@ type EnvDebug = {
   env: Record<string, { exists: boolean; value?: string | null }>;
 };
 
+// This page is statically prerendered, so resolving ?tab=/?import= must not read `window`
+// during the initial render (that would desync from the prerendered HTML and trigger a
+// React hydration mismatch). Instead these run inside a useLayoutEffect below, which
+// fires synchronously on the client before the browser paints — the fix for the visible
+// flash is the timing (before paint, not after it like the old setTimeout(0)), not
+// reading the URL earlier in the render cycle.
+function resolveTabFromUrl(): Tab | null {
+  const tabParam = new URLSearchParams(window.location.search).get("tab");
+  return tabParam === "data" || tabParam === "account" || tabParam === "profile" || tabParam === "goals" ? tabParam : null;
+}
+
+function resolveImportModeFromUrl(): "samsung" | "sleep-csv" | "workout-csv" | null {
+  const importParam = new URLSearchParams(window.location.search).get("import");
+  if (importParam === "sleep-csv") return "sleep-csv";
+  if (importParam === "workout-csv") return "workout-csv";
+  if (importParam) return "samsung";
+  return null;
+}
+
 export default function SettingsPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>("profile");
@@ -33,26 +53,11 @@ export default function SettingsPage() {
   const [runnerProfile, setRunnerProfile] = useState<UserProfile | null>(null);
   const [envDebug, setEnvDebug] = useState<EnvDebug | null>(null);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
-    const tabParam = params.get("tab");
-    const importParam = params.get("import");
-
-    const timer = setTimeout(() => {
-      if (tabParam === "data" || tabParam === "account" || tabParam === "profile" || tabParam === "goals") {
-        setActiveTab((prev) => (prev !== tabParam ? (tabParam as Tab) : prev));
-      }
-      if (importParam) {
-        let nextMode: typeof historyImportMode = "samsung";
-        if (importParam === "sleep-csv") nextMode = "sleep-csv";
-        else if (importParam === "workout-csv") nextMode = "workout-csv";
-        else if (importParam === "samsung-health" || importParam === "samsung") nextMode = "samsung";
-        setHistoryImportMode((prev) => (prev !== nextMode ? nextMode : prev));
-      }
-    }, 0);
-
-    return () => clearTimeout(timer);
+  useIsomorphicLayoutEffect(() => {
+    const tab = resolveTabFromUrl();
+    if (tab) setActiveTab(tab);
+    const importMode = resolveImportModeFromUrl();
+    if (importMode) setHistoryImportMode(importMode);
   }, []);
 
   const [versionCopied, setVersionCopied] = useState(false);
