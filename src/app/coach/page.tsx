@@ -9,7 +9,7 @@ export default function CoachPage() {
       <section className="card px-5 py-3.5">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg font-extrabold text-[var(--foreground)]">โค้ชพร้อมช่วยวันนี้</h2>
+            <h2 className="text-lg font-extrabold text-[var(--foreground)]">พร้อมช่วยวันนี้</h2>
             <p className="mt-0.5 text-sm text-[var(--muted-text)]">อัปเดตทุกครั้งที่บันทึกข้อมูลใหม่</p>
           </div>
           <Link href="/pain" className="btn-danger-soft shrink-0 px-3 py-2 text-xs font-bold">
@@ -17,7 +17,7 @@ export default function CoachPage() {
           </Link>
         </div>
         <div className="mt-2 flex items-center justify-between gap-3">
-          <p className="text-xs text-[var(--color-text-soft)]">แชตนี้ไม่บันทึกเข้า Report อัตโนมัติ · ถ้าต้องการบันทึกข้อมูลใหม่ ไปที่ Upload</p>
+          <p className="text-xs text-[var(--color-text-soft)]">แชตนี้ไม่บันทึกเข้า Report อัตโนมัติ · บันทึกข้อมูลใหม่ได้ที่ Upload</p>
           <a href="#coach-chat" className="shrink-0 rounded-full border border-[var(--primary)]/40 bg-[var(--primary-soft)] px-3 py-1.5 text-xs font-bold text-[var(--primary-strong)]">
             ลองถามโค้ช
           </a>

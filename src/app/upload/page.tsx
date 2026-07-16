@@ -864,7 +864,7 @@ export default function UploadPage() {
             <div className="space-y-2.5" data-testid="upload-type-selector">
               <div className="flex items-baseline justify-between gap-2">
                 <p className="text-sm font-bold text-rm-text">หรือเลือกประเภทเอง</p>
-                <p className="rm-caption">ถ้ารู้ว่าข้อมูลคืออะไร เลือกตรงนี้ได้เลย</p>
+                <p className="rm-caption">รู้ประเภทอยู่แล้ว เลือกได้เลย</p>
               </div>
 
               <div className="space-y-1">

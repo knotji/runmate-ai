@@ -997,7 +997,7 @@ function FullHistoryDetails({
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-sm font-bold text-[var(--foreground)]">รายการทั้งหมด</p>
-            <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">ดูบันทึกทั้งหมดแบบละเอียด</p>
+            <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">ดูบันทึกแบบละเอียด</p>
           </div>
           <span className="shrink-0 rounded-full bg-[var(--surface-muted)] px-3 py-1.5 text-[10px] font-bold text-[var(--primary)]">
             <span className="group-open:hidden">เปิด</span>

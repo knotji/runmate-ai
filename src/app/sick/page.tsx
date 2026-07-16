@@ -273,7 +273,7 @@ export default function SickPage() {
           onClick={handleSave}
           className="w-full rounded-xl py-3 text-sm font-semibold bg-[var(--primary)] text-white disabled:opacity-40"
         >
-          บันทึกอาการวันนี้
+          บันทึกอาการ
         </LoadingButton>
 
         {/* Success */}
