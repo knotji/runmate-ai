@@ -373,9 +373,9 @@ export default function UploadPage() {
       if (process.env.NODE_ENV === "development") {
         console.warn("[upload-debug]", { uploadType: overrideType, saveError: saveResult.error });
       }
-      if (overrideType === "body") setBodySaveError(saveResult.error ?? "บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้งอีกครั้ง");
+      if (overrideType === "body") setBodySaveError(saveResult.error ?? "บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
       setSaveStatus("error");
-      throw new Error("บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้งอีกครั้ง");
+      throw new Error("บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
     }
     setResult(next);
     setSaveStatus("saved");
@@ -1192,7 +1192,14 @@ export default function UploadPage() {
               maxFiles={type === "meal" ? 4 : type === "sleep" ? 3 : 4}
               ctaLabel={selectedMeta.ctaLabel}
               noFileCtaLabel={selectedMeta.noFileCtaLabel}
-              compressImages={type === "meal"}
+              compressImages
+              compressOptions={
+                // Meal photos keep compressImage()'s default (1280px / 0.75) — already
+                // tuned and verified for food identification. Screenshot-type uploads
+                // (sleep/workout/body trackers) get a gentler setting so small numbers
+                // stay legible for the AI to read accurately.
+                type === "meal" ? undefined : { maxDim: 1920, quality: 0.9 }
+              }
               extraFields={{
                 ...(type === "meal" ? { mealType, mealText: imageMealText } : {}),
                 ...(type === "workout" ? { workoutSubtype } : {}),
