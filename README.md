@@ -32,12 +32,17 @@ NEXT_PUBLIC_DEPLOY_ENV=local
 NEXT_PUBLIC_VAPID_PUBLIC_KEY=
 VAPID_PRIVATE_KEY=
 CRON_SECRET=
+FITBIT_CLIENT_ID=
+FITBIT_CLIENT_SECRET=
+FITBIT_REDIRECT_URI=http://localhost:3000/api/fitbit/callback
 ```
 
 Set `AI_PROVIDER=gemini` to use Gemini first, or `AI_PROVIDER=openai` to use OpenAI first. Never expose `GEMINI_API_KEY`, `OPENAI_API_KEY`, or `SUPABASE_SERVICE_ROLE_KEY` in client components.
 The `NEXT_PUBLIC_APP_VERSION`, `NEXT_PUBLIC_GIT_SHA`, `NEXT_PUBLIC_BUILD_TIME`, and `NEXT_PUBLIC_DEPLOY_ENV` values are safe public build metadata shown on the Settings page. On Vercel, `NEXT_PUBLIC_GIT_SHA` and `NEXT_PUBLIC_DEPLOY_ENV` can fall back to `VERCEL_GIT_COMMIT_SHA` and `VERCEL_ENV` at build time.
 
-`NEXT_PUBLIC_VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` are the Web Push keypair (generate once with `npx web-push generate-vapid-keys`) that power the daily reminder notification in Settings. `CRON_SECRET` protects `/api/push/send-daily-reminders`, the endpoint `vercel.json`'s cron job hits once a day — set the same value in Vercel's project settings under the Cron Jobs / Environment Variables section (Vercel sends it automatically as a bearer token when calling scheduled functions).
+`NEXT_PUBLIC_VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` are the Web Push keypair (generate once with `npx web-push generate-vapid-keys`) that power the daily reminder notification in Settings. `CRON_SECRET` protects `/api/push/send-daily-reminders` and `/api/fitbit/sync`, the two endpoints `vercel.json`'s cron jobs hit once a day — set the same value in Vercel's project settings under the Cron Jobs / Environment Variables section (Vercel sends it automatically as a bearer token when calling scheduled functions).
+
+`FITBIT_CLIENT_ID` / `FITBIT_CLIENT_SECRET` come from registering an app at [dev.fitbit.com](https://dev.fitbit.com/apps/new) — OAuth 2.0 Application Type "Server", Callback URL set to `FITBIT_REDIRECT_URI` (must match exactly, including protocol and trailing path — update both when the deployed domain changes). This powers Settings > ข้อมูล > "เชื่อมต่อ Fitbit", which auto-imports sleep and workout logs daily instead of requiring a screenshot upload.
 
 ## Supabase setup
 
