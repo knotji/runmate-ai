@@ -435,3 +435,20 @@ textarea {
   background: var(--rm-surface);
   box-shadow: 0 18px 45px rgba(72, 82, 72, 0.06);
 }
+
+/* ─── Page-mount fade-in ──────────────────────────────────────────────────
+   Replaces a framer-motion <motion.div> that wrapped every page for this
+   exact effect (opacity 0→1, y 10→0, 0.25s ease-out) — CSS reproduces it
+   with no extra JS shipped to every route, and respects reduced-motion. */
+@keyframes rm-page-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.rm-page-in {
+  animation: rm-page-in 0.25s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rm-page-in {
+    animation: none;
+  }
+}
