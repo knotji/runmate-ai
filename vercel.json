@@ -5,7 +5,7 @@
       "schedule": "0 13 * * *"
     },
     {
-      "path": "/api/fitbit/sync",
+      "path": "/api/google-health/sync",
       "schedule": "0 23 * * *"
     }
   ]

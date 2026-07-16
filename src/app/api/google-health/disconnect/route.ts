@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { revokeFitbitToken } from "@/lib/fitbit/oauth";
+import { revokeGoogleHealthToken } from "@/lib/googleHealth/oauth";
 
 export async function POST() {
   const supabase = await createClient();
@@ -14,16 +14,16 @@ export async function POST() {
   }
 
   const { data: connection } = await supabase
-    .from("fitbit_connections")
+    .from("google_health_connections")
     .select("access_token")
     .eq("user_id", user.id)
     .maybeSingle();
 
   if (connection?.access_token) {
-    await revokeFitbitToken(connection.access_token);
+    await revokeGoogleHealthToken(connection.access_token);
   }
 
-  const { error } = await supabase.from("fitbit_connections").delete().eq("user_id", user.id);
+  const { error } = await supabase.from("google_health_connections").delete().eq("user_id", user.id);
   if (error) {
     return NextResponse.json({ error: "ยกเลิกการเชื่อมต่อไม่สำเร็จ" }, { status: 500 });
   }

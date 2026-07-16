@@ -13,7 +13,7 @@ export async function GET() {
   }
 
   const { data: connection } = await supabase
-    .from("fitbit_connections")
+    .from("google_health_connections")
     .select("connected_at, last_synced_at, last_sync_error")
     .eq("user_id", user.id)
     .maybeSingle();
