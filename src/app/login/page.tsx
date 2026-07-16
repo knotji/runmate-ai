@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { loadProfileFromSupabase } from "@/lib/profileStorage";
 
 const GOOGLE_SIGNIN_ERROR = "เข้าสู่ระบบด้วย Google ไม่สำเร็จ ลองใหม่อีกครั้ง";
 
@@ -28,11 +29,22 @@ export default function LoginPage() {
     if (mode === "signin") {
       const { error: err } = await supabase.auth.signInWithPassword({ email, password });
       if (err) { setError(err.message); setLoading(false); return; }
-      router.replace("/");
+      // First-time users (no profiles row yet) land on the onboarding form instead of
+      // the Today page with an empty profile.
+      const profileResult = await loadProfileFromSupabase();
+      router.replace(profileResult.ok && !profileResult.profile ? "/onboarding" : "/");
     } else {
-      const { error: err } = await supabase.auth.signUp({ email, password });
+      const { data, error: err } = await supabase.auth.signUp({ email, password });
       if (err) { setError(err.message); setLoading(false); return; }
-      setDone("สร้างบัญชีสำเร็จ — เข้าสู่ระบบได้เลย");
+      // Supabase returns no session when the project requires email confirmation — in
+      // that case the account exists but signing in will still fail until the user
+      // clicks the confirmation link, so "เข้าสู่ระบบได้เลย" would be misleading.
+      if (data.session) {
+        const profileResult = await loadProfileFromSupabase();
+        router.replace(profileResult.ok && !profileResult.profile ? "/onboarding" : "/");
+        return;
+      }
+      setDone("สร้างบัญชีสำเร็จ — กรุณายืนยันอีเมลก่อนเข้าสู่ระบบ");
       setMode("signin");
       setLoading(false);
     }
@@ -100,7 +112,7 @@ export default function LoginPage() {
             <span>{googleLoading ? "กำลังไปที่ Google..." : "เข้าสู่ระบบด้วย Google"}</span>
           </button>
           {googleError && (
-            <p className="text-sm text-red-500" data-testid="google-signin-error">{googleError}</p>
+            <p className="text-sm text-[var(--color-danger)]" data-testid="google-signin-error">{googleError}</p>
           )}
         </div>
 
@@ -136,8 +148,8 @@ export default function LoginPage() {
             />
           </div>
 
-          {error && <p className="text-sm text-red-500">{error}</p>}
-          {done && <p className="text-sm text-green-600">{done}</p>}
+          {error && <p className="text-sm text-[var(--color-danger)]">{error}</p>}
+          {done && <p className="text-sm text-[var(--color-success)]">{done}</p>}
 
           <button type="submit" disabled={anyLoading} className="btn-primary w-full py-3 disabled:opacity-50">
             {loading ? "กำลังดำเนินการ…" : mode === "signin" ? "เข้าสู่ระบบ" : "สร้างบัญชี"}

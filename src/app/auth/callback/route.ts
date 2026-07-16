@@ -20,8 +20,22 @@ export async function GET(request: NextRequest) {
   if (code) {
     const supabase = await createClient();
     if (supabase) {
-      const { error } = await supabase.auth.exchangeCodeForSession(code);
+      const { data, error } = await supabase.auth.exchangeCodeForSession(code);
       if (!error) {
+        // First-time users (no profiles row yet) land on the onboarding form instead of
+        // the Today page with an empty profile — unless the caller explicitly asked for
+        // a specific destination via ?next=.
+        const userId = data.session?.user.id;
+        if (userId && !requestUrl.searchParams.get("next")) {
+          const { data: profileRow } = await supabase
+            .from("profiles")
+            .select("id")
+            .eq("id", userId)
+            .maybeSingle();
+          if (!profileRow) {
+            return NextResponse.redirect(new URL("/onboarding", requestUrl.origin));
+          }
+        }
         return NextResponse.redirect(new URL(safeNext, requestUrl.origin));
       }
     }

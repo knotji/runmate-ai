@@ -422,7 +422,9 @@ export function ProfileSetupForm({
           <p className={`rounded-2xl p-3 text-sm font-semibold ${statusClass(status.tone)}`}>{status.text}</p>
         ) : null}
 
-        <button className="btn-primary w-full py-3" type="submit">เริ่มใช้งาน</button>
+        <LoadingButton className="btn-primary w-full py-3" type="submit" loading={saving} loadingText="กำลังบันทึก...">
+          เริ่มใช้งาน
+        </LoadingButton>
       </form>
     );
   }
