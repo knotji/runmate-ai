@@ -1,0 +1,92 @@
+import { NextResponse, type NextRequest } from "next/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { sendPushNotification } from "@/lib/push/webPush";
+import { getBangkokDateKey } from "@/lib/date";
+
+export const maxDuration = 60;
+
+const REMINDER_TITLE = "RunMate AI";
+const REMINDER_BODY = "วันนี้ยังไม่มีการบันทึกเลย ลองเช็คอินสัก 1 อย่าง (นอน/อาหาร/ซ้อม) กันลืมนะ 🏃";
+
+/**
+ * Daily reminder cron job (see vercel.json). Nudges any subscribed user who
+ * hasn't saved a sleep/meal/workout log yet today — checked via created_at
+ * (wall-clock save time), not the log's own dateKey, since the point is "have
+ * they opened the app and logged something today" regardless of which day
+ * they backdated the entry to.
+ */
+export async function GET(request: NextRequest) {
+  const cronSecret = process.env.CRON_SECRET;
+  if (cronSecret) {
+    const authHeader = request.headers.get("authorization");
+    if (authHeader !== `Bearer ${cronSecret}`) {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    }
+  }
+
+  const admin = createAdminClient();
+  if (!admin) {
+    return NextResponse.json({ error: "admin client not configured" }, { status: 500 });
+  }
+
+  const todayKey = getBangkokDateKey();
+  const todayStartUtc = new Date(`${todayKey}T00:00:00+07:00`).toISOString();
+
+  const { data: subscriptions, error: subError } = await admin
+    .from("push_subscriptions")
+    .select("id, user_id, endpoint, p256dh, auth_key, last_sent_date_key");
+
+  if (subError || !subscriptions) {
+    return NextResponse.json({ error: "failed to load subscriptions" }, { status: 500 });
+  }
+
+  let sent = 0;
+  let skippedAlreadyLogged = 0;
+  let skippedAlreadySentToday = 0;
+  let expiredRemoved = 0;
+  let failed = 0;
+
+  for (const sub of subscriptions) {
+    if (sub.last_sent_date_key === todayKey) {
+      skippedAlreadySentToday += 1;
+      continue;
+    }
+
+    const { count } = await admin
+      .from("history_items")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", sub.user_id)
+      .in("type", ["sleep", "meal", "workout"])
+      .gte("created_at", todayStartUtc);
+
+    if (count && count > 0) {
+      skippedAlreadyLogged += 1;
+      continue;
+    }
+
+    const result = await sendPushNotification(
+      { endpoint: sub.endpoint, p256dh: sub.p256dh, auth_key: sub.auth_key },
+      { title: REMINDER_TITLE, body: REMINDER_BODY, url: "/upload" },
+    );
+
+    if (result.ok) {
+      sent += 1;
+      await admin.from("push_subscriptions").update({ last_sent_date_key: todayKey }).eq("id", sub.id);
+    } else if (result.expired) {
+      expiredRemoved += 1;
+      await admin.from("push_subscriptions").delete().eq("id", sub.id);
+    } else {
+      failed += 1;
+    }
+  }
+
+  return NextResponse.json({
+    ok: true,
+    totalSubscriptions: subscriptions.length,
+    sent,
+    skippedAlreadyLogged,
+    skippedAlreadySentToday,
+    expiredRemoved,
+    failed,
+  });
+}
