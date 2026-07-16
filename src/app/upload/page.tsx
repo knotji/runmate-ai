@@ -373,9 +373,9 @@ export default function UploadPage() {
       if (process.env.NODE_ENV === "development") {
         console.warn("[upload-debug]", { uploadType: overrideType, saveError: saveResult.error });
       }
-      if (overrideType === "body") setBodySaveError(saveResult.error ?? "บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้งอีกครั้ง");
+      if (overrideType === "body") setBodySaveError(saveResult.error ?? "บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
       setSaveStatus("error");
-      throw new Error("บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้งอีกครั้ง");
+      throw new Error("บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
     }
     setResult(next);
     setSaveStatus("saved");
