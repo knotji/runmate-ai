@@ -598,9 +598,13 @@ test("h) failed background sync does not break upload success", async ({ page })
 
   // Navigate to Upload page for sleep log
   await page.goto("/upload?type=sleep");
-  
-  // Wait for the upload dashboard to be loaded
-  await expect(page.getByTestId("upload-dashboard")).toBeVisible();
+
+  // Wait for the deep-linked focused view to actually resolve — the ?type=sleep
+  // query param is applied via a useEffect + queueMicrotask (see upload/page.tsx),
+  // so the outer "upload-dashboard" section is visible a moment before the sleep
+  // ImageUploader instance it settles on is mounted. Waiting on "upload-dashboard"
+  // alone races the file input past that remount and the selected file gets lost.
+  await expect(page.getByTestId("upload-type-summary")).toBeVisible();
 
   // Set file on file input to trigger upload analysis
   const fileInput = page.locator('input[type="file"]');

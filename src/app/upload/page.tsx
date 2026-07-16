@@ -1031,6 +1031,10 @@ export default function UploadPage() {
           )}
         </div>
 
+        {/* sleep/body have no type-specific header content (unlike meal's meal-type tabs or
+            workout's subtype chips) — once a result exists their only content (ImageUploader)
+            hides, so the panel would render as an empty card. Skip it entirely in that case. */}
+        {!((type === "sleep" || type === "body") && result) && (
         <div ref={inputPanelRef} className="card space-y-3 p-3.5" data-testid="upload-input-panel">
         {type === "meal" && (
           <div className="space-y-3">
@@ -1194,6 +1198,7 @@ export default function UploadPage() {
           </>
         ) : null}
         </div>
+        )}
 
         {/* ── Workout manual-entry forms (inside section so nav-pad doesn't create a gap above them) ── */}
         {type === "workout" && workoutSubtype === "strength" && strengthInputMode === "manual" && (
@@ -1255,8 +1260,11 @@ export default function UploadPage() {
                 ใช้วันที่นี้
               </button>
             ) : (
+              // Matches the already-selected date — SelectedDateBadge right below already
+              // says "จะบันทึกเป็นวันที่: ..." so this only needs a short confirmation, not
+              // the same date string repeated a third time on screen.
               <span className="rounded-full bg-[var(--color-warning-soft)] px-3 py-1.5 text-xs font-bold text-[var(--color-warning)]">
-                จะบันทึกเป็นวันที่: {formatDateKeyToThaiBE(selectedDateKey)}
+                ✓ ตรงกับวันที่เลือกไว้
               </span>
             )}
           </div>

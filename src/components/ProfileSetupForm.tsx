@@ -438,6 +438,9 @@ export function ProfileSetupForm({
         </p>
       </div>
 
+      <div className="space-y-2">
+        <p className="px-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--label-color)]">👤 พื้นฐาน</p>
+
       {/* ── 1. Basic ── */}
       <EditableSection
         title="ข้อมูลพื้นฐาน"
@@ -694,6 +697,10 @@ export function ProfileSetupForm({
           </>
         )}
       />
+      </div>
+
+      <div className="space-y-2">
+        <p className="px-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--label-color)]">🏃 การซ้อม</p>
 
       {/* ── 4. Training Pattern ── */}
       <EditableSection
@@ -824,6 +831,10 @@ export function ProfileSetupForm({
           </>
         )}
       />
+      </div>
+
+      <div className="space-y-2">
+        <p className="px-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--label-color)]">💚 สุขภาพ</p>
 
       {/* ── 6. Sleep & Recovery ── */}
       <EditableSection
@@ -1067,6 +1078,10 @@ export function ProfileSetupForm({
           );
         }}
       />
+      </div>
+
+      <div className="space-y-2">
+        <p className="px-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--label-color)]">⚙️ อื่น ๆ</p>
 
       {/* ── 8. Coaching Style ── */}
       <EditableSection
@@ -1339,6 +1354,7 @@ export function ProfileSetupForm({
           </>
         )}
       />
+      </div>
 
       {loadingCloud && (
         <p className="text-center text-xs text-[var(--color-text-soft)]">กำลังโหลดโปรไฟล์…</p>
