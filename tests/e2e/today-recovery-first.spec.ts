@@ -203,11 +203,11 @@ test("Today: hard-stop sick card appears above recommendation section", async ({
   }
 });
 
-test("Today: recommendation title shows วันนี้ควรพักและฟื้นตัว when hard-stop", async ({ page }) => {
+test("Today: recommendation title shows ควรพักและฟื้นตัว when hard-stop", async ({ page }) => {
   const state = await installMockBackend(page);
   state.history.push(makeSickRecord(bangkokDateKey(), "sick-hs2", ["fever"], "moderate"));
   await gotoApp(page, "/");
-  await expect(page.getByTestId("recommendation-section-title")).toHaveText("วันนี้ควรพักและฟื้นตัว");
+  await expect(page.getByTestId("recommendation-section-title")).toHaveText("ควรพักและฟื้นตัว");
 });
 
 test("Today: primary CTA routes to /sick when hard-stop", async ({ page }) => {

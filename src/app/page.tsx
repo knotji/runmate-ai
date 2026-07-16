@@ -424,9 +424,9 @@ export default function TodayPage() {
           <div className="flex-1 px-4 pt-3.5 pb-4 space-y-3.5">
         <p className="rm-eyebrow" data-testid="recommendation-section-title">
           {hasWorkoutToday
-            ? (coachCtx?.todayWorkouts.some((w) => w.kind === "strength") ? "หลังเวทวันนี้ควรทำอะไรต่อ" : "หลังซ้อมวันนี้ควรทำอะไรต่อ")
+            ? (coachCtx?.todayWorkouts.some((w) => w.kind === "strength") ? "หลังเวทควรทำอะไรต่อ" : "หลังซ้อมควรทำอะไรต่อ")
             : coachCtx?.sickRiskLevel === "hard_stop"
-            ? "วันนี้ควรพักและฟื้นตัว"
+            ? "ควรพักและฟื้นตัว"
             : "วันนี้ทำอะไรดี?"}
         </p>
 
