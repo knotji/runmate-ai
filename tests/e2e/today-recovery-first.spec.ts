@@ -245,5 +245,5 @@ test("Today: recovery loop section is collapsed by default", async ({ page }) =>
   await gotoApp(page, "/");
   // The details element should exist with its summary text visible
   await expect(page.getByTestId("recovery-loop-details")).toBeVisible();
-  await expect(page.getByTestId("recovery-loop-details")).toContainText("ฟื้นตัวยังไงคืนนี้");
+  await expect(page.getByTestId("recovery-loop-details")).toContainText("ฟื้นตัวคืนนี้");
 });
