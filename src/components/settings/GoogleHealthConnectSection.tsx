@@ -51,7 +51,7 @@ export function GoogleHealthConnectSection() {
           <p className="mt-1 font-semibold text-[var(--foreground)]">Google Health</p>
           <p className="mt-0.5 leading-5">
             {status?.connected
-              ? "ดึงข้อมูลนอนและซ้อมให้อัตโนมัติทุกวัน (รองรับข้อมูลจาก Samsung Health ที่ sync เข้า Google ด้วย)"
+              ? "ดึงข้อมูลนอนและซ้อมจากอุปกรณ์ที่เชื่อมกับ Google Health ให้อัตโนมัติทุกวัน"
               : "เชื่อมต่อ Google Health เพื่อบันทึกนอนและซ้อมอัตโนมัติ ไม่ต้องอัปโหลดรูปเอง"}
           </p>
           {status?.connected && status.lastSyncedAt && (
