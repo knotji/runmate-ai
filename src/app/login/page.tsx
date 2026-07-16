@@ -100,7 +100,7 @@ export default function LoginPage() {
             <span>{googleLoading ? "กำลังไปที่ Google..." : "เข้าสู่ระบบด้วย Google"}</span>
           </button>
           {googleError && (
-            <p className="text-sm text-red-500" data-testid="google-signin-error">{googleError}</p>
+            <p className="text-sm text-[var(--color-danger)]" data-testid="google-signin-error">{googleError}</p>
           )}
         </div>
 
@@ -136,8 +136,8 @@ export default function LoginPage() {
             />
           </div>
 
-          {error && <p className="text-sm text-red-500">{error}</p>}
-          {done && <p className="text-sm text-green-600">{done}</p>}
+          {error && <p className="text-sm text-[var(--color-danger)]">{error}</p>}
+          {done && <p className="text-sm text-[var(--color-success)]">{done}</p>}
 
           <button type="submit" disabled={anyLoading} className="btn-primary w-full py-3 disabled:opacity-50">
             {loading ? "กำลังดำเนินการ…" : mode === "signin" ? "เข้าสู่ระบบ" : "สร้างบัญชี"}
