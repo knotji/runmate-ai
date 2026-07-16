@@ -1146,11 +1146,15 @@ export default function UploadPage() {
           </>
         ) : null}
 
-        {/* Image uploader: show for all types EXCEPT walk/other workout manual, manual meal, health_check, and strength-manual mode */}
+        {/* Image uploader: show for all types EXCEPT walk/other workout manual, manual meal, health_check, and
+            strength-manual mode. Hidden once a result exists — ImageUploader clears its own file/preview state
+            right after a successful analyze, so leaving it mounted left an empty dropzone sitting above the
+            review card with a large gap between them. The review card's own "ยกเลิก" already routes back here. */}
         {!(type === "workout" && (workoutSubtype === "walk" || workoutSubtype === "other")) &&
          !(type === "workout" && workoutSubtype === "strength" && strengthInputMode === "manual") &&
          !(type === "meal" && mealInputMode === "text") &&
-         type !== "health_check" ? (
+         type !== "health_check" &&
+         !result ? (
           <>
             <ImageUploader
               key={type + (type === "workout" ? `-${workoutSubtype}-${strengthInputMode}` : "")}
@@ -1232,14 +1236,8 @@ export default function UploadPage() {
             />
           </div>
         )}
-        </>
-        )}
-      </section>
-
-      {hasChosenType && (
-      <>
-      {/* ── AI-Suggested Date Confirmation ── */}
-      {suggestedDateKey && (
+        {/* ── AI-Suggested Date Confirmation ── */}
+        {suggestedDateKey && (
         <div className="card-warning p-4 space-y-2 mb-4">
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm text-[var(--foreground)] leading-relaxed font-semibold">
@@ -1395,6 +1393,7 @@ export default function UploadPage() {
       ) : null}
       </>
       )}
+      </section>
     </AppShell>
   );
 }

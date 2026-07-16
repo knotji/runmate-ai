@@ -178,7 +178,8 @@ test.describe("Meal Upload UX Improvements", () => {
       expect(containerBox.y).toBeLessThan(ctaButtonBox.y);
     }
 
-    // 2. Verify upload-dashboard has enough bottom padding
+    // 2. Verify upload-dashboard has enough bottom padding so scrolling can bring
+    // the CTA fully clear of the fixed bottom nav.
     const dashboard = page.getByTestId("upload-dashboard");
     const pbStyle = await dashboard.evaluate((el) => window.getComputedStyle(el).paddingBottom);
     expect(pbStyle).toBe("96px");

@@ -230,8 +230,9 @@ export default function SickPage() {
           />
         </div>
 
-        {/* Validation hint */}
-        {needsSymptomOrNote && (
+        {/* Validation hint — suppressed right after a successful save, since the
+            form resetting its own fields isn't the user having done anything wrong. */}
+        {needsSymptomOrNote && !saved && (
           <p className="text-xs text-rm-caution font-medium">
             กรุณาเลือกอาการหรือเพิ่มบันทึกก่อนบันทึก
           </p>
