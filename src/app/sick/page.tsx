@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { LoadingButton } from "@/components/LoadingButton";
 import { createHistoryItem, saveHistoryItems } from "@/lib/cloudHistory";
 import { todayBangkokDateKey } from "@/lib/date";
 import { buildSickLog } from "@/lib/health/illnessGuardrail";
 import { readDraftIntakeNote } from "@/lib/upload/draftIntakeNote";
+import { useIsomorphicLayoutEffect } from "@/lib/useIsomorphicLayoutEffect";
 import { SYMPTOM_GROUPS, SICK_SYMPTOM_LABELS } from "@/types/sick";
 import type { SickSymptom, SickSeverity, SickHealthStatus } from "@/types/sick";
 
@@ -38,13 +39,17 @@ export default function SickPage() {
   const [saveError, setSaveError] = useState("");
   const [saved, setSaved] = useState(false);
 
-  useEffect(() => {
+  // This page is statically prerendered, so resolving the draft note must not read
+  // sessionStorage during the initial render (would desync from prerendered HTML and
+  // trigger a hydration mismatch). useLayoutEffect fires synchronously before the
+  // browser paints, so the correct status/note is still what the user actually sees
+  // first — unlike the old useEffect + queueMicrotask, which ran after the first paint
+  // and briefly showed the default "ปกติ" status before flipping to "ไม่สบาย/ป่วย".
+  useIsomorphicLayoutEffect(() => {
     const draftNote = readDraftIntakeNote("sick");
     if (draftNote) {
-      queueMicrotask(() => {
-        setNote(draftNote);
-        setHealthStatus("sick");
-      });
+      setNote(draftNote);
+      setHealthStatus("sick");
     }
   }, []);
 

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { useIsomorphicLayoutEffect } from "@/lib/useIsomorphicLayoutEffect";
 import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
 import { ImageUploader } from "@/components/ImageUploader";
@@ -166,6 +167,35 @@ function UniversalIntakeUploader({
   );
 }
 
+// Resolve ?type=/?subtype= from the URL. This page is statically prerendered, so the
+// initial state must NOT read `window` (that would desync from the prerendered HTML and
+// trigger a React hydration mismatch) — instead this is called from a useLayoutEffect
+// below, which runs synchronously on the client before the browser paints. That's what
+// actually eliminates the flash: unlike the old useEffect + queueMicrotask (which ran
+// after the first paint), a layout effect corrects the state before anything is shown,
+// while still rendering the SSR-safe default on the very first (server-matching) pass.
+function resolveUploadTypeFromUrl(): { type: UploadType | null; hasChosenType: boolean; workoutSubtype: WorkoutSubtype | null } {
+  if (typeof window === "undefined") return { type: null, hasChosenType: false, workoutSubtype: null };
+  const params = new URLSearchParams(window.location.search);
+  const raw = params.get("type") ?? "";
+  const mode = params.get("mode") ?? "";
+  if (mode === "csv") return { type: null, hasChosenType: false, workoutSubtype: null }; // handled by the CSV-redirect effect
+
+  const aliasMap: Record<string, UploadType> = {
+    sleep: "sleep", meal: "meal", workout: "workout", body: "body", health: "health_check", health_check: "health_check",
+    run: "workout", วิ่ง: "workout",
+  };
+  const resolved = aliasMap[raw.toLowerCase()];
+  if (!resolved) return { type: null, hasChosenType: false, workoutSubtype: null };
+
+  let workoutSubtype: WorkoutSubtype | null = null;
+  if (resolved === "workout") {
+    const sub = params.get("subtype") ?? "";
+    if (isWorkoutSubtype(sub)) workoutSubtype = sub;
+  }
+  return { type: resolved, hasChosenType: true, workoutSubtype };
+}
+
 export default function UploadPage() {
   const [type, setType] = useState<UploadType>("sleep");
   const [selectedDateKey, setSelectedDateKey] = useState(() => todayBangkokDateKey());
@@ -216,7 +246,13 @@ export default function UploadPage() {
 
   const router = useRouter();
 
-  useEffect(() => {
+  // Resolve ?type=/?subtype= (and the CSV-mode redirect) in a layout effect rather than a
+  // plain effect + queueMicrotask — useLayoutEffect fires synchronously on the client
+  // before the browser paints, so the correct focused form is what the user actually
+  // sees first, without desyncing the very first render from this page's static-prerendered
+  // HTML (which would trigger a hydration mismatch if done via a window-reading initial
+  // state instead).
+  useIsomorphicLayoutEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const raw = params.get("type") ?? "";
     const mode = params.get("mode") ?? "";
@@ -230,27 +266,16 @@ export default function UploadPage() {
       return;
     }
 
-    const aliasMap: Record<string, UploadType> = {
-      sleep: "sleep", meal: "meal", workout: "workout", body: "body", health: "health_check", health_check: "health_check",
-      run: "workout", วิ่ง: "workout",
-    };
-    const resolved: UploadType | undefined = aliasMap[raw.toLowerCase()];
-    if (process.env.NODE_ENV === "development") {
-      console.info("[upload-type-debug]", { queryType: raw, resolvedType: resolved ?? "(none — keeping default)", mode });
+    const resolved = resolveUploadTypeFromUrl();
+    if (resolved.type) {
+      setType(resolved.type);
+      setHasChosenType(true);
+      if (resolved.workoutSubtype) setWorkoutSubtype(resolved.workoutSubtype);
     }
 
-    queueMicrotask(() => {
-      if (resolved) {
-        setType(resolved);
-        setHasChosenType(true);
-        if (resolved === "workout") {
-          const sub = params.get("subtype") ?? "";
-          if (isWorkoutSubtype(sub)) {
-            setWorkoutSubtype(sub);
-          }
-        }
-      }
-    });
+    if (process.env.NODE_ENV === "development") {
+      console.info("[upload-type-debug]", { queryType: raw, resolvedType: resolved.type ?? "(none — keeping default)", mode });
+    }
   }, [router]);
   const [draftMealBadge, setDraftMealBadge] = useState(false);
 
