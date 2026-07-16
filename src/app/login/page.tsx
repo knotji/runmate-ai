@@ -34,9 +34,17 @@ export default function LoginPage() {
       const profileResult = await loadProfileFromSupabase();
       router.replace(profileResult.ok && !profileResult.profile ? "/onboarding" : "/");
     } else {
-      const { error: err } = await supabase.auth.signUp({ email, password });
+      const { data, error: err } = await supabase.auth.signUp({ email, password });
       if (err) { setError(err.message); setLoading(false); return; }
-      setDone("สร้างบัญชีสำเร็จ — เข้าสู่ระบบได้เลย");
+      // Supabase returns no session when the project requires email confirmation — in
+      // that case the account exists but signing in will still fail until the user
+      // clicks the confirmation link, so "เข้าสู่ระบบได้เลย" would be misleading.
+      if (data.session) {
+        const profileResult = await loadProfileFromSupabase();
+        router.replace(profileResult.ok && !profileResult.profile ? "/onboarding" : "/");
+        return;
+      }
+      setDone("สร้างบัญชีสำเร็จ — กรุณายืนยันอีเมลก่อนเข้าสู่ระบบ");
       setMode("signin");
       setLoading(false);
     }
