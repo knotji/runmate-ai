@@ -103,7 +103,7 @@ test.describe("Today UX simplification", () => {
     await gotoApp(page, "/");
 
     // Section label text is always rendered (pre-workout or post-workout variant)
-    const recLabel = page.getByText(/วันนี้ทำอะไรดี\?|วันนี้ควรพักและฟื้นตัว|หลังซ้อมวันนี้ควรทำอะไรต่อ|หลังเวทวันนี้ควรทำอะไรต่อ/);
+    const recLabel = page.getByText(/วันนี้ทำอะไรดี\?|ควรพักและฟื้นตัว|หลังซ้อมควรทำอะไรต่อ|หลังเวทควรทำอะไรต่อ/);
     await expect(recLabel.first()).toBeVisible();
   });
 });

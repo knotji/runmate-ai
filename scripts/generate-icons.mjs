@@ -1,6 +1,6 @@
 /**
  * RunMate PWA icon generator
- * Design: sage-green (#5B947E) rounded-square bg + white heartbeat/pulse waveform
+ * Design: Trust Blue (#3B6EF6) rounded-square bg + white heartbeat/pulse waveform
  * Run: node scripts/generate-icons.mjs
  */
 
@@ -14,7 +14,7 @@ const PUBLIC_ICONS = join(ROOT, "public/icons");
 const PUBLIC = join(ROOT, "public");
 const APP = join(ROOT, "src/app");
 
-const SAGE = "#5B947E";
+const PRIMARY = "#3B6EF6"; // Trust Blue --primary
 
 // ---------------------------------------------------------------------------
 // Pulse waveform path (100×100 canvas → scaled to target size)
@@ -55,7 +55,7 @@ function stdIconSvg(size) {
   const rx = Math.round(size * 0.18);
   const sw = (size * 0.063).toFixed(1);
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
-  <rect width="${size}" height="${size}" rx="${rx}" ry="${rx}" fill="${SAGE}"/>
+  <rect width="${size}" height="${size}" rx="${rx}" ry="${rx}" fill="${PRIMARY}"/>
   <path d="${pulsePath(size)}" stroke="white" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
 </svg>`;
 }
@@ -63,7 +63,7 @@ function stdIconSvg(size) {
 function maskableIconSvg(size) {
   const sw = (size * 0.063).toFixed(1);
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
-  <rect width="${size}" height="${size}" fill="${SAGE}"/>
+  <rect width="${size}" height="${size}" fill="${PRIMARY}"/>
   <path d="${pulsePath(size)}" stroke="white" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
 </svg>`;
 }
@@ -72,7 +72,7 @@ function faviconSvg(size) {
   const rx = Math.round(size * 0.18);
   const sw = (size * 0.09).toFixed(1);
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
-  <rect width="${size}" height="${size}" rx="${rx}" ry="${rx}" fill="${SAGE}"/>
+  <rect width="${size}" height="${size}" rx="${rx}" ry="${rx}" fill="${PRIMARY}"/>
   <path d="${simpleWaveformPath(size)}" stroke="white" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
 </svg>`;
 }

@@ -140,12 +140,12 @@ test.describe("Today simplified UI", () => {
     await expect(page.getByTestId("recommendation-section-title")).toHaveText("วันนี้ทำอะไรดี?");
   });
 
-  test("8. Sick recommendation title remains วันนี้ควรพักและฟื้นตัว", async ({ page }) => {
+  test("8. Sick recommendation title remains ควรพักและฟื้นตัว", async ({ page }) => {
     const state = await installMockBackend(page);
     state.history.push(makeSleepRecord(bangkokDateKey(), "sleep-simp-7"));
     state.history.push(makeSickRecord(bangkokDateKey(), "sick-simp-5", ["fever"], "moderate"));
     await gotoApp(page, "/");
 
-    await expect(page.getByTestId("recommendation-section-title")).toHaveText("วันนี้ควรพักและฟื้นตัว");
+    await expect(page.getByTestId("recommendation-section-title")).toHaveText("ควรพักและฟื้นตัว");
   });
 });

@@ -106,14 +106,14 @@ test.describe("Sick Day logging page", () => {
 
   test("save button disabled when sick with no symptoms and no note", async ({ page }) => {
     await page.getByText("ไม่สบาย / ป่วย").click();
-    const saveBtn = page.getByRole("button", { name: "บันทึกอาการวันนี้" });
+    const saveBtn = page.getByRole("button", { name: "บันทึกอาการ" });
     await expect(saveBtn).toBeDisabled();
   });
 
   test("save button enabled after adding a note when sick", async ({ page }) => {
     await page.getByText("ไม่สบาย / ป่วย").click();
     await page.getByPlaceholder(/เช่น เริ่มเจ็บคอ/).fill("เริ่มปวดหัวตั้งแต่เช้า");
-    const saveBtn = page.getByRole("button", { name: "บันทึกอาการวันนี้" });
+    const saveBtn = page.getByRole("button", { name: "บันทึกอาการ" });
     await expect(saveBtn).toBeEnabled();
   });
 

@@ -236,7 +236,7 @@ test("Hero pre-workout has only one secondary details toggle visible", async ({ 
   await expect(page.getByText("ดูเหตุผล").first()).toBeVisible();
 
   // CTA still prominent
-  await expect(page.getByRole("link", { name: "บันทึกกิจกรรมวันนี้" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "บันทึกกิจกรรม", exact: true })).toBeVisible();
 
   // Clicking the toggle opens the reasons section
   await page.getByText("ดูเหตุผล").first().click();
@@ -350,7 +350,7 @@ test("Post-workout recommendation uses recovery wording and avoids suggesting du
   await gotoApp(page, "/");
 
   // Post-workout section header
-  await expect(page.getByText("หลังซ้อมวันนี้ควรทำอะไรต่อ")).toBeVisible();
+  await expect(page.getByText("หลังซ้อมควรทำอะไรต่อ")).toBeVisible();
   // Workout completion title (buildPostWorkoutTitle returns "วันนี้ซ้อมพอแล้ว" for single workouts)
   await expect(page.getByText("วันนี้ซ้อมพอแล้ว")).toBeVisible();
 

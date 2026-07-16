@@ -424,9 +424,9 @@ export default function TodayPage() {
           <div className="flex-1 px-4 pt-3.5 pb-4 space-y-3.5">
         <p className="rm-eyebrow" data-testid="recommendation-section-title">
           {hasWorkoutToday
-            ? (coachCtx?.todayWorkouts.some((w) => w.kind === "strength") ? "หลังเวทวันนี้ควรทำอะไรต่อ" : "หลังซ้อมวันนี้ควรทำอะไรต่อ")
+            ? (coachCtx?.todayWorkouts.some((w) => w.kind === "strength") ? "หลังเวทควรทำอะไรต่อ" : "หลังซ้อมควรทำอะไรต่อ")
             : coachCtx?.sickRiskLevel === "hard_stop"
-            ? "วันนี้ควรพักและฟื้นตัว"
+            ? "ควรพักและฟื้นตัว"
             : "วันนี้ทำอะไรดี?"}
         </p>
 
@@ -478,7 +478,7 @@ export default function TodayPage() {
           </Link>
         ) : (
           <Link href="/upload" data-testid="primary-cta" className="block w-full rounded-full bg-gradient-to-b from-rm-primary to-rm-primary-strong py-2.5 text-center text-sm font-bold text-rm-surface shadow-[0_8px_20px_rgba(79,138,120,0.15)]">
-            {hasWorkoutToday ? "อัปเดตข้อมูลวันนี้" : "บันทึกกิจกรรมวันนี้"}
+            {hasWorkoutToday ? "อัปเดตข้อมูล" : "บันทึกกิจกรรม"}
           </Link>
         )}
 
@@ -488,7 +488,7 @@ export default function TodayPage() {
 
       {/* 3. Recovery Loop — collapsed by default to reduce clutter */}
       {coachCtx && (
-        <DetailAccordion title="🌙 ฟื้นตัวยังไงคืนนี้" data-testid="recovery-loop-details">
+        <DetailAccordion title="🌙 ฟื้นตัวคืนนี้" data-testid="recovery-loop-details">
           <RecoveryLoopCard coachCtx={coachCtx} />
         </DetailAccordion>
       )}
@@ -642,7 +642,10 @@ export default function TodayPage() {
             ยังไม่มี Race Goal · <span className="underline underline-offset-2">ตั้งเป้าหมาย</span>
           </Link>
         ) : <span />}
-        {insight && (
+        {/* Hidden when the error banner's own retry button is showing above (same
+            action, same label) — otherwise two identical "วิเคราะห์ใหม่" buttons
+            appear on screen at once during the fallback-with-error state. */}
+        {insight && !(insightError && !loading) && (
           <LoadingButton
             type="button"
             loading={loading}
@@ -1464,7 +1467,7 @@ function buildTodayChecklist(ctx: CoachContext | null, summaryItem: LocalHistory
   return [
     { label: "บันทึกการนอน", href: "/upload?type=sleep", done: Boolean(ctx?.sleep7d.some((i) => i.date === today)) },
     { label: "บันทึกอาหาร", href: "/upload?type=meal", done: Boolean(ctx?.nutritionToday && ctx.nutritionToday.mealCount > 0) },
-    { label: "บันทึกกิจกรรมวันนี้", href: "/upload?type=workout", done: Boolean(ctx?.workouts7d.some((i) => i.date === today)) },
+    { label: "บันทึกกิจกรรม", href: "/upload?type=workout", done: Boolean(ctx?.workouts7d.some((i) => i.date === today)) },
     { label: "เช็กอาการเจ็บ", href: "/pain", done: painDone },
     { label: "สรุปท้ายวัน", href: "#end-of-day-summary", done: Boolean(summaryItem) },
   ];

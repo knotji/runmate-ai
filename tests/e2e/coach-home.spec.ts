@@ -15,7 +15,7 @@ test.describe("Coach home 10/10 polish", () => {
     await installMockBackend(page);
     await gotoApp(page, "/coach");
 
-    await expect(page.getByRole("heading", { name: "โค้ชพร้อมช่วยวันนี้" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "พร้อมช่วยวันนี้" })).toBeVisible();
     await expect(page.getByText("อัปเดตทุกครั้งที่บันทึกข้อมูลใหม่")).toBeVisible();
     await expect(page.getByRole("link", { name: "ลองถามโค้ช" })).toBeVisible();
     await expect(page.getByRole("link", { name: "แจ้งเจ็บ" })).toBeVisible();

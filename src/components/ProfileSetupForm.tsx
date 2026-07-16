@@ -438,6 +438,9 @@ export function ProfileSetupForm({
         </p>
       </div>
 
+      <div className="space-y-2">
+        <p className="px-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--label-color)]">👤 พื้นฐาน</p>
+
       {/* ── 1. Basic ── */}
       <EditableSection
         title="ข้อมูลพื้นฐาน"
@@ -694,6 +697,10 @@ export function ProfileSetupForm({
           </>
         )}
       />
+      </div>
+
+      <div className="space-y-2">
+        <p className="px-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--label-color)]">🏃 การซ้อม</p>
 
       {/* ── 4. Training Pattern ── */}
       <EditableSection
@@ -824,6 +831,10 @@ export function ProfileSetupForm({
           </>
         )}
       />
+      </div>
+
+      <div className="space-y-2">
+        <p className="px-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--label-color)]">💚 สุขภาพ</p>
 
       {/* ── 6. Sleep & Recovery ── */}
       <EditableSection
@@ -1067,6 +1078,10 @@ export function ProfileSetupForm({
           );
         }}
       />
+      </div>
+
+      <div className="space-y-2">
+        <p className="px-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--label-color)]">⚙️ อื่น ๆ</p>
 
       {/* ── 8. Coaching Style ── */}
       <EditableSection
@@ -1339,18 +1354,23 @@ export function ProfileSetupForm({
           </>
         )}
       />
+      </div>
 
       {loadingCloud && (
         <p className="text-center text-xs text-[var(--color-text-soft)]">กำลังโหลดโปรไฟล์…</p>
       )}
 
-      {status.text ? (
-        <p className={`rounded-2xl p-3 text-sm font-semibold ${statusClass(status.tone)}`}>{status.text}</p>
-      ) : null}
+      {/* Sticky above the bottom nav so saving a long form never requires scrolling
+          back down past 9 accordion sections to find the button. */}
+      <div className="sticky bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-10 space-y-2 bg-[var(--background)]/95 pb-1 pt-2 backdrop-blur">
+        {status.text ? (
+          <p className={`rounded-2xl p-3 text-sm font-semibold ${statusClass(status.tone)}`}>{status.text}</p>
+        ) : null}
 
-      <LoadingButton className="btn-primary w-full py-3" type="submit" loading={saving} loadingText="กำลังบันทึก...">
-        บันทึกโปรไฟล์
-      </LoadingButton>
+        <LoadingButton className="btn-primary w-full py-3 shadow-[0_8px_20px_rgba(0,0,0,0.08)]" type="submit" loading={saving} loadingText="กำลังบันทึก...">
+          บันทึกโปรไฟล์
+        </LoadingButton>
+      </div>
 
       {IS_DEV && (
         <div className="rounded-2xl border border-dashed border-[var(--border-warm)]">

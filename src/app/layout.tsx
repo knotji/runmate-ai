@@ -7,8 +7,8 @@ import { PWARegistration } from "@/components/PWARegistration";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { Analytics } from "@vercel/analytics/next";
 
-// Body/UI text — Night Pace theme. Kept on the historical --font-noto-thai
-// variable name so globals.css's existing references don't need to change.
+// Body/UI text. Kept on the historical --font-noto-thai variable name so
+// globals.css's existing references don't need to change.
 const notoThai = IBM_Plex_Sans_Thai({
   variable: "--font-noto-thai",
   subsets: ["thai", "latin"],
@@ -16,7 +16,7 @@ const notoThai = IBM_Plex_Sans_Thai({
 });
 
 // Display face for score numbers and headlines — technical/geometric,
-// reads like a data-readout to match the dark athletic direction.
+// reads like a data-readout against the Trust Blue palette.
 const chakraPetch = Chakra_Petch({
   variable: "--font-display",
   subsets: ["thai", "latin"],
@@ -24,7 +24,7 @@ const chakraPetch = Chakra_Petch({
 });
 
 export const viewport: Viewport = {
-  themeColor: "#5B947E",
+  themeColor: "#3B6EF6",
   viewportFit: "cover",
   width: "device-width",
   initialScale: 1,

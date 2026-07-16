@@ -285,7 +285,7 @@ function DraftModeHint({ currentGoal }: { currentGoal: RaceGoal }) {
         <p className="text-xs text-[var(--muted-text)]">วันแข่ง {currentGoal.raceDate}</p>
       )}
       <p className="mt-2 text-xs leading-5 text-[var(--color-text-soft)]">
-        การสร้างใหม่จะยังไม่แทนที่แผนเดิมจนกว่าจะยืนยัน · แผนเดิมยังปลอดภัย
+        การสร้างใหม่จะยังไม่แทนที่แผนเดิมจนกว่าจะยืนยัน
       </p>
     </section>
   );
@@ -390,7 +390,7 @@ function RacePlanFreshnessNote({ freshness }: { freshness: PlanFreshness | null 
   return (
     <div className="rounded-2xl border border-[var(--color-info-soft)] bg-[var(--color-info-soft)] px-3 py-2 text-xs leading-5 text-[var(--color-info)]">
       <p className="font-bold">อัปเดตจากข้อมูลล่าสุด</p>
-      <p className="mt-0.5 text-[var(--foreground)]/70">แผนวันนี้ปรับตามข้อมูลล่าสุด เช่น sleep / pain / workout เพื่อให้ซ้อมเหมาะกับสภาพร่างกายมากขึ้น</p>
+      <p className="mt-0.5 text-[var(--foreground)]/70">แผนวันนี้ปรับตาม sleep / pain / workout เพื่อให้ซ้อมเหมาะกับสภาพร่างกายมากขึ้น</p>
       {freshness.latestReportTime ? <p className="mt-1 text-[var(--color-text-muted)]">อัปเดตล่าสุด: {formatDateTimeThai(freshness.latestReportTime)}</p> : null}
     </div>
   );

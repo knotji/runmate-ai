@@ -864,7 +864,7 @@ export default function UploadPage() {
             <div className="space-y-2.5" data-testid="upload-type-selector">
               <div className="flex items-baseline justify-between gap-2">
                 <p className="text-sm font-bold text-rm-text">หรือเลือกประเภทเอง</p>
-                <p className="rm-caption">ถ้ารู้ว่าข้อมูลคืออะไร เลือกตรงนี้ได้เลย</p>
+                <p className="rm-caption">รู้ประเภทอยู่แล้ว เลือกได้เลย</p>
               </div>
 
               <div className="space-y-1">
@@ -1031,6 +1031,10 @@ export default function UploadPage() {
           )}
         </div>
 
+        {/* sleep/body have no type-specific header content (unlike meal's meal-type tabs or
+            workout's subtype chips) — once a result exists their only content (ImageUploader)
+            hides, so the panel would render as an empty card. Skip it entirely in that case. */}
+        {!((type === "sleep" || type === "body") && result) && (
         <div ref={inputPanelRef} className="card space-y-3 p-3.5" data-testid="upload-input-panel">
         {type === "meal" && (
           <div className="space-y-3">
@@ -1146,11 +1150,15 @@ export default function UploadPage() {
           </>
         ) : null}
 
-        {/* Image uploader: show for all types EXCEPT walk/other workout manual, manual meal, health_check, and strength-manual mode */}
+        {/* Image uploader: show for all types EXCEPT walk/other workout manual, manual meal, health_check, and
+            strength-manual mode. Hidden once a result exists — ImageUploader clears its own file/preview state
+            right after a successful analyze, so leaving it mounted left an empty dropzone sitting above the
+            review card with a large gap between them. The review card's own "ยกเลิก" already routes back here. */}
         {!(type === "workout" && (workoutSubtype === "walk" || workoutSubtype === "other")) &&
          !(type === "workout" && workoutSubtype === "strength" && strengthInputMode === "manual") &&
          !(type === "meal" && mealInputMode === "text") &&
-         type !== "health_check" ? (
+         type !== "health_check" &&
+         !result ? (
           <>
             <ImageUploader
               key={type + (type === "workout" ? `-${workoutSubtype}-${strengthInputMode}` : "")}
@@ -1190,6 +1198,7 @@ export default function UploadPage() {
           </>
         ) : null}
         </div>
+        )}
 
         {/* ── Workout manual-entry forms (inside section so nav-pad doesn't create a gap above them) ── */}
         {type === "workout" && workoutSubtype === "strength" && strengthInputMode === "manual" && (
@@ -1232,14 +1241,8 @@ export default function UploadPage() {
             />
           </div>
         )}
-        </>
-        )}
-      </section>
-
-      {hasChosenType && (
-      <>
-      {/* ── AI-Suggested Date Confirmation ── */}
-      {suggestedDateKey && (
+        {/* ── AI-Suggested Date Confirmation ── */}
+        {suggestedDateKey && (
         <div className="card-warning p-4 space-y-2 mb-4">
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm text-[var(--foreground)] leading-relaxed font-semibold">
@@ -1257,8 +1260,11 @@ export default function UploadPage() {
                 ใช้วันที่นี้
               </button>
             ) : (
+              // Matches the already-selected date — SelectedDateBadge right below already
+              // says "จะบันทึกเป็นวันที่: ..." so this only needs a short confirmation, not
+              // the same date string repeated a third time on screen.
               <span className="rounded-full bg-[var(--color-warning-soft)] px-3 py-1.5 text-xs font-bold text-[var(--color-warning)]">
-                จะบันทึกเป็นวันที่: {formatDateKeyToThaiBE(selectedDateKey)}
+                ✓ ตรงกับวันที่เลือกไว้
               </span>
             )}
           </div>
@@ -1395,6 +1401,7 @@ export default function UploadPage() {
       ) : null}
       </>
       )}
+      </section>
     </AppShell>
   );
 }
