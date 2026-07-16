@@ -7,7 +7,6 @@ This is not a medical app. It gives general training, nutrition, and recovery gu
 ## Tech stack
 
 - Next.js App Router, TypeScript, Tailwind CSS
-- Framer Motion
 - Supabase Auth, Postgres, and Storage
 - OpenAI API for image understanding, structured extraction, plans, summaries, and coach chat
 - MVP local demo flow with `localStorage` when Supabase is not configured
@@ -30,10 +29,15 @@ NEXT_PUBLIC_APP_VERSION=0.1.0
 NEXT_PUBLIC_GIT_SHA=local
 NEXT_PUBLIC_BUILD_TIME=
 NEXT_PUBLIC_DEPLOY_ENV=local
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=
+VAPID_PRIVATE_KEY=
+CRON_SECRET=
 ```
 
 Set `AI_PROVIDER=gemini` to use Gemini first, or `AI_PROVIDER=openai` to use OpenAI first. Never expose `GEMINI_API_KEY`, `OPENAI_API_KEY`, or `SUPABASE_SERVICE_ROLE_KEY` in client components.
 The `NEXT_PUBLIC_APP_VERSION`, `NEXT_PUBLIC_GIT_SHA`, `NEXT_PUBLIC_BUILD_TIME`, and `NEXT_PUBLIC_DEPLOY_ENV` values are safe public build metadata shown on the Settings page. On Vercel, `NEXT_PUBLIC_GIT_SHA` and `NEXT_PUBLIC_DEPLOY_ENV` can fall back to `VERCEL_GIT_COMMIT_SHA` and `VERCEL_ENV` at build time.
+
+`NEXT_PUBLIC_VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` are the Web Push keypair (generate once with `npx web-push generate-vapid-keys`) that power the daily reminder notification in Settings. `CRON_SECRET` protects `/api/push/send-daily-reminders`, the endpoint `vercel.json`'s cron job hits once a day — set the same value in Vercel's project settings under the Cron Jobs / Environment Variables section (Vercel sends it automatically as a bearer token when calling scheduled functions).
 
 ## Supabase setup
 

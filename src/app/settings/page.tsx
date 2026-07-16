@@ -11,6 +11,7 @@ import { CsvHistoryImporter } from "@/components/import/CsvHistoryImporter";
 import { StrengthRoutineManager } from "@/components/StrengthRoutineManager";
 import { GoalSetupSection } from "@/components/GoalSetupSection";
 import { ReleaseNotesSection } from "@/components/settings/ReleaseNotesSection";
+import { NotificationSettingsSection } from "@/components/settings/NotificationSettingsSection";
 import { DevCoachContextPanel } from "@/components/settings/DevCoachContextPanel";
 import { loadProfileFromSupabase } from "@/lib/profileStorage";
 import { createClient } from "@/lib/supabase/client";
@@ -422,6 +423,8 @@ export default function SettingsPage() {
           <button type="button" onClick={logout} className="btn-danger-soft w-full px-6 py-3 text-center text-sm">
             ออกจากระบบ
           </button>
+
+          <NotificationSettingsSection />
 
           <ReleaseNotesSection />
 
