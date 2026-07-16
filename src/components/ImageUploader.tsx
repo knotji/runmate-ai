@@ -21,6 +21,7 @@ export function ImageUploader({
   ctaLabel = "วิเคราะห์",
   noFileCtaLabel = "เลือกรูปก่อนวิเคราะห์",
   compressImages = false,
+  compressOptions,
   onResult,
   children,
   initialFile,
@@ -32,8 +33,12 @@ export function ImageUploader({
   maxFiles?: number;
   ctaLabel?: string;
   noFileCtaLabel?: string;
-  /** Compress images client-side before upload. Enable for meal image analysis. */
+  /** Compress images client-side before upload. */
   compressImages?: boolean;
+  /** Override compressImage()'s defaults (1280px / quality 0.75, tuned for food photos).
+   *  Screenshot-type uploads (sleep/workout/body/health readouts) need higher fidelity
+   *  to keep small numbers legible, so callers should pass a gentler maxDim/quality. */
+  compressOptions?: { maxDim?: number; quality?: number };
   onResult: (result: unknown) => void | Promise<void>;
   children?: ReactNode;
   /** Pre-seed the file picker with a file already captured elsewhere (e.g. the universal intake classifier), so the user never has to re-select it. */
@@ -120,10 +125,10 @@ export function ImageUploader({
 
     setLoading(true);
     try {
-      // ── 1. Compress images (meal only) ──────────────────────────────────────
+      // ── 1. Compress images ──────────────────────────────────────────────────
       let filesToSend: File[] = files;
       if (compressImages) {
-        const results = await Promise.allSettled(files.map((f) => compressImage(f)));
+        const results = await Promise.allSettled(files.map((f) => compressImage(f, compressOptions)));
         filesToSend = results.map((result, i) => {
           if (result.status === "fulfilled") return result.value.file;
           // Compression failed (e.g. invalid JPEG data) — use the original
@@ -134,7 +139,8 @@ export function ImageUploader({
           results.forEach((result, i) => {
             if (result.status === "fulfilled") {
               const { originalSize, compressedSize, wasCompressed } = result.value;
-              console.info("[meal-compression]", {
+              console.info("[image-compression]", {
+                kind,
                 file: files[i].name,
                 originalSize,
                 compressedSize,
@@ -144,7 +150,8 @@ export function ImageUploader({
                   : "0%",
               });
             } else {
-              console.warn("[meal-compression-failed]", {
+              console.warn("[image-compression-failed]", {
+                kind,
                 file: files[i].name,
                 error: result.reason,
               });
