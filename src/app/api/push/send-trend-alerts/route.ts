@@ -47,93 +47,103 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "admin client not configured" }, { status: 500 });
   }
 
-  const todayKey = getBangkokDateKey();
-  const sinceKey = daysAgoBangkokDateKey(LOOKBACK_DAYS);
+  // Wrapped so a real cause (bad service-role key, missing table/column, a
+  // transient Supabase network error) shows up in the response body and
+  // Vercel's function logs instead of vanishing behind a bare 500.
+  try {
+    const todayKey = getBangkokDateKey();
+    const sinceKey = daysAgoBangkokDateKey(LOOKBACK_DAYS);
 
-  const { data: subscriptions, error: subError } = await admin
-    .from("push_subscriptions")
-    .select("id, user_id, endpoint, p256dh, auth_key, last_trend_alert_date_key");
+    const { data: subscriptions, error: subError } = await admin
+      .from("push_subscriptions")
+      .select("id, user_id, endpoint, p256dh, auth_key, last_trend_alert_date_key");
 
-  if (subError || !subscriptions) {
-    return NextResponse.json({ error: "failed to load subscriptions" }, { status: 500 });
-  }
-
-  const userIds = [...new Set(subscriptions.map((s) => s.user_id as string))];
-  if (userIds.length === 0) {
-    return NextResponse.json({ ok: true, eligibleUsers: 0, sent: 0, skippedAlreadySentToday: 0, skippedNoTrend: 0, expiredRemoved: 0, failed: 0 });
-  }
-
-  const { data: sleepRows, error: sleepError } = await admin
-    .from("history_items")
-    .select("id, user_id, created_at, data")
-    .in("user_id", userIds)
-    .eq("type", "sleep")
-    .gte("data->>dateKey", sinceKey);
-
-  if (sleepError || !sleepRows) {
-    return NextResponse.json({ error: "failed to load sleep history" }, { status: 500 });
-  }
-
-  const itemsByUser = new Map<string, LocalHistoryItem[]>();
-  for (const row of sleepRows) {
-    const item: LocalHistoryItem = {
-      id: row.id as string,
-      type: "sleep",
-      createdAt: row.created_at as string,
-      data: row.data,
-    };
-    const list = itemsByUser.get(row.user_id as string) ?? [];
-    list.push(item);
-    itemsByUser.set(row.user_id as string, list);
-  }
-
-  let sent = 0;
-  let skippedAlreadySentToday = 0;
-  let skippedNoTrend = 0;
-  let expiredRemoved = 0;
-  let failed = 0;
-
-  for (const sub of subscriptions) {
-    if (sub.last_trend_alert_date_key === todayKey) {
-      skippedAlreadySentToday += 1;
-      continue;
+    if (subError || !subscriptions) {
+      console.error("[send-trend-alerts] failed to load subscriptions", subError);
+      return NextResponse.json({ error: "failed to load subscriptions", detail: subError?.message }, { status: 500 });
     }
 
-    const items = itemsByUser.get(sub.user_id as string) ?? [];
-    const rows = dedupeSleepItems(items).map((item) => ({
-      date: getHistoryItemDateKey(item),
-      restingHR: (item.data as SleepAnalysis | null)?.extracted?.restingHR ?? null,
-    }));
-
-    const trend = detectRestingHRTrend(rows);
-    if (!trend || !MILESTONE_STREAK_DAYS.has(trend.streakDays)) {
-      skippedNoTrend += 1;
-      continue;
+    const userIds = [...new Set(subscriptions.map((s) => s.user_id as string))];
+    if (userIds.length === 0) {
+      return NextResponse.json({ ok: true, eligibleUsers: 0, sent: 0, skippedAlreadySentToday: 0, skippedNoTrend: 0, expiredRemoved: 0, failed: 0 });
     }
 
-    const result = await sendPushNotification(
-      { endpoint: sub.endpoint, p256dh: sub.p256dh, auth_key: sub.auth_key },
-      { title: REMINDER_TITLE, body: buildMessage(trend.streakDays, trend.latestRestingHR, trend.riseBpm), url: "/" },
-    );
+    const { data: sleepRows, error: sleepError } = await admin
+      .from("history_items")
+      .select("id, user_id, created_at, data")
+      .in("user_id", userIds)
+      .eq("type", "sleep")
+      .gte("data->>dateKey", sinceKey);
 
-    if (result.ok) {
-      sent += 1;
-      await admin.from("push_subscriptions").update({ last_trend_alert_date_key: todayKey }).eq("id", sub.id);
-    } else if (result.expired) {
-      expiredRemoved += 1;
-      await admin.from("push_subscriptions").delete().eq("id", sub.id);
-    } else {
-      failed += 1;
+    if (sleepError || !sleepRows) {
+      console.error("[send-trend-alerts] failed to load sleep history", sleepError);
+      return NextResponse.json({ error: "failed to load sleep history", detail: sleepError?.message }, { status: 500 });
     }
+
+    const itemsByUser = new Map<string, LocalHistoryItem[]>();
+    for (const row of sleepRows) {
+      const item: LocalHistoryItem = {
+        id: row.id as string,
+        type: "sleep",
+        createdAt: row.created_at as string,
+        data: row.data,
+      };
+      const list = itemsByUser.get(row.user_id as string) ?? [];
+      list.push(item);
+      itemsByUser.set(row.user_id as string, list);
+    }
+
+    let sent = 0;
+    let skippedAlreadySentToday = 0;
+    let skippedNoTrend = 0;
+    let expiredRemoved = 0;
+    let failed = 0;
+
+    for (const sub of subscriptions) {
+      if (sub.last_trend_alert_date_key === todayKey) {
+        skippedAlreadySentToday += 1;
+        continue;
+      }
+
+      const items = itemsByUser.get(sub.user_id as string) ?? [];
+      const rows = dedupeSleepItems(items).map((item) => ({
+        date: getHistoryItemDateKey(item),
+        restingHR: (item.data as SleepAnalysis | null)?.extracted?.restingHR ?? null,
+      }));
+
+      const trend = detectRestingHRTrend(rows);
+      if (!trend || !MILESTONE_STREAK_DAYS.has(trend.streakDays)) {
+        skippedNoTrend += 1;
+        continue;
+      }
+
+      const result = await sendPushNotification(
+        { endpoint: sub.endpoint, p256dh: sub.p256dh, auth_key: sub.auth_key },
+        { title: REMINDER_TITLE, body: buildMessage(trend.streakDays, trend.latestRestingHR, trend.riseBpm), url: "/" },
+      );
+
+      if (result.ok) {
+        sent += 1;
+        await admin.from("push_subscriptions").update({ last_trend_alert_date_key: todayKey }).eq("id", sub.id);
+      } else if (result.expired) {
+        expiredRemoved += 1;
+        await admin.from("push_subscriptions").delete().eq("id", sub.id);
+      } else {
+        failed += 1;
+      }
+    }
+
+    return NextResponse.json({
+      ok: true,
+      eligibleUsers: userIds.length,
+      sent,
+      skippedAlreadySentToday,
+      skippedNoTrend,
+      expiredRemoved,
+      failed,
+    });
+  } catch (error) {
+    console.error("[send-trend-alerts] unhandled error", error);
+    return NextResponse.json({ error: "unhandled error", detail: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
-
-  return NextResponse.json({
-    ok: true,
-    eligibleUsers: userIds.length,
-    sent,
-    skippedAlreadySentToday,
-    skippedNoTrend,
-    expiredRemoved,
-    failed,
-  });
 }
