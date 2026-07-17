@@ -51,6 +51,20 @@ async function getReadyRegistration(): Promise<ServiceWorkerRegistration | null>
   return withTimeout(navigator.serviceWorker.ready, READY_TIMEOUT_MS).catch(() => null);
 }
 
+// The subscribe/unsubscribe fetch() calls below had no timeout at all — a slow or
+// dropped connection would hang the button just as badly as the service-worker cases
+// above did, even after they were fixed. AbortController is the right tool for fetch
+// specifically (same pattern already used for the Today page's coach-insight call).
+async function fetchWithTimeout(input: string, init: RequestInit, ms: number): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /** Returns the endpoint of the active subscription, or null if not subscribed. */
 export async function getCurrentPushEndpoint(): Promise<string | null> {
   if (getPushSupportState() !== "ready") return null;
@@ -101,11 +115,11 @@ export async function subscribeToPush(): Promise<{ ok: true } | { ok: false; rea
     }
 
     const json = subscription.toJSON();
-    const response = await fetch("/api/push/subscribe", {
+    const response = await fetchWithTimeout("/api/push/subscribe", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ endpoint: json.endpoint, keys: json.keys }),
-    });
+    }, READY_TIMEOUT_MS);
 
     if (!response.ok) {
       return { ok: false, reason: "บันทึกการแจ้งเตือนไม่สำเร็จ" };
@@ -129,11 +143,11 @@ export async function unsubscribeFromPush(): Promise<{ ok: true } | { ok: false;
     const endpoint = subscription.endpoint;
     await subscription.unsubscribe();
 
-    const response = await fetch("/api/push/unsubscribe", {
+    const response = await fetchWithTimeout("/api/push/unsubscribe", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ endpoint }),
-    });
+    }, READY_TIMEOUT_MS);
 
     if (!response.ok) {
       return { ok: false, reason: "ยกเลิกการแจ้งเตือนไม่สำเร็จ" };
