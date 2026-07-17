@@ -6,6 +6,7 @@ import { getRunMateReadinessLabel } from "@/lib/readinessV2";
 import { formatAxisScore, getRecoveryAxisLabel } from "@/lib/recoverySystem";
 import type { RunMateRecoverySystem } from "@/lib/recoverySystem";
 import { getTodayTrainingGuardrail } from "@/lib/trainingGuardrails";
+import { detectRestingHRTrend } from "@/lib/trendInsights";
 
 export function CoachContextDashboard() {
   const [context, setContext] = useState<CoachContext | null>(null);
@@ -320,6 +321,11 @@ function buildContextChips(context: CoachContext, recSys: RunMateRecoverySystem 
     } else if (recSys.axes.sleep.score < 50) {
       chips.push({ label: "นอนน้อย" });
     }
+  }
+
+  const restingHRTrend = detectRestingHRTrend(context.sleep7d);
+  if (restingHRTrend) {
+    chips.push({ label: `ชีพจรพักขึ้น ${restingHRTrend.streakDays} วัน`, highlight: true });
   }
 
   return chips.slice(0, 6);

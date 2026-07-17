@@ -58,6 +58,12 @@ export function buildTodayRecommendationReasons(
     }
   }
 
+  // 4b. Resting HR trending up several days in a row
+  const hrTrend = factors.find(f => f.key === "restingHrTrendUp");
+  if (hrTrend) {
+    reasons.push(hrTrend.reason);
+  }
+
   // 5. Pain
   if (ctx?.latestPain) {
     const p = ctx.latestPain;

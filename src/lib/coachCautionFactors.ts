@@ -1,4 +1,5 @@
 import type { CoachContext } from "./buildCoachContext";
+import { detectRestingHRTrend } from "./trendInsights";
 
 export type CoachCautionFactor = {
   key: string;
@@ -52,6 +53,19 @@ export function getCoachCautionFactors(context: CoachContext | null): CoachCauti
       label: "ชีพจรขณะพักสูงขึ้น",
       severity: "medium",
       reason: `ชีพจรขณะพักเช้านี้สูงกว่าค่าเฉลี่ยปกติ (${latestRestingHR} bpm vs เฉลี่ย ${Math.round(avgRestingHR7d)} bpm) ร่างกายอาจล้าหรือเครียดสะสม`,
+    });
+  }
+
+  // 4b. Resting HR rising several consecutive days — catches a slow climb
+  // that "restingHrElevated" above (latest vs 7d average) can miss, since a
+  // gradual rise pulls the average up with it and keeps that delta small.
+  const restingHRTrend = detectRestingHRTrend(context.sleep7d);
+  if (restingHRTrend) {
+    factors.push({
+      key: "restingHrTrendUp",
+      label: "ชีพจรขณะพักสูงขึ้นต่อเนื่อง",
+      severity: "medium",
+      reason: `ชีพจรขณะพักสูงขึ้นต่อเนื่อง ${restingHRTrend.streakDays} วัน (ล่าสุด ${restingHRTrend.latestRestingHR} bpm, สูงขึ้น ${restingHRTrend.riseBpm} bpm) ลองพักเพิ่มอีกนิด ฟังร่างกายก่อนซ้อมหนัก`,
     });
   }
 
