@@ -92,6 +92,34 @@ test.describe("Upload Dashboard v2", () => {
     await expect(section.getByTestId("other-workout-section")).toBeVisible();
   });
 
+  test("workout subtype 'run' offers a manual-entry fallback alongside image upload", async ({ page }) => {
+    await installMockBackend(page);
+    await gotoApp(page, "/upload?type=workout");
+
+    // Default subtype is "วิ่ง" — image/manual toggle should be visible immediately,
+    // same as it already is for strength, so a run without a tracker screenshot
+    // isn't a dead end.
+    await expect(page.getByRole("button", { name: "🖼️ อัปโหลดรูป" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "📝 บันทึกด้วยตัวเอง" })).toBeVisible();
+    await expect(page.locator('input[type="file"]')).toBeAttached();
+
+    await page.getByRole("button", { name: "📝 บันทึกด้วยตัวเอง" }).click();
+
+    const form = page.getByTestId("run-manual-section");
+    await expect(form).toBeVisible();
+    await expect(form.getByText("บันทึกกิจกรรมวิ่ง")).toBeVisible();
+    // Image uploader should be gone while in manual mode.
+    await expect(page.locator('input[type="file"]')).toBeHidden();
+
+    await page.getByLabel("เวลา (นาที)").fill("35");
+    await page.getByLabel("ระยะทาง (กม. ถ้ามี)").fill("6.2");
+    await form.getByRole("button", { name: "บันทึกกิจกรรม" }).click();
+
+    await expect(page.getByText("บันทึกเข้า Report แล้ว")).toBeVisible();
+    await expect(page.getByText("outdoor_run")).toBeVisible();
+    await expect(page.getByText("6.2 กม.")).toBeVisible();
+  });
+
   test("type selector shows ป่วย chip that links to /sick", async ({ page }) => {
     await installMockBackend(page);
     await gotoApp(page, "/upload");
