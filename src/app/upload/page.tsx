@@ -216,6 +216,10 @@ export default function UploadPage() {
   } | null>(null);
   const [workoutSubtype, setWorkoutSubtype] = useState<WorkoutSubtype>("run");
   const [strengthInputMode, setStrengthInputMode] = useState<"image" | "manual">("image");
+  // "วิ่ง" was the only workout subtype with no manual fallback — a run without
+  // a tracking-app screenshot had no way to be logged except mislabeling it
+  // as "อื่น ๆ". Same image/manual toggle pattern as strength above.
+  const [runInputMode, setRunInputMode] = useState<"image" | "manual">("image");
   const [mealInputMode, setMealInputMode] = useState<MealInputMode>("image");
   // Two-step flow: false = default entry/chooser screen, true = focused single-type form.
   const [hasChosenType, setHasChosenType] = useState(false);
@@ -1127,6 +1131,7 @@ export default function UploadPage() {
                   onClick={() => {
                     setWorkoutSubtype(sub);
                     setStrengthInputMode("image");
+                    setRunInputMode("image");
                     setResult(null);
                     setSaveStatus("idle");
                     setSaveFeedback("");
@@ -1138,21 +1143,24 @@ export default function UploadPage() {
               ))}
             </div>
             <p className="text-[11px] leading-5 text-[var(--muted-text)]">{WORKOUT_SUBTYPE_HELPER[workoutSubtype]}</p>
-            {/* Strength: image upload vs manual routine tabs */}
-            {workoutSubtype === "strength" && (
+            {/* Run & Strength: image upload vs manual entry tabs — no screenshot,
+                no problem. Walk/other are manual-only; strength/run default to
+                image since most people do have a tracker screenshot for those. */}
+            {(workoutSubtype === "strength" || workoutSubtype === "run") && (
               <div className="grid grid-cols-2 rounded-2xl bg-[var(--surface-muted)] p-1">
                 {(["image", "manual"] as const).map((mode) => (
                   <button
                     key={mode}
                     type="button"
                     onClick={() => {
-                      setStrengthInputMode(mode);
+                      if (workoutSubtype === "strength") setStrengthInputMode(mode);
+                      else setRunInputMode(mode);
                       setResult(null);
                       setSaveStatus("idle");
                       setSaveFeedback("");
                     }}
                     className={`rounded-xl px-3 py-2 text-sm font-bold transition-colors ${
-                      strengthInputMode === mode ? "bg-[var(--surface)] text-[var(--foreground)] shadow-sm" : "text-[var(--muted-text)]"
+                      (workoutSubtype === "strength" ? strengthInputMode : runInputMode) === mode ? "bg-[var(--surface)] text-[var(--foreground)] shadow-sm" : "text-[var(--muted-text)]"
                     }`}
                   >
                     {mode === "image" ? "🖼️ อัปโหลดรูป" : "📝 บันทึกด้วยตัวเอง"}
@@ -1197,12 +1205,13 @@ export default function UploadPage() {
             review card with a large gap between them. The review card's own "ยกเลิก" already routes back here. */}
         {!(type === "workout" && (workoutSubtype === "walk" || workoutSubtype === "other")) &&
          !(type === "workout" && workoutSubtype === "strength" && strengthInputMode === "manual") &&
+         !(type === "workout" && workoutSubtype === "run" && runInputMode === "manual") &&
          !(type === "meal" && mealInputMode === "text") &&
          type !== "health_check" &&
          !result ? (
           <>
             <ImageUploader
-              key={type + (type === "workout" ? `-${workoutSubtype}-${strengthInputMode}` : "")}
+              key={type + (type === "workout" ? `-${workoutSubtype}-${strengthInputMode}-${runInputMode}` : "")}
               kind={type}
               endpoint={endpoint}
               maxFiles={type === "meal" ? 4 : type === "sleep" ? 3 : 4}
@@ -1269,6 +1278,19 @@ export default function UploadPage() {
             <ManualWorkoutLogForm
               key={walkResetKey}
               subtype="walk"
+              saving={saveStatus === "saving"}
+              onSave={handleManualWorkoutSave}
+              defaultDate={selectedDateKey}
+            />
+          </div>
+        )}
+
+        {type === "workout" && workoutSubtype === "run" && runInputMode === "manual" && (
+          <div className="space-y-4" data-testid="run-manual-section">
+            <SelectedDateBadge dateKey={selectedDateKey} />
+            <ManualWorkoutLogForm
+              key={walkResetKey}
+              subtype="run"
               saving={saveStatus === "saving"}
               onSave={handleManualWorkoutSave}
               defaultDate={selectedDateKey}
@@ -2807,7 +2829,7 @@ function ManualWorkoutLogForm({
   saving,
   defaultDate
 }: {
-  subtype: "walk" | "other";
+  subtype: "walk" | "other" | "run";
   onSave: (workout: WorkoutAnalysis) => void;
   saving: boolean;
   defaultDate: string;
@@ -2817,7 +2839,7 @@ function ManualWorkoutLogForm({
   const [duration, setDuration] = useState("");
   const [avgHR, setAvgHR] = useState("");
   const [calories, setCalories] = useState("");
-  const [workoutType, setWorkoutType] = useState(subtype === "walk" ? "เดิน" : "ปั่นจักรยาน");
+  const [workoutType, setWorkoutType] = useState(subtype === "walk" ? "เดิน" : subtype === "run" ? "วิ่ง" : "ปั่นจักรยาน");
   const [notes, setNotes] = useState("");
   const [error, setError] = useState("");
 
@@ -2833,7 +2855,8 @@ function ManualWorkoutLogForm({
     const m = Math.floor(Number(duration) % 60);
     const durationStr = `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:00`;
 
-    const workoutKind = subtype === "walk" ? "walk" as const : "other" as const;
+    const workoutKind = subtype === "walk" ? "walk" as const : subtype === "run" ? "outdoor_run" as const : "other" as const;
+    const workoutSummary = subtype === "walk" ? "เดินออกกำลังกาย / Active Recovery" : subtype === "run" ? "วิ่งออกกำลังกาย (บันทึกด้วยตนเอง)" : workoutType;
 
     const data: WorkoutAnalysis = {
       extracted: {
@@ -2853,7 +2876,7 @@ function ManualWorkoutLogForm({
         visibleMetrics: []
       },
       coach: {
-        workoutSummary: subtype === "walk" ? "เดินออกกำลังกาย / Active Recovery" : workoutType,
+        workoutSummary,
         intensityAssessment: "เบา",
         trainingLoadNote: notes || "บันทึกการฝึกซ้อมด้วยตนเอง",
         wasTooHard: false,
@@ -2870,7 +2893,7 @@ function ManualWorkoutLogForm({
     <form onSubmit={handleSubmit} className="space-y-4 pt-2 card p-5 bg-[var(--surface)]">
       <div>
         <h3 className="text-lg font-bold text-[var(--foreground)]">
-          {subtype === "walk" ? "บันทึกกิจกรรมเดิน" : "บันทึกกิจกรรมอื่น ๆ"}
+          {subtype === "walk" ? "บันทึกกิจกรรมเดิน" : subtype === "run" ? "บันทึกกิจกรรมวิ่ง" : "บันทึกกิจกรรมอื่น ๆ"}
         </h3>
         <p className="text-xs text-[var(--color-text-muted)]">กรอกข้อมูลการซ้อมและบันทึกตรงเข้า Supabase</p>
       </div>
