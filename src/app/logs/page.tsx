@@ -62,6 +62,8 @@ import {
 import { buildReportPeriodJsonExport } from "@/lib/exportRunMateJson";
 import { buildRunMateExportFilename, downloadJsonFile } from "@/lib/downloadJson";
 import { getTimelineItemSubtitle, type TimelineItemSubtitleInput } from "@/lib/report/reportDisplay";
+import { buildSleepReadinessTrend } from "@/lib/report/sleepReadinessTrend";
+import { TrendMiniChart } from "@/components/report/TrendMiniChart";
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -857,10 +859,42 @@ function RollingSevenDayInsight({
           );
         })()}
         <WeeklyReadinessDots items={items} />
+        <SleepReadinessTrendSection items={items} />
         {review && <WeeklyReviewCard review={review} />}
         <WeeklyDashboard dashboard={dashboard} proteinTarget={proteinTarget} items={items} cutoff={cutoff} />
       </div>
     </details>
+  );
+}
+
+const TREND_WINDOW_DAYS = 21;
+
+function SleepReadinessTrendSection({ items }: { items: LocalHistoryItem[] }) {
+  const trend = buildSleepReadinessTrend(items, TREND_WINDOW_DAYS, todayBangkokDateKey());
+  const hasAnyData = trend.some((p) => p.sleepHours != null || p.readiness != null);
+  if (!hasAnyData) return null;
+
+  return (
+    <div className="space-y-2">
+      <p className="px-0.5 text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--label-color)]">
+        เทรนด์ {TREND_WINDOW_DAYS} วันล่าสุด
+      </p>
+      <div className="grid grid-cols-1 gap-2">
+        <TrendMiniChart
+          title="🌙 การนอน"
+          unit="ชม."
+          color="var(--recovery-blue)"
+          formatValue={(v) => v.toFixed(1)}
+          points={trend.map((p) => ({ dateKey: p.dateKey, value: p.sleepHours }))}
+        />
+        <TrendMiniChart
+          title="📊 ความพร้อม"
+          color="var(--primary)"
+          formatValue={(v) => String(Math.round(v))}
+          points={trend.map((p) => ({ dateKey: p.dateKey, value: p.readiness }))}
+        />
+      </div>
+    </div>
   );
 }
 
