@@ -133,6 +133,9 @@ export type CoachContext = {
   latestSick: SickLog | null;
   activeSick: boolean;
   sickRiskLevel: SickRiskLevel;
+  // Google Health auto-sync: which types already have a synced entry for today,
+  // keyed by history_items id prefix ("ghealth-sleep-"/"ghealth-exercise-").
+  autoSyncedToday: { sleep: boolean; workout: boolean };
 };
 
 export type NutritionDaySummary = {
@@ -705,6 +708,10 @@ export function buildCoachContextFromData(input: {
     latestSick,
     activeSick,
     sickRiskLevel,
+    autoSyncedToday: {
+      sleep: items.some((i) => i.type === "sleep" && i.id.startsWith("ghealth-sleep-") && getHistoryItemDateKey(i) === today),
+      workout: items.some((i) => i.type === "workout" && i.id.startsWith("ghealth-exercise-") && getHistoryItemDateKey(i) === today),
+    },
   };
 
   ctx.recoverySystem = buildRunMateRecoverySystem(ctx);

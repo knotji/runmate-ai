@@ -232,6 +232,9 @@ function normalizeCoachContext(value: unknown): CoachContext {
     sickRiskLevel: (raw.sickRiskLevel === "mild" || raw.sickRiskLevel === "caution" || raw.sickRiskLevel === "hard_stop")
       ? raw.sickRiskLevel
       : "none",
+    autoSyncedToday: isRecord(raw.autoSyncedToday)
+      ? { sleep: Boolean(raw.autoSyncedToday.sleep), workout: Boolean(raw.autoSyncedToday.workout) }
+      : { sleep: false, workout: false },
   };
 
   context.recoverySystem = isRecord(raw.recoverySystem)

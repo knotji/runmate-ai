@@ -92,6 +92,7 @@ export function makeCtx(overrides?: Partial<CoachContext>): CoachContext {
     latestSick: null,
     activeSick: false,
     sickRiskLevel: "none",
+    autoSyncedToday: { sleep: false, workout: false },
   };
   return { ...base, ...overrides };
 }

@@ -12,6 +12,7 @@ import { StrengthRoutineManager } from "@/components/StrengthRoutineManager";
 import { GoalSetupSection } from "@/components/GoalSetupSection";
 import { ReleaseNotesSection } from "@/components/settings/ReleaseNotesSection";
 import { NotificationSettingsSection } from "@/components/settings/NotificationSettingsSection";
+import { GoogleHealthConnectSection } from "@/components/settings/GoogleHealthConnectSection";
 import { DevCoachContextPanel } from "@/components/settings/DevCoachContextPanel";
 import { loadProfileFromSupabase } from "@/lib/profileStorage";
 import { createClient } from "@/lib/supabase/client";
@@ -290,6 +291,8 @@ export default function SettingsPage() {
               </div>
             )}
           </section>
+
+          <GoogleHealthConnectSection />
 
           {!isStandalone && (
             <section className="card space-y-4 p-5">

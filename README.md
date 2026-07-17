@@ -32,12 +32,17 @@ NEXT_PUBLIC_DEPLOY_ENV=local
 NEXT_PUBLIC_VAPID_PUBLIC_KEY=
 VAPID_PRIVATE_KEY=
 CRON_SECRET=
+GOOGLE_HEALTH_CLIENT_ID=
+GOOGLE_HEALTH_CLIENT_SECRET=
+GOOGLE_HEALTH_REDIRECT_URI=http://localhost:3000/api/google-health/callback
 ```
 
 Set `AI_PROVIDER=gemini` to use Gemini first, or `AI_PROVIDER=openai` to use OpenAI first. Never expose `GEMINI_API_KEY`, `OPENAI_API_KEY`, or `SUPABASE_SERVICE_ROLE_KEY` in client components.
 The `NEXT_PUBLIC_APP_VERSION`, `NEXT_PUBLIC_GIT_SHA`, `NEXT_PUBLIC_BUILD_TIME`, and `NEXT_PUBLIC_DEPLOY_ENV` values are safe public build metadata shown on the Settings page. On Vercel, `NEXT_PUBLIC_GIT_SHA` and `NEXT_PUBLIC_DEPLOY_ENV` can fall back to `VERCEL_GIT_COMMIT_SHA` and `VERCEL_ENV` at build time.
 
-`NEXT_PUBLIC_VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` are the Web Push keypair (generate once with `npx web-push generate-vapid-keys`) that power the daily reminder notification in Settings. `CRON_SECRET` protects `/api/push/send-daily-reminders`, the endpoint `vercel.json`'s cron job hits once a day — set the same value in Vercel's project settings under the Cron Jobs / Environment Variables section (Vercel sends it automatically as a bearer token when calling scheduled functions).
+`NEXT_PUBLIC_VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` are the Web Push keypair (generate once with `npx web-push generate-vapid-keys`) that power the daily reminder notification in Settings. `CRON_SECRET` protects `/api/push/send-daily-reminders` and `/api/google-health/sync`, the two endpoints `vercel.json`'s cron jobs hit once a day — set the same value in Vercel's project settings under the Cron Jobs / Environment Variables section (Vercel sends it automatically as a bearer token when calling scheduled functions).
+
+`GOOGLE_HEALTH_CLIENT_ID` / `GOOGLE_HEALTH_CLIENT_SECRET` come from a Google Cloud project at [console.cloud.google.com/apis/credentials](https://console.cloud.google.com/apis/credentials) — enable the Google Health API, create an OAuth 2.0 Client ID with Application type **Web application**, and set `GOOGLE_HEALTH_REDIRECT_URI` as an authorized redirect URI (must match exactly, including protocol and trailing path — update both when the deployed domain changes). While the project's OAuth consent screen is in "Testing" mode, add each user's Google account email under Test users or they won't be able to complete the connect flow. This powers Settings > ข้อมูล > "เชื่อมต่อ Google Health", which auto-imports sleep and workout logs daily instead of requiring a screenshot upload — this is the modern replacement for the (now-deprecated, shutting down September 2026) Fitbit Web API. It reads whatever devices/apps are connected to the user's Google Health account (Fitbit, Pixel Watch, and other third-party integrations Google documents); whether a device that only syncs through the separate, also-being-deprecated Google Fit API/app (e.g. some Samsung Health configurations) surfaces here too is unconfirmed — verify with a real connected account rather than assuming.
 
 ## Supabase setup
 
