@@ -686,13 +686,14 @@ function DaySlot({ day }: { day: import("@/lib/reportSummary").DailyReportItem }
         </div>
       </summary>
       <div className="mt-2 grid grid-cols-2 gap-2 border-t border-[var(--color-border-soft)] pt-2 text-[11px] text-[var(--color-text-muted)]" data-testid="day-slot-details">
-        <DaySlotDetail label="กิจกรรม" value={activityText ?? "ยังไม่มีการซ้อม"} />
-        <DaySlotDetail label="นอน" value={day.sleepHours != null ? `${day.sleepHours} ชม.` : "ยังไม่มี"} />
-        <DaySlotDetail label="ความพร้อม" value={day.readiness != null ? `${day.readiness}` : "ยังไม่มี"} />
-        <DaySlotDetail label="อาหาร" value={nutritionText ?? (day.mealCount > 0 ? `${day.mealCount} มื้อ` : "ยังไม่มี")} />
-        {day.bodyWeightKg != null && <DaySlotDetail label="น้ำหนัก" value={`${day.bodyWeightKg} kg`} />}
+        <DaySlotDetail icon="🏃" label="กิจกรรม" value={activityText ?? "ยังไม่มีการซ้อม"} isEmpty={!activityText} />
+        <DaySlotDetail icon="🌙" label="นอน" value={day.sleepHours != null ? `${day.sleepHours} ชม.` : "ยังไม่มี"} isEmpty={day.sleepHours == null} />
+        <DaySlotDetail icon="📊" label="ความพร้อม" value={day.readiness != null ? `${day.readiness}` : "ยังไม่มี"} isEmpty={day.readiness == null} />
+        <DaySlotDetail icon="🍱" label="อาหาร" value={nutritionText ?? (day.mealCount > 0 ? `${day.mealCount} มื้อ` : "ยังไม่มี")} isEmpty={!nutritionText && day.mealCount === 0} />
+        {day.bodyWeightKg != null && <DaySlotDetail icon="⚖️" label="น้ำหนัก" value={`${day.bodyWeightKg} kg`} />}
         {day.painStatus && (
           <DaySlotDetail
+            icon="🩹"
             label="อาการเจ็บ"
             value={day.painStatus === "resolved" ? "หายเจ็บแล้ว" : day.painLevel != null ? `${day.painLevel}/10` : "มีบันทึก"}
           />
@@ -702,11 +703,11 @@ function DaySlot({ day }: { day: import("@/lib/reportSummary").DailyReportItem }
   );
 }
 
-function DaySlotDetail({ label, value }: { label: string; value: string }) {
+function DaySlotDetail({ icon, label, value, isEmpty }: { icon?: string; label: string; value: string; isEmpty?: boolean }) {
   return (
-    <div className="rounded-xl bg-[var(--surface)]/70 px-2.5 py-2">
-      <p className="text-[10px] font-semibold text-[var(--color-text-muted)]">{label}</p>
-      <p className="mt-0.5 font-bold text-[var(--foreground)]">{value}</p>
+    <div className={`rounded-xl px-2.5 py-2 ${isEmpty ? "bg-transparent" : "bg-[var(--surface)]/70"}`}>
+      <p className="text-[10px] font-semibold text-[var(--color-text-muted)]">{icon ? `${icon} ${label}` : label}</p>
+      <p className={`mt-0.5 ${isEmpty ? "font-medium text-[var(--color-text-soft)]" : "font-bold text-[var(--foreground)]"}`}>{value}</p>
     </div>
   );
 }
