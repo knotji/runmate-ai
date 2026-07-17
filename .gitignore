@@ -42,3 +42,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local-only e2e config (points at container-specific chromium path)
+playwright.ci.config.ts
