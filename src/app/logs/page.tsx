@@ -631,9 +631,9 @@ function DaySlot({ day }: { day: import("@/lib/reportSummary").DailyReportItem }
 
   if (!day.hasData) {
     return (
-      <div className={baseClass} data-testid="day-slot">
+      <div className={day.isToday ? baseClass : "rounded-2xl bg-transparent px-3 py-1.5"} data-testid="day-slot">
         <div className="flex items-center justify-between">
-          <span className={`text-xs ${day.isToday ? "font-bold text-[var(--foreground)]" : "font-semibold text-[var(--color-text-muted)]"}`}>
+          <span className={`text-xs ${day.isToday ? "font-bold text-[var(--foreground)]" : "font-medium text-[var(--color-text-soft)]"}`}>
             {day.weekdayLabel}
             {day.isToday && (
               <span className="ml-2 rounded-full bg-[var(--primary)] px-2 py-0.5 text-[10px] text-[#f5f8ff]">วันนี้</span>
@@ -686,13 +686,14 @@ function DaySlot({ day }: { day: import("@/lib/reportSummary").DailyReportItem }
         </div>
       </summary>
       <div className="mt-2 grid grid-cols-2 gap-2 border-t border-[var(--color-border-soft)] pt-2 text-[11px] text-[var(--color-text-muted)]" data-testid="day-slot-details">
-        <DaySlotDetail label="กิจกรรม" value={activityText ?? "ยังไม่มีการซ้อม"} />
-        <DaySlotDetail label="นอน" value={day.sleepHours != null ? `${day.sleepHours} ชม.` : "ยังไม่มี"} />
-        <DaySlotDetail label="ความพร้อม" value={day.readiness != null ? `${day.readiness}` : "ยังไม่มี"} />
-        <DaySlotDetail label="อาหาร" value={nutritionText ?? (day.mealCount > 0 ? `${day.mealCount} มื้อ` : "ยังไม่มี")} />
-        {day.bodyWeightKg != null && <DaySlotDetail label="น้ำหนัก" value={`${day.bodyWeightKg} kg`} />}
+        <DaySlotDetail icon="🏃" label="กิจกรรม" value={activityText ?? "ยังไม่มีการซ้อม"} isEmpty={!activityText} />
+        <DaySlotDetail icon="🌙" label="นอน" value={day.sleepHours != null ? `${day.sleepHours} ชม.` : "ยังไม่มี"} isEmpty={day.sleepHours == null} />
+        <DaySlotDetail icon="📊" label="ความพร้อม" value={day.readiness != null ? `${day.readiness}` : "ยังไม่มี"} isEmpty={day.readiness == null} />
+        <DaySlotDetail icon="🍱" label="อาหาร" value={nutritionText ?? (day.mealCount > 0 ? `${day.mealCount} มื้อ` : "ยังไม่มี")} isEmpty={!nutritionText && day.mealCount === 0} />
+        {day.bodyWeightKg != null && <DaySlotDetail icon="⚖️" label="น้ำหนัก" value={`${day.bodyWeightKg} kg`} />}
         {day.painStatus && (
           <DaySlotDetail
+            icon="🩹"
             label="อาการเจ็บ"
             value={day.painStatus === "resolved" ? "หายเจ็บแล้ว" : day.painLevel != null ? `${day.painLevel}/10` : "มีบันทึก"}
           />
@@ -702,11 +703,11 @@ function DaySlot({ day }: { day: import("@/lib/reportSummary").DailyReportItem }
   );
 }
 
-function DaySlotDetail({ label, value }: { label: string; value: string }) {
+function DaySlotDetail({ icon, label, value, isEmpty }: { icon?: string; label: string; value: string; isEmpty?: boolean }) {
   return (
-    <div className="rounded-xl bg-[var(--surface)]/70 px-2.5 py-2">
-      <p className="text-[10px] font-semibold text-[var(--color-text-muted)]">{label}</p>
-      <p className="mt-0.5 font-bold text-[var(--foreground)]">{value}</p>
+    <div className={`rounded-xl px-2.5 py-2 ${isEmpty ? "bg-transparent" : "bg-[var(--surface)]/70"}`}>
+      <p className="text-[10px] font-semibold text-[var(--color-text-muted)]">{icon ? `${icon} ${label}` : label}</p>
+      <p className={`mt-0.5 ${isEmpty ? "font-medium text-[var(--color-text-soft)]" : "font-bold text-[var(--foreground)]"}`}>{value}</p>
     </div>
   );
 }
@@ -797,7 +798,7 @@ function RollingSevenDayInsight({
     : null;
 
   return (
-    <details className="group rounded-2xl bg-[var(--surface)]/70 p-3" data-testid="rolling-insight">
+    <details className="group border-t border-[var(--color-border-soft)] pt-2.5" data-testid="rolling-insight">
       <summary className="list-none cursor-pointer">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -1067,6 +1068,7 @@ function CompactHistoryItemRow({
   const mappedType = getMappedTypeName(item);
   const title = getTimelineItemTitle(item);
   const subtitle = getTimelineItemSubtitle(buildTimelineSubtitleInput(item, mappedType));
+  const timeLabel = formatItemTimeLabel(item);
 
   return (
     <div data-testid="report-compact-item" data-date-key={getHistoryItemDateKey(item)} className="py-3">
@@ -1076,14 +1078,17 @@ function CompactHistoryItemRow({
       >
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-1.5 mb-0.5">
-            <span className="text-[11px] font-semibold text-[var(--color-text-muted)]">
-              {formatItemDateTime(item)}
-            </span>
             <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide ${getTypeBadgeStyles(mappedType)}`}>
               {getTypeBadgeLabel(mappedType)}
             </span>
+            {timeLabel && (
+              <span className="text-[11px] font-semibold text-[var(--color-text-muted)]">
+                {timeLabel}
+              </span>
+            )}
           </div>
           <p className="text-sm font-medium text-[var(--foreground)] truncate">
+            <span className="mr-1">{getTypeIcon(item.type === "strength" ? "strength" : mappedType)}</span>
             {title}
           </p>
           {subtitle && (
@@ -1106,6 +1111,19 @@ function CompactHistoryItemRow({
       )}
     </div>
   );
+}
+
+function getTypeIcon(type: string): string {
+  if (type === "strength") return "🏋️";
+  if (type === "workout") return "🏃";
+  if (type === "food") return "🍱";
+  if (type === "sleep") return "🌙";
+  if (type === "pain") return "🩹";
+  if (type === "sick") return "🤒";
+  if (type === "body") return "⚖️";
+  if (type === "health") return "🩺";
+  if (type === "summary") return "📋";
+  return "•";
 }
 
 function getMappedTypeName(item: LocalHistoryItem): string {
@@ -1237,17 +1255,19 @@ function getTypeBadgeStyles(type: string): string {
   return "bg-[var(--surface-muted)] text-[var(--foreground)] border border-[var(--border-warm)]";
 }
 
-function formatItemDateTime(item: LocalHistoryItem): string {
+// Rows render inside a day-group already headed by the same date (see the
+// dayGroups.map loop), so repeating the full date on every row was redundant.
+// Shows only the time-of-day when reliable; for backdated items (createdAt's
+// Bangkok day differs from the logical dateKey — recordedAt is always a
+// synthetic noon, never used for time display) there's no real time to show,
+// so a "ย้อนหลัง" label takes its place instead of repeating the date.
+function formatItemTimeLabel(item: LocalHistoryItem): string {
   const dateStr = getHistoryItemDateKey(item);
-  const formattedDate = formatDayLabel(dateStr);
-  // recordedAt is always a synthetic noon (dateKeyToRecordedAt). Never use it for time display.
-  // Only show createdAt time when the item was uploaded on the same Bangkok day as its logical date.
-  // For backdated items, createdAt is the upload timestamp, not the event time — show date only.
   if (getBangkokDateKey(item.createdAt) !== dateStr) {
-    return formattedDate;
+    return "ย้อนหลัง";
   }
   const time = formatBangkokTime(item.createdAt);
-  return time ? `${formattedDate} ${time} น.` : formattedDate;
+  return time ? `${time} น.` : "";
 }
 
 function renderDetailCard(
@@ -1294,26 +1314,29 @@ function FilterPills({
   onFilterChange: (filter: ReportFilter) => void;
 }) {
   return (
-    <div className="flex gap-2 overflow-x-auto pb-1 pr-1 scrollbar-none" data-testid="filter-pills-row">
-      {(
-        [
-          { id: "all", label: "ทั้งหมด" },
-          { id: "workout", label: "ซ้อม" },
-          { id: "meal", label: "อาหาร" },
-          { id: "sleep", label: "นอน" },
-          { id: "pain", label: "เจ็บ" },
-          { id: "sick", label: "ไม่สบาย" },
-        ] as const
-      ).map((f) => (
-        <button
-          key={f.id}
-          type="button"
-          onClick={() => onFilterChange(f.id)}
-          className={`shrink-0 whitespace-nowrap rounded-[var(--radius-pill)] border px-3.5 py-1.5 text-xs font-semibold transition-all ${activeFilter === f.id ? "border-[var(--primary-soft)] bg-[var(--primary-soft)] text-[var(--primary-strong)]" : "border-[var(--border-warm)] bg-[var(--surface)] text-[var(--color-text-muted)] hover:bg-[var(--surface-muted)]"}`}
-        >
-          {f.label}
-        </button>
-      ))}
+    <div className="relative">
+      <div className="flex gap-2 overflow-x-auto pb-1 pr-1 scrollbar-none" data-testid="filter-pills-row">
+        {(
+          [
+            { id: "all", label: "ทั้งหมด" },
+            { id: "workout", label: "ซ้อม" },
+            { id: "meal", label: "อาหาร" },
+            { id: "sleep", label: "นอน" },
+            { id: "pain", label: "เจ็บ" },
+            { id: "sick", label: "ไม่สบาย" },
+          ] as const
+        ).map((f) => (
+          <button
+            key={f.id}
+            type="button"
+            onClick={() => onFilterChange(f.id)}
+            className={`shrink-0 whitespace-nowrap rounded-[var(--radius-pill)] border px-3.5 py-1.5 text-xs font-semibold transition-all ${activeFilter === f.id ? "border-[var(--primary-soft)] bg-[var(--primary-soft)] text-[var(--primary-strong)]" : "border-[var(--border-warm)] bg-[var(--surface)] text-[var(--color-text-muted)] hover:bg-[var(--surface-muted)]"}`}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+      <div className="pointer-events-none absolute right-0 top-0 bottom-1 w-8 bg-gradient-to-l from-[var(--surface)] to-transparent" aria-hidden="true" />
     </div>
   );
 }

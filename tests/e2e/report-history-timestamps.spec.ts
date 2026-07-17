@@ -149,6 +149,33 @@ test.describe("Report history timestamps", () => {
     await row.getByRole("button", { name: "ดู" }).click();
     await expect(row.getByTestId("compact-item-details")).toBeVisible();
   });
+
+  test("g) compact row shows time only, not a repeated date (the day-group header above it already shows the date)", async ({ page }) => {
+    const state = await installMockBackend(page);
+    const todayKey = bangkokDateKey();
+    // 11:00 UTC = 18:00 Bangkok
+    state.history.push(makeMealRow("meal-no-date-repeat", todayKey, `${todayKey}T11:00:00.000Z`));
+
+    await openFullHistory(page);
+    const row = page.locator(`[data-testid="report-compact-item"][data-date-key="${todayKey}"]`).first();
+    await expect(row).toBeVisible();
+    const rowText = await row.locator(".text-\\[11px\\]").first().textContent();
+    // Only the time, no day-of-week/date text like "17 ก.ค."
+    expect(rowText?.trim()).toBe("18:00 น.");
+  });
+
+  test("h) backdated compact row shows a ย้อนหลัง label instead of repeating the date", async ({ page }) => {
+    const state = await installMockBackend(page);
+    const todayKey = bangkokDateKey();
+    const yesterdayKey = bangkokDateKey(-1);
+    state.history.push(makeMealRow("meal-backdated-label", yesterdayKey, `${todayKey}T11:00:00.000Z`));
+
+    await openFullHistory(page);
+    const row = page.locator(`[data-testid="report-compact-item"][data-date-key="${yesterdayKey}"]`).first();
+    await expect(row).toBeVisible();
+    const rowText = await row.locator(".text-\\[11px\\]").first().textContent();
+    expect(rowText?.trim()).toBe("ย้อนหลัง");
+  });
 });
 
 test.describe("Report รายการทั้งหมด UI polish", () => {
