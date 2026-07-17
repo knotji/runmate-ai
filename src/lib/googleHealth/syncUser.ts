@@ -67,6 +67,7 @@ export type SyncUserResult = {
   workoutsImported: number;
   sleepSkippedManual: number;
   workoutsSkippedManual: number;
+  sleepSkippedNap: number;
   error?: string;
 };
 
@@ -116,7 +117,7 @@ export async function syncGoogleHealthForConnection(
     const refreshed = await refreshGoogleHealthToken(connection.refresh_token);
     if (!refreshed) {
       await admin.from("google_health_connections").update({ last_sync_error: "token refresh failed" }).eq("user_id", userId);
-      return { ok: false, sleepImported: 0, workoutsImported: 0, sleepSkippedManual: 0, workoutsSkippedManual: 0, error: "token refresh failed" };
+      return { ok: false, sleepImported: 0, workoutsImported: 0, sleepSkippedManual: 0, workoutsSkippedManual: 0, sleepSkippedNap: 0, error: "token refresh failed" };
     }
     accessToken = refreshed.accessToken;
     await admin.from("google_health_connections").update({
@@ -129,6 +130,7 @@ export async function syncGoogleHealthForConnection(
   let workoutsImported = 0;
   let sleepSkippedManual = 0;
   let workoutsSkippedManual = 0;
+  let sleepSkippedNap = 0;
 
   try {
     const sinceIso = new Date(`${sinceDateKey}T00:00:00+07:00`).toISOString();
@@ -143,6 +145,19 @@ export async function syncGoogleHealthForConnection(
       const itemId = googleHealthSleepHistoryItemId(dp.name);
       const { data: existing } = await admin.from("history_items").select("id").eq("user_id", userId).eq("id", itemId).maybeSingle();
       if (existing) continue;
+
+      // Naps aren't the night's sleep — the app's sleep model (Recovery System's
+      // sleep axis, "latest sleep" readiness display, dedupeSleepItems) has no
+      // concept of a nap and would treat one exactly like a full night's sleep.
+      // A short daytime nap synced after last night's real sleep could then
+      // outrank it as "latest sleep", showing a misleadingly low duration
+      // everywhere from the AI context to the Report list. Google's own nap flag
+      // is authoritative — simplest correct fix is to not import naps at all,
+      // rather than teaching every downstream consumer to filter them out.
+      if (dp.sleep.metadata?.nap) {
+        sleepSkippedNap += 1;
+        continue;
+      }
 
       const dateKey = intervalCivilDateKey(dp.sleep.interval, "end");
       // Prefer a manually-logged entry over auto-importing a second one for the same
@@ -214,10 +229,10 @@ export async function syncGoogleHealthForConnection(
       last_sync_error: null,
     }).eq("user_id", userId);
 
-    return { ok: true, sleepImported, workoutsImported, sleepSkippedManual, workoutsSkippedManual };
+    return { ok: true, sleepImported, workoutsImported, sleepSkippedManual, workoutsSkippedManual, sleepSkippedNap };
   } catch (error) {
     const message = error instanceof Error ? error.message : "unknown error";
     await admin.from("google_health_connections").update({ last_sync_error: message }).eq("user_id", userId);
-    return { ok: false, sleepImported, workoutsImported, sleepSkippedManual, workoutsSkippedManual, error: message };
+    return { ok: false, sleepImported, workoutsImported, sleepSkippedManual, workoutsSkippedManual, sleepSkippedNap, error: message };
   }
 }

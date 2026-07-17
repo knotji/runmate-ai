@@ -47,5 +47,6 @@ export async function POST() {
     workoutsImported: result.workoutsImported,
     sleepSkippedManual: result.sleepSkippedManual,
     workoutsSkippedManual: result.workoutsSkippedManual,
+    sleepSkippedNap: result.sleepSkippedNap,
   });
 }
