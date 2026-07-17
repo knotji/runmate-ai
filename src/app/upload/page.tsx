@@ -51,6 +51,7 @@ import { StatusHero } from "@/components/ui/StatusHero";
 import { DetailAccordion } from "@/components/ui/DetailAccordion";
 import { PrimaryCTA, SecondaryCTA } from "@/components/ui/ActionButton";
 import { cn } from "@/lib/cn";
+import { useGuardNavigationWhile } from "@/lib/navigationGuard";
 
 function SelectedDateBadge({ dateKey }: { dateKey: string }) {
   const isToday = dateKey === todayBangkokDateKey();
@@ -203,6 +204,7 @@ export default function UploadPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [coachContext, setCoachContext] = useState<CoachContext | null>(null);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  useGuardNavigationWhile(saveStatus === "saving");
   const [bodySaveError, setBodySaveError] = useState("");
   const [raceMatch, setRaceMatch] = useState<RaceMatch | null>(null);
   const [raceResultError, setRaceResultError] = useState("");

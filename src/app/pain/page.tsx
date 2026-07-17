@@ -7,6 +7,7 @@ import { LoadingButton } from "@/components/LoadingButton";
 import { fileToDataUrl } from "@/lib/storage";
 import { createHistoryItem, loadHistoryItemById, saveHistoryItems } from "@/lib/cloudHistory";
 import { readDraftIntakeNote } from "@/lib/upload/draftIntakeNote";
+import { useGuardNavigationWhile } from "@/lib/navigationGuard";
 import type { PainLog, PainAnalysisResult, PainSide, PainTriYesNo, PainRiskLevel, PainTrainingImpact } from "@/types/pain";
 
 // ── status choice ────────────────────────────────────────────────────────────
@@ -125,6 +126,7 @@ function PainPageContent() {
   // page state
   const [prefillComplete, setPrefillComplete] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  useGuardNavigationWhile(submitting);
   const [error, setError] = useState("");
   const [result, setResult] = useState<PainAnalysisResult | null>(null);
   const [savedStatus, setSavedStatus] = useState<PainStatusChoice | null>(null);

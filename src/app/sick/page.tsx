@@ -8,6 +8,7 @@ import { todayBangkokDateKey } from "@/lib/date";
 import { buildSickLog } from "@/lib/health/illnessGuardrail";
 import { readDraftIntakeNote } from "@/lib/upload/draftIntakeNote";
 import { useIsomorphicLayoutEffect } from "@/lib/useIsomorphicLayoutEffect";
+import { useGuardNavigationWhile } from "@/lib/navigationGuard";
 import { SYMPTOM_GROUPS, SICK_SYMPTOM_LABELS } from "@/types/sick";
 import type { SickSymptom, SickSeverity, SickHealthStatus } from "@/types/sick";
 
@@ -36,6 +37,7 @@ export default function SickPage() {
   const [severity, setSeverity] = useState<SickSeverity>("mild");
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
+  useGuardNavigationWhile(saving);
   const [saveError, setSaveError] = useState("");
   const [saved, setSaved] = useState(false);
 
