@@ -21,6 +21,10 @@ export function yesterdayBangkokDateKey(): string {
   return getBangkokDateKey(yesterday);
 }
 
+export function daysAgoBangkokDateKey(days: number): string {
+  return getBangkokDateKey(new Date(Date.now() - days * 24 * 60 * 60 * 1000));
+}
+
 export function dateKeyToRecordedAt(dateKey: string): string {
   return `${dateKey}T12:00:00+07:00`;
 }

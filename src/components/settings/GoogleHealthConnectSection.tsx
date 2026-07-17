@@ -10,6 +10,8 @@ type Status = {
   lastSyncError: string | null;
 };
 
+type BackfillState = "idle" | "loading" | "done" | "error";
+
 function formatThaiDateTime(iso: string | null): string | null {
   if (!iso) return null;
   try {
@@ -23,6 +25,8 @@ export function GoogleHealthConnectSection() {
   const [status, setStatus] = useState<Status | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [backfillState, setBackfillState] = useState<BackfillState>("idle");
+  const [backfillSummary, setBackfillSummary] = useState("");
 
   useIsomorphicLayoutEffect(() => {
     fetch("/api/google-health/status")
@@ -38,9 +42,25 @@ export function GoogleHealthConnectSection() {
     setLoading(false);
     if (response.ok) {
       setStatus({ connected: false, connectedAt: null, lastSyncedAt: null, lastSyncError: null });
+      setBackfillState("idle");
+      setBackfillSummary("");
     } else {
       setError("ยกเลิกการเชื่อมต่อไม่สำเร็จ ลองใหม่อีกครั้ง");
     }
+  }
+
+  async function handleBackfill() {
+    setBackfillState("loading");
+    setBackfillSummary("");
+    const response = await fetch("/api/google-health/backfill", { method: "POST" });
+    if (!response.ok) {
+      setBackfillState("error");
+      return;
+    }
+    const data = (await response.json()) as { sleepImported: number; workoutsImported: number };
+    setBackfillState("done");
+    setBackfillSummary(`ดึงย้อนหลังสำเร็จ — นอน ${data.sleepImported} คืน, ซ้อม ${data.workoutsImported} ครั้ง`);
+    setStatus((prev) => (prev ? { ...prev, lastSyncedAt: new Date().toISOString(), lastSyncError: null } : prev));
   }
 
   return (
@@ -59,6 +79,25 @@ export function GoogleHealthConnectSection() {
           )}
           {status?.connected && status.lastSyncError && (
             <p className="mt-1 text-[var(--color-danger)]">ซิงก์ล่าสุดไม่สำเร็จ: {status.lastSyncError}</p>
+          )}
+          {status?.connected && (
+            <div className="mt-2">
+              <button
+                type="button"
+                onClick={() => void handleBackfill()}
+                disabled={backfillState === "loading"}
+                data-testid="google-health-backfill-button"
+                className="rounded-full border border-[var(--border-warm)] bg-[var(--surface)] px-3 py-1.5 text-[11px] font-bold text-[var(--foreground)] transition-colors hover:bg-[var(--primary-soft)] disabled:opacity-50"
+              >
+                {backfillState === "loading" ? "กำลังดึงข้อมูลย้อนหลัง..." : "ดึงข้อมูลย้อนหลัง 30 วัน"}
+              </button>
+              {backfillState === "done" && (
+                <p className="mt-1 text-[var(--color-success)]" data-testid="google-health-backfill-summary">{backfillSummary}</p>
+              )}
+              {backfillState === "error" && (
+                <p className="mt-1 text-[var(--color-danger)]">ดึงข้อมูลย้อนหลังไม่สำเร็จ ลองใหม่อีกครั้ง</p>
+              )}
+            </div>
           )}
         </div>
         {status?.connected ? (

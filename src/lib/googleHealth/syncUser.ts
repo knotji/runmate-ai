@@ -1,0 +1,177 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { refreshGoogleHealthToken } from "@/lib/googleHealth/oauth";
+import {
+  fetchGoogleHealthSleep,
+  fetchGoogleHealthExercise,
+  fetchGoogleHealthDailyRestingHR,
+  fetchGoogleHealthDailyHRV,
+  intervalCivilDateKey,
+} from "@/lib/googleHealth/api";
+import { mapGoogleHealthSleepToExtracted, googleHealthSleepHistoryItemId } from "@/lib/googleHealth/mapSleep";
+import { mapGoogleHealthExerciseToExtracted, googleHealthExerciseHistoryItemId } from "@/lib/googleHealth/mapExercise";
+import { coachFromStructuredSleepPrompt, coachFromStructuredWorkoutPrompt } from "@/lib/prompts/coachFromStructuredData";
+import { jsonFromAI } from "@/lib/ai";
+import { todayBangkokDateKey, dateKeyToRecordedAt } from "@/lib/date";
+import type { SleepAnalysis, WorkoutAnalysis } from "@/types/logs";
+
+const SLEEP_COACH_FALLBACK: SleepAnalysis["coach"] = {
+  readinessScore: 65,
+  readinessLabel: "Fair",
+  aiSummary: "ข้อมูลนอนนำเข้าจาก Google Health แล้ว ระบบยังสรุปความเห็นเพิ่มเติมไม่สำเร็จ",
+  todayRecommendation: "ลองเช็คร่างกายตัวเองก่อนซ้อมตามปกติ",
+  nutritionFocus: "เติมคาร์บและน้ำให้พอตามปกติ",
+  recoveryFocus: "ฟังร่างกายเป็นหลัก พักถ้ารู้สึกล้า",
+  sleepFocus: "รักษาเวลานอนให้สม่ำเสมอ",
+  warningNotes: "ถ้ามีอาการผิดปกติควรปรึกษาผู้เชี่ยวชาญ",
+};
+
+const WORKOUT_COACH_FALLBACK: WorkoutAnalysis["coach"] = {
+  workoutSummary: "ข้อมูลซ้อมนำเข้าจาก Google Health แล้ว ระบบยังสรุปความเห็นเพิ่มเติมไม่สำเร็จ",
+  intensityAssessment: "ไม่สามารถประเมินความหนักเพิ่มเติมได้ในขณะนี้",
+  trainingLoadNote: "-",
+  wasTooHard: false,
+  recoveryAdvice: "พักผ่อนและเติมน้ำตามปกติ",
+  nutritionAfterWorkout: "เติมโปรตีนและคาร์บหลังซ้อม",
+  nextWorkoutSuggestion: "ซ้อมตามแผนเดิมได้ตามปกติ",
+  coachNote: "-",
+};
+
+async function generateSleepCoach(extracted: SleepAnalysis["extracted"]): Promise<SleepAnalysis["coach"]> {
+  const result = await jsonFromAI<{ coach: SleepAnalysis["coach"] }>({
+    system: coachFromStructuredSleepPrompt,
+    user: JSON.stringify({ extracted }),
+    fallback: { coach: SLEEP_COACH_FALLBACK },
+  });
+  return result.data.coach;
+}
+
+async function generateWorkoutCoach(extracted: WorkoutAnalysis["extracted"]): Promise<WorkoutAnalysis["coach"]> {
+  const result = await jsonFromAI<{ coach: WorkoutAnalysis["coach"] }>({
+    system: coachFromStructuredWorkoutPrompt,
+    user: JSON.stringify({ extracted }),
+    fallback: { coach: WORKOUT_COACH_FALLBACK },
+  });
+  return result.data.coach;
+}
+
+export type GoogleHealthConnectionRow = {
+  user_id: string;
+  access_token: string;
+  refresh_token: string;
+  expires_at: string;
+};
+
+export type SyncUserResult = {
+  ok: boolean;
+  sleepImported: number;
+  workoutsImported: number;
+  error?: string;
+};
+
+/** Fetches and imports a user's Google Health sleep + exercise data since `sinceDateKey`,
+ *  deduped against history_items via the deterministic ghealth- ids so re-running (e.g. a
+ *  daily cron overlapping a manual backfill) is always a no-op skip, never a duplicate or
+ *  overwrite. `generateCoach: false` skips the per-item AI coach call and uses a fixed
+ *  fallback commentary instead — used by the one-time historical backfill (which may touch
+ *  dozens of past days at once) to stay well inside the serverless function time budget;
+ *  the daily cron sync (a handful of items at most) keeps `generateCoach: true` for
+ *  proper personalized commentary on live data. */
+export async function syncGoogleHealthForConnection(
+  admin: SupabaseClient,
+  connection: GoogleHealthConnectionRow,
+  sinceDateKey: string,
+  options: { generateCoach: boolean },
+): Promise<SyncUserResult> {
+  const todayKey = todayBangkokDateKey();
+  const userId = connection.user_id;
+
+  let accessToken = connection.access_token;
+  const expiresAt = new Date(connection.expires_at).getTime();
+  if (expiresAt - Date.now() < 5 * 60 * 1000) {
+    const refreshed = await refreshGoogleHealthToken(connection.refresh_token);
+    if (!refreshed) {
+      await admin.from("google_health_connections").update({ last_sync_error: "token refresh failed" }).eq("user_id", userId);
+      return { ok: false, sleepImported: 0, workoutsImported: 0, error: "token refresh failed" };
+    }
+    accessToken = refreshed.accessToken;
+    await admin.from("google_health_connections").update({
+      access_token: refreshed.accessToken,
+      expires_at: refreshed.expiresAt,
+    }).eq("user_id", userId);
+  }
+
+  let sleepImported = 0;
+  let workoutsImported = 0;
+
+  try {
+    const sinceIso = new Date(`${sinceDateKey}T00:00:00+07:00`).toISOString();
+
+    const [sleepPoints, dailyRestingHR, dailyHrv] = await Promise.all([
+      fetchGoogleHealthSleep(accessToken, sinceIso),
+      fetchGoogleHealthDailyRestingHR(accessToken, sinceDateKey),
+      fetchGoogleHealthDailyHRV(accessToken, sinceDateKey),
+    ]);
+
+    for (const dp of sleepPoints) {
+      const itemId = googleHealthSleepHistoryItemId(dp.name);
+      const { data: existing } = await admin.from("history_items").select("id").eq("user_id", userId).eq("id", itemId).maybeSingle();
+      if (existing) continue;
+
+      const dateKey = intervalCivilDateKey(dp.sleep.interval, "end");
+      const extracted = mapGoogleHealthSleepToExtracted(dp, dailyRestingHR.get(dateKey) ?? null, dailyHrv.get(dateKey) ?? null);
+      const coach = options.generateCoach ? await generateSleepCoach(extracted) : SLEEP_COACH_FALLBACK;
+      const data: SleepAnalysis = {
+        extracted,
+        coach,
+        confidence: "high",
+        unclearFields: ["avgSleepingHeartRate", "avgSleepingHrv", "avgRespiratoryRate", "sleepScore", "energyScore"],
+      };
+
+      await admin.from("history_items").insert({
+        id: itemId,
+        user_id: userId,
+        type: "sleep",
+        created_at: new Date().toISOString(),
+        data: { ...data, recordedAt: dateKeyToRecordedAt(dateKey), dateKey },
+      });
+      sleepImported += 1;
+    }
+
+    const exercisePoints = await fetchGoogleHealthExercise(accessToken, sinceDateKey);
+    for (const dp of exercisePoints) {
+      const itemId = googleHealthExerciseHistoryItemId(dp.name);
+      const { data: existing } = await admin.from("history_items").select("id").eq("user_id", userId).eq("id", itemId).maybeSingle();
+      if (existing) continue;
+
+      const extracted = mapGoogleHealthExerciseToExtracted(dp);
+      const coach = options.generateCoach ? await generateWorkoutCoach(extracted) : WORKOUT_COACH_FALLBACK;
+      const data: WorkoutAnalysis = {
+        extracted,
+        coach,
+        confidence: "high",
+        unclearFields: ["maxHR", "cadence", "vo2Max", "elevationGain"],
+      };
+      const dateKey = extracted.date ?? todayKey;
+
+      await admin.from("history_items").insert({
+        id: itemId,
+        user_id: userId,
+        type: "workout",
+        created_at: new Date().toISOString(),
+        data: { ...data, recordedAt: dateKeyToRecordedAt(dateKey), dateKey },
+      });
+      workoutsImported += 1;
+    }
+
+    await admin.from("google_health_connections").update({
+      last_synced_at: new Date().toISOString(),
+      last_sync_error: null,
+    }).eq("user_id", userId);
+
+    return { ok: true, sleepImported, workoutsImported };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "unknown error";
+    await admin.from("google_health_connections").update({ last_sync_error: message }).eq("user_id", userId);
+    return { ok: false, sleepImported, workoutsImported, error: message };
+  }
+}
