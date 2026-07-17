@@ -86,13 +86,13 @@ tests/
 
 ## Design System
 
-**RunMate Visual Identity**: Warm Minimal Fitness Journal — beige/sage tones, soft cards, mobile-first, Thai-first.
+**RunMate Visual Identity**: Clean Minimal Fitness Journal — cool blue/white tones, soft cards, mobile-first, Thai-first.
 
 **Upload Dashboard principle**: Upload should feel like a soft health data entry flow, not a technical file uploader. The selected data type should explain what the coach will use it for, with raw file/privacy details behind compact help.
 
 **Token reference** (CSS vars in `globals.css`):
 
-- Colors: `--primary` (sage), `--background` (warm beige), `--surface` (cream), `--border-warm`
+- Colors: `--primary` (#3b6ef6 blue), `--background` (#f7f8fa light gray), `--surface` (white), `--border-warm`
 - Semantic: `--color-warning`, `--color-danger`, `--color-success`, `--color-info` (and `-soft` variants)
 - Text: `--color-text`, `--color-text-muted`, `--color-text-soft`
 - Radius: `--radius-card` (20px), `--radius-pill` (999px), `--radius-chip`
@@ -258,11 +258,11 @@ tests/
 
 ## Soft Health UI v2 (Today page)
 
-RunMate's visual identity is warm beige/sage/cream — a soft recovery health app, not a bright fitness tracker.
+RunMate's visual identity is cool blue/white — a calm recovery health app, not a bright fitness tracker.
 
 **CSS classes** (defined in `globals.css`):
 
-- `.health-score-card` — soft sage gradient bg, warm border (`rgba(228,216,200,0.58)`), layered shadow. Used for `TodaySnapshotCard`.
+- `.health-score-card` — soft blue/teal gradient bg, subtle dark border (`rgba(26,31,46,0.08)`), layered shadow. Used for `TodaySnapshotCard`.
 - `FactorBar` rows (`data-testid="today-factor-bar"`) — compact aligned rows for the four Recovery axes. Keep label, track, score, and state label in a fixed grid so the numbers feel intentional.
 
 **Today overview card (`TodaySnapshotCard`)** layout order:
@@ -273,7 +273,7 @@ RunMate's visual identity is warm beige/sage/cream — a soft recovery health ap
 4. **Coach headline** — short action directive from `buildTodaySnapshotCoachHeadline()` e.g. "พร้อมขยับตามแผน", "คุมเบาไว้ก่อน", "วันนี้เน้นพักฟื้นตัว"
 5. Axis summary line (`data-testid="today-overview-reason"`)
 6. Caution note (if any)
-7. 4-axis factor bars — no `/100` per row; scores use tabular alignment; Load high remains amber/warning; Fuel success stays muted sage.
+7. 4-axis factor bars — no `/100` per row; scores use tabular alignment; Load high remains amber/warning; Fuel success stays `--color-success`.
 8. Expandable details `<details>`
 
 **Hero card (`PreWorkoutFocusContent`)** layout:
@@ -283,7 +283,7 @@ RunMate's visual identity is warm beige/sage/cream — a soft recovery health ap
 
 **`RecoveryLoopCard`** uses a compact two-column strip for คืนนี้ / ถัดไป with a subtle divider. Keep no more than three default visible lines.
 
-**UI tone principle**: Soft Health UI should feel calm and premium. Positive states (success tone) use muted sage (`#7aab8f`) — not bright green — so a perfect Fuel score does not visually overpower Load/Sleep caution. Caution (warning amber) and danger (muted coral) must remain clear. Avoid letting any single perfect-score axis dominate the overview card.
+**UI tone principle**: Soft Health UI should feel calm and premium. Positive states (success tone) use `--color-success` (`#1f9d55`) so a perfect Fuel score does not visually overpower Load/Sleep caution. Caution (warning amber) and danger (muted coral) must remain clear. Avoid letting any single perfect-score axis dominate the overview card.
 
 **Recovery axis visual tone is coaching severity, not raw score severity.** A low Recovery or Sleep score alone should NOT automatically use the danger/red tone. Use `getRecoveryAxisCoachingTone()` (not `getAxisTone()`) for FactorBar rendering in Today — it gates "danger" behind active pain or a severe combined state (low recovery + low sleep + high load). This keeps "red" meaningful so users learn to trust it. Implement coaching interpretation lines (`data-testid="coaching-interpretation-line"`) when recovery < 45 or sleep < 40 to guide behavior without triggering alarm. Copy should use coaching language: "คุมเบา", "ลดความหนัก", "ฟังร่างกาย", "ถ้า HR ลอยให้หยุด" — never alarming or medically certain.
 
