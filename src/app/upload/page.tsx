@@ -895,22 +895,36 @@ export default function UploadPage() {
               <div className="space-y-1">
                 <p className="text-[10px] font-bold text-rm-muted">บันทึกประจำวัน</p>
                 <div className="flex flex-wrap gap-1.5">
-                  {(["sleep", "meal", "workout", "body"] as UploadType[]).map((item) => (
-                    <button
-                      key={item}
-                      type="button"
-                      className={cn(
-                        "flex items-center gap-1.5 rounded-full border px-3 py-2 text-[12px] font-bold transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-rm-primary",
-                        type === item
-                          ? "border-rm-primary-strong bg-rm-primary text-rm-surface shadow-sm"
-                          : "border-rm-border bg-rm-surface/70 text-rm-text hover:bg-rm-primary-soft/60",
-                      )}
-                      onClick={() => selectUploadType(item)}
-                    >
-                      <span className="text-sm leading-none">{UPLOAD_DASHBOARD_META[item].icon}</span>
-                      <span>{UPLOAD_LABELS[item]}</span>
-                    </button>
-                  ))}
+                  {(["sleep", "meal", "workout", "body"] as UploadType[]).map((item) => {
+                    const autoSynced =
+                      (item === "sleep" && coachContext?.autoSyncedToday.sleep) ||
+                      (item === "workout" && coachContext?.autoSyncedToday.workout);
+                    return (
+                      <button
+                        key={item}
+                        type="button"
+                        className={cn(
+                          "flex items-center gap-1.5 rounded-full border px-3 py-2 text-[12px] font-bold transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-rm-primary",
+                          type === item
+                            ? "border-rm-primary-strong bg-rm-primary text-rm-surface shadow-sm"
+                            : "border-rm-border bg-rm-surface/70 text-rm-text hover:bg-rm-primary-soft/60",
+                        )}
+                        onClick={() => selectUploadType(item)}
+                      >
+                        <span className="text-sm leading-none">{UPLOAD_DASHBOARD_META[item].icon}</span>
+                        <span>{UPLOAD_LABELS[item]}</span>
+                        {autoSynced && (
+                          <span
+                            className="chip chip-info px-1.5 py-0.5 text-[10px] font-bold leading-none"
+                            data-testid={`upload-auto-synced-${item}`}
+                            title="ข้อมูลวันนี้ sync จาก Google Health แล้ว"
+                          >
+                            ☁️ Synced
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 

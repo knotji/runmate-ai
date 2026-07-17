@@ -401,6 +401,7 @@ const emptyContext: CoachContext = {
   latestSick: null,
   activeSick: false,
   sickRiskLevel: "none" as const,
+  autoSyncedToday: { sleep: false, workout: false },
 };
 
 
