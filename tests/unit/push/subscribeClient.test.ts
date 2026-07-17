@@ -18,6 +18,7 @@ function installBrowserGlobals(overrides: {
   unsubscribe?: () => Promise<boolean>;
   readyPromise?: Promise<unknown>;
   fetchImpl?: typeof fetch;
+  registerImpl?: () => Promise<unknown>;
 }) {
   const pushManager = {
     getSubscription: overrides.getSubscription ?? (async () => null),
@@ -29,6 +30,9 @@ function installBrowserGlobals(overrides: {
     value: {
       serviceWorker: {
         ready: overrides.readyPromise ?? Promise.resolve({ pushManager }),
+        // getReadyRegistration() proactively calls register() as a fallback in case
+        // PWARegistration.tsx's own background registration hasn't happened yet.
+        register: overrides.registerImpl ?? (async () => ({ scope: "/" })),
       },
     },
   });
@@ -93,6 +97,42 @@ describe("subscribeToPush", () => {
 
     const result = await subscribeToPush();
     expect(result.ok).toBe(true);
+  });
+
+  it("proactively calls navigator.serviceWorker.register() as a fallback, not just PWARegistration's own background registration", async () => {
+    // Reported bug: PWARegistration.tsx registers on window "load", which never
+    // fires its callback if the event already happened before the listener
+    // attached (a real race on slower devices/networks) — leaving the service
+    // worker never registered for the whole session, and navigator.serviceWorker.ready
+    // hanging/timing out with no registration to ever resolve against. Push
+    // subscription must not depend solely on that background registration having
+    // already succeeded.
+    const registerImpl = vi.fn(async () => ({ scope: "/" }));
+    installBrowserGlobals({ registerImpl });
+    const { subscribeToPush } = await import("@/lib/push/subscribeClient");
+
+    await subscribeToPush();
+
+    expect(registerImpl).toHaveBeenCalledWith("/sw.js");
+  });
+
+  it("still resolves ok:false (not throw) when the fallback register() call itself rejects", async () => {
+    installBrowserGlobals({
+      registerImpl: async () => {
+        throw new Error("registration failed");
+      },
+      readyPromise: new Promise(() => {}), // never settles — no registration exists
+    });
+    vi.useFakeTimers();
+    try {
+      const { subscribeToPush } = await import("@/lib/push/subscribeClient");
+      const pending = subscribeToPush();
+      await vi.advanceTimersByTimeAsync(9000);
+      const result = await pending;
+      expect(result.ok).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("times out instead of hanging forever when serviceWorker.ready never settles", async () => {

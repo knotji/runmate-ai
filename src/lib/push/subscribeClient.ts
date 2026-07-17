@@ -48,6 +48,16 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 }
 
 async function getReadyRegistration(): Promise<ServiceWorkerRegistration | null> {
+  // navigator.serviceWorker.ready only ever resolves once SOME registration exists —
+  // it doesn't create one itself. It's normally triggered by PWARegistration.tsx in
+  // the root layout on page load, but that's a best-effort background registration
+  // with its own race conditions; a user landing here (e.g. straight on Settings)
+  // shouldn't have push subscription depend on it having already succeeded.
+  // .register() is idempotent — a no-op returning the existing registration if one
+  // is already active — so calling it again here is always safe.
+  if ("serviceWorker" in navigator) {
+    await navigator.serviceWorker.register("/sw.js").catch(() => null);
+  }
   return withTimeout(navigator.serviceWorker.ready, READY_TIMEOUT_MS).catch(() => null);
 }
 
