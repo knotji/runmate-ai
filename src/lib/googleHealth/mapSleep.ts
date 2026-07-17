@@ -1,5 +1,5 @@
 import type { SleepAnalysis } from "@/types/logs";
-import type { GoogleHealthSleepDataPoint } from "@/lib/googleHealth/api";
+import { intervalCivilDateKey, type GoogleHealthSleepDataPoint } from "@/lib/googleHealth/api";
 
 function formatDurationMinutes(minutes: number): string {
   const h = Math.floor(minutes / 60);
@@ -31,11 +31,13 @@ export function mapGoogleHealthSleepToExtracted(
   dailyHrv: number | null,
 ): SleepAnalysis["extracted"] {
   const { interval, summary } = dp.sleep;
-  const dateOfSleep = interval.endTime.slice(0, 10);
-  const minutesAsleep = summary?.minutesAsleep ?? null;
-  const minutesInSleepPeriod = summary?.minutesInSleepPeriod ?? null;
+  const dateOfSleep = intervalCivilDateKey(interval, "end");
+  // minutesAsleep/minutesInSleepPeriod/stage minutes are int64 fields — the API
+  // serializes these as JSON strings, not numbers (confirmed in the discovery doc).
+  const minutesAsleep = summary?.minutesAsleep != null ? Number(summary.minutesAsleep) : null;
+  const minutesInSleepPeriod = summary?.minutesInSleepPeriod != null ? Number(summary.minutesInSleepPeriod) : null;
 
-  const stageMap = new Map((summary?.stagesSummary ?? []).map((s) => [s.type.toUpperCase(), s.minutes]));
+  const stageMap = new Map((summary?.stagesSummary ?? []).map((s) => [s.type, Number(s.minutes)]));
   const hasStages = stageMap.size > 0;
 
   return {

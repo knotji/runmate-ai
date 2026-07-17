@@ -2,42 +2,46 @@ import { describe, it, expect } from "vitest";
 import { mapGoogleHealthExerciseToExtracted, googleHealthExerciseHistoryItemId } from "@/lib/googleHealth/mapExercise";
 import type { GoogleHealthExerciseDataPoint } from "@/lib/googleHealth/api";
 
+// averageHeartRateBeatsPerMinute is int64-as-string on the wire; caloriesKcal,
+// distanceMillimeters, elevationGainMillimeters are real doubles. exerciseType
+// values below ("RUNNING", "BIKING", etc.) match the real 182-value enum.
 function makePoint(overrides: Partial<GoogleHealthExerciseDataPoint["exercise"]> = {}): GoogleHealthExerciseDataPoint {
   return {
     name: "users/me/dataTypes/exercise/dataPoints/xyz789",
     exercise: {
       interval: { startTime: "2026-07-16T07:00:00Z", endTime: "2026-07-16T07:30:00Z" },
-      exerciseType: "RUN",
-      metricsSummary: { caloriesKcal: 350, averageHeartRateBeatsPerMinute: 150 },
+      exerciseType: "RUNNING",
+      metricsSummary: { caloriesKcal: 350, averageHeartRateBeatsPerMinute: "150" },
       ...overrides,
     },
   };
 }
 
 describe("mapGoogleHealthExerciseToExtracted", () => {
-  it("infers outdoor_run for a RUN exerciseType", () => {
+  it("infers outdoor_run for a RUNNING exerciseType", () => {
     const result = mapGoogleHealthExerciseToExtracted(makePoint());
     expect(result.workoutKind).toBe("outdoor_run");
   });
 
-  it("infers treadmill when exerciseType mentions treadmill", () => {
-    const result = mapGoogleHealthExerciseToExtracted(makePoint({ exerciseType: "TREADMILL_RUNNING" }));
-    expect(result.workoutKind).toBe("treadmill");
+  it("infers treadmill for TREADMILL / TREADMILL_WALK exerciseTypes", () => {
+    expect(mapGoogleHealthExerciseToExtracted(makePoint({ exerciseType: "TREADMILL" })).workoutKind).toBe("treadmill");
+    expect(mapGoogleHealthExerciseToExtracted(makePoint({ exerciseType: "TREADMILL_WALK" })).workoutKind).toBe("treadmill");
   });
 
   it("infers walk / cycling / strength / other from exerciseType keywords", () => {
     expect(mapGoogleHealthExerciseToExtracted(makePoint({ exerciseType: "WALKING" })).workoutKind).toBe("walk");
+    expect(mapGoogleHealthExerciseToExtracted(makePoint({ exerciseType: "NORDIC_WALKING" })).workoutKind).toBe("walk");
     expect(mapGoogleHealthExerciseToExtracted(makePoint({ exerciseType: "BIKING" })).workoutKind).toBe("cycling");
     expect(mapGoogleHealthExerciseToExtracted(makePoint({ exerciseType: "STRENGTH_TRAINING" })).workoutKind).toBe("strength");
-    expect(mapGoogleHealthExerciseToExtracted(makePoint({ exerciseType: "YOGA" })).workoutKind).toBe("other");
+    expect(mapGoogleHealthExerciseToExtracted(makePoint({ exerciseType: "YOGA_BIKRAM" })).workoutKind).toBe("other");
   });
 
-  it("computes duration from the interval when metricsSummary has none", () => {
+  it("computes duration from the interval", () => {
     const result = mapGoogleHealthExerciseToExtracted(makePoint());
     expect(result.duration).toBe("30 m");
   });
 
-  it("maps calories and avgHR directly, leaves maxHR/cadence/vo2Max null", () => {
+  it("parses calories directly and avgHR from its int64-as-string field", () => {
     const result = mapGoogleHealthExerciseToExtracted(makePoint());
     expect(result.calories).toBe(350);
     expect(result.avgHR).toBe(150);
@@ -46,10 +50,25 @@ describe("mapGoogleHealthExerciseToExtracted", () => {
     expect(result.vo2Max).toBeNull();
   });
 
-  it("leaves distance/pace null when metricsSummary has no distance field", () => {
+  it("converts distanceMillimeters to km and elevationGainMillimeters to meters", () => {
+    const result = mapGoogleHealthExerciseToExtracted(
+      makePoint({ metricsSummary: { caloriesKcal: 350, distanceMillimeters: 5_000_000, elevationGainMillimeters: 20_000 } }),
+    );
+    expect(result.distanceKm).toBe(5);
+    expect(result.elevationGain).toBe(20);
+  });
+
+  it("computes pace from the converted distance", () => {
+    // 5km in 30 minutes = 6:00/km
+    const result = mapGoogleHealthExerciseToExtracted(makePoint({ metricsSummary: { distanceMillimeters: 5_000_000 } }));
+    expect(result.avgPace).toBe("6:00/km");
+  });
+
+  it("leaves distance/pace/elevation null when metricsSummary has no distance field", () => {
     const result = mapGoogleHealthExerciseToExtracted(makePoint());
     expect(result.distanceKm).toBeNull();
     expect(result.avgPace).toBeNull();
+    expect(result.elevationGain).toBeNull();
   });
 
   it("includes notes in visibleMetrics when present", () => {

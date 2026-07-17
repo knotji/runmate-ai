@@ -6,6 +6,7 @@ import {
   fetchGoogleHealthExercise,
   fetchGoogleHealthDailyRestingHR,
   fetchGoogleHealthDailyHRV,
+  intervalCivilDateKey,
 } from "@/lib/googleHealth/api";
 import { mapGoogleHealthSleepToExtracted, googleHealthSleepHistoryItemId } from "@/lib/googleHealth/mapSleep";
 import { mapGoogleHealthExerciseToExtracted, googleHealthExerciseHistoryItemId } from "@/lib/googleHealth/mapExercise";
@@ -118,7 +119,7 @@ export async function GET(request: NextRequest) {
         const { data: existing } = await admin.from("history_items").select("id").eq("user_id", userId).eq("id", itemId).maybeSingle();
         if (existing) continue;
 
-        const dateKey = dp.sleep.interval.endTime.slice(0, 10);
+        const dateKey = intervalCivilDateKey(dp.sleep.interval, "end");
         const extracted = mapGoogleHealthSleepToExtracted(dp, dailyRestingHR.get(dateKey) ?? null, dailyHrv.get(dateKey) ?? null);
         const coach = await generateSleepCoach(extracted);
         const data: SleepAnalysis = {
@@ -139,7 +140,7 @@ export async function GET(request: NextRequest) {
       }
 
       // ── Exercise ───────────────────────────────────────────────────────────
-      const exercisePoints = await fetchGoogleHealthExercise(accessToken, sinceIso);
+      const exercisePoints = await fetchGoogleHealthExercise(accessToken, yesterdayKey);
       for (const dp of exercisePoints) {
         const itemId = googleHealthExerciseHistoryItemId(dp.name);
         const { data: existing } = await admin.from("history_items").select("id").eq("user_id", userId).eq("id", itemId).maybeSingle();

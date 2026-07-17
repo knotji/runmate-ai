@@ -2,21 +2,23 @@ import { describe, it, expect } from "vitest";
 import { mapGoogleHealthSleepToExtracted, googleHealthSleepHistoryItemId, googleHealthDataPointId } from "@/lib/googleHealth/mapSleep";
 import type { GoogleHealthSleepDataPoint } from "@/lib/googleHealth/api";
 
+// int64 fields (minutesAsleep, minutesInSleepPeriod, stage minutes) are strings on
+// the wire — the API serializes int64 as JSON strings to avoid precision loss.
 function makePoint(overrides: Partial<GoogleHealthSleepDataPoint["sleep"]> = {}): GoogleHealthSleepDataPoint {
   return {
     name: "users/me/dataTypes/sleep/dataPoints/abc123",
     sleep: {
       interval: { startTime: "2026-07-15T23:03:30+07:00", endTime: "2026-07-16T07:12:00+07:00" },
-      type: "stages",
+      type: "STAGES",
       summary: {
-        minutesAsleep: 424,
-        minutesAwake: 34,
-        minutesInSleepPeriod: 479,
+        minutesAsleep: "424",
+        minutesAwake: "34",
+        minutesInSleepPeriod: "479",
         stagesSummary: [
-          { type: "DEEP", minutes: 62 },
-          { type: "LIGHT", minutes: 224 },
-          { type: "REM", minutes: 74 },
-          { type: "AWAKE", minutes: 34 },
+          { type: "DEEP", minutes: "62" },
+          { type: "LIGHT", minutes: "224" },
+          { type: "REM", minutes: "74" },
+          { type: "AWAKE", minutes: "34" },
         ],
       },
       ...overrides,
@@ -34,7 +36,7 @@ describe("mapGoogleHealthSleepToExtracted", () => {
     expect(result.sleepEndTime).toBe("2026-07-16T07:12:00+07:00");
   });
 
-  it("maps sleep stage minutes, uppercasing the stage type key", () => {
+  it("maps sleep stage minutes keyed by the (already-uppercase) stage type", () => {
     const result = mapGoogleHealthSleepToExtracted(makePoint(), null, null);
     expect(result.sleepStageDeepMinutes).toBe(62);
     expect(result.sleepStageLightMinutes).toBe(224);
@@ -44,7 +46,7 @@ describe("mapGoogleHealthSleepToExtracted", () => {
   });
 
   it("leaves stage minutes null when stagesSummary is absent", () => {
-    const result = mapGoogleHealthSleepToExtracted(makePoint({ summary: { minutesAsleep: 400 } }), null, null);
+    const result = mapGoogleHealthSleepToExtracted(makePoint({ summary: { minutesAsleep: "400" } }), null, null);
     expect(result.sleepStageDeepMinutes).toBeNull();
     expect(result.sleepStageMinutes).toBeNull();
   });
