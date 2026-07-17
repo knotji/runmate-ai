@@ -1085,6 +1085,7 @@ function CompactHistoryItemRow({
             </span>
           </div>
           <p className="text-sm font-medium text-[var(--foreground)] truncate">
+            <span className="mr-1">{getTypeIcon(item.type === "strength" ? "strength" : mappedType)}</span>
             {title}
           </p>
           {subtitle && (
@@ -1107,6 +1108,19 @@ function CompactHistoryItemRow({
       )}
     </div>
   );
+}
+
+function getTypeIcon(type: string): string {
+  if (type === "strength") return "🏋️";
+  if (type === "workout") return "🏃";
+  if (type === "food") return "🍱";
+  if (type === "sleep") return "🌙";
+  if (type === "pain") return "🩹";
+  if (type === "sick") return "🤒";
+  if (type === "body") return "⚖️";
+  if (type === "health") return "🩺";
+  if (type === "summary") return "📋";
+  return "•";
 }
 
 function getMappedTypeName(item: LocalHistoryItem): string {
@@ -1295,26 +1309,29 @@ function FilterPills({
   onFilterChange: (filter: ReportFilter) => void;
 }) {
   return (
-    <div className="flex gap-2 overflow-x-auto pb-1 pr-1 scrollbar-none" data-testid="filter-pills-row">
-      {(
-        [
-          { id: "all", label: "ทั้งหมด" },
-          { id: "workout", label: "ซ้อม" },
-          { id: "meal", label: "อาหาร" },
-          { id: "sleep", label: "นอน" },
-          { id: "pain", label: "เจ็บ" },
-          { id: "sick", label: "ไม่สบาย" },
-        ] as const
-      ).map((f) => (
-        <button
-          key={f.id}
-          type="button"
-          onClick={() => onFilterChange(f.id)}
-          className={`shrink-0 whitespace-nowrap rounded-[var(--radius-pill)] border px-3.5 py-1.5 text-xs font-semibold transition-all ${activeFilter === f.id ? "border-[var(--primary-soft)] bg-[var(--primary-soft)] text-[var(--primary-strong)]" : "border-[var(--border-warm)] bg-[var(--surface)] text-[var(--color-text-muted)] hover:bg-[var(--surface-muted)]"}`}
-        >
-          {f.label}
-        </button>
-      ))}
+    <div className="relative">
+      <div className="flex gap-2 overflow-x-auto pb-1 pr-1 scrollbar-none" data-testid="filter-pills-row">
+        {(
+          [
+            { id: "all", label: "ทั้งหมด" },
+            { id: "workout", label: "ซ้อม" },
+            { id: "meal", label: "อาหาร" },
+            { id: "sleep", label: "นอน" },
+            { id: "pain", label: "เจ็บ" },
+            { id: "sick", label: "ไม่สบาย" },
+          ] as const
+        ).map((f) => (
+          <button
+            key={f.id}
+            type="button"
+            onClick={() => onFilterChange(f.id)}
+            className={`shrink-0 whitespace-nowrap rounded-[var(--radius-pill)] border px-3.5 py-1.5 text-xs font-semibold transition-all ${activeFilter === f.id ? "border-[var(--primary-soft)] bg-[var(--primary-soft)] text-[var(--primary-strong)]" : "border-[var(--border-warm)] bg-[var(--surface)] text-[var(--color-text-muted)] hover:bg-[var(--surface-muted)]"}`}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+      <div className="pointer-events-none absolute right-0 top-0 bottom-1 w-8 bg-gradient-to-l from-[var(--surface)] to-transparent" aria-hidden="true" />
     </div>
   );
 }
