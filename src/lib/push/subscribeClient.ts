@@ -31,6 +31,12 @@ export async function getCurrentPushEndpoint(): Promise<string | null> {
   return subscription?.endpoint ?? null;
 }
 
+// pushManager.subscribe()/unsubscribe() can reject (e.g. iOS Safari outside an
+// installed home-screen PWA, a stale/invalid VAPID key, or the push service being
+// unreachable) — previously uncaught, which left the caller's await forever pending
+// on a rejected promise it never handled, permanently stuck on "กำลังทำรายการ...".
+// Every browser API call in both functions below is now wrapped so a failure always
+// resolves to a normal { ok: false, reason } result instead of throwing.
 export async function subscribeToPush(): Promise<{ ok: true } | { ok: false; reason: string }> {
   if (getPushSupportState() !== "ready") {
     return { ok: false, reason: "เบราว์เซอร์นี้ไม่รองรับการแจ้งเตือน" };
@@ -41,57 +47,65 @@ export async function subscribeToPush(): Promise<{ ok: true } | { ok: false; rea
     return { ok: false, reason: "ระบบแจ้งเตือนยังไม่ได้ตั้งค่า" };
   }
 
-  const permission = await Notification.requestPermission();
-  if (permission !== "granted") {
-    return { ok: false, reason: "ไม่ได้รับอนุญาตให้แจ้งเตือน" };
-  }
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission !== "granted") {
+      return { ok: false, reason: "ไม่ได้รับอนุญาตให้แจ้งเตือน" };
+    }
 
-  const registration = await navigator.serviceWorker.ready.catch(() => null);
-  if (!registration) {
-    return { ok: false, reason: "ไม่พบ Service Worker" };
-  }
+    const registration = await navigator.serviceWorker.ready.catch(() => null);
+    if (!registration) {
+      return { ok: false, reason: "ไม่พบ Service Worker" };
+    }
 
-  let subscription = await registration.pushManager.getSubscription();
-  if (!subscription) {
-    subscription = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(publicKey),
+    let subscription = await registration.pushManager.getSubscription();
+    if (!subscription) {
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicKey),
+      });
+    }
+
+    const json = subscription.toJSON();
+    const response = await fetch("/api/push/subscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ endpoint: json.endpoint, keys: json.keys }),
     });
-  }
 
-  const json = subscription.toJSON();
-  const response = await fetch("/api/push/subscribe", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ endpoint: json.endpoint, keys: json.keys }),
-  });
-
-  if (!response.ok) {
-    return { ok: false, reason: "บันทึกการแจ้งเตือนไม่สำเร็จ" };
+    if (!response.ok) {
+      return { ok: false, reason: "บันทึกการแจ้งเตือนไม่สำเร็จ" };
+    }
+    return { ok: true };
+  } catch {
+    return { ok: false, reason: "เปิดการแจ้งเตือนไม่สำเร็จ ลองใหม่อีกครั้ง" };
   }
-  return { ok: true };
 }
 
 export async function unsubscribeFromPush(): Promise<{ ok: true } | { ok: false; reason: string }> {
   if (getPushSupportState() === "unsupported") return { ok: true };
 
-  const registration = await navigator.serviceWorker.ready.catch(() => null);
-  if (!registration) return { ok: true };
+  try {
+    const registration = await navigator.serviceWorker.ready.catch(() => null);
+    if (!registration) return { ok: true };
 
-  const subscription = await registration.pushManager.getSubscription();
-  if (!subscription) return { ok: true };
+    const subscription = await registration.pushManager.getSubscription();
+    if (!subscription) return { ok: true };
 
-  const endpoint = subscription.endpoint;
-  await subscription.unsubscribe();
+    const endpoint = subscription.endpoint;
+    await subscription.unsubscribe();
 
-  const response = await fetch("/api/push/unsubscribe", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ endpoint }),
-  });
+    const response = await fetch("/api/push/unsubscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ endpoint }),
+    });
 
-  if (!response.ok) {
-    return { ok: false, reason: "ยกเลิกการแจ้งเตือนไม่สำเร็จ" };
+    if (!response.ok) {
+      return { ok: false, reason: "ยกเลิกการแจ้งเตือนไม่สำเร็จ" };
+    }
+    return { ok: true };
+  } catch {
+    return { ok: false, reason: "ยกเลิกการแจ้งเตือนไม่สำเร็จ ลองใหม่อีกครั้ง" };
   }
-  return { ok: true };
 }
