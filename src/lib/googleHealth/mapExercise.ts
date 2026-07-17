@@ -23,6 +23,13 @@ function inferWorkoutKind(exerciseType: string | undefined): WorkoutAnalysis["ex
   return "other";
 }
 
+/** Parses a google-duration string ("1698.134s") to milliseconds. */
+function parseGoogleDurationMs(duration: string | undefined): number | null {
+  if (!duration || !duration.endsWith("s")) return null;
+  const seconds = Number(duration.slice(0, -1));
+  return Number.isFinite(seconds) ? seconds * 1000 : null;
+}
+
 function formatDurationMs(ms: number): string {
   const totalMinutes = Math.round(ms / 60000);
   const h = Math.floor(totalMinutes / 60);
@@ -32,11 +39,20 @@ function formatDurationMs(ms: number): string {
   return `${h} h ${m} m`;
 }
 
-function formatPace(distanceKm: number | null, durationMs: number): string | null {
+/** Fallback pace calc from distance+duration, only used when Google's own
+ *  averagePaceSecondsPerMeter isn't present on the metricsSummary. */
+function formatPaceFromDistance(distanceKm: number | null, durationMs: number): string | null {
   if (!distanceKm || distanceKm <= 0) return null;
   const minutesPerKm = durationMs / 60000 / distanceKm;
   const min = Math.floor(minutesPerKm);
   const sec = Math.round((minutesPerKm - min) * 60);
+  return `${min}:${String(sec).padStart(2, "0")}/km`;
+}
+
+function formatPaceSecondsPerMeter(secPerMeter: number): string {
+  const secPerKm = secPerMeter * 1000;
+  const min = Math.floor(secPerKm / 60);
+  const sec = Math.round(secPerKm % 60);
   return `${min}:${String(sec).padStart(2, "0")}/km`;
 }
 
@@ -45,32 +61,45 @@ function formatPace(distanceKm: number | null, durationMs: number): string | nul
  *  src/lib/prompts/coachFromStructuredData.ts.
  *
  *  Field names/units confirmed against the real discovery document
- *  (MetricsSummary schema): distance is `distanceMillimeters` (double, not the
- *  earlier guessed `distanceMeters`), elevation is `elevationGainMillimeters`,
- *  `averageHeartRateBeatsPerMinute` is int64-as-string like the sleep duration
- *  fields — every other Google Health API int64 field is serialized as a JSON
- *  string, not a number. */
+ *  (MetricsSummary schema). Prefers Google's own computed pace/speed/duration
+ *  (averagePaceSecondsPerMeter, averageSpeedMillimetersPerSecond, activeDuration)
+ *  over deriving them from raw distance/interval-duration — Google's versions
+ *  already exclude paused time and match what the Google Health/Fit apps
+ *  themselves display, so a naive distance÷wall-clock-duration calc would
+ *  disagree with the source app for any session with pauses. Falls back to the
+ *  naive calc only when the direct field is absent. */
 export function mapGoogleHealthExerciseToExtracted(dp: GoogleHealthExerciseDataPoint): WorkoutAnalysis["extracted"] {
-  const { interval, exerciseType, metricsSummary, notes } = dp.exercise;
-  const durationMs = new Date(interval.endTime).getTime() - new Date(interval.startTime).getTime();
+  const { interval, exerciseType, displayName, activeDuration, metricsSummary, notes } = dp.exercise;
+  const wallClockDurationMs = new Date(interval.endTime).getTime() - new Date(interval.startTime).getTime();
+  const durationMs = parseGoogleDurationMs(activeDuration) ?? wallClockDurationMs;
   const distanceKm = metricsSummary?.distanceMillimeters != null ? metricsSummary.distanceMillimeters / 1_000_000 : null;
   const avgHR = metricsSummary?.averageHeartRateBeatsPerMinute != null ? Number(metricsSummary.averageHeartRateBeatsPerMinute) : null;
+
+  const avgPace = metricsSummary?.averagePaceSecondsPerMeter != null
+    ? formatPaceSecondsPerMeter(metricsSummary.averagePaceSecondsPerMeter)
+    : durationMs > 0 ? formatPaceFromDistance(distanceKm, durationMs) : null;
+
+  const avgSpeedKmh = metricsSummary?.averageSpeedMillimetersPerSecond != null
+    ? Number((metricsSummary.averageSpeedMillimetersPerSecond * 0.0036).toFixed(1)) // mm/s -> km/h
+    : distanceKm != null && durationMs > 0 ? Number((distanceKm / (durationMs / 3_600_000)).toFixed(1)) : null;
+
+  const visibleMetrics = [displayName, notes, "นำเข้าอัตโนมัติจาก Google Health"].filter((v): v is string => Boolean(v));
 
   return {
     workoutKind: inferWorkoutKind(exerciseType),
     date: intervalCivilDateKey(interval, "start"),
     distanceKm,
     duration: durationMs > 0 ? formatDurationMs(durationMs) : null,
-    avgPace: durationMs > 0 ? formatPace(distanceKm, durationMs) : null,
-    avgSpeedKmh: distanceKm != null && durationMs > 0 ? Number((distanceKm / (durationMs / 3_600_000)).toFixed(1)) : null,
+    avgPace,
+    avgSpeedKmh,
     avgHR,
     maxHR: null,
     cadence: null,
     calories: metricsSummary?.caloriesKcal ?? null,
     elevationGain: metricsSummary?.elevationGainMillimeters != null ? Math.round(metricsSummary.elevationGainMillimeters / 1000) : null,
-    vo2Max: null,
+    vo2Max: metricsSummary?.runVo2Max ?? null,
     sweatLossMl: null,
-    visibleMetrics: notes ? [notes, "นำเข้าอัตโนมัติจาก Google Health"] : ["นำเข้าอัตโนมัติจาก Google Health"],
+    visibleMetrics,
     mergedFromMultipleImages: false,
     exercises: null,
     muscleGroups: null,

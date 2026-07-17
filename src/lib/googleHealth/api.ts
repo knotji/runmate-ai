@@ -61,11 +61,16 @@ export type GoogleHealthExerciseDataPoint = {
   exercise: {
     interval: Interval;
     exerciseType?: string;
+    displayName?: string; // Google's own human-readable name for the session
+    activeDuration?: string; // google-duration format ("1698.134s") — excludes pauses, unlike interval.start/endTime
     metricsSummary?: {
       caloriesKcal?: number; // double, not int64 — arrives as a real JSON number
       averageHeartRateBeatsPerMinute?: string;
       distanceMillimeters?: number; // double
       elevationGainMillimeters?: number; // double
+      averagePaceSecondsPerMeter?: number; // double — Google's own computed pace
+      averageSpeedMillimetersPerSecond?: number; // double — Google's own computed speed
+      runVo2Max?: number; // double — only present on running exercises
     };
     notes?: string;
   };

@@ -80,6 +80,45 @@ describe("mapGoogleHealthExerciseToExtracted", () => {
     const result = mapGoogleHealthExerciseToExtracted(makePoint());
     expect(result.date).toBe("2026-07-16");
   });
+
+  it("prefers activeDuration over the wall-clock interval when present", () => {
+    // Interval spans 30 min, but activeDuration (excludes pauses) is only 25 min.
+    const result = mapGoogleHealthExerciseToExtracted(makePoint({ activeDuration: "1500.0s" }));
+    expect(result.duration).toBe("25 m");
+  });
+
+  it("prefers Google's own averagePaceSecondsPerMeter over the naive distance/duration calc", () => {
+    // Naive calc from 5km/30min would give 6:00/km; Google's own value says otherwise.
+    const result = mapGoogleHealthExerciseToExtracted(
+      makePoint({ metricsSummary: { distanceMillimeters: 5_000_000, averagePaceSecondsPerMeter: 0.3 } }), // 5:00/km
+    );
+    expect(result.avgPace).toBe("5:00/km");
+  });
+
+  it("prefers Google's own averageSpeedMillimetersPerSecond over the naive distance/duration calc", () => {
+    const result = mapGoogleHealthExerciseToExtracted(
+      makePoint({ metricsSummary: { distanceMillimeters: 5_000_000, averageSpeedMillimetersPerSecond: 3000 } }), // 10.8 km/h
+    );
+    expect(result.avgSpeedKmh).toBe(10.8);
+  });
+
+  it("populates vo2Max from runVo2Max when present", () => {
+    const result = mapGoogleHealthExerciseToExtracted(makePoint({ metricsSummary: { runVo2Max: 48.5 } }));
+    expect(result.vo2Max).toBe(48.5);
+  });
+
+  it("includes displayName first in visibleMetrics when present", () => {
+    const result = mapGoogleHealthExerciseToExtracted(makePoint({ displayName: "Morning Run", notes: "Felt great" }));
+    expect(result.visibleMetrics[0]).toBe("Morning Run");
+    expect(result.visibleMetrics).toContain("Felt great");
+  });
+
+  it("falls back to wall-clock duration and naive pace/speed calc when Google's own fields are absent", () => {
+    const result = mapGoogleHealthExerciseToExtracted(makePoint({ metricsSummary: { distanceMillimeters: 5_000_000 } }));
+    expect(result.duration).toBe("30 m");
+    expect(result.avgPace).toBe("6:00/km");
+    expect(result.avgSpeedKmh).toBe(10);
+  });
 });
 
 describe("googleHealthExerciseHistoryItemId", () => {
