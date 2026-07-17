@@ -16,6 +16,7 @@ function installBrowserGlobals(overrides: {
   getSubscription?: () => Promise<unknown>;
   subscribe?: () => Promise<unknown>;
   unsubscribe?: () => Promise<boolean>;
+  readyPromise?: Promise<unknown>;
 }) {
   const pushManager = {
     getSubscription: overrides.getSubscription ?? (async () => null),
@@ -26,7 +27,7 @@ function installBrowserGlobals(overrides: {
     configurable: true,
     value: {
       serviceWorker: {
-        ready: Promise.resolve({ pushManager }),
+        ready: overrides.readyPromise ?? Promise.resolve({ pushManager }),
       },
     },
   });
@@ -90,6 +91,27 @@ describe("subscribeToPush", () => {
 
     const result = await subscribeToPush();
     expect(result.ok).toBe(true);
+  });
+
+  it("times out instead of hanging forever when serviceWorker.ready never settles", async () => {
+    // The reported real-world bug: a silently-broken service worker (never
+    // registers/activates/claims control) leaves navigator.serviceWorker.ready
+    // permanently pending — neither resolving nor rejecting, so a plain try/catch
+    // can't rescue it. Only a timeout can.
+    vi.useFakeTimers();
+    try {
+      const neverSettles = new Promise(() => {});
+      installBrowserGlobals({ readyPromise: neverSettles });
+      const { subscribeToPush } = await import("@/lib/push/subscribeClient");
+
+      const pending = subscribeToPush();
+      await vi.advanceTimersByTimeAsync(9000);
+      const result = await pending;
+
+      expect(result.ok).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 
