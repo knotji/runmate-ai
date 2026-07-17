@@ -46,82 +46,92 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "admin client not configured" }, { status: 500 });
   }
 
-  const todayKey = getBangkokDateKey();
+  // Wrapped so a real cause (bad service-role key, missing table/column, a
+  // transient Supabase network error) shows up in the response body and
+  // Vercel's function logs instead of vanishing behind a bare 500.
+  try {
+    const todayKey = getBangkokDateKey();
 
-  const { data: raceGoals, error: goalsError } = await admin
-    .from("race_goals")
-    .select("user_id, race_name, race_date")
-    .not("status", "eq", "completed");
+    const { data: raceGoals, error: goalsError } = await admin
+      .from("race_goals")
+      .select("user_id, race_name, race_date")
+      .not("status", "eq", "completed");
 
-  if (goalsError || !raceGoals) {
-    return NextResponse.json({ error: "failed to load race goals" }, { status: 500 });
-  }
-
-  // A user could technically have more than one non-completed goal; keep the
-  // soonest upcoming one per user, matching loadActiveRaceGoalAndPlan's intent.
-  const raceByUser = new Map<string, { raceName: string; raceDate: string; daysUntilRace: number }>();
-  for (const goal of raceGoals) {
-    const daysUntilRace = daysUntil(goal.race_date as string, todayKey);
-    if (!MILESTONE_DAYS.has(daysUntilRace)) continue;
-    const existing = raceByUser.get(goal.user_id as string);
-    if (!existing || daysUntilRace < existing.daysUntilRace) {
-      raceByUser.set(goal.user_id as string, {
-        raceName: goal.race_name as string,
-        raceDate: goal.race_date as string,
-        daysUntilRace,
-      });
-    }
-  }
-
-  if (raceByUser.size === 0) {
-    return NextResponse.json({ ok: true, eligibleUsers: 0, sent: 0, skippedAlreadySentToday: 0, expiredRemoved: 0, failed: 0 });
-  }
-
-  const { data: subscriptions, error: subError } = await admin
-    .from("push_subscriptions")
-    .select("id, user_id, endpoint, p256dh, auth_key, last_race_reminder_date_key")
-    .in("user_id", [...raceByUser.keys()]);
-
-  if (subError || !subscriptions) {
-    return NextResponse.json({ error: "failed to load subscriptions" }, { status: 500 });
-  }
-
-  let sent = 0;
-  let skippedAlreadySentToday = 0;
-  let expiredRemoved = 0;
-  let failed = 0;
-
-  for (const sub of subscriptions) {
-    if (sub.last_race_reminder_date_key === todayKey) {
-      skippedAlreadySentToday += 1;
-      continue;
+    if (goalsError || !raceGoals) {
+      console.error("[send-race-countdown] failed to load race goals", goalsError);
+      return NextResponse.json({ error: "failed to load race goals", detail: goalsError?.message }, { status: 500 });
     }
 
-    const race = raceByUser.get(sub.user_id as string);
-    if (!race) continue;
-
-    const result = await sendPushNotification(
-      { endpoint: sub.endpoint, p256dh: sub.p256dh, auth_key: sub.auth_key },
-      { title: REMINDER_TITLE, body: buildMessage(race.daysUntilRace, race.raceName), url: "/race-goal" },
-    );
-
-    if (result.ok) {
-      sent += 1;
-      await admin.from("push_subscriptions").update({ last_race_reminder_date_key: todayKey }).eq("id", sub.id);
-    } else if (result.expired) {
-      expiredRemoved += 1;
-      await admin.from("push_subscriptions").delete().eq("id", sub.id);
-    } else {
-      failed += 1;
+    // A user could technically have more than one non-completed goal; keep the
+    // soonest upcoming one per user, matching loadActiveRaceGoalAndPlan's intent.
+    const raceByUser = new Map<string, { raceName: string; raceDate: string; daysUntilRace: number }>();
+    for (const goal of raceGoals) {
+      const daysUntilRace = daysUntil(goal.race_date as string, todayKey);
+      if (!MILESTONE_DAYS.has(daysUntilRace)) continue;
+      const existing = raceByUser.get(goal.user_id as string);
+      if (!existing || daysUntilRace < existing.daysUntilRace) {
+        raceByUser.set(goal.user_id as string, {
+          raceName: goal.race_name as string,
+          raceDate: goal.race_date as string,
+          daysUntilRace,
+        });
+      }
     }
-  }
 
-  return NextResponse.json({
-    ok: true,
-    eligibleUsers: raceByUser.size,
-    sent,
-    skippedAlreadySentToday,
-    expiredRemoved,
-    failed,
-  });
+    if (raceByUser.size === 0) {
+      return NextResponse.json({ ok: true, eligibleUsers: 0, sent: 0, skippedAlreadySentToday: 0, expiredRemoved: 0, failed: 0 });
+    }
+
+    const { data: subscriptions, error: subError } = await admin
+      .from("push_subscriptions")
+      .select("id, user_id, endpoint, p256dh, auth_key, last_race_reminder_date_key")
+      .in("user_id", [...raceByUser.keys()]);
+
+    if (subError || !subscriptions) {
+      console.error("[send-race-countdown] failed to load subscriptions", subError);
+      return NextResponse.json({ error: "failed to load subscriptions", detail: subError?.message }, { status: 500 });
+    }
+
+    let sent = 0;
+    let skippedAlreadySentToday = 0;
+    let expiredRemoved = 0;
+    let failed = 0;
+
+    for (const sub of subscriptions) {
+      if (sub.last_race_reminder_date_key === todayKey) {
+        skippedAlreadySentToday += 1;
+        continue;
+      }
+
+      const race = raceByUser.get(sub.user_id as string);
+      if (!race) continue;
+
+      const result = await sendPushNotification(
+        { endpoint: sub.endpoint, p256dh: sub.p256dh, auth_key: sub.auth_key },
+        { title: REMINDER_TITLE, body: buildMessage(race.daysUntilRace, race.raceName), url: "/race-goal" },
+      );
+
+      if (result.ok) {
+        sent += 1;
+        await admin.from("push_subscriptions").update({ last_race_reminder_date_key: todayKey }).eq("id", sub.id);
+      } else if (result.expired) {
+        expiredRemoved += 1;
+        await admin.from("push_subscriptions").delete().eq("id", sub.id);
+      } else {
+        failed += 1;
+      }
+    }
+
+    return NextResponse.json({
+      ok: true,
+      eligibleUsers: raceByUser.size,
+      sent,
+      skippedAlreadySentToday,
+      expiredRemoved,
+      failed,
+    });
+  } catch (error) {
+    console.error("[send-race-countdown] unhandled error", error);
+    return NextResponse.json({ error: "unhandled error", detail: error instanceof Error ? error.message : String(error) }, { status: 500 });
+  }
 }
