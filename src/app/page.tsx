@@ -2419,12 +2419,15 @@ function SickDayEntryCard({ coachCtx }: { coachCtx: CoachContext }) {
     );
   }
 
+  // No data, one line, one action — kept flat (no card border/background) so
+  // it reads as a quiet prompt, not another card competing with the
+  // content-bearing sections around it (pain, food, end-of-day summary).
   return (
     <div
       data-testid="sick-day-entry-card"
-      className="flex items-center justify-between gap-3 rounded-2xl border border-rm-border bg-rm-surface-soft px-4 py-2.5"
+      className="flex items-center justify-between gap-3 px-1 py-1"
     >
-      <span className="text-xs font-semibold text-rm-text">วันนี้ไม่สบาย?</span>
+      <span className="text-xs font-semibold text-rm-muted">วันนี้ไม่สบาย?</span>
       <Link
         href="/sick"
         className="shrink-0 rounded-xl border border-rm-border bg-rm-surface px-3 py-1.5 text-xs font-bold text-rm-muted"
