@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { GuardedLink } from "@/components/GuardedLink";
 
 // Inline SVG line icons — no external dependency required.
 // Stroke width 2, 20×20 viewBox, currentColor for theme-aware coloring.
@@ -65,7 +65,7 @@ export function BottomNav() {
         {items.map(({ href, label, Icon }) => {
           const active = pathname === href;
           return (
-            <Link
+            <GuardedLink
               key={href}
               href={href}
               className={`flex flex-col items-center gap-0.5 rounded-2xl px-2 py-2 text-center text-xs font-semibold ${
@@ -76,7 +76,7 @@ export function BottomNav() {
             >
               <Icon />
               <span>{label}</span>
-            </Link>
+            </GuardedLink>
           );
         })}
       </div>

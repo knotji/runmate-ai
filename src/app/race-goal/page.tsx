@@ -22,6 +22,7 @@ import { suggestStrengthRoutine } from "@/lib/strengthRoutineSelect";
 import { invalidateCoachCache } from "@/lib/invalidateCoachCache";
 import { loadRaceResults } from "@/lib/raceResults";
 import { deleteRaceGoalAndPlan, loadActiveRaceGoalAndPlan, saveRaceGoalAndPlan } from "@/lib/raceStorage";
+import { useGuardNavigationWhile } from "@/lib/navigationGuard";
 import type { HistoryType } from "@/lib/localHistory";
 import type { RaceGoal, RacePlan, RaceResult, WeekWorkout } from "@/types/race";
 
@@ -47,6 +48,7 @@ export default function RaceGoalPage() {
   const [isCreatingDraft, setIsCreatingDraft] = useState(false);
   const [pendingCreate, setPendingCreate] = useState<{ goal: RaceGoal; plan: RacePlan } | null>(null);
   const [replacing, setReplacing] = useState(false);
+  useGuardNavigationWhile(replacing);
   const [replaceError, setReplaceError] = useState(false);
 
   useEffect(() => {

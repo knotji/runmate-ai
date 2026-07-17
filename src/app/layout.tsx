@@ -6,6 +6,7 @@ import { AuthGuard } from "@/components/AuthGuard";
 import { PWARegistration } from "@/components/PWARegistration";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { Analytics } from "@vercel/analytics/next";
+import { NavigationGuardProvider } from "@/lib/navigationGuard";
 
 // Body/UI text. Kept on the historical --font-noto-thai variable name so
 // globals.css's existing references don't need to change.
@@ -54,7 +55,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <LocalCleanupInit />
         <PWARegistration />
         <OfflineBanner />
-        {children}
+        <NavigationGuardProvider>{children}</NavigationGuardProvider>
         <Analytics />
       </body>
     </html>
