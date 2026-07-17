@@ -7,6 +7,10 @@
     {
       "path": "/api/google-health/sync",
       "schedule": "0 23 * * *"
+    },
+    {
+      "path": "/api/push/send-race-countdown",
+      "schedule": "0 0 * * *"
     }
   ]
 }
