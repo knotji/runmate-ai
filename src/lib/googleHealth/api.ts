@@ -12,6 +12,8 @@
 //   Sleep and ECG are documented exceptions; every other session type (including
 //   Exercise) only supports `interval.civil_start_time`, not `interval.start_time`.
 
+import { getBangkokDateKey } from "@/lib/date";
+
 const BASE_URL = "https://health.googleapis.com/v4";
 
 async function healthApiGet<T>(accessToken: string, path: string): Promise<T | null> {
@@ -81,13 +83,21 @@ export function civilDateKey(d: GoogleHealthDate): string {
 }
 
 /** Prefer the server-computed civil (local) date over slicing a UTC instant, which
- *  can land on the wrong calendar day near local midnight. Falls back to the UTC
- *  slice when civilStartTime/civilEndTime isn't present on the interval (it's an
- *  output-only field, so older or third-source-synced records may lack it). */
+ *  can land on the wrong calendar day near local midnight. Falls back to converting
+ *  the raw UTC instant to its Bangkok calendar date (never a naive UTC slice — see
+ *  CLAUDE.md's "Bangkok timezone everywhere" convention) when civilStartTime/
+ *  civilEndTime isn't present on the interval. This fallback is not a rare edge case:
+ *  records synced from a third-party source via Health Connect (e.g. Samsung Health)
+ *  appear not to carry Google's own civilStartTime/civilEndTime at all, so every such
+ *  record whose Bangkok local time falls between 00:00–06:59 depends on this
+ *  conversion — a naive `.slice(0, 10)` on the UTC string lands on the previous
+ *  calendar day for all of them (confirmed: an 08:23 Bangkok treadmill run synced via
+ *  Health Connect came in dated the day before, because its underlying interval
+ *  actually started ~06:58 Bangkok — 23:58 UTC the previous day). */
 export function intervalCivilDateKey(interval: Interval, edge: "start" | "end"): string {
   const civil = edge === "start" ? interval.civilStartTime : interval.civilEndTime;
   if (civil) return civilDateKey(civil.date);
-  return (edge === "start" ? interval.startTime : interval.endTime).slice(0, 10);
+  return getBangkokDateKey(edge === "start" ? interval.startTime : interval.endTime);
 }
 
 /** Sleep sessions ending on/after the given ISO instant (sleep only supports

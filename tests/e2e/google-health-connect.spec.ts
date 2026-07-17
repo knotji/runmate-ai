@@ -73,7 +73,14 @@ test("backfill button imports historical data and shows a summary", async ({ pag
     await route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify({ ok: true, sinceDateKey: "2026-06-17", sleepImported: 12, workoutsImported: 5 }),
+      body: JSON.stringify({
+        ok: true,
+        sinceDateKey: "2026-06-17",
+        sleepImported: 12,
+        workoutsImported: 5,
+        sleepSkippedManual: 0,
+        workoutsSkippedManual: 0,
+      }),
     });
   });
 
@@ -87,4 +94,36 @@ test("backfill button imports historical data and shows a summary", async ({ pag
   await expect(summary).toBeVisible();
   await expect(summary).toContainText("12");
   await expect(summary).toContainText("5");
+});
+
+test("backfill summary notes days skipped because a manual entry already exists", async ({ page }) => {
+  await installMockBackend(page);
+  await page.route("**/api/google-health/status", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ connected: true, connectedAt: "2026-07-01T00:00:00.000Z", lastSyncedAt: null, lastSyncError: null }),
+    });
+  });
+  await page.route("**/api/google-health/backfill", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ok: true,
+        sinceDateKey: "2026-06-17",
+        sleepImported: 8,
+        workoutsImported: 3,
+        sleepSkippedManual: 2,
+        workoutsSkippedManual: 1,
+      }),
+    });
+  });
+
+  await gotoApp(page, "/settings?tab=data");
+  await page.getByTestId("google-health-backfill-button").click();
+
+  const summary = page.getByTestId("google-health-backfill-summary");
+  await expect(summary).toBeVisible();
+  await expect(summary).toContainText("ข้าม 3");
 });

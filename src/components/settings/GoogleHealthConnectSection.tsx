@@ -57,9 +57,16 @@ export function GoogleHealthConnectSection() {
       setBackfillState("error");
       return;
     }
-    const data = (await response.json()) as { sleepImported: number; workoutsImported: number };
+    const data = (await response.json()) as {
+      sleepImported: number;
+      workoutsImported: number;
+      sleepSkippedManual: number;
+      workoutsSkippedManual: number;
+    };
     setBackfillState("done");
-    setBackfillSummary(`ดึงย้อนหลังสำเร็จ — นอน ${data.sleepImported} คืน, ซ้อม ${data.workoutsImported} ครั้ง`);
+    const skipped = data.sleepSkippedManual + data.workoutsSkippedManual;
+    const skippedNote = skipped > 0 ? ` (ข้าม ${skipped} วันที่มีรายการที่บันทึกเองอยู่แล้ว)` : "";
+    setBackfillSummary(`ดึงย้อนหลังสำเร็จ — นอน ${data.sleepImported} คืน, ซ้อม ${data.workoutsImported} ครั้ง${skippedNote}`);
     setStatus((prev) => (prev ? { ...prev, lastSyncedAt: new Date().toISOString(), lastSyncError: null } : prev));
   }
 

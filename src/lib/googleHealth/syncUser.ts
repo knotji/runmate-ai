@@ -65,8 +65,33 @@ export type SyncUserResult = {
   ok: boolean;
   sleepImported: number;
   workoutsImported: number;
+  sleepSkippedManual: number;
+  workoutsSkippedManual: number;
   error?: string;
 };
+
+/** True if the user already has a manually-entered (non-ghealth-) history item of this
+ *  type for this date. Manual uploads always set `data.dateKey` when saved (see
+ *  cloudHistory.ts's saveHistoryItems), so this only misses the older Samsung Health
+ *  CSV import path, which doesn't set that field — an acceptable gap since that path
+ *  predates this integration and isn't the case that produced the reported duplicate. */
+async function hasManualEntryForDate(
+  admin: SupabaseClient,
+  userId: string,
+  type: "sleep" | "workout",
+  dateKey: string,
+): Promise<boolean> {
+  const { data } = await admin
+    .from("history_items")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("type", type)
+    .eq("data->>dateKey", dateKey)
+    .not("id", "like", "ghealth-%")
+    .limit(1)
+    .maybeSingle();
+  return Boolean(data);
+}
 
 /** Fetches and imports a user's Google Health sleep + exercise data since `sinceDateKey`,
  *  deduped against history_items via the deterministic ghealth- ids so re-running (e.g. a
@@ -91,7 +116,7 @@ export async function syncGoogleHealthForConnection(
     const refreshed = await refreshGoogleHealthToken(connection.refresh_token);
     if (!refreshed) {
       await admin.from("google_health_connections").update({ last_sync_error: "token refresh failed" }).eq("user_id", userId);
-      return { ok: false, sleepImported: 0, workoutsImported: 0, error: "token refresh failed" };
+      return { ok: false, sleepImported: 0, workoutsImported: 0, sleepSkippedManual: 0, workoutsSkippedManual: 0, error: "token refresh failed" };
     }
     accessToken = refreshed.accessToken;
     await admin.from("google_health_connections").update({
@@ -102,6 +127,8 @@ export async function syncGoogleHealthForConnection(
 
   let sleepImported = 0;
   let workoutsImported = 0;
+  let sleepSkippedManual = 0;
+  let workoutsSkippedManual = 0;
 
   try {
     const sinceIso = new Date(`${sinceDateKey}T00:00:00+07:00`).toISOString();
@@ -118,6 +145,13 @@ export async function syncGoogleHealthForConnection(
       if (existing) continue;
 
       const dateKey = intervalCivilDateKey(dp.sleep.interval, "end");
+      // Prefer a manually-logged entry over auto-importing a second one for the same
+      // day — the reported duplicate came from exactly this: a 30-day backfill
+      // re-importing days that already had a manual upload.
+      if (await hasManualEntryForDate(admin, userId, "sleep", dateKey)) {
+        sleepSkippedManual += 1;
+        continue;
+      }
       const extracted = mapGoogleHealthSleepToExtracted(dp, dailyRestingHR.get(dateKey) ?? null, dailyHrv.get(dateKey) ?? null);
       const coach = options.generateCoach ? await generateSleepCoach(extracted) : SLEEP_COACH_FALLBACK;
       const data: SleepAnalysis = {
@@ -144,6 +178,11 @@ export async function syncGoogleHealthForConnection(
       if (existing) continue;
 
       const extracted = mapGoogleHealthExerciseToExtracted(dp);
+      const dateKey = extracted.date ?? todayKey;
+      if (await hasManualEntryForDate(admin, userId, "workout", dateKey)) {
+        workoutsSkippedManual += 1;
+        continue;
+      }
       const coach = options.generateCoach ? await generateWorkoutCoach(extracted) : WORKOUT_COACH_FALLBACK;
       const data: WorkoutAnalysis = {
         extracted,
@@ -151,7 +190,6 @@ export async function syncGoogleHealthForConnection(
         confidence: "high",
         unclearFields: ["maxHR", "cadence", "vo2Max", "elevationGain"],
       };
-      const dateKey = extracted.date ?? todayKey;
 
       await admin.from("history_items").insert({
         id: itemId,
@@ -168,10 +206,10 @@ export async function syncGoogleHealthForConnection(
       last_sync_error: null,
     }).eq("user_id", userId);
 
-    return { ok: true, sleepImported, workoutsImported };
+    return { ok: true, sleepImported, workoutsImported, sleepSkippedManual, workoutsSkippedManual };
   } catch (error) {
     const message = error instanceof Error ? error.message : "unknown error";
     await admin.from("google_health_connections").update({ last_sync_error: message }).eq("user_id", userId);
-    return { ok: false, sleepImported, workoutsImported, error: message };
+    return { ok: false, sleepImported, workoutsImported, sleepSkippedManual, workoutsSkippedManual, error: message };
   }
 }
