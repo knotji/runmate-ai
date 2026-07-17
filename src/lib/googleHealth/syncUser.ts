@@ -165,7 +165,13 @@ export async function syncGoogleHealthForConnection(
         id: itemId,
         user_id: userId,
         type: "sleep",
-        created_at: new Date().toISOString(),
+        // The Report list's time-of-day display keys off created_at, not recordedAt
+        // (which is always a synthetic noon — see formatItemDateTime in logs/page.tsx).
+        // Using the sync job's own execution time here would either show the wrong
+        // clock time or, for backfilled days, hide the time entirely (its Bangkok date
+        // wouldn't match the item's dateKey). Google's own wake-up instant is the real
+        // thing to show, and matches the same interval edge dateKey was derived from.
+        created_at: dp.sleep.interval.endTime,
         data: { ...data, recordedAt: dateKeyToRecordedAt(dateKey), dateKey },
       });
       sleepImported += 1;
@@ -195,7 +201,9 @@ export async function syncGoogleHealthForConnection(
         id: itemId,
         user_id: userId,
         type: "workout",
-        created_at: new Date().toISOString(),
+        // Same reasoning as the sleep insert above — real event time, not sync-job
+        // execution time, matching the same interval edge dateKey was derived from.
+        created_at: dp.exercise.interval.startTime,
         data: { ...data, recordedAt: dateKeyToRecordedAt(dateKey), dateKey },
       });
       workoutsImported += 1;

@@ -134,6 +134,22 @@ describe("syncGoogleHealthForConnection", () => {
     expect(result.workoutsSkippedManual).toBe(0);
   });
 
+  it("stores the real event time as created_at, not the sync job's execution time", async () => {
+    // The Report list's time-of-day display keys off created_at (recordedAt is always
+    // a synthetic noon placeholder — see logs/page.tsx's formatItemDateTime). Using
+    // `new Date()` here would show the sync job's run time instead of when the sleep/
+    // workout actually happened, or hide the time entirely for backfilled days.
+    const { syncGoogleHealthForConnection } = await import("@/lib/googleHealth/syncUser");
+    const admin = makeFakeSupabase() as SupabaseClient & { __tables: { history_items: Row[] } };
+
+    await syncGoogleHealthForConnection(admin, connection, "2026-07-01", { generateCoach: false });
+
+    const sleepRow = admin.__tables.history_items.find((r) => r.type === "sleep");
+    const workoutRow = admin.__tables.history_items.find((r) => r.type === "workout");
+    expect(sleepRow?.created_at).toBe("2026-07-17T01:00:00Z");
+    expect(workoutRow?.created_at).toBe("2026-07-17T01:23:00Z");
+  });
+
   it("skips importing a workout for a day that already has a manually-logged workout", async () => {
     const { syncGoogleHealthForConnection } = await import("@/lib/googleHealth/syncUser");
     const admin = makeFakeSupabase({
