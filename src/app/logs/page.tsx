@@ -1068,6 +1068,7 @@ function CompactHistoryItemRow({
   const mappedType = getMappedTypeName(item);
   const title = getTimelineItemTitle(item);
   const subtitle = getTimelineItemSubtitle(buildTimelineSubtitleInput(item, mappedType));
+  const timeLabel = formatItemTimeLabel(item);
 
   return (
     <div data-testid="report-compact-item" data-date-key={getHistoryItemDateKey(item)} className="py-3">
@@ -1077,12 +1078,14 @@ function CompactHistoryItemRow({
       >
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-1.5 mb-0.5">
-            <span className="text-[11px] font-semibold text-[var(--color-text-muted)]">
-              {formatItemDateTime(item)}
-            </span>
             <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide ${getTypeBadgeStyles(mappedType)}`}>
               {getTypeBadgeLabel(mappedType)}
             </span>
+            {timeLabel && (
+              <span className="text-[11px] font-semibold text-[var(--color-text-muted)]">
+                {timeLabel}
+              </span>
+            )}
           </div>
           <p className="text-sm font-medium text-[var(--foreground)] truncate">
             <span className="mr-1">{getTypeIcon(item.type === "strength" ? "strength" : mappedType)}</span>
@@ -1252,17 +1255,19 @@ function getTypeBadgeStyles(type: string): string {
   return "bg-[var(--surface-muted)] text-[var(--foreground)] border border-[var(--border-warm)]";
 }
 
-function formatItemDateTime(item: LocalHistoryItem): string {
+// Rows render inside a day-group already headed by the same date (see the
+// dayGroups.map loop), so repeating the full date on every row was redundant.
+// Shows only the time-of-day when reliable; for backdated items (createdAt's
+// Bangkok day differs from the logical dateKey — recordedAt is always a
+// synthetic noon, never used for time display) there's no real time to show,
+// so a "ย้อนหลัง" label takes its place instead of repeating the date.
+function formatItemTimeLabel(item: LocalHistoryItem): string {
   const dateStr = getHistoryItemDateKey(item);
-  const formattedDate = formatDayLabel(dateStr);
-  // recordedAt is always a synthetic noon (dateKeyToRecordedAt). Never use it for time display.
-  // Only show createdAt time when the item was uploaded on the same Bangkok day as its logical date.
-  // For backdated items, createdAt is the upload timestamp, not the event time — show date only.
   if (getBangkokDateKey(item.createdAt) !== dateStr) {
-    return formattedDate;
+    return "ย้อนหลัง";
   }
   const time = formatBangkokTime(item.createdAt);
-  return time ? `${formattedDate} ${time} น.` : formattedDate;
+  return time ? `${time} น.` : "";
 }
 
 function renderDetailCard(
