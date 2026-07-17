@@ -30,23 +30,28 @@ export function NotificationSettingsSection() {
   async function handleToggle() {
     setBusy(true);
     setMessage("");
-    if (subscribed) {
-      const result = await unsubscribeFromPush();
-      if (result.ok) {
-        setSubscribed(false);
+    try {
+      if (subscribed) {
+        const result = await unsubscribeFromPush();
+        if (result.ok) {
+          setSubscribed(false);
+        } else {
+          setMessage(result.reason);
+        }
       } else {
-        setMessage(result.reason);
+        const result = await subscribeToPush();
+        if (result.ok) {
+          setSubscribed(true);
+        } else {
+          setMessage(result.reason);
+          setSupportState(getPushSupportState());
+        }
       }
-    } else {
-      const result = await subscribeToPush();
-      if (result.ok) {
-        setSubscribed(true);
-      } else {
-        setMessage(result.reason);
-        setSupportState(getPushSupportState());
-      }
+    } catch {
+      setMessage("เกิดข้อผิดพลาด ลองใหม่อีกครั้ง");
+    } finally {
+      setBusy(false);
     }
-    setBusy(false);
   }
 
   return (
