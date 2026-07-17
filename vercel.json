@@ -6,7 +6,15 @@
     },
     {
       "path": "/api/google-health/sync",
-      "schedule": "0 23 * * *"
+      "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/google-health/sync",
+      "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/google-health/sync",
+      "schedule": "0 14 * * *"
     },
     {
       "path": "/api/push/send-race-countdown",
