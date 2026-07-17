@@ -493,8 +493,9 @@ export default function TodayPage() {
         </DetailAccordion>
       )}
 
-      {/* Quick Actions Dock — compact, above strength card */}
-      <div className="rounded-2xl border border-rm-border bg-rm-surface-soft p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.45)]">
+      {/* Quick Actions Dock — deliberately flat (no border/shadow) so it reads
+          as an extension of the primary CTA above, not a competing card. */}
+      <div className="px-0.5">
         <div className="flex gap-1">
           {[
             { href: "/upload?type=sleep", icon: "🌙", label: "นอน" },
@@ -908,10 +909,12 @@ function PostWorkoutFocusContent({ insight, context }: { insight: DailyCoachInsi
       {/* 3. Reason line */}
       <p className="text-xs font-medium text-rm-muted mt-1">{reasonLine}</p>
 
-      {/* Warnings & Notes */}
+      {/* Informational note, not a safety caution — kept visually neutral so it
+          doesn't compete with a real amber warning (e.g. active pain) shown
+          in the Snapshot card just above. */}
       {matching.isUncertain && (
-        <p className="rounded-2xl bg-rm-caution-soft px-3 py-2 text-xs font-semibold text-rm-caution border border-rm-caution/30">
-          ⚠️ วันนี้มีบันทึกกิจกรรมแล้ว (อาจแตกต่างจากแผนที่ตั้งไว้) แนะนำเน้นฟื้นตัวและงดซ้อมหนักซ้ำ
+        <p className="rounded-2xl bg-[var(--surface-muted)] px-3 py-2 text-xs font-medium text-[var(--color-text-muted)]">
+          💡 วันนี้มีบันทึกกิจกรรมแล้ว (อาจแตกต่างจากแผนที่ตั้งไว้) แนะนำเน้นฟื้นตัวและงดซ้อมหนักซ้ำ
         </p>
       )}
       {isUsingLatestSleepBecauseTodayMissing && (
