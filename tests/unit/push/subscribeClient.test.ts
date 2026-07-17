@@ -17,6 +17,7 @@ function installBrowserGlobals(overrides: {
   subscribe?: () => Promise<unknown>;
   unsubscribe?: () => Promise<boolean>;
   readyPromise?: Promise<unknown>;
+  fetchImpl?: typeof fetch;
 }) {
   const pushManager = {
     getSubscription: overrides.getSubscription ?? (async () => null),
@@ -43,7 +44,8 @@ function installBrowserGlobals(overrides: {
   (globalThis as unknown as { window: unknown }).window = globalThis;
   (globalThis as unknown as { PushManager: unknown }).PushManager = function () {};
 
-  globalThis.fetch = vi.fn(async () => new Response(JSON.stringify({ ok: true }), { status: 200 })) as unknown as typeof fetch;
+  globalThis.fetch = overrides.fetchImpl
+    ?? (vi.fn(async () => new Response(JSON.stringify({ ok: true }), { status: 200 })) as unknown as typeof fetch);
 }
 
 beforeEach(() => {
@@ -102,6 +104,31 @@ describe("subscribeToPush", () => {
     try {
       const neverSettles = new Promise(() => {});
       installBrowserGlobals({ readyPromise: neverSettles });
+      const { subscribeToPush } = await import("@/lib/push/subscribeClient");
+
+      const pending = subscribeToPush();
+      await vi.advanceTimersByTimeAsync(9000);
+      const result = await pending;
+
+      expect(result.ok).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("times out instead of hanging forever when the subscribe API fetch() never settles", async () => {
+    // Gap found after the serviceWorker.ready fix shipped and the toggle still hung:
+    // the fetch("/api/push/subscribe", ...) call itself had no timeout at all, so a
+    // dropped connection or a hung server request could still leave the button stuck.
+    vi.useFakeTimers();
+    try {
+      const neverSettlingFetch = vi.fn(
+        (_input: RequestInfo | URL, init?: RequestInit) =>
+          new Promise<Response>((_resolve, reject) => {
+            init?.signal?.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")));
+          }),
+      ) as unknown as typeof fetch;
+      installBrowserGlobals({ fetchImpl: neverSettlingFetch });
       const { subscribeToPush } = await import("@/lib/push/subscribeClient");
 
       const pending = subscribeToPush();

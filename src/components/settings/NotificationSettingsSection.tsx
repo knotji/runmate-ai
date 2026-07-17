@@ -30,6 +30,22 @@ export function NotificationSettingsSection() {
   async function handleToggle() {
     setBusy(true);
     setMessage("");
+
+    // subscribeClient.ts already times out every browser API call it makes (8s), but
+    // this bug has recurred more than once from failure modes each fix only partially
+    // covered — a browser API hanging in a way no internal timeout anticipated is still
+    // possible. This outer timer is the last line of defense: no matter what hangs
+    // underneath, the button is guaranteed to stop spinning within 12s. If the real
+    // result arrives after that, the `finally` below still updates state with it —
+    // this timer only forces an earlier release, it doesn't cancel the actual work.
+    let settled = false;
+    const safetyTimer = setTimeout(() => {
+      if (!settled) {
+        setBusy(false);
+        setMessage("การเชื่อมต่อช้าผิดปกติ ลองใหม่อีกครั้ง");
+      }
+    }, 12000);
+
     try {
       if (subscribed) {
         const result = await unsubscribeFromPush();
@@ -50,6 +66,8 @@ export function NotificationSettingsSection() {
     } catch {
       setMessage("เกิดข้อผิดพลาด ลองใหม่อีกครั้ง");
     } finally {
+      settled = true;
+      clearTimeout(safetyTimer);
       setBusy(false);
     }
   }

@@ -71,18 +71,20 @@ function makeFakeSupabase(seed: { history_items?: Row[] } = {}): SupabaseClient 
 
 const originalFetch = globalThis.fetch;
 
-function installGoogleHealthFetchMock() {
+function installGoogleHealthFetchMock(overrides: { sleepDataPoints?: unknown[] } = {}) {
+  const defaultSleepPoints = [{
+    name: "users/me/dataTypes/sleep/dataPoints/sleep-1",
+    sleep: {
+      interval: { startTime: "2026-07-16T18:00:00Z", endTime: "2026-07-17T01:00:00Z" },
+      summary: { minutesAsleep: "400" },
+    },
+  }];
+
   globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
     const url = typeof input === "string" ? input : input.toString();
     if (url.includes("/dataTypes/sleep/dataPoints")) {
       return new Response(JSON.stringify({
-        dataPoints: [{
-          name: "users/me/dataTypes/sleep/dataPoints/sleep-1",
-          sleep: {
-            interval: { startTime: "2026-07-16T18:00:00Z", endTime: "2026-07-17T01:00:00Z" },
-            summary: { minutesAsleep: "400" },
-          },
-        }],
+        dataPoints: overrides.sleepDataPoints ?? defaultSleepPoints,
       }), { status: 200 });
     }
     if (url.includes("/dataTypes/exercise/dataPoints")) {
@@ -198,5 +200,37 @@ describe("syncGoogleHealthForConnection", () => {
     // no manual guard applies, so it should import normally.
     expect(result.workoutsImported).toBe(1);
     expect(result.workoutsSkippedManual).toBe(0);
+  });
+
+  it("skips importing a nap so it can never outrank the real night's sleep as 'latest sleep'", async () => {
+    installGoogleHealthFetchMock({
+      sleepDataPoints: [
+        {
+          name: "users/me/dataTypes/sleep/dataPoints/real-sleep",
+          sleep: {
+            interval: { startTime: "2026-07-16T18:00:00Z", endTime: "2026-07-17T01:00:00Z" },
+            summary: { minutesAsleep: "400" },
+          },
+        },
+        {
+          name: "users/me/dataTypes/sleep/dataPoints/afternoon-nap",
+          sleep: {
+            interval: { startTime: "2026-07-17T07:00:00Z", endTime: "2026-07-17T07:30:00Z" },
+            summary: { minutesAsleep: "30" },
+            metadata: { nap: true },
+          },
+        },
+      ],
+    });
+    const { syncGoogleHealthForConnection } = await import("@/lib/googleHealth/syncUser");
+    const admin = makeFakeSupabase() as SupabaseClient & { __tables: { history_items: Row[] } };
+
+    const result = await syncGoogleHealthForConnection(admin, connection, "2026-07-01", { generateCoach: false });
+
+    expect(result.sleepImported).toBe(1);
+    expect(result.sleepSkippedNap).toBe(1);
+    const sleepRows = admin.__tables.history_items.filter((r) => r.type === "sleep");
+    expect(sleepRows).toHaveLength(1);
+    expect(sleepRows[0].id).toContain("real-sleep");
   });
 });

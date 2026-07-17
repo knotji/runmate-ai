@@ -1,12 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendPushNotification } from "@/lib/push/webPush";
+import { buildSleepTargetLabel } from "@/lib/push/personalizedReminder";
 import { getBangkokDateKey } from "@/lib/date";
 
 export const maxDuration = 60;
 
 const REMINDER_TITLE = "RunMate AI";
-const REMINDER_BODY = "วันนี้ยังไม่มีการบันทึกเลย ลองเช็คอินสัก 1 อย่าง (นอน/อาหาร/ซ้อม) กันลืมนะ 🏃";
+const REMINDER_BODY_GENERIC = "วันนี้ยังไม่มีการบันทึกเลย ลองเช็คอินสัก 1 อย่าง (นอน/อาหาร/ซ้อม) กันลืมนะ 🏃";
 
 /**
  * Daily reminder cron job (see vercel.json). Nudges any subscribed user who
@@ -64,9 +65,18 @@ export async function GET(request: NextRequest) {
       continue;
     }
 
+    // Best-effort personalization: if we have enough recent history to compute a
+    // sleep target (same Recovery Loop logic shown on Today/Report), lead with that
+    // instead of the generic nudge — falls back to the generic body on any failure
+    // or insufficient data, never blocks sending the reminder itself.
+    const sleepTarget = await buildSleepTargetLabel(admin, sub.user_id).catch(() => null);
+    const body = sleepTarget
+      ? `${sleepTarget} คืนนี้ 🌙 อย่าลืมเช็คอินวันนี้ด้วยนะ`
+      : REMINDER_BODY_GENERIC;
+
     const result = await sendPushNotification(
       { endpoint: sub.endpoint, p256dh: sub.p256dh, auth_key: sub.auth_key },
-      { title: REMINDER_TITLE, body: REMINDER_BODY, url: "/upload" },
+      { title: REMINDER_TITLE, body, url: "/upload" },
     );
 
     if (result.ok) {

@@ -5,6 +5,13 @@
 
 // ─── Period summary cards ─────────────────────────────────────────────────────
 
+/** Compact "day month" label (e.g. "17 ก.ค.") for tight spaces like a chart
+ *  tooltip — no weekday or year, unlike the Report list's full day label. */
+export function formatDayLabelShort(dateKey: string): string {
+  const d = new Date(`${dateKey}T12:00:00`);
+  return new Intl.DateTimeFormat("th-TH", { day: "numeric", month: "short" }).format(d);
+}
+
 /**
  * Format the total run distance for the selected period summary card.
  * Returns "0 กม." (not "—") so the card never looks broken when a valid period is selected.
