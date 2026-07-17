@@ -631,9 +631,9 @@ function DaySlot({ day }: { day: import("@/lib/reportSummary").DailyReportItem }
 
   if (!day.hasData) {
     return (
-      <div className={baseClass} data-testid="day-slot">
+      <div className={day.isToday ? baseClass : "rounded-2xl bg-transparent px-3 py-1.5"} data-testid="day-slot">
         <div className="flex items-center justify-between">
-          <span className={`text-xs ${day.isToday ? "font-bold text-[var(--foreground)]" : "font-semibold text-[var(--color-text-muted)]"}`}>
+          <span className={`text-xs ${day.isToday ? "font-bold text-[var(--foreground)]" : "font-medium text-[var(--color-text-soft)]"}`}>
             {day.weekdayLabel}
             {day.isToday && (
               <span className="ml-2 rounded-full bg-[var(--primary)] px-2 py-0.5 text-[10px] text-[#f5f8ff]">วันนี้</span>
@@ -797,7 +797,7 @@ function RollingSevenDayInsight({
     : null;
 
   return (
-    <details className="group rounded-2xl bg-[var(--surface)]/70 p-3" data-testid="rolling-insight">
+    <details className="group border-t border-[var(--color-border-soft)] pt-2.5" data-testid="rolling-insight">
       <summary className="list-none cursor-pointer">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
