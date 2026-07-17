@@ -1712,6 +1712,17 @@ function SleepDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; onD
   const ext = d?.extracted ?? {};
   const coach = d?.coach ?? {};
   const merged = item as { mergedFromDuplicates?: boolean; duplicateCount?: number };
+  const [showDetail, setShowDetail] = useState(false);
+
+  const hasExtraDetail =
+    ext.sleepStageMinutes != null
+    || ext.sleepStartTime != null
+    || ext.sleepEndTime != null
+    || ext.timeInBedText != null
+    || ext.avgSleepingHeartRate != null
+    || ext.avgSleepingHrv != null
+    || ext.avgRespiratoryRate != null
+    || ext.energyScore != null;
 
   return (
     <div className="rounded-2xl bg-[var(--primary-soft)] p-4">
@@ -1737,7 +1748,100 @@ function SleepDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; onD
       {merged.mergedFromDuplicates && (
         <p className="mt-2 text-xs text-[var(--color-text-soft)]">รวมข้อมูลจากหลายบันทึก{merged.duplicateCount ? ` (${merged.duplicateCount})` : ""}</p>
       )}
+      {hasExtraDetail && (
+        <button
+          type="button"
+          data-testid="sleep-detail-more-button"
+          onClick={() => setShowDetail(true)}
+          className="mt-3 text-xs font-bold text-[var(--recovery-blue)] underline underline-offset-2"
+        >
+          ดูรายละเอียดเพิ่มเติม
+        </button>
+      )}
       <DeleteRecordButton onDelete={() => onDelete(item)} loading={deleting} />
+      {showDetail && <SleepDetailModal extracted={ext} onClose={() => setShowDetail(false)} />}
+    </div>
+  );
+}
+
+const SLEEP_STAGE_META: { key: "deep" | "light" | "rem" | "awake"; label: string; color: string }[] = [
+  { key: "deep", label: "หลับลึก", color: "#3b5bdb" },
+  { key: "light", label: "หลับตื้น", color: "#748ffc" },
+  { key: "rem", label: "REM", color: "#a5b4fc" },
+  { key: "awake", label: "ตื่น", color: "#dee2e6" },
+];
+
+function SleepDetailModal({ extracted, onClose }: { extracted: SleepAnalysis["extracted"]; onClose: () => void }) {
+  const stages = extracted.sleepStageMinutes;
+  const totalStageMinutes = stages
+    ? (stages.deep ?? 0) + (stages.light ?? 0) + (stages.rem ?? 0) + (stages.awake ?? 0)
+    : 0;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <div
+        data-testid="sleep-detail-modal"
+        className="w-full max-w-md rounded-3xl bg-[var(--surface)] p-6 shadow-2xl border border-[var(--border-warm)] flex flex-col max-h-[85vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold text-[var(--foreground)]">🌙 รายละเอียดการนอน</h3>
+          <button type="button" onClick={onClose} className="text-sm text-[var(--color-text-soft)]" aria-label="ปิด">✕</button>
+        </div>
+
+        {(extracted.sleepStartTime || extracted.sleepEndTime) && (
+          <p className="text-sm text-[var(--color-text-muted)] mb-3">
+            {extracted.sleepStartTime && formatBangkokTime(extracted.sleepStartTime)}
+            {extracted.sleepStartTime && extracted.sleepEndTime ? " → " : ""}
+            {extracted.sleepEndTime && formatBangkokTime(extracted.sleepEndTime)}
+            {extracted.timeInBedText ? ` · อยู่บนเตียง ${extracted.timeInBedText}` : ""}
+          </p>
+        )}
+
+        {stages && totalStageMinutes > 0 && (
+          <div className="mb-4">
+            <div className="flex h-3 w-full overflow-hidden rounded-full">
+              {SLEEP_STAGE_META.map(({ key, color }) => {
+                const minutes = stages[key] ?? 0;
+                if (minutes <= 0) return null;
+                return (
+                  <div
+                    key={key}
+                    style={{ width: `${(minutes / totalStageMinutes) * 100}%`, backgroundColor: color }}
+                  />
+                );
+              })}
+            </div>
+            <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1">
+              {SLEEP_STAGE_META.map(({ key, label, color }) => {
+                const minutes = stages[key];
+                if (minutes == null) return null;
+                return (
+                  <div key={key} className="flex items-center gap-1.5 text-xs text-[var(--color-text-muted)]">
+                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
+                    <span>{label}</span>
+                    <span className="ml-auto font-semibold text-[var(--foreground)]">{formatSleepDuration(minutes)}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 gap-2">
+          {extracted.energyScore != null && <Metric label="Energy score" value={formatScore(extracted.energyScore)} />}
+          {extracted.avgSleepingHeartRate != null && <Metric label="HR ขณะนอน" value={formatScore(extracted.avgSleepingHeartRate)} sub="bpm" />}
+          {extracted.avgSleepingHrv != null && <Metric label="HRV ขณะนอน" value={formatScore(extracted.avgSleepingHrv)} sub="ms" />}
+          {extracted.avgRespiratoryRate != null && <Metric label="อัตราหายใจ" value={formatScore(extracted.avgRespiratoryRate)} sub="/min" />}
+        </div>
+
+        {extracted.sleepQualityLabel && (
+          <p className="mt-3 text-xs text-[var(--color-text-soft)]">คุณภาพการนอน: {extracted.sleepQualityLabel}</p>
+        )}
+        {extracted.visibleNotes && (
+          <p className="mt-1 text-xs text-[var(--color-text-soft)]">{extracted.visibleNotes}</p>
+        )}
+      </div>
     </div>
   );
 }
@@ -1748,6 +1852,19 @@ function WorkoutDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; o
   const coach = d?.coach ?? {};
   const isSwim = isSwimWorkout(ext);
   const isStrength = ext.workoutKind === "strength";
+  const [showDetail, setShowDetail] = useState(false);
+
+  const hasExtraDetail =
+    ext.avgSpeedKmh != null
+    || ext.cadence != null
+    || ext.elevationGain != null
+    || ext.vo2Max != null
+    || Boolean(coach.intensityAssessment)
+    || Boolean(coach.trainingLoadNote)
+    || Boolean(coach.recoveryAdvice)
+    || Boolean(coach.nutritionAfterWorkout)
+    || Boolean(coach.nextWorkoutSuggestion)
+    || Boolean(coach.coachNote && coach.coachNote !== "-");
 
   const icon =
     isSwim ? "🏊"
@@ -1808,7 +1925,74 @@ function WorkoutDetail({ item, onDelete, deleting }: { item: LocalHistoryItem; o
       {coach.workoutSummary && (
         <p className="text-sm leading-6 text-[var(--foreground)]">{truncate(formatSummaryText(coach.workoutSummary), 160)}</p>
       )}
+      {hasExtraDetail && (
+        <button
+          type="button"
+          data-testid="workout-detail-more-button"
+          onClick={() => setShowDetail(true)}
+          className="mt-3 text-xs font-bold text-[var(--recovery-blue)] underline underline-offset-2"
+        >
+          ดูรายละเอียดเพิ่มเติม
+        </button>
+      )}
       <DeleteRecordButton onDelete={() => onDelete(item)} loading={deleting} />
+      {showDetail && <WorkoutDetailModal extracted={ext} coach={coach} isSwim={isSwim} onClose={() => setShowDetail(false)} />}
+    </div>
+  );
+}
+
+function WorkoutDetailModal({
+  extracted,
+  coach,
+  isSwim,
+  onClose,
+}: {
+  extracted: WorkoutAnalysis["extracted"];
+  coach: WorkoutAnalysis["coach"];
+  isSwim: boolean;
+  onClose: () => void;
+}) {
+  const coachRows: { label: string; value: string }[] = [
+    { label: "ความหนัก", value: coach.intensityAssessment },
+    { label: "โหลดซ้อม", value: coach.trainingLoadNote },
+    { label: "ฟื้นตัว", value: coach.recoveryAdvice },
+    { label: "โภชนาการหลังซ้อม", value: coach.nutritionAfterWorkout },
+    { label: "ซ้อมครั้งถัดไป", value: coach.nextWorkoutSuggestion },
+    { label: "หมายเหตุโค้ช", value: coach.coachNote },
+  ].filter((row) => row.value && row.value !== "-");
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <div
+        data-testid="workout-detail-modal"
+        className="w-full max-w-md rounded-3xl bg-[var(--surface)] p-6 shadow-2xl border border-[var(--border-warm)] flex flex-col max-h-[85vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold text-[var(--foreground)]">🏃 รายละเอียดการซ้อม</h3>
+          <button type="button" onClick={onClose} className="text-sm text-[var(--color-text-soft)]" aria-label="ปิด">✕</button>
+        </div>
+
+        {(extracted.avgSpeedKmh != null || extracted.cadence != null || extracted.elevationGain != null || extracted.vo2Max != null) && (
+          <div className="grid grid-cols-2 gap-2 mb-4">
+            {extracted.avgSpeedKmh != null && !isSwim && <Metric label="ความเร็วเฉลี่ย" value={formatScore(extracted.avgSpeedKmh)} sub="km/h" />}
+            {extracted.cadence != null && <Metric label="Cadence" value={formatScore(extracted.cadence)} sub="spm" />}
+            {extracted.elevationGain != null && <Metric label="ระยะไต่ระดับ" value={formatScore(extracted.elevationGain)} sub="m" />}
+            {extracted.vo2Max != null && <Metric label="VO2max" value={formatScore(extracted.vo2Max)} />}
+          </div>
+        )}
+
+        {coachRows.length > 0 && (
+          <div className="space-y-2.5">
+            {coachRows.map((row) => (
+              <div key={row.label}>
+                <p className="text-xs font-bold text-[var(--color-text-soft)]">{row.label}</p>
+                <p className="text-sm text-[var(--foreground)] leading-6">{formatSummaryText(row.value)}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
