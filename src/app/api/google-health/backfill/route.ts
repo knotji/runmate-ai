@@ -45,5 +45,7 @@ export async function POST() {
     sinceDateKey,
     sleepImported: result.sleepImported,
     workoutsImported: result.workoutsImported,
+    sleepSkippedManual: result.sleepSkippedManual,
+    workoutsSkippedManual: result.workoutsSkippedManual,
   });
 }

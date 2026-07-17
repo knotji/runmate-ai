@@ -29,6 +29,8 @@ export async function GET(request: NextRequest) {
   let usersSynced = 0;
   let sleepImported = 0;
   let workoutsImported = 0;
+  let sleepSkippedManual = 0;
+  let workoutsSkippedManual = 0;
   let failed = 0;
 
   for (const connection of connections) {
@@ -40,6 +42,8 @@ export async function GET(request: NextRequest) {
     }
     sleepImported += result.sleepImported;
     workoutsImported += result.workoutsImported;
+    sleepSkippedManual += result.sleepSkippedManual;
+    workoutsSkippedManual += result.workoutsSkippedManual;
   }
 
   return NextResponse.json({
@@ -48,6 +52,8 @@ export async function GET(request: NextRequest) {
     usersSynced,
     sleepImported,
     workoutsImported,
+    sleepSkippedManual,
+    workoutsSkippedManual,
     failed,
   });
 }
