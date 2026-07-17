@@ -152,7 +152,7 @@ test("Daily slots are collapsed by default (no full DayCard details)", async ({ 
   await expect(page.getByText("ข้าวไก่ย่าง")).not.toBeVisible();
   await expect(page.getByTestId("report-compact-item").first()).not.toBeVisible();
 
-  const dataSlot = page.getByTestId("day-slot").filter({ hasText: /5/ }).first();
+  const dataSlot = page.getByTestId("day-slot").filter({ hasText: /5 กม\./ }).first();
   await expect(dataSlot.getByText("รายละเอียด ˅")).toBeVisible();
   await expect(dataSlot.getByTestId("day-slot-details")).not.toBeVisible();
   await dataSlot.locator("summary").click();

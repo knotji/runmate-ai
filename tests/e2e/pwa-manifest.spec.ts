@@ -11,8 +11,8 @@ test("manifest.webmanifest returns valid JSON configuration and icons respond 20
   expect(manifest.short_name).toBe("RunMate");
   expect(manifest.start_url).toBe("/");
   expect(manifest.display).toBe("standalone");
-  expect(manifest.background_color).toBe("#F8F3EA");
-  expect(manifest.theme_color).toBe("#5B947E");
+  expect(manifest.background_color).toBe("#F7F8FA");
+  expect(manifest.theme_color).toBe("#3B6EF6");
 
   // Verify icons structure
   expect(manifest.icons).toBeDefined();
