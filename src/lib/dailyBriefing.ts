@@ -58,6 +58,21 @@ function averageWakeTimeMinutes(sleep7d: CoachContext["sleep7d"]): number | null
   return vals.reduce((a, b) => a + b, 0) / vals.length;
 }
 
+export type BedtimeSuggestion = { bedtimeText: string; wakeTimeText: string };
+
+// Shared by the Daily Briefing sentence and the "ฟื้นตัวคืนนี้" Recovery Loop
+// card so both surfaces recommend the exact same bedtime — null when there's
+// not enough sleepEndTime history to know a wake-time pattern yet.
+export function computeBedtimeSuggestion(
+  sleep7d: CoachContext["sleep7d"],
+  sleepNeed: CoachContext["recoveryLoop"]["sleepNeed"],
+): BedtimeSuggestion | null {
+  const usualWakeMin = averageWakeTimeMinutes(sleep7d);
+  if (usualWakeMin == null) return null;
+  const bedtimeMin = usualWakeMin - sleepNeed.targetHoursMax * 60;
+  return { bedtimeText: formatMinutesOfDay(bedtimeMin), wakeTimeText: formatMinutesOfDay(usualWakeMin) };
+}
+
 function buildYesterdaySummary(ctx: CoachContext): { text: string; hasData: boolean } {
   const lastNight = ctx.sleep7d[0] ?? null;
   const nutrition = ctx.nutritionYesterday;
@@ -99,19 +114,16 @@ function buildYesterdaySummary(ctx: CoachContext): { text: string; hasData: bool
 
 function buildSleepTonightSentence(ctx: CoachContext): string {
   const sleepNeed = ctx.recoveryLoop.sleepNeed;
-  const usualWakeMin = averageWakeTimeMinutes(ctx.sleep7d);
+  const suggestion = computeBedtimeSuggestion(ctx.sleep7d, sleepNeed);
 
-  if (usualWakeMin == null) {
+  if (!suggestion) {
     // Not enough sleepEndTime history yet to know a wake-time pattern —
     // still give the duration target (already computed by recoveryLoop.ts)
     // rather than nothing.
     return `${sleepNeed.label} — บันทึกเวลานอน/ตื่นต่อเนื่องสักพักแล้วจะแนะนำเวลาเข้านอนที่แน่นอนให้ได้`;
   }
 
-  const bedtimeMin = usualWakeMin - sleepNeed.targetHoursMax * 60;
-  const bedtimeText = formatMinutesOfDay(bedtimeMin);
-  const wakeTimeText = formatMinutesOfDay(usualWakeMin);
-  return `ปกติคุณตื่น ${wakeTimeText} น. — คืนนี้ควรเข้านอนประมาณ ${bedtimeText} น. เพื่อให้ได้นอน ${sleepNeed.targetHoursMin}–${sleepNeed.targetHoursMax} ชม.`;
+  return `ปกติคุณตื่น ${suggestion.wakeTimeText} น. — คืนนี้ควรเข้านอนประมาณ ${suggestion.bedtimeText} น. เพื่อให้ได้นอน ${sleepNeed.targetHoursMin}–${sleepNeed.targetHoursMax} ชม.`;
 }
 
 export function buildDailyBriefing(ctx: CoachContext): DailyBriefing {
