@@ -30,6 +30,17 @@ function toSignalTone(axisTone: ReturnType<typeof getAxisTone>): SignalTone {
   return "neutral";
 }
 
+// Load is strain, not a "higher is better" axis — more load must never read
+// as a green "good" signal (see CLAUDE.md: "โหลดซ้อมยิ่งสูง = ใช้ร่างกายสะสมเยอะ
+// ไม่ได้แปลว่าคะแนนดี"). Only "neutral" (little/no load yet) stays green-free;
+// everything else — including getAxisTone's "info" bucket, which the generic
+// toSignalTone above treats as "good" for the other three axes — reads amber.
+function toLoadSignalTone(axisTone: ReturnType<typeof getAxisTone>): SignalTone {
+  if (axisTone === "danger") return "bad";
+  if (axisTone === "neutral") return "neutral";
+  return "warn";
+}
+
 // Same score + same label/tone functions the "ดูรายละเอียด Recovery" card
 // uses — this compact row and that detail breakdown must never disagree on
 // what a given score means (e.g. recovery 68 reading "ดี" in one place and
@@ -66,7 +77,7 @@ function buildLoadSignal(ctx: CoachContext): TodaySignal {
   const kmText = runKm > 0 ? `${Math.round(runKm * 10) / 10} กม.` : null;
   const value = kmText ?? getRecoveryAxisLabel("load", effective);
 
-  return { key: "load", label: "โหลด", value, icon: "🏃", tone: toSignalTone(getAxisTone("load", effective)) };
+  return { key: "load", label: "โหลด", value, icon: "🏃", tone: toLoadSignalTone(getAxisTone("load", effective)) };
 }
 
 function buildEnergySignal(ctx: CoachContext): TodaySignal {
