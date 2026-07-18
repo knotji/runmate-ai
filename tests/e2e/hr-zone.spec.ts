@@ -175,5 +175,12 @@ test("Race page: pace bands card shows HR cap line on Easy/Long rows", async ({ 
 
   const paceCard = page.getByTestId("pace-bands-card");
   await expect(paceCard).toBeVisible({ timeout: 10000 });
+
+  // Expand the accordion details to make the HR cap line visible to the test runner
+  const summary = paceCard.locator("summary");
+  if (await summary.count() > 0) {
+    await summary.first().click();
+  }
+
   await expect(page.getByTestId("race-hr-cap-line").first()).toBeVisible();
 });
