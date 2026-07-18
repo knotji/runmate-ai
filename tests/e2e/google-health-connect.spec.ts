@@ -127,3 +127,27 @@ test("backfill summary notes days skipped because a manual entry already exists"
   await expect(summary).toBeVisible();
   await expect(summary).toContainText("ข้าม 3");
 });
+
+test("app load fires a sync-if-stale request in the background", async ({ page }) => {
+  await installMockBackend(page);
+
+  let called = false;
+  await page.route("**/api/google-health/sync-if-stale", async (route) => {
+    called = true;
+    await route.fallback();
+  });
+
+  const responsePromise = page.waitForResponse("**/api/google-health/sync-if-stale");
+  await gotoApp(page, "/");
+  const response = await responsePromise;
+  const body = await response.json();
+
+  expect(called).toBe(true);
+  expect(response.status()).toBe(200);
+  // This route's Supabase call happens server-side (Next.js API route -> Supabase),
+  // which installMockBackend's page.route() mocks can't reach (those only intercept
+  // browser-originated requests) — so it can't reach a real "connected" state here.
+  // What this test actually verifies is the client-side wiring: the request fires
+  // on app load, and the route responds gracefully (not a crash) either way.
+  expect(body).toMatchObject({ synced: false, reason: "not-authenticated" });
+});
