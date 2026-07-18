@@ -62,6 +62,12 @@ function makeFakeSupabase(seed: { history_items?: Row[] } = {}): SupabaseClient 
           },
         };
       },
+      // Makes the builder itself awaitable (like the real Supabase client) for
+      // callers that don't terminate the chain with .maybeSingle() — e.g.
+      // fetching every matching row rather than a single one.
+      then(resolve: (result: { data: Row[]; error: null }) => void) {
+        resolve({ data: rows.filter((row) => filters.every((f) => f(row))), error: null });
+      },
     };
     return builder;
   }
@@ -71,12 +77,20 @@ function makeFakeSupabase(seed: { history_items?: Row[] } = {}): SupabaseClient 
 
 const originalFetch = globalThis.fetch;
 
-function installGoogleHealthFetchMock(overrides: { sleepDataPoints?: unknown[] } = {}) {
+function installGoogleHealthFetchMock(overrides: { sleepDataPoints?: unknown[]; exerciseDataPoints?: unknown[] } = {}) {
   const defaultSleepPoints = [{
     name: "users/me/dataTypes/sleep/dataPoints/sleep-1",
     sleep: {
       interval: { startTime: "2026-07-16T18:00:00Z", endTime: "2026-07-17T01:00:00Z" },
       summary: { minutesAsleep: "400" },
+    },
+  }];
+  const defaultExercisePoints = [{
+    name: "users/me/dataTypes/exercise/dataPoints/exercise-1",
+    exercise: {
+      interval: { startTime: "2026-07-17T01:23:00Z", endTime: "2026-07-17T02:00:00Z" },
+      exerciseType: "TREADMILL_RUN",
+      metricsSummary: { distanceMillimeters: 5_110_000, averageHeartRateBeatsPerMinute: "156" },
     },
   }];
 
@@ -89,14 +103,7 @@ function installGoogleHealthFetchMock(overrides: { sleepDataPoints?: unknown[] }
     }
     if (url.includes("/dataTypes/exercise/dataPoints")) {
       return new Response(JSON.stringify({
-        dataPoints: [{
-          name: "users/me/dataTypes/exercise/dataPoints/exercise-1",
-          exercise: {
-            interval: { startTime: "2026-07-17T01:23:00Z", endTime: "2026-07-17T02:00:00Z" },
-            exerciseType: "TREADMILL_RUN",
-            metricsSummary: { distanceMillimeters: 5_110_000, averageHeartRateBeatsPerMinute: "156" },
-          },
-        }],
+        dataPoints: overrides.exerciseDataPoints ?? defaultExercisePoints,
       }), { status: 200 });
     }
     if (url.includes("/dataTypes/daily-resting-heart-rate/dataPoints") || url.includes("/dataTypes/daily-heart-rate-variability/dataPoints")) {
@@ -232,5 +239,66 @@ describe("syncGoogleHealthForConnection", () => {
     const sleepRows = admin.__tables.history_items.filter((r) => r.type === "sleep");
     expect(sleepRows).toHaveLength(1);
     expect(sleepRows[0].id).toContain("real-sleep");
+  });
+
+  // Reported: two runs from the same session at 06:32 both landed in the Report
+  // list (one via phone, one via watch, both synced into Health Connect as
+  // separate exercise records) — the exact-id dedup above can't catch this
+  // since the two records genuinely have different ids.
+  it("skips a workout that looks like the same run as one already in history (different device, same session)", async () => {
+    installGoogleHealthFetchMock({
+      exerciseDataPoints: [{
+        name: "users/me/dataTypes/exercise/dataPoints/exercise-from-watch",
+        exercise: {
+          interval: { startTime: "2026-07-17T01:23:00Z", endTime: "2026-07-17T02:00:00Z" },
+          exerciseType: "RUNNING",
+          metricsSummary: { distanceMillimeters: 10_160_000 },
+        },
+      }],
+    });
+    const { syncGoogleHealthForConnection } = await import("@/lib/googleHealth/syncUser");
+    const admin = makeFakeSupabase({
+      history_items: [{
+        id: "ghealth-exercise-from-phone",
+        user_id: "user-1",
+        type: "workout",
+        created_at: "2026-07-17T01:25:00Z",
+        data: { dateKey: "2026-07-17", extracted: { distanceKm: 10.38 } },
+      }],
+    });
+
+    const result = await syncGoogleHealthForConnection(admin, connection, "2026-07-01", { generateCoach: false });
+
+    expect(result.workoutsImported).toBe(0);
+    expect(result.workoutsSkippedDuplicate).toBe(1);
+    expect(result.workoutsSkippedManual).toBe(0);
+  });
+
+  it("imports a distinct second run on the same day that doesn't overlap the first", async () => {
+    installGoogleHealthFetchMock({
+      exerciseDataPoints: [{
+        name: "users/me/dataTypes/exercise/dataPoints/evening-run",
+        exercise: {
+          interval: { startTime: "2026-07-17T12:00:00Z", endTime: "2026-07-17T12:40:00Z" },
+          exerciseType: "RUNNING",
+          metricsSummary: { distanceMillimeters: 5_000_000 },
+        },
+      }],
+    });
+    const { syncGoogleHealthForConnection } = await import("@/lib/googleHealth/syncUser");
+    const admin = makeFakeSupabase({
+      history_items: [{
+        id: "ghealth-exercise-morning-run",
+        user_id: "user-1",
+        type: "workout",
+        created_at: "2026-07-17T01:25:00Z",
+        data: { dateKey: "2026-07-17", extracted: { distanceKm: 10.38 } },
+      }],
+    });
+
+    const result = await syncGoogleHealthForConnection(admin, connection, "2026-07-01", { generateCoach: false });
+
+    expect(result.workoutsImported).toBe(1);
+    expect(result.workoutsSkippedDuplicate).toBe(0);
   });
 });

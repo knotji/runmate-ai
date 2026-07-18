@@ -9,6 +9,7 @@ import {
 } from "@/lib/googleHealth/api";
 import { mapGoogleHealthSleepToExtracted, googleHealthSleepHistoryItemId } from "@/lib/googleHealth/mapSleep";
 import { mapGoogleHealthExerciseToExtracted, googleHealthExerciseHistoryItemId } from "@/lib/googleHealth/mapExercise";
+import { isLikelyDuplicateWorkout, type WorkoutFingerprint } from "@/lib/googleHealth/dedupeSimilarWorkout";
 import { coachFromStructuredSleepPrompt, coachFromStructuredWorkoutPrompt } from "@/lib/prompts/coachFromStructuredData";
 import { jsonFromAI } from "@/lib/ai";
 import { todayBangkokDateKey, dateKeyToRecordedAt } from "@/lib/date";
@@ -67,6 +68,7 @@ export type SyncUserResult = {
   workoutsImported: number;
   sleepSkippedManual: number;
   workoutsSkippedManual: number;
+  workoutsSkippedDuplicate: number;
   sleepSkippedNap: number;
   error?: string;
 };
@@ -94,6 +96,28 @@ async function hasManualEntryForDate(
   return Boolean(data);
 }
 
+/** All existing workout items for this date (any source — manual, ghealth-,
+ *  Samsung import), reduced to the start-time + distance fingerprint
+ *  isLikelyDuplicateWorkout compares against. */
+async function existingWorkoutFingerprints(
+  admin: SupabaseClient,
+  userId: string,
+  dateKey: string,
+): Promise<WorkoutFingerprint[]> {
+  const { data } = await admin
+    .from("history_items")
+    .select("created_at, data")
+    .eq("user_id", userId)
+    .eq("type", "workout")
+    .eq("data->>dateKey", dateKey);
+
+  if (!data) return [];
+  return data.map((row) => ({
+    startTimeMs: new Date(row.created_at as string).getTime(),
+    distanceKm: (row.data as WorkoutAnalysis | null)?.extracted?.distanceKm ?? null,
+  }));
+}
+
 /** Fetches and imports a user's Google Health sleep + exercise data since `sinceDateKey`,
  *  deduped against history_items via the deterministic ghealth- ids so re-running (e.g. a
  *  daily cron overlapping a manual backfill) is always a no-op skip, never a duplicate or
@@ -117,7 +141,7 @@ export async function syncGoogleHealthForConnection(
     const refreshed = await refreshGoogleHealthToken(connection.refresh_token);
     if (!refreshed) {
       await admin.from("google_health_connections").update({ last_sync_error: "token refresh failed" }).eq("user_id", userId);
-      return { ok: false, sleepImported: 0, workoutsImported: 0, sleepSkippedManual: 0, workoutsSkippedManual: 0, sleepSkippedNap: 0, error: "token refresh failed" };
+      return { ok: false, sleepImported: 0, workoutsImported: 0, sleepSkippedManual: 0, workoutsSkippedManual: 0, workoutsSkippedDuplicate: 0, sleepSkippedNap: 0, error: "token refresh failed" };
     }
     accessToken = refreshed.accessToken;
     await admin.from("google_health_connections").update({
@@ -130,6 +154,7 @@ export async function syncGoogleHealthForConnection(
   let workoutsImported = 0;
   let sleepSkippedManual = 0;
   let workoutsSkippedManual = 0;
+  let workoutsSkippedDuplicate = 0;
   let sleepSkippedNap = 0;
 
   try {
@@ -192,6 +217,12 @@ export async function syncGoogleHealthForConnection(
       sleepImported += 1;
     }
 
+    // Cached per dateKey across this loop so a repeat sync isn't N extra
+    // queries, and so two duplicate records returned in the *same* Health
+    // Connect fetch (not just across syncs) still catch each other — each
+    // accepted insert this run gets pushed into its date's cached list below.
+    const fingerprintsByDate = new Map<string, WorkoutFingerprint[]>();
+
     const exercisePoints = await fetchGoogleHealthExercise(accessToken, sinceDateKey);
     for (const dp of exercisePoints) {
       const itemId = googleHealthExerciseHistoryItemId(dp.name);
@@ -204,6 +235,26 @@ export async function syncGoogleHealthForConnection(
         workoutsSkippedManual += 1;
         continue;
       }
+
+      let fingerprints = fingerprintsByDate.get(dateKey);
+      if (!fingerprints) {
+        fingerprints = await existingWorkoutFingerprints(admin, userId, dateKey);
+        fingerprintsByDate.set(dateKey, fingerprints);
+      }
+      const candidate: WorkoutFingerprint = {
+        startTimeMs: new Date(dp.exercise.interval.startTime).getTime(),
+        distanceKm: extracted.distanceKm,
+      };
+      // Two different devices/apps (e.g. phone + watch) can both sync the same
+      // real run into Health Connect as separate session records — Google's own
+      // per-record dedup above can't catch that since the records genuinely
+      // differ. This is a second, fuzzier check for "this is probably the same
+      // workout", not a duplicate-record check.
+      if (fingerprints.some((f) => isLikelyDuplicateWorkout(candidate, f))) {
+        workoutsSkippedDuplicate += 1;
+        continue;
+      }
+
       const coach = options.generateCoach ? await generateWorkoutCoach(extracted) : WORKOUT_COACH_FALLBACK;
       const data: WorkoutAnalysis = {
         extracted,
@@ -221,6 +272,7 @@ export async function syncGoogleHealthForConnection(
         created_at: dp.exercise.interval.startTime,
         data: { ...data, recordedAt: dateKeyToRecordedAt(dateKey), dateKey },
       });
+      fingerprints.push(candidate);
       workoutsImported += 1;
     }
 
@@ -229,10 +281,10 @@ export async function syncGoogleHealthForConnection(
       last_sync_error: null,
     }).eq("user_id", userId);
 
-    return { ok: true, sleepImported, workoutsImported, sleepSkippedManual, workoutsSkippedManual, sleepSkippedNap };
+    return { ok: true, sleepImported, workoutsImported, sleepSkippedManual, workoutsSkippedManual, workoutsSkippedDuplicate, sleepSkippedNap };
   } catch (error) {
     const message = error instanceof Error ? error.message : "unknown error";
     await admin.from("google_health_connections").update({ last_sync_error: message }).eq("user_id", userId);
-    return { ok: false, sleepImported, workoutsImported, sleepSkippedManual, workoutsSkippedManual, sleepSkippedNap, error: message };
+    return { ok: false, sleepImported, workoutsImported, sleepSkippedManual, workoutsSkippedManual, workoutsSkippedDuplicate, sleepSkippedNap, error: message };
   }
 }
