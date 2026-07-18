@@ -179,14 +179,6 @@ test("Today: bottom nav does not contain a Sick nav item", async ({ page }) => {
   await expect(nav.getByText("ป่วย")).not.toBeVisible();
 });
 
-test("Today: quick actions dock shows ป่วย chip linking to /sick", async ({ page }) => {
-  await installMockBackend(page);
-  await gotoApp(page, "/");
-  const sickChip = page.getByRole("link", { name: "ป่วย" }).first();
-  await expect(sickChip).toBeVisible();
-  await expect(sickChip).toHaveAttribute("href", "/sick");
-});
-
 // ─── Sick Day Today polish (hard-stop state) ──────────────────────────────────
 
 test("Today: hard-stop sick card appears above recommendation section", async ({ page }) => {

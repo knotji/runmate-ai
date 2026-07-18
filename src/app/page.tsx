@@ -451,28 +451,6 @@ export default function TodayPage() {
         </DetailAccordion>
       )}
 
-      {/* Quick Actions Dock — deliberately flat (no border/shadow) so it reads
-          as an extension of the primary CTA above, not a competing card. */}
-      <div className="px-0.5">
-        <div className="flex gap-1 bg-[var(--surface-muted)]/30 border border-[var(--color-border-soft)]/40 rounded-2xl p-1 shadow-sm">
-          {[
-            { href: "/upload?type=sleep", label: "นอน" },
-            { href: "/upload?type=meal", label: "อาหาร" },
-            { href: `/upload?type=workout&subtype=${getRecommendedSubtype(insight, coachCtx)}`, label: "ซ้อม" },
-            { href: "/pain", label: "เจ็บ" },
-            { href: "/sick", label: "ป่วย" },
-          ].map(({ href, label }) => (
-            <Link
-              key={href}
-              href={href}
-              className="group flex-1 flex min-h-11 items-center justify-center rounded-xl px-1 py-2.5 text-center text-xs font-bold text-[var(--color-text-soft)] transition-all duration-200 active:scale-[0.96] hover:bg-[var(--surface)]/80 hover:text-[var(--foreground)] hover:shadow-xs"
-            >
-              {label}
-            </Link>
-          ))}
-        </div>
-      </div>
-
       {/* Safety-critical: active pain always stays visible, never tucked behind a toggle */}
       {coachCtx?.latestPain && coachCtx.latestPain.hasActivePain && coachCtx.latestPain.painLevel > 0 && (
         <>
