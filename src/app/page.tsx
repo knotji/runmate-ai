@@ -20,6 +20,7 @@ import type { PaceBandKey } from "@/lib/training/trainingPaceTypes";
 import { ReadinessSignalBars } from "@/components/ReadinessSignalBars";
 import { ReadinessGauge, type GaugeStatus } from "@/components/ReadinessGauge";
 import { TodaySignalCircles } from "@/components/TodaySignalCircles";
+import { DailyBriefingCard } from "@/components/DailyBriefingCard";
 import { getGaugeStatus } from "@/lib/readiness/gaugeStatus";
 import { getTodayTrainingGuardrail } from "@/lib/trainingGuardrails";
 import { StatusHero } from "@/components/ui/StatusHero";
@@ -382,6 +383,11 @@ export default function TodayPage() {
 
   return (
     <AppShell title="โค้ชข้างทาง" subtitle={formatThaiDate()}>
+
+      {/* 0. Daily Briefing — plain-language sentences, above the score breakdown.
+          Hidden entirely (renders null) until there's enough history to say
+          something real, so it never shows an empty/placeholder state. */}
+      <DailyBriefingCard coachCtx={coachCtx} />
 
       {/* 1. Recovery overview first — ภาพรวมวันนี้ (สัญญาณวันนี้ now lives inside this same card) */}
       <TodaySnapshotCard

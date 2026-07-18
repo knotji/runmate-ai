@@ -164,6 +164,11 @@ function normalizeCoachContext(value: unknown): CoachContext {
     ...raw.nutritionToday,
     notes: arrayValue((raw.nutritionToday as Record<string, unknown>).notes).filter((note): note is string => typeof note === "string"),
   } as CoachContext["nutritionToday"] : null;
+  const nutritionYesterday = isRecord(raw.nutritionYesterday) ? {
+    ...raw.nutritionYesterday,
+    notes: arrayValue((raw.nutritionYesterday as Record<string, unknown>).notes).filter((note): note is string => typeof note === "string"),
+  } as CoachContext["nutritionYesterday"] : null;
+  const workoutsYesterday = isRecord(raw.workoutsYesterday) ? raw.workoutsYesterday as CoachContext["workoutsYesterday"] : null;
 
   const context: CoachContext = {
     profile: isRecord(raw.profile) ? raw.profile : null,
@@ -195,7 +200,10 @@ function normalizeCoachContext(value: unknown): CoachContext {
     todayPrimaryWorkout,
     nutritionToday,
     nutrition7d: nutrition7d as CoachContext["nutrition7d"],
+    nutritionYesterday,
     mealsToday: mealsToday as CoachContext["mealsToday"],
+    yesterdayDate: stringOrNull(raw.yesterdayDate) ?? "",
+    workoutsYesterday,
     latestCompletedRace: isRecord(raw.latestCompletedRace) ? raw.latestCompletedRace as CoachContext["latestCompletedRace"] : null,
     recentRaceResults: recentRaceResults as CoachContext["recentRaceResults"],
     latestHealthCheck: isRecord(raw.latestHealthCheck) ? raw.latestHealthCheck as CoachContext["latestHealthCheck"] : null,

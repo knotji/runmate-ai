@@ -14,7 +14,7 @@ import { gotoApp, installMockBackend } from "./helpers/app";
 
 // ─── Unit: formatSleepCitation ────────────────────────────────────────────────
 
-const baseSleep = { restingHR: null, hrv: null, energyScore: null };
+const baseSleep = { restingHR: null, hrv: null, energyScore: null, sleepStartTime: null, sleepEndTime: null };
 
 test("formatSleepCitation: durationH takes priority over durationMinutes", () => {
   const result = formatSleepCitation({

@@ -38,7 +38,7 @@ describe("buildTodaySignals — sleep signal", () => {
 
   it("sleep score 80 with sleep data → matches getRecoveryAxisLabel/getAxisTone wording", () => {
     const ctx = makeCtx({
-      sleep7d: [{ date: "2026-07-04", durationH: "7.5", durationMinutes: 450, score: 78, readiness: 78, restingHR: 52, hrv: 55, energyScore: 75 }],
+      sleep7d: [{ date: "2026-07-04", durationH: "7.5", durationMinutes: 450, score: 78, readiness: 78, restingHR: 52, hrv: 55, energyScore: 75, sleepStartTime: null, sleepEndTime: null }],
       recoverySystem: makeRecoverySys({ sleepScore: 80 }),
     });
     const sig = buildTodaySignals(ctx).find((s) => s.key === "sleep")!;
@@ -48,7 +48,7 @@ describe("buildTodaySignals — sleep signal", () => {
 
   it("sleep score 40 with sleep data → tone = warn, not bad (low alone is never danger)", () => {
     const ctx = makeCtx({
-      sleep7d: [{ date: "2026-07-04", durationH: "5.0", durationMinutes: 300, score: 45, readiness: 45, restingHR: 65, hrv: 35, energyScore: 40 }],
+      sleep7d: [{ date: "2026-07-04", durationH: "5.0", durationMinutes: 300, score: 45, readiness: 45, restingHR: 65, hrv: 35, energyScore: 40, sleepStartTime: null, sleepEndTime: null }],
       recoverySystem: makeRecoverySys({ sleepScore: 40 }),
     });
     const sig = buildTodaySignals(ctx).find((s) => s.key === "sleep")!;
@@ -121,7 +121,7 @@ describe("buildTodaySignals — recovery signal", () => {
 
   it("recovery score >= 70 with sleep data → tone = good", () => {
     const ctx = makeCtx({
-      sleep7d: [{ date: "2026-07-04", durationH: "7.5", durationMinutes: 450, score: 78, readiness: 78, restingHR: 52, hrv: 55, energyScore: 75 }],
+      sleep7d: [{ date: "2026-07-04", durationH: "7.5", durationMinutes: 450, score: 78, readiness: 78, restingHR: 52, hrv: 55, energyScore: 75, sleepStartTime: null, sleepEndTime: null }],
       recoverySystem: makeRecoverySys({ recoveryScore: 80 }),
     });
     const sig = buildTodaySignals(ctx).find((s) => s.key === "recovery")!;
@@ -130,7 +130,7 @@ describe("buildTodaySignals — recovery signal", () => {
 
   it("recovery score < 50 with sleep data → tone = warn, not bad (low alone is never danger — see getRecoveryAxisCoachingTone)", () => {
     const ctx = makeCtx({
-      sleep7d: [{ date: "2026-07-04", durationH: "5.0", durationMinutes: 300, score: 45, readiness: 45, restingHR: 65, hrv: 35, energyScore: 40 }],
+      sleep7d: [{ date: "2026-07-04", durationH: "5.0", durationMinutes: 300, score: 45, readiness: 45, restingHR: 65, hrv: 35, energyScore: 40, sleepStartTime: null, sleepEndTime: null }],
       recoverySystem: makeRecoverySys({ recoveryScore: 40 }),
     });
     const sig = buildTodaySignals(ctx).find((s) => s.key === "recovery")!;
