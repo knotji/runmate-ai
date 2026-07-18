@@ -21,6 +21,7 @@ import { ReadinessSignalBars } from "@/components/ReadinessSignalBars";
 import { ReadinessGauge, type GaugeStatus } from "@/components/ReadinessGauge";
 import { TodaySignalCircles } from "@/components/TodaySignalCircles";
 import { DailyBriefingCard } from "@/components/DailyBriefingCard";
+import { computeBedtimeSuggestion } from "@/lib/dailyBriefing";
 import { getGaugeStatus } from "@/lib/readiness/gaugeStatus";
 import { getTodayTrainingGuardrail } from "@/lib/trainingGuardrails";
 import { StatusHero } from "@/components/ui/StatusHero";
@@ -451,28 +452,6 @@ export default function TodayPage() {
         </DetailAccordion>
       )}
 
-      {/* Quick Actions Dock — deliberately flat (no border/shadow) so it reads
-          as an extension of the primary CTA above, not a competing card. */}
-      <div className="px-0.5">
-        <div className="flex gap-1 bg-[var(--surface-muted)]/30 border border-[var(--color-border-soft)]/40 rounded-2xl p-1 shadow-sm">
-          {[
-            { href: "/upload?type=sleep", label: "นอน" },
-            { href: "/upload?type=meal", label: "อาหาร" },
-            { href: `/upload?type=workout&subtype=${getRecommendedSubtype(insight, coachCtx)}`, label: "ซ้อม" },
-            { href: "/pain", label: "เจ็บ" },
-            { href: "/sick", label: "ป่วย" },
-          ].map(({ href, label }) => (
-            <Link
-              key={href}
-              href={href}
-              className="group flex-1 flex min-h-11 items-center justify-center rounded-xl px-1 py-2.5 text-center text-xs font-bold text-[var(--color-text-soft)] transition-all duration-200 active:scale-[0.96] hover:bg-[var(--surface)]/80 hover:text-[var(--foreground)] hover:shadow-xs"
-            >
-              {label}
-            </Link>
-          ))}
-        </div>
-      </div>
-
       {/* Safety-critical: active pain always stays visible, never tucked behind a toggle */}
       {coachCtx?.latestPain && coachCtx.latestPain.hasActivePain && coachCtx.latestPain.painLevel > 0 && (
         <>
@@ -760,7 +739,7 @@ function PreWorkoutFocusContent({
         badgeInfo.tone === "walk" ? "bg-amber-50/60 border-amber-100 text-amber-900" :
         "bg-sky-50/60 border-sky-100 text-sky-900"
       )}>
-        <span className="text-3xl shrink-0 select-none">{badgeInfo.icon}</span>
+        <span className="text-2xl shrink-0 select-none">{badgeInfo.icon}</span>
         <div className="min-w-0 flex-1">
           <p className="text-[10px] font-bold uppercase tracking-[0.1em] opacity-70">{badgeInfo.eyebrow}</p>
           {isSickHardStop ? (
@@ -894,7 +873,7 @@ function PostWorkoutFocusContent({ insight, context }: { insight: DailyCoachInsi
     <div className="space-y-4">
       {/* Visual Action Ticket */}
       <div className="rounded-2xl p-4 flex items-center gap-3 border border-emerald-100 bg-emerald-50/60 text-emerald-900 shadow-xs">
-        <span className="text-3xl shrink-0 select-none">✅</span>
+        <span className="text-2xl shrink-0 select-none">✅</span>
         <div className="min-w-0 flex-1">
           <h3 className="text-sm font-black tracking-tight">{title}</h3>
           <p className="text-[11px] font-semibold text-[var(--color-text-soft)] mt-0.5 leading-snug">
@@ -1552,6 +1531,7 @@ function RecoveryLoopCard({ coachCtx }: { coachCtx: CoachContext }) {
     ? ` · เวท ${safeStrengthMins(dayLoad.primaryActivity.durationMin)} นาที`
     : "";
   const dayLoadContextLine = `${dayLoad.summary}${activitySuffix}`;
+  const bedtime = computeBedtimeSuggestion(coachCtx.sleep7d, sleepNeed);
 
   return (
     <section className="rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface-muted)]/80 px-3 py-2.5 space-y-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.45)]" data-testid="recovery-loop-card">
@@ -1564,6 +1544,11 @@ function RecoveryLoopCard({ coachCtx }: { coachCtx: CoachContext }) {
           <div className="flex items-center gap-1 text-xs">
             <span className="font-bold text-[var(--foreground)] leading-snug">{sleepNeed.label}</span>
           </div>
+          {bedtime && (
+            <p className="mt-0.5 text-[10px] font-semibold text-rm-muted leading-snug">
+              เข้านอนราว {bedtime.bedtimeText} น.
+            </p>
+          )}
         </div>
         <div className="pl-3">
           <p className="text-[9px] font-bold uppercase tracking-wide text-rm-muted mb-1">ถัดไป</p>
