@@ -16,23 +16,22 @@ export function DailyBriefingCard({ coachCtx }: { coachCtx: CoachContext | null 
 
   return (
     <section 
-      className="relative overflow-hidden rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface-muted)]/40 p-4 shadow-sm"
+      className="relative py-1.5 pl-3.5 border-l-2 border-[var(--primary)] select-none"
       data-testid="daily-briefing-card"
     >
-      <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-[var(--primary)] to-[var(--primary-strong)]/60" />
-      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--label-color)] mb-2.5 pl-1.5">สรุปวันนี้</p>
-      <div className="space-y-2.5 pl-1.5">
-        <div className="flex items-start gap-2.5">
-          <span className="shrink-0 text-sm leading-none pt-0.5" aria-hidden="true">📋</span>
-          <p className="text-xs font-semibold leading-relaxed text-[var(--foreground)]" data-testid="daily-briefing-yesterday">{briefing.yesterdaySummary}</p>
+      <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[var(--primary)] mb-1.5">สรุปวันนี้</p>
+      <div className="space-y-1.5 text-xs text-[var(--color-text-soft)] font-semibold leading-relaxed">
+        <div className="flex items-start gap-2">
+          <span className="shrink-0 text-xs leading-none pt-0.5" aria-hidden="true">📋</span>
+          <p data-testid="daily-briefing-yesterday">{briefing.yesterdaySummary}</p>
         </div>
-        <div className="flex items-start gap-2.5">
-          <span className="shrink-0 text-sm leading-none pt-0.5" aria-hidden="true">🌙</span>
-          <p className="text-xs font-semibold leading-relaxed text-[var(--foreground)]" data-testid="daily-briefing-sleep">{briefing.sleepTonightSentence}</p>
+        <div className="flex items-start gap-2">
+          <span className="shrink-0 text-xs leading-none pt-0.5" aria-hidden="true">🌙</span>
+          <p data-testid="daily-briefing-sleep">{briefing.sleepTonightSentence}</p>
         </div>
-        <div className="flex items-start gap-2.5">
-          <span className="shrink-0 text-sm leading-none pt-0.5" aria-hidden="true">🍱</span>
-          <p className="text-xs font-semibold leading-relaxed text-[var(--foreground)]" data-testid="daily-briefing-food">{briefing.foodTodaySentence}</p>
+        <div className="flex items-start gap-2">
+          <span className="shrink-0 text-xs leading-none pt-0.5" aria-hidden="true">🍱</span>
+          <p data-testid="daily-briefing-food">{briefing.foodTodaySentence}</p>
         </div>
       </div>
     </section>
