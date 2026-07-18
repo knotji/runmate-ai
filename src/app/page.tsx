@@ -8,7 +8,7 @@ import { NutritionBalanceCard } from "@/components/NutritionBalanceCard";
 import { NextMealCard } from "@/components/NextMealCard";
 import type { NextMealRecommendation } from "@/app/api/next-meal/route";
 import { buildTodayRecommendationReasons } from "@/lib/todayReasons";
-import { formatThaiDate, getHistoryItemDateKey, todayBangkokDateKey } from "@/lib/date";
+import { formatThaiDate, todayBangkokDateKey } from "@/lib/date";
 import { buildCoachContextFromSupabase, type CoachContext, type NutritionDaySummary, type PainSummary, type TodayCompletedWorkoutSummary } from "@/lib/buildCoachContext";
 import { getTodayReadiness, getTodayPlannedWorkout, getReadinessCategoryLabel, checkPlannedWorkoutMatching } from "@/lib/todayPlanning";
 import { buildRunMateRecoverySystem, getAxisTone, getRecoveryAxisCoachingTone, formatAxisScore, getRecoveryAxisLabel, getOverallDisplayStatus } from "@/lib/recoverySystem";
@@ -29,15 +29,13 @@ import { InsightCard } from "@/components/ui/InsightCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import type { RmTone } from "@/components/ui/tone";
 import { cn } from "@/lib/cn";
-import { createHistoryItem, loadHistoryItems, saveHistoryItems } from "@/lib/cloudHistory";
+import { createHistoryItem, saveHistoryItems } from "@/lib/cloudHistory";
 import { loadActiveRaceGoalAndPlan } from "@/lib/raceStorage";
 import { loadGoalProfileFromSupabase } from "@/lib/goals/goalStorage";
 import { GoalAwareTodayStrip } from "@/components/GoalAwareTodayStrip";
 import type { UserGoalProfile } from "@/lib/goals/goalTypes";
 import { loadRoutinesFromSupabase, logCompletedStrength } from "@/lib/strength";
 import { safeStrengthMins } from "@/lib/reportDaySummary";
-import type { LocalHistoryItem } from "@/lib/localHistory";
-import type { DailySummary } from "@/types/logs";
 import type { PainLog, PainSide } from "@/types/pain";
 import type { RaceGoal } from "@/types/race";
 import type { AIPrescription, StrengthExercise, StrengthRoutine } from "@/types/strength";
@@ -177,10 +175,6 @@ export default function TodayPage() {
   const [insightError, setInsightError] = useState(false);
   const [insightErrorMessage, setInsightErrorMessage] = useState("");
   const [hasHistory, setHasHistory] = useState(false);
-  const [dailySummaryItem, setDailySummaryItem] = useState<LocalHistoryItem | null>(null);
-  const [dailySummaryLoading, setDailySummaryLoading] = useState(false);
-  const [dailySummaryError, setDailySummaryError] = useState("");
-  const [dailySummaryMessage, setDailySummaryMessage] = useState("");
   const [nextMealRec, setNextMealRec] = useState<NextMealRecommendation | null>(null);
   const [nextMealLoading, setNextMealLoading] = useState(false);
 
@@ -202,11 +196,6 @@ export default function TodayPage() {
       setNextMealLoading(false);
     }
   }, [coachCtx]);
-
-  const loadTodaysSummary = useCallback(async () => {
-    const result = await loadHistoryItems(["summary"]);
-    if (result.ok) setDailySummaryItem(findTodaysSummary(result.items));
-  }, []);
 
   const generateInsight = useCallback(async (force = false) => {
     void force;
@@ -309,45 +298,13 @@ export default function TodayPage() {
     loadActiveRaceGoalAndPlan().then((result) => { if (result.ok) setGoal(result.goal); });
     loadGoalProfileFromSupabase().then((res) => { if (res.ok) setGoalProfile(res.goalProfile); });
     queueMicrotask(() => void generateInsight());
-    queueMicrotask(() => void loadTodaysSummary());
-  }, [generateInsight, loadTodaysSummary]);
+  }, [generateInsight]);
 
   useEffect(() => {
-    const onDataUpdated = () => { setInsight(null); void generateInsight(true); void loadTodaysSummary(); };
+    const onDataUpdated = () => { setInsight(null); void generateInsight(true); };
     window.addEventListener("runmate:cloud-data-updated", onDataUpdated);
     return () => window.removeEventListener("runmate:cloud-data-updated", onDataUpdated);
-  }, [generateInsight, loadTodaysSummary]);
-
-  async function generateDailySummary() {
-    setDailySummaryLoading(true);
-    setDailySummaryError("");
-    setDailySummaryMessage("");
-    try {
-      const context = await buildCoachContextFromSupabase();
-      const existingResult = await loadHistoryItems(["summary"]);
-      const existingItem = existingResult.ok ? findTodaysSummary(existingResult.items) : dailySummaryItem;
-      const response = await fetch("/api/generate-daily-summary", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(context),
-      });
-      if (!response.ok) throw new Error("summary api failed");
-      const result = await response.json() as { data?: DailySummary };
-      if (!result.data) throw new Error("missing summary data");
-      const item = existingItem
-        ? { ...existingItem, data: result.data }
-        : createHistoryItem("summary", result.data);
-      const saveResult = await saveHistoryItems([item]);
-      if (!saveResult.ok) throw new Error(saveResult.error ?? "save failed");
-      setDailySummaryItem(item);
-      setDailySummaryMessage(existingItem ? "อัปเดตสรุปท้ายวันใน Report แล้ว" : "บันทึกสรุปท้ายวันเข้า Report แล้ว");
-    } catch (error) {
-      if (process.env.NODE_ENV === "development") console.warn("[end-of-day-summary-error]", error);
-      setDailySummaryError("สร้างสรุปท้ายวันไม่สำเร็จ ลองใหม่อีกครั้ง");
-    } finally {
-      setDailySummaryLoading(false);
-    }
-  }
+  }, [generateInsight]);
 
   const hasPace = isMeaningfulWorkoutTarget(insight?.workoutTarget);
   // insight.todayReadiness is the single source of truth for both the chip and the
@@ -355,7 +312,7 @@ export default function TodayPage() {
   // getRunMateReadinessLabel — never trust AI-returned label strings.
   const readinessScore = insight?.todayReadiness != null ? Math.round(insight.todayReadiness) : null;
   const readinessCoverage = buildReadinessCoverageSummary(coachCtx);
-  const todayChecklist = buildTodayChecklist(coachCtx, dailySummaryItem);
+  const todayChecklist = buildTodayChecklist(coachCtx);
   const hasWorkoutToday = Boolean(coachCtx?.hasWorkoutToday);
 
   const heroDecision = insight && coachCtx && !hasWorkoutToday ? getDecisionCard(insight, coachCtx) : null;
@@ -504,7 +461,6 @@ export default function TodayPage() {
             { href: `/upload?type=workout&subtype=${getRecommendedSubtype(insight, coachCtx)}`, icon: "🏃", label: "ซ้อม" },
             { href: "/pain", icon: "🩹", label: "เจ็บ" },
             { href: "/sick", icon: "🤒", label: "ป่วย" },
-            { href: "#end-of-day-summary", icon: "📋", label: "สรุปวัน" },
           ].map(({ href, icon, label }) => (
             <Link 
               key={href} 
@@ -632,16 +588,9 @@ export default function TodayPage() {
         );
       })()}
 
-      {/* "สรุปท้ายวัน" is already the card's own heading — no redundant outer label */}
-      <EndOfDaySummaryCard
-        item={dailySummaryItem}
-        loading={dailySummaryLoading}
-        error={dailySummaryError}
-        message={dailySummaryMessage}
-        onGenerate={() => void generateDailySummary()}
-      />
-
-      {/* Footer: race goal + re-analyze */}
+      {/* Footer: race goal + re-analyze — two unrelated actions, kept visually
+          distinct so the refresh button doesn't read as part of the race-goal
+          link next to it. */}
       <div className="flex items-center justify-between gap-3 rounded-2xl bg-rm-surface-soft px-3 py-2">
         {!goal ? (
           <Link href="/race-goal" className="text-xs font-medium text-rm-muted hover:text-rm-text">
@@ -649,8 +598,8 @@ export default function TodayPage() {
           </Link>
         ) : <span />}
         {/* Hidden when the error banner's own retry button is showing above (same
-            action, same label) — otherwise two identical "วิเคราะห์ใหม่" buttons
-            appear on screen at once during the fallback-with-error state. */}
+            action) — otherwise two "refresh" buttons appear on screen at once
+            during the fallback-with-error state. */}
         {insight && !(insightError && !loading) && (
           <LoadingButton
             type="button"
@@ -659,7 +608,7 @@ export default function TodayPage() {
             onClick={() => void generateInsight(true)}
             className="flex items-center gap-1.5 rounded-full bg-rm-surface px-3 py-1.5 text-xs font-bold text-rm-muted shadow-sm hover:bg-rm-border disabled:opacity-40"
           >
-            วิเคราะห์ใหม่
+            <span aria-hidden="true">↻</span> รีเฟรชคำแนะนำ
           </LoadingButton>
         )}
       </div>
@@ -1512,7 +1461,7 @@ function formatKm(value: unknown): string | null {
 
 type TodayChecklistItem = { label: string; href: string; done: boolean };
 
-function buildTodayChecklist(ctx: CoachContext | null, summaryItem: LocalHistoryItem | null): TodayChecklistItem[] {
+function buildTodayChecklist(ctx: CoachContext | null): TodayChecklistItem[] {
   const today = ctx?.todayDate || bangkokDateKey();
   // Pain counts if there's a log today OR if latestPain (within 7d) is already used in Today context
   const painDone = Boolean(
@@ -1524,7 +1473,6 @@ function buildTodayChecklist(ctx: CoachContext | null, summaryItem: LocalHistory
     { label: "บันทึกอาหาร", href: "/upload?type=meal", done: Boolean(ctx?.nutritionToday && ctx.nutritionToday.mealCount > 0) },
     { label: "บันทึกกิจกรรม", href: "/upload?type=workout", done: Boolean(ctx?.workouts7d.some((i) => i.date === today)) },
     { label: "เช็กอาการเจ็บ", href: "/pain", done: painDone },
-    { label: "สรุปท้ายวัน", href: "#end-of-day-summary", done: Boolean(summaryItem) },
   ];
 }
 
@@ -2319,114 +2267,6 @@ function CompactNutritionCard({ nutrition, profile }: { nutrition: NutritionDayS
   );
 }
 
-// ─── End-of-day Summary Card ───────────────────────────────────────────────────
-
-function EndOfDaySummaryCard({
-  item,
-  loading,
-  error,
-  message,
-  onGenerate,
-}: {
-  item: LocalHistoryItem | null;
-  loading: boolean;
-  error: string;
-  message: string;
-  onGenerate: () => void;
-}) {
-  const summary = item?.data as DailySummary | undefined;
-  const hasSummary = Boolean(summary);
-  const generatedAt = item ? formatSummaryGeneratedAt(item.createdAt) : "";
-  const existingSummaryNote = `สรุปจาก Report ตอนกดล่าสุด${generatedAt ? ` · อัปเดตล่าสุด: ${generatedAt}` : ""}`;
-  const newSummaryNote = "ระบบจะสรุปจากข้อมูลใน Report ตอนกดสร้าง";
-
-  const bangkokHour = (() => {
-    try {
-      const now = new Date();
-      const formatter = new Intl.DateTimeFormat("en-GB", {
-        timeZone: "Asia/Bangkok",
-        hour: "2-digit",
-        hour12: false,
-      });
-      return Number(formatter.format(now));
-    } catch {
-      return new Date().getHours();
-    }
-  })();
-  const isEvening = bangkokHour >= 18;
-
-  // Case 1: summary exists -> show compact done state
-  if (hasSummary) {
-    return (
-      <div id="end-of-day-summary" className="flex items-center justify-between rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface-muted)]/40 px-4 py-2.5 text-xs text-[var(--foreground)] shadow-xs scroll-mt-6">
-        <span className="font-semibold text-[var(--foreground)]">📋 สรุปท้ายวันของวันนี้บันทึกเรียบร้อยแล้ว</span>
-        <details className="inline-block cursor-pointer">
-          <summary className="list-none text-[var(--primary)] font-bold hover:underline">ดูบันทึก</summary>
-          <div className="mt-2 text-left space-y-1 text-[var(--color-text-soft)] border-t border-[var(--color-border-soft)] pt-2 font-medium cursor-default">
-            <p className="font-bold text-[var(--foreground)] leading-snug">{summary?.overallSummary}</p>
-            {summary?.trainingReview && <p>ความรู้สึก/ซ้อม: {summary.trainingReview}</p>}
-            {summary?.tomorrowPlan && <p>แผนพรุ่งนี้: {summary.tomorrowPlan}</p>}
-            {summary?.coachMessage && (
-              <p className="mt-1.5 rounded-xl bg-[var(--primary-soft)] px-3 py-1.5 text-[11px] text-[var(--primary-strong)] font-semibold border border-[var(--primary-soft)]/40">
-                {summary.coachMessage}
-              </p>
-            )}
-            <p className="text-[10px] text-[var(--color-text-soft)] mt-1.5">{existingSummaryNote}</p>
-            <div className="flex gap-2 mt-2 pt-2 border-t border-[var(--color-border-soft)]">
-              <LoadingButton type="button" loading={loading} loadingText="กำลังอัปเดต..." onClick={onGenerate} className="rounded-full bg-[var(--surface)] border border-[var(--color-border-soft)] px-3 py-1 text-[10px] font-bold text-[var(--color-text-soft)] hover:bg-[var(--surface-muted)]">
-                อัปเดตสรุปท้ายวัน
-              </LoadingButton>
-            </div>
-          </div>
-        </details>
-      </div>
-    );
-  }
-
-  // Case 2: summary missing & before evening -> show collapsed details card
-  if (!isEvening) {
-    return (
-      <details id="end-of-day-summary" className="group rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface-muted)]/20 px-4 py-3.5 shadow-sm cursor-pointer scroll-mt-6">
-        <summary className="flex list-none items-center justify-between gap-3 text-sm font-semibold text-[var(--foreground)]">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-[var(--foreground)]">สรุปท้ายวัน</p>
-            <p className="text-[11px] text-[var(--color-text-soft)] font-medium mt-0.5">ช่วยให้โค้ชเข้าใจวันนี้มากขึ้น</p>
-          </div>
-          <div className="flex items-center gap-1 text-[11px] text-[var(--primary)] font-bold shrink-0">
-            <span className="group-open:hidden">เขียนสรุป</span>
-            <span className="hidden group-open:inline">ปิด</span>
-            <span className="transition-transform group-open:rotate-180">▾</span>
-          </div>
-        </summary>
-        <div className="mt-3.5 pt-3.5 border-t border-[var(--color-border-soft)] cursor-default space-y-3">
-          <p className="text-xs text-[var(--color-text-soft)] leading-relaxed">กดก่อนนอนเพื่อสรุปวันนี้และวางแผนพรุ่งนี้จากข้อมูลใน Report ({newSummaryNote})</p>
-          {message && <p className="text-xs font-semibold text-[var(--color-success)]">{message}</p>}
-          {error && <p className="rounded-xl bg-[var(--color-danger-soft)] px-3 py-2 text-xs font-semibold text-[var(--color-danger)]">{error}</p>}
-          <LoadingButton type="button" loading={loading} loadingText="กำลังสร้างสรุป..." onClick={onGenerate} className="w-full rounded-full border border-[var(--primary-soft)] bg-[var(--primary-soft)]/60 hover:bg-[var(--primary-soft)] py-2 text-xs font-bold text-[var(--primary-strong)] transition disabled:opacity-50">
-            สร้างสรุปท้ายวัน
-          </LoadingButton>
-        </div>
-      </details>
-    );
-  }
-
-  // Case 3: summary missing & evening -> show prominent uploader card
-  return (
-    <section id="end-of-day-summary" className="card border border-[var(--color-border-soft)] bg-[var(--surface-muted)]/20 scroll-mt-6 px-4 py-3.5 space-y-3">
-      <div>
-        <p className="text-xs font-bold uppercase tracking-wider text-[var(--foreground)]">สรุปท้ายวัน</p>
-        <p className="mt-1 text-xs leading-relaxed text-[var(--color-text-soft)]">กดก่อนนอนเพื่อสรุปวันนี้และวางแผนพรุ่งนี้จากข้อมูลใน Report</p>
-        <p className="mt-1 text-[10px] text-[var(--color-text-soft)]">{newSummaryNote}</p>
-      </div>
-      {message && <p className="text-xs font-semibold text-[var(--color-success)]">{message}</p>}
-      {error && <p className="rounded-xl bg-[var(--color-danger-soft)] px-3 py-2 text-xs font-semibold text-[var(--color-danger)]">{error}</p>}
-      <LoadingButton type="button" loading={loading} loadingText="กำลังสร้างสรุป..." onClick={onGenerate} className="w-full rounded-full border border-[var(--primary-soft)] bg-[var(--primary-soft)]/60 hover:bg-[var(--primary-soft)] py-2.5 text-xs font-bold text-[var(--primary-strong)] transition disabled:opacity-50">
-        สรุปท้ายวัน
-      </LoadingButton>
-    </section>
-  );
-}
-
 // ─── Sick Day Entry Card ───────────────────────────────────────────────────────
 
 function SickDayEntryCard({ coachCtx }: { coachCtx: CoachContext }) {
@@ -2496,23 +2336,3 @@ function bangkokDateKey(date = new Date()): string {
   return new Date(date.getTime() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
 }
 
-function historyItemBangkokDate(item: LocalHistoryItem): string {
-  return getHistoryItemDateKey(item);
-}
-
-function formatSummaryGeneratedAt(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return new Intl.DateTimeFormat("th-TH", {
-    day: "numeric",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "Asia/Bangkok",
-  }).format(date);
-}
-
-function findTodaysSummary(items: LocalHistoryItem[]): LocalHistoryItem | null {
-  const today = bangkokDateKey();
-  return items.find((item) => item.type === "summary" && historyItemBangkokDate(item) === today) ?? null;
-}
