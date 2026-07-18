@@ -55,18 +55,25 @@ describe("buildTodaySignals — energy signal (null-safety)", () => {
     expect(sig.tone).toBe("bad");
   });
 
-  it("energyScore = null, 1 meal logged → ยังไม่ชัด (partial data, not confident)", () => {
+  it("energyScore = null, 1 meal logged → trusts the fuel axis score, matching the Recovery detail card", () => {
+    // Reported bug: this used to hardcode "ยังไม่ชัด" regardless of fuelScore,
+    // even though the Fuel axis (recoverySystem.ts) already produces a real
+    // score off just 1 meal — causing the compact signal to disagree with the
+    // "ดูรายละเอียด Recovery" card showing the same score.
     const ctx = makeCtx({
       latestEnergyScore: null,
       mealsToday: [{ mealType: "breakfast", foods: ["ข้าว"], caloriesKcal: 400, proteinG: 20, carbsG: 60, fatG: 10, fiberG: 3, fatLoad: "low", coachNote: null }],
-      recoverySystem: makeRecoverySys({ fuelScore: 75 }),
+      recoverySystem: makeRecoverySys({ fuelScore: 50 }),
     });
     const sig = buildTodaySignals(ctx).find((s) => s.key === "energy")!;
-    expect(sig.tone).toBe("neutral");
-    expect(sig.value).toBe("ยังไม่ชัด");
+    // Label thresholds (80/66/50) and tone thresholds (75/55/35) aren't the
+    // same scale — a 50 is "พอใช้" by label but "warn" by tone, same as the
+    // Recovery detail card would show for this score.
+    expect(sig.tone).toBe("warn");
+    expect(sig.value).toBe("พอใช้");
   });
 
-  it("energyScore = null, >= 2 meals + fuel score → uses fuel proxy", () => {
+  it("energyScore = null, meals logged → uses the same getRecoveryAxisLabel wording as the Recovery detail card", () => {
     const meal = { mealType: "breakfast" as const, foods: ["ข้าว"], caloriesKcal: 400, proteinG: 20, carbsG: 60, fatG: 10, fiberG: 3, fatLoad: "low" as const, coachNote: null };
     const ctx = makeCtx({
       latestEnergyScore: null,
@@ -75,7 +82,7 @@ describe("buildTodaySignals — energy signal (null-safety)", () => {
     });
     const sig = buildTodaySignals(ctx).find((s) => s.key === "energy")!;
     expect(sig.tone).toBe("good");
-    expect(sig.value).toBe("เพียงพอ");
+    expect(sig.value).toBe("ดี");
   });
 });
 
@@ -95,13 +102,13 @@ describe("buildTodaySignals — recovery signal", () => {
     expect(sig.tone).toBe("good");
   });
 
-  it("recovery score < 50 with sleep data → tone = bad", () => {
+  it("recovery score < 50 with sleep data → tone = warn, not bad (low alone is never danger — see getRecoveryAxisCoachingTone)", () => {
     const ctx = makeCtx({
       sleep7d: [{ date: "2026-07-04", durationH: "5.0", durationMinutes: 300, score: 45, readiness: 45, restingHR: 65, hrv: 35, energyScore: 40 }],
       recoverySystem: makeRecoverySys({ recoveryScore: 40 }),
     });
     const sig = buildTodaySignals(ctx).find((s) => s.key === "recovery")!;
-    expect(sig.tone).toBe("bad");
+    expect(sig.tone).toBe("warn");
   });
 });
 
@@ -148,12 +155,12 @@ describe("buildTodaySignals — load signal", () => {
     expect(["good", "neutral"]).toContain(sig.tone);
   });
 
-  it("high load score (>= 70) → load tone = bad (body stressed)", () => {
+  it("high load score → load tone = warn, not bad (CLAUDE.md: load is warning/amber when high, never danger/red)", () => {
     const ctx = makeCtx({
       totalRunKm: 55,
       recoverySystem: makeRecoverySys({ loadScore: 75 }),
     });
     const sig = buildTodaySignals(ctx).find((s) => s.key === "load")!;
-    expect(sig.tone).toBe("bad");
+    expect(sig.tone).toBe("warn");
   });
 });
