@@ -1733,7 +1733,6 @@ function buildGaugeSubline(ctx: CoachContext | null | undefined, status: GaugeSt
   const load = ctx?.recoverySystem?.axes?.load?.score ?? 0;
   if (load >= 75) return "โหลดสูง";
   if (status === "recovery") return "ฟื้นตัวก่อน";
-  if (status === "caution") return "คุมระดับไว้";
   if (status === "fair") return "ระวังสะสมล้า";
   return undefined;
 }
@@ -1744,8 +1743,6 @@ function mapGaugeStatusToTone(status: GaugeStatus): RmTone {
     case "good":
     case "fair":
       return "ready";
-    case "caution":
-      return "caution";
     case "recovery":
       return "recovery";
     case "risk":
