@@ -781,21 +781,21 @@ function PreWorkoutFocusContent({
 
   const badgeInfo = (() => {
     if (context?.sickRiskLevel === "hard_stop") {
-      return { icon: "🛑", title: "งดซ้อมเด็ดขาด", subtitle: "วันนี้ร่างกายป่วย ต้องพักผ่อนฟื้นตัวก่อน", tone: "danger" };
+      return { icon: "🛑", eyebrow: "งดซ้อมเด็ดขาด", headline: "วันนี้ร่างกายป่วย ไม่ซ้อมวันนี้ เน้นพักผ่อนฟื้นตัวก่อน", tone: "danger" };
     }
     if (isRest) {
-      return { icon: "🧘", title: "เน้นพักผ่อน", subtitle: "ไม่มีเป้าซ้อมหนัก เน้นยืดเหยียดและฟื้นตัว", tone: "rest" };
+      return { icon: "🧘", eyebrow: "เน้นพักผ่อน", headline: insight.workoutRec || "ไม่มีเป้าซ้อมหนัก เน้นยืดเหยียดและฟื้นตัว", tone: "rest" };
     }
     if (recommendationType === "run") {
-      return { icon: "🏃", title: "เป้าหมาย: วิ่งซ้อม", subtitle: insight.workoutTarget || "ตามระดับความเหนื่อยที่แนะนำ", tone: "run" };
+      return { icon: "🏃", eyebrow: "วิ่งซ้อม", headline: insight.workoutRec || "ตามระดับความเหนื่อยที่แนะนำ", tone: "run" };
     }
     if (recommendationType === "strength") {
-      return { icon: "🏋️", title: "เป้าหมาย: เวทเทรนนิ่ง", subtitle: "เสริมสร้างกล้ามเนื้อและแกนกลาง", tone: "strength" };
+      return { icon: "🏋️", eyebrow: "เวทเทรนนิ่ง", headline: insight.workoutRec || "เสริมสร้างกล้ามเนื้อและแกนกลาง", tone: "strength" };
     }
     if (recommendationType === "walk") {
-      return { icon: "🚶", title: "เป้าหมาย: เดิน/ขยับเบา ๆ", subtitle: "Active Recovery ไม่ให้ร่างกายตึง", tone: "walk" };
+      return { icon: "🚶", eyebrow: "เดิน/ขยับเบา ๆ", headline: insight.workoutRec || "Active Recovery ไม่ให้ร่างกายตึง", tone: "walk" };
     }
-    return { icon: "✨", title: "เป้าหมายซ้อมวันนี้", subtitle: insight.workoutTarget || "ฟื้นฟูร่างกายตามคำแนะนำ", tone: "other" };
+    return { icon: "✨", eyebrow: "เป้าหมายซ้อมวันนี้", headline: insight.workoutRec || "ฟื้นฟูร่างกายตามคำแนะนำ", tone: "other" };
   })();
 
   const isSickHardStop = context?.sickRiskLevel === "hard_stop";
@@ -814,27 +814,22 @@ function PreWorkoutFocusContent({
       )}>
         <span className="text-3xl shrink-0 select-none">{badgeInfo.icon}</span>
         <div className="min-w-0 flex-1">
-          <h3 className="text-sm font-black tracking-tight">{badgeInfo.title}</h3>
+          <p className="text-[10px] font-bold uppercase tracking-[0.1em] opacity-70">{badgeInfo.eyebrow}</p>
           {isSickHardStop ? (
             <div data-testid="sick-rest-bullets">
-              <p className="text-[11px] font-semibold text-red-600/90 mt-0.5 leading-snug">{badgeInfo.subtitle}</p>
+              <h3 className="text-sm font-black tracking-tight mt-0.5 leading-snug text-red-700">{badgeInfo.headline}</h3>
             </div>
           ) : (
-            <p className="text-[11px] font-semibold text-[var(--color-text-soft)] mt-0.5 leading-snug">
-              {badgeInfo.subtitle}
-            </p>
+            <h3 className="text-sm font-black tracking-tight mt-0.5 leading-snug">
+              {badgeInfo.headline}
+            </h3>
           )}
-          {hasPace && !isSickHardStop && (
+          {hasPace && !isSickHardStop && !isRest && (
             <span className="inline-block mt-1.5 rounded-full bg-[var(--primary-soft)] px-2.5 py-0.5 text-[10px] font-bold text-[var(--primary-strong)]" data-testid="pace-target-pill">
               เป้าหมาย: {insight.workoutTarget}
             </span>
           )}
         </div>
-      </div>
-
-      {/* Description sentence */}
-      <div className="border-l-2 border-[var(--color-border-soft)] pl-3 py-0.5">
-        <p className="text-xs font-semibold text-[var(--color-text-soft)] leading-relaxed">{insight.workoutRec}</p>
       </div>
 
       {/* 3. Collapsed reasons — "ดูเหตุผล" / "ซ่อนเหตุผล" toggle via <details> */}
