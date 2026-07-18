@@ -1953,8 +1953,8 @@ function TodaySnapshotCard({
         );
       })()}
 
-      {/* Compact today pace card — only when race goal with target time exists */}
-      {!loading && coachCtx?.raceGoal && dailyReadiness && (() => {
+      {/* Compact today pace card — only when race goal with target time exists and no workout completed yet */}
+      {!loading && coachCtx?.raceGoal && dailyReadiness && !hasWorkoutToday && (() => {
         const rg = coachCtx.raceGoal as Record<string, unknown>;
         const paceBands = buildTrainingPaceBands({
           raceDistance: (rg.raceDistance as string) ?? "",
