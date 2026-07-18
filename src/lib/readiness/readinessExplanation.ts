@@ -3,7 +3,7 @@ import type { DailyReadiness } from "./readinessTypes";
 
 type ExplanationInput = Pick<
   DailyReadiness,
-  "band" | "loadTarget" | "reasons" | "signals" | "hasSleepData"
+  "band" | "loadTarget" | "reasons" | "signals" | "hasSleepData" | "hasPainWarning"
 >;
 
 /**
@@ -12,17 +12,15 @@ type ExplanationInput = Pick<
  * Returns null when no clarification is needed (e.g. all-clear green band).
  */
 export function buildReadinessExplanation(input: ExplanationInput): string | null {
-  const { band, loadTarget, reasons, signals } = input;
+  const { band, loadTarget, reasons, signals, hasPainWarning } = input;
 
   if (band === "pain_risk") return null;
 
   const loadSig = signals.find((s) => s.key === "load");
-  const painSig = signals.find((s) => s.key === "pain");
   const recoverySig = signals.find((s) => s.key === "recovery");
 
   const hasHighLoad = loadSig?.tone === "bad";
   const hasPoorRecovery = recoverySig?.tone === "bad";
-  const hasPainWarning = painSig?.tone === "warn" || painSig?.tone === "bad";
   const hasPainReason = reasons.some((r) => r.key === "pain_recent" || r.key === "pain_active");
 
   // Green band but easy/walk target → load is the limiting factor, not recovery

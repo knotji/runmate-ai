@@ -3,12 +3,18 @@ import type { CoachContext } from "@/lib/buildCoachContext";
 import { getRecoveryAxisLabel, getAxisTone } from "@/lib/recoverySystem";
 import type { SignalTone, TodaySignal } from "./readinessTypes";
 
+// The full 4 Recovery axes (recovery/load/sleep/fuel) — matches the "ดูรายละเอียด
+// Recovery" breakdown exactly. Pain doesn't get its own slot here: it's
+// safety-critical and already gets dedicated, always-visible real estate
+// elsewhere on the page (CompactPainCard / the sick hard-stop InsightCard),
+// so this row doesn't need to duplicate it — see buildReadinessExplanation
+// for where pain status still feeds the recommendation logic.
 export function buildTodaySignals(ctx: CoachContext): TodaySignal[] {
   return [
     buildRecoverySignal(ctx),
     buildLoadSignal(ctx),
+    buildSleepSignal(ctx),
     buildEnergySignal(ctx),
-    buildPainSignal(ctx),
   ];
 }
 
@@ -93,28 +99,29 @@ function buildEnergySignal(ctx: CoachContext): TodaySignal {
   return { key: "energy", label: "พลังงาน", value, icon: "⚡", tone };
 }
 
-function buildPainSignal(ctx: CoachContext): TodaySignal {
-  if (ctx.activePain && ctx.latestPain) {
-    const level = ctx.latestPain.painLevel ?? 0;
-    const value = level > 0 ? `${level}/10` : "มีอาการ";
-    return { key: "pain", label: "เจ็บ", value, icon: "🩹", tone: "bad" };
+function buildSleepSignal(ctx: CoachContext): TodaySignal {
+  const score = ctx.recoverySystem?.axes?.sleep?.score ?? null;
+  const hasSleepData = ctx.sleep7d.length > 0;
+
+  if (!hasSleepData || score === null) {
+    return { key: "sleep", label: "นอน", value: "ไม่มีข้อมูล", icon: "🌙", tone: "neutral" };
   }
 
-  // Use explicit painRecoveryStatus for precise display
+  return {
+    key: "sleep",
+    label: "นอน",
+    value: getRecoveryAxisLabel("sleep", score),
+    icon: "🌙",
+    tone: toSignalTone(getAxisTone("sleep", score)),
+  };
+}
+
+// Pain status still feeds the recommendation logic (buildReadinessExplanation,
+// buildReasons) even though it no longer has its own signal-row slot — kept
+// here as the one shared place that decides "is there a pain warning right now".
+export function hasPainWarning(ctx: CoachContext): boolean {
+  if (ctx.activePain) return true;
   const prs = ctx.painRecoveryStatus;
-  if (prs === "cleared_normal") {
-    return { key: "pain", label: "เจ็บ", value: "ไม่มีเจ็บ", icon: "🩹", tone: "good" };
-  }
-  if (prs === "cleared_light") {
-    return { key: "pain", label: "เจ็บ", value: "เบา ๆ ได้", icon: "🩹", tone: "warn" };
-  }
-  if (prs === "improving" || prs === "recent_pain") {
-    return { key: "pain", label: "เจ็บ", value: "กำลังฟื้น", icon: "🩹", tone: "warn" };
-  }
-
-  if ((ctx.recentPainHistory || ctx.painResolved) && ctx.latestPain) {
-    return { key: "pain", label: "เจ็บ", value: "กำลังฟื้น", icon: "🩹", tone: "warn" };
-  }
-
-  return { key: "pain", label: "เจ็บ", value: "ไม่มีอาการ", icon: "🩹", tone: "good" };
+  if (prs === "cleared_light" || prs === "improving" || prs === "recent_pain") return true;
+  return Boolean((ctx.recentPainHistory || ctx.painResolved) && ctx.latestPain);
 }

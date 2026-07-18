@@ -1,33 +1,59 @@
 import { describe, expect, it } from "vitest";
-import { buildTodaySignals } from "@/lib/readiness/todaySignals";
+import { buildTodaySignals, hasPainWarning } from "@/lib/readiness/todaySignals";
 import { makeCtx, makeRecoverySys, makePainSummary } from "./fixtures";
 
-describe("buildTodaySignals — pain signal", () => {
-  it("active pain → pain signal tone = bad", () => {
-    const ctx = makeCtx({
-      activePain: true,
-      latestPain: makePainSummary(5),
-    });
-    const sig = buildTodaySignals(ctx).find((s) => s.key === "pain")!;
-    expect(sig.tone).toBe("bad");
-    expect(sig.value).toContain("5/10");
+// Pain no longer has its own signal-row slot (it already gets dedicated,
+// always-visible cards elsewhere on the page — CompactPainCard / the sick
+// hard-stop InsightCard) — but hasPainWarning() still feeds the
+// recommendation/explanation logic, so it's tested directly here.
+describe("hasPainWarning", () => {
+  it("active pain → true", () => {
+    const ctx = makeCtx({ activePain: true, latestPain: makePainSummary(5) });
+    expect(hasPainWarning(ctx)).toBe(true);
   });
 
-  it("recent / resolved pain (recent_pain status) → pain signal tone = warn", () => {
+  it("recent / resolved pain (recent_pain status) → true", () => {
     const ctx = makeCtx({
       activePain: false,
       recentPainHistory: true,
       painRecoveryStatus: "recent_pain",
       latestPain: { ...makePainSummary(3), hasActivePain: false, hasResolvedPain: true, resolved: true, painStatus: "resolved" as const },
     });
-    const sig = buildTodaySignals(ctx).find((s) => s.key === "pain")!;
-    expect(sig.tone).toBe("warn");
+    expect(hasPainWarning(ctx)).toBe(true);
   });
 
-  it("no pain → pain signal tone = good", () => {
+  it("no pain → false", () => {
     const ctx = makeCtx({ activePain: false, latestPain: null });
-    const sig = buildTodaySignals(ctx).find((s) => s.key === "pain")!;
+    expect(hasPainWarning(ctx)).toBe(false);
+  });
+});
+
+describe("buildTodaySignals — sleep signal", () => {
+  it("no sleep data → sleep tone = neutral", () => {
+    const ctx = makeCtx({ sleep7d: [] });
+    const sig = buildTodaySignals(ctx).find((s) => s.key === "sleep")!;
+    expect(sig.tone).toBe("neutral");
+    expect(sig.value).toBe("ไม่มีข้อมูล");
+  });
+
+  it("sleep score 80 with sleep data → matches getRecoveryAxisLabel/getAxisTone wording", () => {
+    const ctx = makeCtx({
+      sleep7d: [{ date: "2026-07-04", durationH: "7.5", durationMinutes: 450, score: 78, readiness: 78, restingHR: 52, hrv: 55, energyScore: 75 }],
+      recoverySystem: makeRecoverySys({ sleepScore: 80 }),
+    });
+    const sig = buildTodaySignals(ctx).find((s) => s.key === "sleep")!;
     expect(sig.tone).toBe("good");
+    expect(sig.value).toBe("ดีมาก");
+  });
+
+  it("sleep score 40 with sleep data → tone = warn, not bad (low alone is never danger)", () => {
+    const ctx = makeCtx({
+      sleep7d: [{ date: "2026-07-04", durationH: "5.0", durationMinutes: 300, score: 45, readiness: 45, restingHR: 65, hrv: 35, energyScore: 40 }],
+      recoverySystem: makeRecoverySys({ sleepScore: 40 }),
+    });
+    const sig = buildTodaySignals(ctx).find((s) => s.key === "sleep")!;
+    expect(sig.tone).toBe("warn");
+    expect(sig.value).toBe("ต่ำ");
   });
 });
 
@@ -112,36 +138,29 @@ describe("buildTodaySignals — recovery signal", () => {
   });
 });
 
-describe("buildTodaySignals — pain signal with painRecoveryStatus", () => {
-  it("cleared_normal → tone=good, value=ไม่มีเจ็บ", () => {
+describe("hasPainWarning — painRecoveryStatus", () => {
+  it("cleared_normal → false", () => {
     const ctx = makeCtx({ activePain: false, painRecoveryStatus: "cleared_normal" });
-    const sig = buildTodaySignals(ctx).find((s) => s.key === "pain")!;
-    expect(sig.tone).toBe("good");
-    expect(sig.value).toBe("ไม่มีเจ็บ");
+    expect(hasPainWarning(ctx)).toBe(false);
   });
 
-  it("cleared_light → tone=warn, value=เบา ๆ ได้", () => {
+  it("cleared_light → true", () => {
     const ctx = makeCtx({ activePain: false, painRecoveryStatus: "cleared_light" });
-    const sig = buildTodaySignals(ctx).find((s) => s.key === "pain")!;
-    expect(sig.tone).toBe("warn");
-    expect(sig.value).toBe("เบา ๆ ได้");
+    expect(hasPainWarning(ctx)).toBe(true);
   });
 
-  it("improving → tone=warn, value=กำลังฟื้น", () => {
+  it("improving → true", () => {
     const ctx = makeCtx({ activePain: false, painRecoveryStatus: "improving" });
-    const sig = buildTodaySignals(ctx).find((s) => s.key === "pain")!;
-    expect(sig.tone).toBe("warn");
-    expect(sig.value).toBe("กำลังฟื้น");
+    expect(hasPainWarning(ctx)).toBe(true);
   });
 
-  it("active_pain always overrides to bad regardless of painRecoveryStatus", () => {
+  it("active pain always true regardless of painRecoveryStatus", () => {
     const ctx = makeCtx({
       activePain: true,
       latestPain: makePainSummary(5),
       painRecoveryStatus: "cleared_normal", // override should not matter
     });
-    const sig = buildTodaySignals(ctx).find((s) => s.key === "pain")!;
-    expect(sig.tone).toBe("bad");
+    expect(hasPainWarning(ctx)).toBe(true);
   });
 });
 

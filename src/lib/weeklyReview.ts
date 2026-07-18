@@ -2,6 +2,7 @@
 import type { LocalHistoryItem } from "@/lib/localHistory";
 import { getHistoryItemDateKey, getBangkokDateKey } from "@/lib/date";
 import { dedupeSleepItems } from "@/lib/sleepDedupe";
+import { getRunMateReadinessLabel } from "@/lib/readinessV2";
 
 export type WeeklyReview = {
   runningKmTotal: number;
@@ -182,22 +183,16 @@ export function buildWeeklyReview(items: LocalHistoryItem[], todayDateKey: strin
   const painDays = new Set(painItems.map((i) => getHistoryItemDateKey(i))).size;
   const activePainDays = activePainSet.size;
 
-  // ─── Readiness label ──────────────────────────────────────────────────────
-  function readinessLabel(score: number | null): string {
-    if (score == null) return "–";
-    if (score >= 80) return "Excellent";
-    if (score >= 66) return "Good";
-    if (score >= 50) return "Fair";
-    return "Low";
-  }
-
   // ─── Highlights ───────────────────────────────────────────────────────────
   const highlights: string[] = [];
   if (runCount >= 3) highlights.push(`ซ้อมสม่ำเสมอ ${runCount} ครั้งใน 7 วัน`);
   if (runningKmTotal >= 20) highlights.push(`วิ่งรวม ${Math.round(runningKmTotal * 10) / 10} km สัปดาห์นี้`);
   if (strengthCount >= 2) highlights.push(`เวท ${strengthCount} ครั้ง — ดูแลกล้ามเนื้อดี`);
   if (avgSleepHours != null && avgSleepHours >= 7) highlights.push(`นอนเฉลี่ย ${avgSleepHours} ชม. — พักผ่อนเพียงพอ`);
-  if (avgReadiness != null && avgReadiness >= 70) highlights.push(`Readiness เฉลี่ย ${readinessLabel(avgReadiness)}`);
+  // Same score→label lookup the Logs page's own "Readiness {label}" line uses
+  // (getRunMateReadinessLabel) — a locally re-derived copy here previously
+  // matched it by coincidence, not by construction.
+  if (avgReadiness != null && avgReadiness >= 70) highlights.push(`Readiness เฉลี่ย ${getRunMateReadinessLabel(avgReadiness)}`);
   if (resolvedPainCount > 0 && activePainDays === 0) highlights.push("อาการเจ็บหายแล้ว — กลับมาซ้อมได้");
   if (mealCount >= 10) highlights.push(`บันทึกอาหาร ${mealCount} มื้อ`);
   if (overCapRatio != null && overCapRatio <= 0.2) highlights.push("Easy ส่วนใหญ่คุม HR ได้ดี");

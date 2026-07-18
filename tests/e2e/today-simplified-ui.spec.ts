@@ -64,27 +64,26 @@ test.describe("Today simplified UI", () => {
     await expect(page.getByText("ซ่อนเหตุผล").first()).toBeVisible();
   });
 
-  test("3. Sick hard-stop replaces เจ็บ signal with ป่วย (no active pain)", async ({ page }) => {
+  test("3. Signal circles show the 4 Recovery axes, not a pain/sick slot", async ({ page }) => {
     const state = await installMockBackend(page);
     state.history.push(makeSickRecord(bangkokDateKey(), "sick-simp-1", ["fever"], "moderate"));
     await gotoApp(page, "/");
 
     const circles = page.getByTestId("signal-circles");
     await expect(circles).toBeVisible();
-    // ป่วย signal should be present in the circle row
-    await expect(circles).toContainText("ป่วย");
-    await expect(circles).toContainText("ควรพัก");
-    // เจ็บ label should NOT appear in the signal circles when sick replaces it
+    // Pain/sick alerts have their own dedicated cards elsewhere on the page —
+    // this row is always ฟื้นตัว/โหลด/นอน/พลังงาน, unaffected by either.
+    await expect(circles).not.toContainText("ป่วย");
     await expect(circles).not.toContainText("เจ็บ");
+    await expect(circles).toContainText("นอน");
   });
 
-  test("4. Signal circles always show exactly 4 when sick and no pain", async ({ page }) => {
+  test("4. Signal circles always show exactly 4, sick or not", async ({ page }) => {
     const state = await installMockBackend(page);
     state.history.push(makeSleepRecord(bangkokDateKey(), "sleep-simp-3"));
     state.history.push(makeSickRecord(bangkokDateKey(), "sick-simp-2", ["fever"], "moderate"));
     await gotoApp(page, "/");
 
-    // Should always be 4 signal circles (sick replaces pain, not adds a 5th)
     await expect(page.getByTestId("signal-circle")).toHaveCount(4);
   });
 

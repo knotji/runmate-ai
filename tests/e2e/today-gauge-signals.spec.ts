@@ -87,7 +87,7 @@ test("Today: signal circles row is visible with 4 circles when no sick", async (
   await expect(page.getByTestId("signal-circle")).toHaveCount(4);
 });
 
-test("Today: sick hard-stop shows ป่วย signal in circle row (replaces เจ็บ)", async ({ page }) => {
+test("Today: sick hard-stop does not change the signal circle row (sick status has its own dedicated card elsewhere)", async ({ page }) => {
   const state = await installMockBackend(page);
   state.history.push(
     makeSickRecord(bangkokDateKey(), "sick-gauge-1", ["fever"], "moderate")
@@ -95,10 +95,14 @@ test("Today: sick hard-stop shows ป่วย signal in circle row (replaces �
 
   await gotoApp(page, "/");
 
+  // The row always shows the 4 Recovery axes (ฟื้นตัว/โหลด/นอน/พลังงาน) — it no
+  // longer swaps a signal out for "ป่วย"; the sick hard-stop InsightCard
+  // elsewhere on the page (see "Today: sick hard-stop gauge shows..." below)
+  // already carries that alert.
   const circles = page.getByTestId("signal-circles");
   await expect(circles).toBeVisible();
-  await expect(circles).toContainText("ป่วย");
-  await expect(circles).toContainText("ควรพัก");
+  await expect(page.getByTestId("signal-circle")).toHaveCount(4);
+  await expect(circles).not.toContainText("ป่วย");
 });
 
 test("Today: sick hard-stop gauge shows วันนี้ควรพักก่อน headline", async ({ page }) => {
