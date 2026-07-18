@@ -38,6 +38,8 @@ export async function GET(request: NextRequest) {
     let workoutsSkippedManual = 0;
     let workoutsSkippedDuplicate = 0;
     let sleepSkippedNap = 0;
+    let sleepCoachBackfilled = 0;
+    let workoutCoachBackfilled = 0;
     let failed = 0;
 
     for (const connection of connections) {
@@ -53,6 +55,8 @@ export async function GET(request: NextRequest) {
       workoutsSkippedManual += result.workoutsSkippedManual;
       workoutsSkippedDuplicate += result.workoutsSkippedDuplicate;
       sleepSkippedNap += result.sleepSkippedNap;
+      sleepCoachBackfilled += result.sleepCoachBackfilled;
+      workoutCoachBackfilled += result.workoutCoachBackfilled;
     }
 
     return NextResponse.json({
@@ -65,6 +69,8 @@ export async function GET(request: NextRequest) {
       workoutsSkippedManual,
       workoutsSkippedDuplicate,
       sleepSkippedNap,
+      sleepCoachBackfilled,
+      workoutCoachBackfilled,
       failed,
     });
   } catch (error) {

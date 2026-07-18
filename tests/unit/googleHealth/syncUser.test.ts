@@ -8,12 +8,16 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 type Row = Record<string, unknown>;
 
+// Resolves PostgREST-style JSON path column refs (e.g. "data->>dateKey",
+// "data->coach->>aiSummary") against a plain row object.
 function resolvePath(row: Row, col: string): unknown {
-  if (col === "data->>dateKey") {
-    const data = row.data as Record<string, unknown> | undefined;
-    return data?.dateKey;
+  if (!col.includes("->")) return row[col];
+  const parts = col.split(/->>?/).filter(Boolean);
+  let value: unknown = row;
+  for (const part of parts) {
+    value = (value as Record<string, unknown> | undefined)?.[part];
   }
-  return row[col];
+  return value;
 }
 
 function makeFakeSupabase(seed: { history_items?: Row[] } = {}): SupabaseClient {
@@ -25,6 +29,7 @@ function makeFakeSupabase(seed: { history_items?: Row[] } = {}): SupabaseClient 
   function from(table: string) {
     const rows = tables[table];
     const filters: ((row: Row) => boolean)[] = [];
+    let limitCount: number | null = null;
 
     const builder = {
       select() {
@@ -34,6 +39,11 @@ function makeFakeSupabase(seed: { history_items?: Row[] } = {}): SupabaseClient 
         filters.push((row) => resolvePath(row, col) === val);
         return builder;
       },
+      like(col: string, pattern: string) {
+        const prefix = pattern.replace(/%/g, "");
+        filters.push((row) => String(resolvePath(row, col) ?? "").startsWith(prefix));
+        return builder;
+      },
       not(col: string, op: string, val: unknown) {
         if (op === "like") {
           const pattern = String(val).replace(/%/g, "");
@@ -41,7 +51,8 @@ function makeFakeSupabase(seed: { history_items?: Row[] } = {}): SupabaseClient 
         }
         return builder;
       },
-      limit() {
+      limit(n: number) {
+        limitCount = n;
         return builder;
       },
       async maybeSingle() {
@@ -66,7 +77,8 @@ function makeFakeSupabase(seed: { history_items?: Row[] } = {}): SupabaseClient 
       // callers that don't terminate the chain with .maybeSingle() — e.g.
       // fetching every matching row rather than a single one.
       then(resolve: (result: { data: Row[]; error: null }) => void) {
-        resolve({ data: rows.filter((row) => filters.every((f) => f(row))), error: null });
+        const matched = rows.filter((row) => filters.every((f) => f(row)));
+        resolve({ data: limitCount != null ? matched.slice(0, limitCount) : matched, error: null });
       },
     };
     return builder;
@@ -272,6 +284,87 @@ describe("syncGoogleHealthForConnection", () => {
     expect(result.workoutsImported).toBe(0);
     expect(result.workoutsSkippedDuplicate).toBe(1);
     expect(result.workoutsSkippedManual).toBe(0);
+  });
+
+  // Historical backfill (generateCoach: false) leaves fallback coach commentary
+  // on every item forever otherwise, since exact-id dedup means a later sync
+  // never revisits an already-imported item — this is the catch-up path.
+  describe("backfillMissingCoachCommentary (via a generateCoach: true sync)", () => {
+    const FALLBACK_WORKOUT_SUMMARY = "ข้อมูลซ้อมนำเข้าจาก Google Health แล้ว ระบบยังสรุปความเห็นเพิ่มเติมไม่สำเร็จ";
+    const FALLBACK_SLEEP_SUMMARY = "ข้อมูลนอนนำเข้าจาก Google Health แล้ว ระบบยังสรุปความเห็นเพิ่มเติมไม่สำเร็จ";
+
+    function staleWorkoutRow(id: string): Row {
+      return {
+        id,
+        user_id: "user-1",
+        type: "workout",
+        created_at: "2026-06-01T01:00:00Z",
+        data: { dateKey: "2026-06-01", extracted: { distanceKm: 5 }, coach: { workoutSummary: FALLBACK_WORKOUT_SUMMARY } },
+      };
+    }
+
+    it("regenerates coach commentary for a ghealth- item still carrying the fallback text", async () => {
+      installGoogleHealthFetchMock({ sleepDataPoints: [], exerciseDataPoints: [] });
+      const { syncGoogleHealthForConnection } = await import("@/lib/googleHealth/syncUser");
+      const admin = makeFakeSupabase({
+        history_items: [{
+          id: "ghealth-exercise-stale",
+          user_id: "user-1",
+          type: "sleep",
+          created_at: "2026-06-01T22:00:00Z",
+          data: { dateKey: "2026-06-01", extracted: { actualSleepDurationMinutes: 400 }, coach: { aiSummary: FALLBACK_SLEEP_SUMMARY } },
+        }],
+      }) as SupabaseClient & { __tables: { history_items: Row[] } };
+
+      const result = await syncGoogleHealthForConnection(admin, connection, "2026-07-01", { generateCoach: true });
+
+      expect(result.sleepCoachBackfilled).toBe(1);
+      // No AI provider configured in this test env, so jsonFromAI falls back to
+      // the same fallback object — but the important thing this test verifies
+      // is that the item was actually looked at and updated (the count above),
+      // not the specific content of a real AI response.
+      const updated = admin.__tables.history_items.find((r) => r.id === "ghealth-exercise-stale");
+      expect((updated?.data as { coach: { aiSummary: string } }).coach.aiSummary).toBe(FALLBACK_SLEEP_SUMMARY);
+    });
+
+    it("does not touch stale items when generateCoach is false (backfill itself)", async () => {
+      installGoogleHealthFetchMock({ sleepDataPoints: [], exerciseDataPoints: [] });
+      const { syncGoogleHealthForConnection } = await import("@/lib/googleHealth/syncUser");
+      const admin = makeFakeSupabase({ history_items: [staleWorkoutRow("ghealth-exercise-stale")] });
+
+      const result = await syncGoogleHealthForConnection(admin, connection, "2026-07-01", { generateCoach: false });
+
+      expect(result.workoutCoachBackfilled).toBe(0);
+    });
+
+    it("caps how many stale items get backfilled in a single sync call", async () => {
+      installGoogleHealthFetchMock({ sleepDataPoints: [], exerciseDataPoints: [] });
+      const { syncGoogleHealthForConnection } = await import("@/lib/googleHealth/syncUser");
+      const staleRows = Array.from({ length: 8 }, (_, i) => staleWorkoutRow(`ghealth-exercise-stale-${i}`));
+      const admin = makeFakeSupabase({ history_items: staleRows });
+
+      const result = await syncGoogleHealthForConnection(admin, connection, "2026-07-01", { generateCoach: true });
+
+      expect(result.workoutCoachBackfilled).toBe(5);
+    });
+
+    it("does not touch a manually-entered or already-real-analyzed item", async () => {
+      installGoogleHealthFetchMock({ sleepDataPoints: [], exerciseDataPoints: [] });
+      const { syncGoogleHealthForConnection } = await import("@/lib/googleHealth/syncUser");
+      const admin = makeFakeSupabase({
+        history_items: [{
+          id: "ghealth-exercise-already-real",
+          user_id: "user-1",
+          type: "workout",
+          created_at: "2026-06-01T01:00:00Z",
+          data: { dateKey: "2026-06-01", extracted: { distanceKm: 5 }, coach: { workoutSummary: "วิ่งดีมาก โหลดพอเหมาะ" } },
+        }],
+      });
+
+      const result = await syncGoogleHealthForConnection(admin, connection, "2026-07-01", { generateCoach: true });
+
+      expect(result.workoutCoachBackfilled).toBe(0);
+    });
   });
 
   it("imports a distinct second run on the same day that doesn't overlap the first", async () => {
