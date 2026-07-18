@@ -43,6 +43,7 @@ export default function RaceGoalPage() {
   const [raceResults, setRaceResults] = useState<RaceResult[]>([]);
   const [planFreshness, setPlanFreshness] = useState<PlanFreshness | null>(null);
   const [coachContext, setCoachContext] = useState<CoachContext | null>(null);
+  const [isWeekOpen, setIsWeekOpen] = useState(false);
 
   // Draft/replace mode — existing goal is never touched until user explicitly confirms
   const [isCreatingDraft, setIsCreatingDraft] = useState(false);
@@ -140,6 +141,7 @@ export default function RaceGoalPage() {
       setPlan(saveResult.plan);
       setPendingCreate(null);
       setIsCreatingDraft(false);
+      setIsWeekOpen(true);
       void refreshRacePlanFreshness(saveResult.plan, raceResults);
     } catch {
       setReplaceError(true);
@@ -198,7 +200,7 @@ export default function RaceGoalPage() {
             <p className="font-semibold text-[var(--foreground)]">ยังไม่มีเป้าหมายแข่ง</p>
             <p>สร้างเป้าหมาย 10K / 21K / 42K เพื่อให้ RunMate ช่วยวางแผนซ้อมให้เหมาะกับ recovery และ load ของคุณโดยเฉพาะ</p>
           </section>
-          <RaceGoalForm onCreated={(nextGoal, nextPlan) => { setGoal(nextGoal); setPlan(nextPlan); }} />
+          <RaceGoalForm onCreated={(nextGoal, nextPlan) => { setGoal(nextGoal); setPlan(nextPlan); setIsWeekOpen(true); }} />
         </>
       ) : (
         /* ── View mode: existing plan ── */
@@ -218,6 +220,8 @@ export default function RaceGoalPage() {
               workouts={plan.weeklyPlan.map(normalizeForDisplay)}
               coachContext={coachContext}
               todayAlreadyShownAbove={Boolean(selectedTodayWorkout)}
+              isOpen={isWeekOpen}
+              onToggle={setIsWeekOpen}
             />
           ) : null}
           <RecoveryGuardrailsCard coachContext={coachContext} />
@@ -629,6 +633,17 @@ const BAND_LABELS: Record<PaceBandKey, string> = {
 
 function PaceBandsCard({ goal, coachContext }: { goal: RaceGoal; coachContext: CoachContext | null }) {
   const bands = buildTrainingPaceBands(goal);
+  const sickHardStop = coachContext?.sickRiskLevel === "hard_stop";
+  const [isOpen, setIsOpen] = useState(false);
+  const [prevSick, setPrevSick] = useState(false);
+
+  if (sickHardStop !== prevSick) {
+    setPrevSick(sickHardStop);
+    if (sickHardStop) {
+      setIsOpen(true);
+    }
+  }
+
   if (!bands) return null;
 
   const dr = coachContext ? buildDailyReadiness(coachContext) : null;
@@ -639,57 +654,69 @@ function PaceBandsCard({ goal, coachContext }: { goal: RaceGoal; coachContext: C
   const allKeys: PaceBandKey[] = ["easy", "long", "tempo", "interval"];
 
   const { hrZones, easyCap } = buildHrGuidanceForContext(coachContext);
-  const sickHardStop = coachContext?.sickRiskLevel === "hard_stop";
   const hrCapLine = (() => {
     if (!hrZones || sickHardStop) return null;
     return easyCap ? easyCap.displayTh : null;
   })();
 
   return (
-    <section className="rounded-2xl border border-[var(--color-border-soft)] bg-[var(--surface)] px-4 py-3" data-testid="pace-bands-card">
-      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--label-color)]">ช่วงเพซซ้อมของคุณ</p>
-      <p className="mt-0.5 text-[10px] text-[var(--color-text-muted)]">คำนวณจากเป้าหมาย {goal.raceDistance} · {goal.targetTime}</p>
-      <div className="mt-2 space-y-1.5">
-        {allKeys.map((key) => {
-          const range = bands[key];
-          const allowed = allowedKeys.includes(key);
-          const showHrCap = hrCapLine && (key === "easy" || key === "long");
-          return (
-            <div key={key} className={`flex items-center justify-between gap-2 rounded-xl px-3 py-1.5 ${allowed ? "bg-[var(--primary-soft)]" : "bg-[var(--surface-muted)] opacity-50"}`}>
-              <span className="flex flex-col gap-0.5">
-                <span className="flex items-center gap-1.5">
-                  <span className="text-[11px] font-semibold text-[var(--foreground)]">{BAND_LABELS[key]}</span>
-                  {!allowed && dr && <span className="text-[10px] text-[var(--color-text-muted)]">· ไว้วันพร้อม</span>}
-                </span>
-                {showHrCap && (
-                  <span className="text-[10px] text-[var(--color-text-muted)]" data-testid="race-hr-cap-line">
-                    {hrCapLine}
+    <section className="card p-4" data-testid="pace-bands-card">
+      <details open={isOpen} onToggle={(e) => setIsOpen(e.currentTarget.open)} className="group cursor-pointer">
+        <summary className="list-none flex items-center justify-between font-bold text-[var(--foreground)] focus:outline-none select-none">
+          <div className="flex flex-col gap-0.5">
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--label-color)]">ช่วงเพซซ้อมของคุณ</p>
+            <p className="mt-0.5 text-[10px] text-[var(--color-text-muted)] font-normal">คำนวณจากเป้าหมาย {goal.raceDistance} · {goal.targetTime}</p>
+          </div>
+          <div className="flex items-center gap-1.5 text-xs text-[var(--primary)] font-bold shrink-0">
+            <span className="group-open:hidden">ดูช่วงเพซ</span>
+            <span className="hidden group-open:inline">ซ่อน</span>
+            <span className="transition-transform group-open:rotate-180">▾</span>
+          </div>
+        </summary>
+        <div className="mt-3 pt-3 border-t border-[var(--color-border-soft)] cursor-default">
+          <div className="space-y-1.5">
+            {allKeys.map((key) => {
+              const range = bands[key];
+              const allowed = allowedKeys.includes(key);
+              const showHrCap = hrCapLine && (key === "easy" || key === "long");
+              return (
+                <div key={key} className={`flex items-center justify-between gap-2 rounded-xl px-3 py-1.5 ${allowed ? "bg-[var(--primary-soft)]" : "bg-[var(--surface-muted)] opacity-50"}`}>
+                  <span className="flex flex-col gap-0.5">
+                    <span className="flex items-center gap-1.5">
+                      <span className="text-[11px] font-semibold text-[var(--foreground)]">{BAND_LABELS[key]}</span>
+                      {!allowed && dr && <span className="text-[10px] text-[var(--color-text-muted)]">· ไว้วันพร้อม</span>}
+                    </span>
+                    {showHrCap && (
+                      <span className="text-[10px] text-[var(--color-text-muted)]" data-testid="race-hr-cap-line">
+                        {hrCapLine}
+                      </span>
+                    )}
                   </span>
-                )}
-              </span>
-              <span className="text-[11px] font-bold text-[var(--primary-strong)] tabular-nums">{formatPaceRange(range)}</span>
-            </div>
-          );
-        })}
-      </div>
-      {coachContext?.hasWorkoutToday && (
-        <p className="mt-2 text-[10px] font-semibold text-[var(--color-text-muted)] leading-snug">
-          ✅ วันนี้ซ้อมจบแล้ว — ตารางนี้ใช้เป็น reference สำหรับวันถัดไป
-        </p>
-      )}
-      {!coachContext?.hasWorkoutToday && dr && allowedKeys.length < 4 && (
-        <p className="mt-2 text-[10px] text-[var(--color-text-muted)] leading-snug">
-          💡 วันนี้เหมาะกับ {allowedKeys.map((k) => BAND_LABELS[k]).join(" · ")} เท่านั้น ตามสภาพร่างกาย
-        </p>
-      )}
-      {coachContext?.sickRiskLevel === "hard_stop" && (
-        <p className="mt-2 text-[10px] font-semibold text-[var(--color-danger)] leading-snug" data-testid="pace-bands-sick-note">
-          🔴 วันนี้ยังไม่แนะนำให้ซ้อม — ดูเพซนี้เป็นข้อมูลอ้างอิงเมื่ออาการดีขึ้น
-        </p>
-      )}
-      <p className="mt-2 text-[10px] text-[var(--color-text-muted)] leading-snug" data-testid="pace-bands-reference-note">
-        ใช้ช่วงเพซด้านบนเป็น reference — ให้ readiness, HR/RPE, ความล้า และอาการเจ็บนำเสมอ
-      </p>
+                  <span className="text-[11px] font-bold text-[var(--primary-strong)] tabular-nums">{formatPaceRange(range)}</span>
+                </div>
+              );
+            })}
+          </div>
+          {coachContext?.hasWorkoutToday && (
+            <p className="mt-2 text-[10px] font-semibold text-[var(--color-text-muted)] leading-snug">
+              ✅ วันนี้ซ้อมจบแล้ว — ตารางนี้ใช้เป็น reference สำหรับวันถัดไป
+            </p>
+          )}
+          {!coachContext?.hasWorkoutToday && dr && allowedKeys.length < 4 && (
+            <p className="mt-2 text-[10px] text-[var(--color-text-muted)] leading-snug">
+              💡 วันนี้เหมาะกับ {allowedKeys.map((k) => BAND_LABELS[k]).join(" · ")} เท่านั้น ตามสภาพร่างกาย
+            </p>
+          )}
+          {coachContext?.sickRiskLevel === "hard_stop" && (
+            <p className="mt-2 text-[10px] font-semibold text-[var(--color-danger)] leading-snug" data-testid="pace-bands-sick-note">
+              🔴 วันนี้ยังไม่แนะนำให้ซ้อม — ดูเพซนี้เป็นข้อมูลอ้างอิงเมื่ออาการดีขึ้น
+            </p>
+          )}
+          <p className="mt-2 text-[10px] text-[var(--color-text-muted)] leading-snug" data-testid="pace-bands-reference-note">
+            ใช้ช่วงเพซด้านบนเป็น reference — ให้ readiness, HR/RPE, ความล้า และอาการเจ็บนำเสมอ
+          </p>
+        </div>
+      </details>
     </section>
   );
 }
@@ -735,98 +762,111 @@ function ActionableWeekCard({
   workouts,
   coachContext,
   todayAlreadyShownAbove,
+  isOpen,
+  onToggle,
 }: {
   workouts: WeekWorkout[];
   coachContext: CoachContext | null;
   todayAlreadyShownAbove?: boolean;
+  isOpen: boolean;
+  onToggle: (open: boolean) => void;
 }) {
   return (
     <section className="card overflow-hidden p-0">
-      <div className="flex items-center justify-between gap-2 px-5 py-4">
-        <p className="text-xs font-bold uppercase tracking-[0.22em] text-[var(--label-color)]">แผน 7 วัน</p>
-        <p className="text-[10px] text-[var(--muted-text)]">แตะเพื่อดูรายละเอียด</p>
-      </div>
-      <div className="border-t border-[var(--color-border-soft)]">
-        {workouts.map((workout, index) => {
-          const isStrength = isStrengthOrMobilityType(workout.workoutType);
-          const isToday = isTodayWorkout(workout.day);
-          const adaptiveNote = getAdaptiveLongRunNote(workout, coachContext, isToday);
-          const showRecoveryBadge = !isToday && isHardWorkoutType(workout.workoutType);
+      <details open={isOpen} onToggle={(e) => onToggle(e.currentTarget.open)} className="group cursor-pointer">
+        <summary className="list-none flex items-center justify-between px-5 py-4 focus:outline-none select-none">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.22em] text-[var(--label-color)]">แผน 7 วัน</p>
+            <p className="mt-0.5 text-xs text-[var(--color-text-muted)] font-normal">ตารางการฝึกซ้อมสัปดาห์นี้</p>
+          </div>
+          <div className="flex items-center gap-1.5 text-xs text-[var(--primary)] font-bold shrink-0">
+            <span className="group-open:hidden">ดูแผน 7 วัน</span>
+            <span className="hidden group-open:inline">ซ่อน</span>
+            <span className="transition-transform group-open:rotate-180">▾</span>
+          </div>
+        </summary>
+        <div className="border-t border-[var(--color-border-soft)] cursor-default">
+          {workouts.map((workout, index) => {
+            const isStrength = isStrengthOrMobilityType(workout.workoutType);
+            const isToday = isTodayWorkout(workout.day);
+            const adaptiveNote = getAdaptiveLongRunNote(workout, coachContext, isToday);
+            const showRecoveryBadge = !isToday && isHardWorkoutType(workout.workoutType);
 
-          // Today's full detail is already shown above in TodayWorkoutCard — avoid
-          // repeating the same description/purpose/adjustment content here.
-          if (isToday && todayAlreadyShownAbove) {
-            return (
-              <div
-                key={`${workout.day}-${workout.workoutType}-${index}`}
-                className="flex items-center justify-between gap-3 border-b border-[var(--color-border-soft)] px-5 py-3 last:border-b-0"
-              >
-                <div className="flex flex-col gap-0.5 min-w-0">
-                  <span className="text-xs font-bold text-[var(--label-color)] flex items-center gap-1.5">
-                    {workout.day}
-                    <span className="rounded bg-[var(--primary)] px-1.5 py-0.5 text-[9px] font-bold text-[#f5f8ff]">วันนี้</span>
-                  </span>
-                  <span className="font-bold text-[var(--foreground)] truncate">{workout.workoutType}</span>
-                </div>
-                <span className="shrink-0 text-[10px] font-semibold italic text-[var(--color-text-soft)]">ดูรายละเอียดด้านบน</span>
-              </div>
-            );
-          }
-
-          return (
-            <details
-              key={`${workout.day}-${workout.workoutType}-${index}`}
-              className="group cursor-pointer border-b border-[var(--color-border-soft)] last:border-b-0 [&[open]]:bg-[var(--primary-soft)]/20"
-            >
-              <summary className="list-none flex items-center justify-between gap-3 px-5 py-3 font-semibold">
-                <div className="flex flex-col gap-0.5 min-w-0">
-                  <span className="text-xs font-bold text-[var(--label-color)] flex items-center gap-1.5">
-                    {workout.day}
-                    {isToday && (
-                      <span className="rounded bg-[var(--primary)] px-1.5 py-0.5 text-[9px] font-bold text-[#f5f8ff]">
-                        วันนี้
-                      </span>
-                    )}
-                    {showRecoveryBadge && (
-                      <span className="rounded bg-[var(--color-warning-soft)] px-1.5 py-0.5 text-[9px] font-bold text-[var(--color-warning)]" data-testid="recovery-check-badge">
-                        รอเช็ก recovery
-                      </span>
-                    )}
-                  </span>
-                  <span className="font-bold text-[var(--foreground)] truncate">{workout.workoutType}</span>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="rounded-full bg-[var(--primary-soft)] px-3 py-1 text-xs font-bold text-[var(--primary-strong)]">
-                    {formatWorkoutAmount(workout)}
-                  </span>
-                  <span className="text-xs text-[var(--color-text-soft)] group-open:rotate-180 transition-transform">▾</span>
-                </div>
-              </summary>
-              <div className="border-t border-[var(--color-border-soft)] px-5 py-4 cursor-default text-xs space-y-2">
-                <p className="text-sm leading-relaxed text-[var(--muted-text)] font-medium">{workout.description}</p>
-                {renderWorkoutDetails(workout)}
-                {isStrength ? (
-                  <>
-                    <InfoLine label="Focus / กล้ามเนื้อ" value={workout.purpose || "แกนกลาง & เสริมความแข็งแรง"} />
-                    {workout.adjustment ? <InfoLine label="Effort / แรงต้าน" value={workout.adjustment} /> : null}
-                    <InfoLine label="รูทีนแนะนำ" value={suggestStrengthRoutine(workout.workoutType, workout.purpose, workout.adjustment)} />
-                  </>
-                ) : (
-                  <>
-                    {workout.purpose ? <InfoLine label="เป้าหมาย" value={workout.purpose} /> : null}
-                    {workout.adjustment ? <InfoLine label="ปรับตามสภาพ" value={workout.adjustment} /> : null}
-                  </>
-                )}
-                {adaptiveNote && (
-                  <div className="mt-2 rounded-xl bg-[var(--color-warning-soft)] px-3 py-2 text-xs leading-5 text-[var(--color-warning)] font-semibold border border-[var(--color-warning-border)]">
-                    ⚠️ {adaptiveNote}
+            // Today's full detail is already shown above in TodayWorkoutCard — avoid
+            // repeating the same description/purpose/adjustment content here.
+            if (isToday && todayAlreadyShownAbove) {
+              return (
+                <div
+                  key={`${workout.day}-${workout.workoutType}-${index}`}
+                  className="flex items-center justify-between gap-3 border-b border-[var(--color-border-soft)] px-5 py-3 last:border-b-0"
+                >
+                  <div className="flex flex-col gap-0.5 min-w-0">
+                    <span className="text-xs font-bold text-[var(--label-color)] flex items-center gap-1.5">
+                      {workout.day}
+                      <span className="rounded bg-[var(--primary)] px-1.5 py-0.5 text-[9px] font-bold text-[#f5f8ff]">วันนี้</span>
+                    </span>
+                    <span className="font-bold text-[var(--foreground)] truncate">{workout.workoutType}</span>
                   </div>
-                )}
-              </div>
-            </details>
-          );
-        })}
-      </div>
+                  <span className="shrink-0 text-[10px] font-semibold italic text-[var(--color-text-soft)]">ดูรายละเอียดด้านบน</span>
+                </div>
+              );
+            }
+
+            return (
+              <details
+                key={`${workout.day}-${workout.workoutType}-${index}`}
+                className="group/day cursor-pointer border-b border-[var(--color-border-soft)] last:border-b-0 [&[open]]:bg-[var(--primary-soft)]/20"
+              >
+                <summary className="list-none flex items-center justify-between gap-3 px-5 py-3 font-semibold">
+                  <div className="flex flex-col gap-0.5 min-w-0">
+                    <span className="text-xs font-bold text-[var(--label-color)] flex items-center gap-1.5">
+                      {workout.day}
+                      {isToday && (
+                        <span className="rounded bg-[var(--primary)] px-1.5 py-0.5 text-[9px] font-bold text-[#f5f8ff]">
+                          วันนี้
+                        </span>
+                      )}
+                      {showRecoveryBadge && (
+                        <span className="rounded bg-[var(--color-warning-soft)] px-1.5 py-0.5 text-[9px] font-bold text-[var(--color-warning)]" data-testid="recovery-check-badge">
+                          รอเช็ก recovery
+                        </span>
+                      )}
+                    </span>
+                    <span className="font-bold text-[var(--foreground)] truncate">{workout.workoutType}</span>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="rounded-full bg-[var(--primary-soft)] px-3 py-1 text-xs font-bold text-[var(--primary-strong)]">
+                      {formatWorkoutAmount(workout)}
+                    </span>
+                    <span className="text-xs text-[var(--color-text-soft)] group-open/day:rotate-180 transition-transform">▾</span>
+                  </div>
+                </summary>
+                <div className="border-t border-[var(--color-border-soft)] px-5 py-4 cursor-default text-xs space-y-2">
+                  <p className="text-sm leading-relaxed text-[var(--muted-text)] font-medium">{workout.description}</p>
+                  {renderWorkoutDetails(workout)}
+                  {isStrength ? (
+                    <>
+                      <InfoLine label="Focus / กล้ามเนื้อ" value={workout.purpose || "แกนกลาง & เสริมความแข็งแรง"} />
+                      {workout.adjustment ? <InfoLine label="Effort / แรงต้าน" value={workout.adjustment} /> : null}
+                      <InfoLine label="รูทีนแนะนำ" value={suggestStrengthRoutine(workout.workoutType, workout.purpose, workout.adjustment)} />
+                    </>
+                  ) : (
+                    <>
+                      {workout.purpose ? <InfoLine label="เป้าหมาย" value={workout.purpose} /> : null}
+                      {workout.adjustment ? <InfoLine label="ปรับตามสภาพ" value={workout.adjustment} /> : null}
+                    </>
+                  )}
+                  {adaptiveNote && (
+                    <div className="mt-2 rounded-xl bg-[var(--color-warning-soft)] px-3 py-2 text-xs leading-5 text-[var(--color-warning)] font-semibold border border-[var(--color-warning-border)]">
+                      ⚠️ {adaptiveNote}
+                    </div>
+                  )}
+                </div>
+              </details>
+            );
+          })}
+        </div>
+      </details>
     </section>
   );
 }
