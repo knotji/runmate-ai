@@ -22,13 +22,12 @@ const SEGMENTS_ON: Record<SignalTone, number> = {
 const SEGMENT_COUNT = 5;
 
 type SignalGaugePillProps = {
-  icon: string;
   label: string;
   value: string;
   tone: SignalTone;
 };
 
-function SignalGaugePill({ icon, label, value, tone }: SignalGaugePillProps) {
+function SignalGaugePill({ label, value, tone }: SignalGaugePillProps) {
   const style = CARD_STYLE[tone];
   const segmentsOn = SEGMENTS_ON[tone];
 
@@ -39,9 +38,8 @@ function SignalGaugePill({ icon, label, value, tone }: SignalGaugePillProps) {
       data-testid="signal-circle"
     >
       <div className="flex items-center justify-between gap-1.5">
-        <span className="flex items-center gap-1 text-[10.5px] font-bold leading-none" style={{ color: style.text }}>
-          <span style={{ fontSize: 13 }} aria-hidden="true">{icon}</span>
-          <span>{label}</span>
+        <span className="text-[10.5px] font-bold leading-none" style={{ color: style.text }}>
+          {label}
         </span>
         <span className="text-[10.5px] font-black leading-none whitespace-nowrap" style={{ color: style.text }}>
           {value}
@@ -77,7 +75,6 @@ export function TodaySignalCircles({ signals }: TodaySignalCirclesProps) {
       {signals.map((signal) => (
         <SignalGaugePill
           key={signal.key}
-          icon={signal.icon}
           label={signal.label}
           value={signal.value}
           tone={signal.tone as SignalTone}

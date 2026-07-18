@@ -53,27 +53,24 @@ describe("getGaugeStatus", () => {
     expect(getGaugeStatus(null, makeCtx())).toBe("unknown");
   });
 
-  it("returns 'good' for score >= 75", () => {
-    expect(getGaugeStatus(75, null)).toBe("good");
+  // Thresholds (66/50) match getRunMateReadinessLabel's canonical Good/Fair/Low
+  // buckets exactly, so the ring color never disagrees with the "N Readiness
+  // Label" chip rendered next to it for the same score.
+  it("returns 'good' for score >= 66", () => {
+    expect(getGaugeStatus(66, null)).toBe("good");
     expect(getGaugeStatus(100, null)).toBe("good");
     expect(getGaugeStatus(80, makeCtx())).toBe("good");
   });
 
-  it("returns 'fair' for score 60–74", () => {
-    expect(getGaugeStatus(60, null)).toBe("fair");
-    expect(getGaugeStatus(74, null)).toBe("fair");
-    expect(getGaugeStatus(65, makeCtx())).toBe("fair");
+  it("returns 'fair' for score 50–65", () => {
+    expect(getGaugeStatus(50, null)).toBe("fair");
+    expect(getGaugeStatus(65, null)).toBe("fair");
+    expect(getGaugeStatus(60, makeCtx())).toBe("fair");
   });
 
-  it("returns 'caution' for score 45–59", () => {
-    expect(getGaugeStatus(45, null)).toBe("caution");
-    expect(getGaugeStatus(59, null)).toBe("caution");
-    expect(getGaugeStatus(50, makeCtx())).toBe("caution");
-  });
-
-  it("returns 'recovery' for score < 45", () => {
+  it("returns 'recovery' for score < 50", () => {
     expect(getGaugeStatus(0, null)).toBe("recovery");
-    expect(getGaugeStatus(44, null)).toBe("recovery");
+    expect(getGaugeStatus(49, null)).toBe("recovery");
     expect(getGaugeStatus(20, makeCtx())).toBe("recovery");
   });
 });

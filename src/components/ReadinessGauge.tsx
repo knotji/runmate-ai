@@ -16,17 +16,17 @@ export type ReadinessGaugeProps = {
 };
 
 const STATUS_COLORS: Record<GaugeStatus, { ring: string; track: string; text: string }> = {
-  good:     { ring: "#1f9d55", track: "rgba(26,31,46,0.08)", text: "#1f9d55" },
-  fair:     { ring: "#d9a123", track: "rgba(26,31,46,0.08)", text: "#d9a123" },
-  caution:  { ring: "#d9a123", track: "rgba(26,31,46,0.08)", text: "#d9a123" },
-  recovery: { ring: "#0891b2", track: "rgba(26,31,46,0.08)", text: "#0891b2" },
-  risk:     { ring: "#c9384a", track: "rgba(26,31,46,0.08)", text: "#c9384a" },
-  unknown:  { ring: "#8b93a0", track: "rgba(26,31,46,0.06)", text: "#5b6570" },
+  good:     { ring: "#1f9d55", track: "rgba(26,31,46,0.07)", text: "#1f9d55" },
+  fair:     { ring: "#d9a123", track: "rgba(26,31,46,0.07)", text: "#d9a123" },
+  recovery: { ring: "#0891b2", track: "rgba(26,31,46,0.07)", text: "#0891b2" },
+  risk:     { ring: "#c9384a", track: "rgba(26,31,46,0.07)", text: "#c9384a" },
+  unknown:  { ring: "#8b93a0", track: "rgba(26,31,46,0.05)", text: "#5b6570" },
 };
 
-const RADIUS = 48;
+const SIZE = 92;
+const RADIUS = 50;
 const CENTER = 60;
-const STROKE_WIDTH = 9;
+const STROKE_WIDTH = 7;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 const COUNT_UP_MS = 700;
 
@@ -83,12 +83,12 @@ export function ReadinessGauge({
       <div
         className="relative shrink-0"
         style={{
-          width: 80,
-          height: 80,
-          filter: !loading && score != null ? `drop-shadow(0 0 7px ${colors.ring}55)` : undefined,
+          width: SIZE,
+          height: SIZE,
+          filter: !loading && score != null ? `drop-shadow(0 0 6px ${colors.ring}40)` : undefined,
         }}
       >
-        <svg viewBox="0 0 120 120" width={80} height={80} aria-hidden="true">
+        <svg viewBox="0 0 120 120" width={SIZE} height={SIZE} aria-hidden="true">
           {/* Track ring */}
           <circle
             cx={CENTER}
@@ -131,13 +131,13 @@ export function ReadinessGauge({
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <span
             className="font-bold tabular-nums leading-none"
-            style={{ fontSize: 22, color: loading ? "#8b93a0" : colors.text, fontFamily: "var(--font-display), var(--font-noto-thai), sans-serif" }}
+            style={{ fontSize: 25, color: loading ? "#8b93a0" : colors.text, fontFamily: "var(--font-display), var(--font-noto-thai), sans-serif" }}
           >
             {loading || displayScore == null ? "—" : displayScore}
           </span>
           <span
-            className="mt-0.5 leading-none text-[var(--color-text-soft)]"
-            style={{ fontSize: 8, fontWeight: 600 }}
+            className="mt-1 leading-none text-[var(--color-text-soft)] uppercase tracking-[0.12em]"
+            style={{ fontSize: 8, fontWeight: 700 }}
           >
             Readiness
           </span>
