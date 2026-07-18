@@ -24,7 +24,7 @@ export type ReadinessReason = {
   detail?: string;
 };
 
-export type TodaySignalKey = "recovery" | "load" | "energy" | "pain";
+export type TodaySignalKey = "recovery" | "load" | "energy" | "sleep";
 
 export type SignalTone = "good" | "warn" | "bad" | "neutral";
 
@@ -47,4 +47,8 @@ export type DailyReadiness = {
   sleepAdvice?: string;
   hasSleepData: boolean;
   hasFuelData: boolean;
+  // Pain no longer has its own signal-row slot (see todaySignals.ts), but the
+  // explanation logic still needs to know whether there's a current pain
+  // warning — computed once here from the same source todaySignals.ts uses.
+  hasPainWarning: boolean;
 };

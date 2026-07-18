@@ -21,9 +21,10 @@ function makeInput(overrides: Partial<Input>): Input {
       makeSig("recovery", "good"),
       makeSig("load", "good"),
       makeSig("energy", "neutral"),
-      makeSig("pain", "good"),
+      makeSig("sleep", "good"),
     ],
     hasSleepData: true,
+    hasPainWarning: false,
     ...overrides,
   };
 }
@@ -45,7 +46,7 @@ describe("buildReadinessExplanation", () => {
         makeSig("recovery", "good"),
         makeSig("load", "bad"),
         makeSig("energy", "neutral"),
-        makeSig("pain", "good"),
+        makeSig("sleep", "good"),
       ],
     }));
     expect(result).not.toBeNull();
@@ -61,7 +62,7 @@ describe("buildReadinessExplanation", () => {
         makeSig("recovery", "good"),
         makeSig("load", "bad"),
         makeSig("energy", "neutral"),
-        makeSig("pain", "good"),
+        makeSig("sleep", "good"),
       ],
     }));
     expect(result).not.toBeNull();
@@ -76,22 +77,23 @@ describe("buildReadinessExplanation", () => {
         makeSig("recovery", "good"),
         makeSig("load", "good"),
         makeSig("energy", "neutral"),
-        makeSig("pain", "good"),
+        makeSig("sleep", "good"),
       ],
     }));
     expect(result).toBeNull();
   });
 
-  it("pain warn + pain_recent reason + easy → pain recovery explanation", () => {
+  it("pain warning + pain_recent reason + easy → pain recovery explanation", () => {
     const result = buildReadinessExplanation(makeInput({
       band: "yellow",
       loadTarget: "easy",
       reasons: [makeReason("pain_recent")],
+      hasPainWarning: true,
       signals: [
         makeSig("recovery", "neutral"),
         makeSig("load", "good"),
         makeSig("energy", "neutral"),
-        makeSig("pain", "warn"),
+        makeSig("sleep", "warn"),
       ],
     }));
     expect(result).not.toBeNull();
@@ -99,16 +101,17 @@ describe("buildReadinessExplanation", () => {
     expect(result).toContain("easy");
   });
 
-  it("pain warn + pain_recent reason + non-easy target → generic pain recovery explanation", () => {
+  it("pain warning + pain_recent reason + non-easy target → generic pain recovery explanation", () => {
     const result = buildReadinessExplanation(makeInput({
       band: "yellow",
       loadTarget: "moderate",
       reasons: [makeReason("pain_recent")],
+      hasPainWarning: true,
       signals: [
         makeSig("recovery", "neutral"),
         makeSig("load", "good"),
         makeSig("energy", "neutral"),
-        makeSig("pain", "warn"),
+        makeSig("sleep", "warn"),
       ],
     }));
     expect(result).not.toBeNull();
@@ -123,7 +126,7 @@ describe("buildReadinessExplanation", () => {
         makeSig("recovery", "bad"),
         makeSig("load", "good"),
         makeSig("energy", "neutral"),
-        makeSig("pain", "good"),
+        makeSig("sleep", "good"),
       ],
     }));
     expect(result).not.toBeNull();
@@ -138,7 +141,7 @@ describe("buildReadinessExplanation", () => {
         makeSig("recovery", "neutral"),
         makeSig("load", "neutral"),
         makeSig("energy", "neutral"),
-        makeSig("pain", "good"),
+        makeSig("sleep", "good"),
       ],
     }));
     expect(result).not.toBeNull();
@@ -153,7 +156,7 @@ describe("buildReadinessExplanation", () => {
         makeSig("recovery", "neutral"),
         makeSig("load", "bad"),
         makeSig("energy", "neutral"),
-        makeSig("pain", "good"),
+        makeSig("sleep", "good"),
       ],
     }));
     expect(result).not.toBeNull();
@@ -168,7 +171,7 @@ describe("buildReadinessExplanation", () => {
         makeSig("recovery", "neutral"),
         makeSig("load", "good"),
         makeSig("energy", "neutral"),
-        makeSig("pain", "good"),
+        makeSig("sleep", "good"),
       ],
     }))).toBeNull();
   });

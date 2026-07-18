@@ -62,27 +62,19 @@ function SignalGaugePill({ icon, label, value, tone }: SignalGaugePillProps) {
 
 export type TodaySignalCirclesProps = {
   signals: TodaySignal[];
-  sickHardStop?: boolean;
-  hasActivePain?: boolean;
 };
 
-export function TodaySignalCircles({ signals, sickHardStop, hasActivePain }: TodaySignalCirclesProps) {
-  // When sick hard-stop is active and there's no active pain, replace the pain
-  // signal with a sick signal so the circle count stays at 4.
-  const displaySignals = (sickHardStop && !hasActivePain)
-    ? signals.map((s) =>
-        s.key === "pain"
-          ? { key: "sick", label: "ป่วย", value: "ควรพัก", icon: "🔴", tone: "bad" as SignalTone }
-          : s
-      )
-    : signals;
-
+// Always shows the 4 Recovery axes (recovery/load/sleep/fuel) — pain and sick
+// hard-stop each already get dedicated, always-visible cards elsewhere on the
+// page (CompactPainCard / the sick hard-stop InsightCard), so this row
+// doesn't swap anything in or out for those states anymore.
+export function TodaySignalCircles({ signals }: TodaySignalCirclesProps) {
   return (
     <div
       className="grid flex-1 grid-cols-2 gap-1.5"
       data-testid="signal-circles"
     >
-      {displaySignals.map((signal) => (
+      {signals.map((signal) => (
         <SignalGaugePill
           key={signal.key}
           icon={signal.icon}

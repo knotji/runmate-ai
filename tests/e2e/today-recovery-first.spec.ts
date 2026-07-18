@@ -230,13 +230,13 @@ test("Today: sick hard-stop shows rest bullets in recommendation", async ({ page
   await expect(bullets).toContainText("ไม่ซ้อมวันนี้");
 });
 
-test("Today: signal row shows sick pill when hard-stop", async ({ page }) => {
+test("Today: signal row is unaffected by sick hard-stop (still the 4 Recovery axes)", async ({ page }) => {
   const state = await installMockBackend(page);
   state.history.push(makeSickRecord(bangkokDateKey(), "sick-hs5", ["fever"], "moderate"));
   await gotoApp(page, "/");
   const circles = page.getByTestId("signal-circles");
   await expect(circles).toBeVisible();
-  await expect(circles).toContainText("ป่วย");
+  await expect(page.getByTestId("signal-circle")).toHaveCount(4);
 });
 
 test("Today: recovery loop section is collapsed by default", async ({ page }) => {

@@ -372,11 +372,7 @@ export default function TodayPage() {
             <span className="hidden group-open:inline">ซ่อน ⌄</span>
           </span>
         </div>
-        <TodaySignalCircles
-          signals={dailyReadinessForSignals.signals}
-          sickHardStop={coachCtx.sickRiskLevel === "hard_stop"}
-          hasActivePain={coachCtx.activePain ?? false}
-        />
+        <TodaySignalCircles signals={dailyReadinessForSignals.signals} />
       </summary>
       <div className="mt-1.5">
         <ReadinessSignalBars signals={dailyReadinessForSignals.signals} />

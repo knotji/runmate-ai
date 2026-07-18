@@ -6,7 +6,7 @@ import type {
   ReadinessBand,
   ReadinessReason,
 } from "./readinessTypes";
-import { buildTodaySignals } from "./todaySignals";
+import { buildTodaySignals, hasPainWarning } from "./todaySignals";
 
 export function buildDailyReadiness(ctx: CoachContext): DailyReadiness {
   const hasSleepData = ctx.sleep7d.length > 0;
@@ -20,7 +20,7 @@ export function buildDailyReadiness(ctx: CoachContext): DailyReadiness {
   const sleepAdvice = buildSleepAdvice(ctx);
   const signals = buildTodaySignals(ctx);
 
-  return { band, loadTarget, coachSummary, reasons, avoid, allow, signals, sleepAdvice, hasSleepData, hasFuelData };
+  return { band, loadTarget, coachSummary, reasons, avoid, allow, signals, sleepAdvice, hasSleepData, hasFuelData, hasPainWarning: hasPainWarning(ctx) };
 }
 
 // ─── Band derivation ──────────────────────────────────────────────────────────
