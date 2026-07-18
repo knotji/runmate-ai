@@ -182,4 +182,13 @@ describe("buildTodaySignals — load signal", () => {
     const sig = buildTodaySignals(ctx).find((s) => s.key === "load")!;
     expect(sig.tone).toBe("warn");
   });
+
+  it("moderate load score (getAxisTone 'info' bucket) → load tone = warn, not good (a 24.5km run must not render as a green 'good' signal)", () => {
+    const ctx = makeCtx({
+      totalRunKm: 24.5,
+      recoverySystem: makeRecoverySys({ loadScore: 60 }),
+    });
+    const sig = buildTodaySignals(ctx).find((s) => s.key === "load")!;
+    expect(sig.tone).toBe("warn");
+  });
 });
