@@ -5,6 +5,7 @@ import { LocalCleanupInit } from "@/components/LocalCleanupInit";
 import { AuthGuard } from "@/components/AuthGuard";
 import { PWARegistration } from "@/components/PWARegistration";
 import { OfflineBanner } from "@/components/OfflineBanner";
+import { GoogleHealthSyncOnOpen } from "@/components/GoogleHealthSyncOnOpen";
 import { Analytics } from "@vercel/analytics/next";
 import { NavigationGuardProvider } from "@/lib/navigationGuard";
 
@@ -54,6 +55,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <AuthGuard />
         <LocalCleanupInit />
         <PWARegistration />
+        <GoogleHealthSyncOnOpen />
         <OfflineBanner />
         <NavigationGuardProvider>{children}</NavigationGuardProvider>
         <Analytics />
