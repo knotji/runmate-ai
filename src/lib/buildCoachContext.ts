@@ -51,6 +51,8 @@ export type WeekSleepRow = {
   restingHR: number | null;
   hrv: number | null;
   energyScore: number | null;
+  sleepStartTime: string | null;
+  sleepEndTime: string | null;
 };
 
 export type PainSummary = {
@@ -105,7 +107,10 @@ export type CoachContext = {
   todayPrimaryWorkout: TodayCompletedWorkoutSummary | null;
   nutritionToday: NutritionDaySummary | null;
   nutrition7d: NutritionDaySummary[];
+  nutritionYesterday: NutritionDaySummary | null;
   mealsToday: MealContextSummary[];
+  yesterdayDate: string;
+  workoutsYesterday: DayWorkoutSummary | null;
   latestCompletedRace: RaceResult | null;
   recentRaceResults: RaceResult[];
   latestHealthCheck: HealthCheckContext | null;
@@ -321,6 +326,8 @@ export function buildCoachContextFromData(input: {
       restingHR: d?.extracted?.restingHR ?? null,
       hrv: d?.extracted?.hrv ?? null,
       energyScore: d?.extracted?.energyScore ?? null,
+      sleepStartTime: d?.extracted?.sleepStartTime ?? null,
+      sleepEndTime: d?.extracted?.sleepEndTime ?? null,
     };
   });
 
@@ -422,6 +429,9 @@ export function buildCoachContextFromData(input: {
   const workouts7d = [...dayMap.values()].sort((a, b) => b.date.localeCompare(a.date));
   const nutrition7d = buildNutritionSummaries(items, cutoff);
   const nutritionToday = nutrition7d.find((day) => day.date === today) ?? null;
+  const yesterdayDate = dateBefore(1);
+  const nutritionYesterday = nutrition7d.find((day) => day.date === yesterdayDate) ?? null;
+  const workoutsYesterday = workouts7d.find((day) => day.date === yesterdayDate) ?? null;
   const mealsToday = items
     .filter((item) => item.type === "meal" && getHistoryItemDateKey(item) === today)
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
@@ -644,7 +654,10 @@ export function buildCoachContextFromData(input: {
     todayPrimaryWorkout,
     nutritionToday,
     nutrition7d,
+    nutritionYesterday,
     mealsToday,
+    yesterdayDate,
+    workoutsYesterday,
     latestCompletedRace,
     recentRaceResults,
     latestHealthCheck,
