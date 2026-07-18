@@ -70,8 +70,63 @@ export type SyncUserResult = {
   workoutsSkippedManual: number;
   workoutsSkippedDuplicate: number;
   sleepSkippedNap: number;
+  sleepCoachBackfilled: number;
+  workoutCoachBackfilled: number;
   error?: string;
 };
+
+// Caps how many fallback-commentary items get a real AI pass per sync call —
+// a large one-time historical backfill (generateCoach: false, hundreds of
+// items) shouldn't turn every single later cron/on-open sync into a giant AI
+// bill; it gets caught up gradually, a handful of items per sync, instead.
+const MAX_COACH_BACKFILL_PER_SYNC = 5;
+
+/** Items imported with generateCoach: false (the historical backfill) are
+ *  permanently stuck with the same generic fallback text forever otherwise —
+ *  their exact-id dedup means a later sync never revisits them at all.
+ *  Called only from a generateCoach: true sync (cron / on-open), never from
+ *  backfill itself, so this never fights its own reason for existing. */
+async function backfillMissingCoachCommentary(
+  admin: SupabaseClient,
+  userId: string,
+): Promise<{ sleepCoachBackfilled: number; workoutCoachBackfilled: number }> {
+  let sleepCoachBackfilled = 0;
+  let workoutCoachBackfilled = 0;
+
+  const { data: staleSleep } = await admin
+    .from("history_items")
+    .select("id, data")
+    .eq("user_id", userId)
+    .eq("type", "sleep")
+    .like("id", "ghealth-%")
+    .eq("data->coach->>aiSummary", SLEEP_COACH_FALLBACK.aiSummary)
+    .limit(MAX_COACH_BACKFILL_PER_SYNC);
+
+  for (const row of staleSleep ?? []) {
+    const data = row.data as SleepAnalysis;
+    const coach = await generateSleepCoach(data.extracted);
+    await admin.from("history_items").update({ data: { ...data, coach } }).eq("id", row.id);
+    sleepCoachBackfilled += 1;
+  }
+
+  const { data: staleWorkouts } = await admin
+    .from("history_items")
+    .select("id, data")
+    .eq("user_id", userId)
+    .eq("type", "workout")
+    .like("id", "ghealth-%")
+    .eq("data->coach->>workoutSummary", WORKOUT_COACH_FALLBACK.workoutSummary)
+    .limit(MAX_COACH_BACKFILL_PER_SYNC);
+
+  for (const row of staleWorkouts ?? []) {
+    const data = row.data as WorkoutAnalysis;
+    const coach = await generateWorkoutCoach(data.extracted);
+    await admin.from("history_items").update({ data: { ...data, coach } }).eq("id", row.id);
+    workoutCoachBackfilled += 1;
+  }
+
+  return { sleepCoachBackfilled, workoutCoachBackfilled };
+}
 
 /** True if the user already has a manually-entered (non-ghealth-) history item of this
  *  type for this date. Manual uploads always set `data.dateKey` when saved (see
@@ -141,7 +196,7 @@ export async function syncGoogleHealthForConnection(
     const refreshed = await refreshGoogleHealthToken(connection.refresh_token);
     if (!refreshed) {
       await admin.from("google_health_connections").update({ last_sync_error: "token refresh failed" }).eq("user_id", userId);
-      return { ok: false, sleepImported: 0, workoutsImported: 0, sleepSkippedManual: 0, workoutsSkippedManual: 0, workoutsSkippedDuplicate: 0, sleepSkippedNap: 0, error: "token refresh failed" };
+      return { ok: false, sleepImported: 0, workoutsImported: 0, sleepSkippedManual: 0, workoutsSkippedManual: 0, workoutsSkippedDuplicate: 0, sleepSkippedNap: 0, sleepCoachBackfilled: 0, workoutCoachBackfilled: 0, error: "token refresh failed" };
     }
     accessToken = refreshed.accessToken;
     await admin.from("google_health_connections").update({
@@ -276,15 +331,19 @@ export async function syncGoogleHealthForConnection(
       workoutsImported += 1;
     }
 
+    const { sleepCoachBackfilled, workoutCoachBackfilled } = options.generateCoach
+      ? await backfillMissingCoachCommentary(admin, userId)
+      : { sleepCoachBackfilled: 0, workoutCoachBackfilled: 0 };
+
     await admin.from("google_health_connections").update({
       last_synced_at: new Date().toISOString(),
       last_sync_error: null,
     }).eq("user_id", userId);
 
-    return { ok: true, sleepImported, workoutsImported, sleepSkippedManual, workoutsSkippedManual, workoutsSkippedDuplicate, sleepSkippedNap };
+    return { ok: true, sleepImported, workoutsImported, sleepSkippedManual, workoutsSkippedManual, workoutsSkippedDuplicate, sleepSkippedNap, sleepCoachBackfilled, workoutCoachBackfilled };
   } catch (error) {
     const message = error instanceof Error ? error.message : "unknown error";
     await admin.from("google_health_connections").update({ last_sync_error: message }).eq("user_id", userId);
-    return { ok: false, sleepImported, workoutsImported, sleepSkippedManual, workoutsSkippedManual, workoutsSkippedDuplicate, sleepSkippedNap, error: message };
+    return { ok: false, sleepImported, workoutsImported, sleepSkippedManual, workoutsSkippedManual, workoutsSkippedDuplicate, sleepSkippedNap, sleepCoachBackfilled: 0, workoutCoachBackfilled: 0, error: message };
   }
 }
