@@ -586,11 +586,11 @@ export default function TodayPage() {
         // card since they're a continuous question (eaten so far → what's next), separated
         // by a dashed divider instead of two adjacent cards saying similar things.
         return (
-          <>
-            <p className="mt-1.5 px-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--label-color)]" data-testid="food-section-label">
-              {coachCtx.sickRiskLevel === "hard_stop" ? "มื้อถัดไปสำหรับวันที่ไม่สบาย" : "อาหารวันนี้"}
-            </p>
-            <div className="card px-4.5 py-4 space-y-3.5 border border-[var(--color-border-soft)] rounded-2xl shadow-sm">
+          <DetailAccordion
+            title={coachCtx.sickRiskLevel === "hard_stop" ? "มื้อถัดไปสำหรับวันที่ไม่สบาย" : "อาหารวันนี้"}
+            data-testid="food-section-details"
+          >
+            <div className="mt-2 space-y-3.5">
               <details className="group cursor-pointer">
                 <summary className="flex list-none items-center justify-between gap-3 text-sm font-semibold text-[var(--foreground)]">
                   <div>
@@ -628,7 +628,7 @@ export default function TodayPage() {
                 />
               </div>
             </div>
-          </>
+          </DetailAccordion>
         );
       })()}
 
@@ -772,23 +772,70 @@ function PreWorkoutFocusContent({
 
   const heroDecision = context ? getDecisionCard(insight, context) : null;
 
-  return (
-    <div className="space-y-3.5">
-      {/* 1. Headline */}
-      <h2 className="line-clamp-2 text-xl font-black leading-snug tracking-tight text-[var(--foreground)]">{insight.workoutRec}</h2>
+  const recommendationType = getRecommendedSubtype(insight, context);
+  const isRest = context?.sickRiskLevel === "hard_stop" || 
+                 (insight.workoutRec && (
+                   insight.workoutRec.includes("พัก") || 
+                   insight.workoutRec.toLowerCase().includes("rest")
+                 ));
 
-      {/* 2. Sick hard-stop compact badge — or pace target pill */}
-      {context?.sickRiskLevel === "hard_stop" ? (
-        <div data-testid="sick-rest-bullets">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-danger-soft)] px-3 py-1 text-xs font-bold text-[var(--status-rest)] border border-red-100">
-            <span>ไม่ซ้อมวันนี้</span>
-          </span>
+  const badgeInfo = (() => {
+    if (context?.sickRiskLevel === "hard_stop") {
+      return { icon: "🛑", title: "งดซ้อมเด็ดขาด", subtitle: "วันนี้ร่างกายป่วย ต้องพักผ่อนฟื้นตัวก่อน", tone: "danger" };
+    }
+    if (isRest) {
+      return { icon: "🧘", title: "เน้นพักผ่อน", subtitle: "ไม่มีเป้าซ้อมหนัก เน้นยืดเหยียดและฟื้นตัว", tone: "rest" };
+    }
+    if (recommendationType === "run") {
+      return { icon: "🏃", title: "เป้าหมาย: วิ่งซ้อม", subtitle: insight.workoutTarget || "ตามระดับความเหนื่อยที่แนะนำ", tone: "run" };
+    }
+    if (recommendationType === "strength") {
+      return { icon: "🏋️", title: "เป้าหมาย: เวทเทรนนิ่ง", subtitle: "เสริมสร้างกล้ามเนื้อและแกนกลาง", tone: "strength" };
+    }
+    if (recommendationType === "walk") {
+      return { icon: "🚶", title: "เป้าหมาย: เดิน/ขยับเบา ๆ", subtitle: "Active Recovery ไม่ให้ร่างกายตึง", tone: "walk" };
+    }
+    return { icon: "✨", title: "เป้าหมายซ้อมวันนี้", subtitle: insight.workoutTarget || "ฟื้นฟูร่างกายตามคำแนะนำ", tone: "other" };
+  })();
+
+  const isSickHardStop = context?.sickRiskLevel === "hard_stop";
+
+  return (
+    <div className="space-y-4">
+      {/* Visual Action Ticket */}
+      <div className={cn(
+        "rounded-2xl p-4 flex items-center gap-3 border shadow-xs transition-all",
+        badgeInfo.tone === "danger" ? "bg-red-50/60 border-red-100 text-red-900" :
+        badgeInfo.tone === "rest" ? "bg-slate-50/60 border-slate-200 text-slate-900" :
+        badgeInfo.tone === "run" ? "bg-emerald-50/60 border-emerald-100 text-emerald-900" :
+        badgeInfo.tone === "strength" ? "bg-purple-50/60 border-purple-100 text-purple-900" :
+        badgeInfo.tone === "walk" ? "bg-amber-50/60 border-amber-100 text-amber-900" :
+        "bg-sky-50/60 border-sky-100 text-sky-900"
+      )}>
+        <span className="text-3xl shrink-0 select-none">{badgeInfo.icon}</span>
+        <div className="min-w-0 flex-1">
+          <h3 className="text-sm font-black tracking-tight">{badgeInfo.title}</h3>
+          {isSickHardStop ? (
+            <div data-testid="sick-rest-bullets">
+              <p className="text-[11px] font-semibold text-red-600/90 mt-0.5 leading-snug">{badgeInfo.subtitle}</p>
+            </div>
+          ) : (
+            <p className="text-[11px] font-semibold text-[var(--color-text-soft)] mt-0.5 leading-snug">
+              {badgeInfo.subtitle}
+            </p>
+          )}
+          {hasPace && !isSickHardStop && (
+            <span className="inline-block mt-1.5 rounded-full bg-[var(--primary-soft)] px-2.5 py-0.5 text-[10px] font-bold text-[var(--primary-strong)]" data-testid="pace-target-pill">
+              เป้าหมาย: {insight.workoutTarget}
+            </span>
+          )}
         </div>
-      ) : hasPace ? (
-        <span className="inline-block rounded-full bg-[var(--primary-soft)] px-3 py-1 text-xs font-bold text-[var(--primary-strong)]" data-testid="pace-target-pill">
-          {insight.workoutTarget}
-        </span>
-      ) : null}
+      </div>
+
+      {/* Description sentence */}
+      <div className="border-l-2 border-[var(--color-border-soft)] pl-3 py-0.5">
+        <p className="text-xs font-semibold text-[var(--color-text-soft)] leading-relaxed">{insight.workoutRec}</p>
+      </div>
 
       {/* 3. Collapsed reasons — "ดูเหตุผล" / "ซ่อนเหตุผล" toggle via <details> */}
       <details className="group border-t border-[var(--color-border-soft)] pt-2.5" data-testid="hero-details">
@@ -901,17 +948,22 @@ function PostWorkoutFocusContent({ insight, context }: { insight: DailyCoachInsi
   const reasonLine = `${workoutCompletedText} — ไม่ต้องซ้อมเพิ่ม เน้นฟื้นตัว เติมน้ำ/โปรตีน และนอนให้ดี`;
 
   return (
-    <div className="space-y-3.5">
-      {/* 1. Headline first */}
-      <h2 className="text-xl font-black leading-snug tracking-tight text-[var(--foreground)]">{title}</h2>
+    <div className="space-y-4">
+      {/* Visual Action Ticket */}
+      <div className="rounded-2xl p-4 flex items-center gap-3 border border-emerald-100 bg-emerald-50/60 text-emerald-900 shadow-xs">
+        <span className="text-3xl shrink-0 select-none">✅</span>
+        <div className="min-w-0 flex-1">
+          <h3 className="text-sm font-black tracking-tight">{title}</h3>
+          <p className="text-[11px] font-semibold text-[var(--color-text-soft)] mt-0.5 leading-snug">
+            ไม่ต้องซ้อมเพิ่ม · เน้นการฟื้นฟูร่างกาย
+          </p>
+        </div>
+      </div>
 
-      {/* 2. Target plan line */}
-      <span className="inline-block rounded-full bg-[var(--primary-soft)] px-3 py-1 text-xs font-bold text-[var(--primary-strong)]">
-        ไม่ต้องซ้อมเพิ่ม · เน้นฟื้นตัว
-      </span>
-
-      {/* 3. Reason line */}
-      <p className="text-xs font-semibold text-[var(--color-text-soft)] mt-1">{reasonLine}</p>
+      {/* Coach sentence */}
+      <div className="border-l-2 border-[var(--color-border-soft)] pl-3 py-0.5">
+        <p className="text-xs font-semibold text-[var(--color-text-soft)] leading-relaxed">{reasonLine}</p>
+      </div>
 
       {/* Informational note, not a safety caution — kept visually neutral so it
           doesn't compete with a real amber warning (e.g. active pain) shown
