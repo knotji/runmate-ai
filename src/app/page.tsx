@@ -446,7 +446,7 @@ export default function TodayPage() {
 
       {/* 3. Recovery Loop — collapsed by default to reduce clutter */}
       {coachCtx && (
-        <DetailAccordion title="🌙 ฟื้นตัวคืนนี้" data-testid="recovery-loop-details">
+        <DetailAccordion title="ฟื้นตัวคืนนี้" data-testid="recovery-loop-details">
           <RecoveryLoopCard coachCtx={coachCtx} />
         </DetailAccordion>
       )}
@@ -456,19 +456,18 @@ export default function TodayPage() {
       <div className="px-0.5">
         <div className="flex gap-1 bg-[var(--surface-muted)]/30 border border-[var(--color-border-soft)]/40 rounded-2xl p-1 shadow-sm">
           {[
-            { href: "/upload?type=sleep", icon: "🌙", label: "นอน" },
-            { href: "/upload?type=meal", icon: "🍱", label: "อาหาร" },
-            { href: `/upload?type=workout&subtype=${getRecommendedSubtype(insight, coachCtx)}`, icon: "🏃", label: "ซ้อม" },
-            { href: "/pain", icon: "🩹", label: "เจ็บ" },
-            { href: "/sick", icon: "🤒", label: "ป่วย" },
-          ].map(({ href, icon, label }) => (
-            <Link 
-              key={href} 
-              href={href} 
-              className="group flex-1 flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-2 text-center transition-all duration-200 active:scale-[0.92] hover:bg-[var(--surface)]/80 hover:shadow-xs"
+            { href: "/upload?type=sleep", label: "นอน" },
+            { href: "/upload?type=meal", label: "อาหาร" },
+            { href: `/upload?type=workout&subtype=${getRecommendedSubtype(insight, coachCtx)}`, label: "ซ้อม" },
+            { href: "/pain", label: "เจ็บ" },
+            { href: "/sick", label: "ป่วย" },
+          ].map(({ href, label }) => (
+            <Link
+              key={href}
+              href={href}
+              className="group flex-1 flex min-h-11 items-center justify-center rounded-xl px-1 py-2.5 text-center text-xs font-bold text-[var(--color-text-soft)] transition-all duration-200 active:scale-[0.96] hover:bg-[var(--surface)]/80 hover:text-[var(--foreground)] hover:shadow-xs"
             >
-              <span className="text-base leading-none transition-transform duration-200 group-hover:scale-110 select-none">{icon}</span>
-              <span className="mt-1 text-[9px] font-bold leading-none text-[var(--color-text-soft)]">{label}</span>
+              {label}
             </Link>
           ))}
         </div>
@@ -497,7 +496,7 @@ export default function TodayPage() {
           people actually interact with daily (nutrition, next meal) stays visible above. */}
       {((goalProfile && dailyReadinessForSignals) ||
         (coachCtx?.latestPain && !(coachCtx.latestPain.hasActivePain && coachCtx.latestPain.painLevel > 0))) && (
-        <DetailAccordion title="🎯 ดูเพิ่มเติมวันนี้" data-testid="today-more-details">
+        <DetailAccordion title="ดูเพิ่มเติมวันนี้" data-testid="today-more-details">
           <div className="space-y-3">
             {goalProfile && dailyReadinessForSignals && (
               <GoalAwareTodayStrip
@@ -1563,7 +1562,6 @@ function RecoveryLoopCard({ coachCtx }: { coachCtx: CoachContext }) {
         <div className="pr-2">
           <p className="text-[9px] font-bold uppercase tracking-wide text-rm-muted mb-1">คืนนี้</p>
           <div className="flex items-center gap-1 text-xs">
-            <span className="leading-none">🌙</span>
             <span className="font-bold text-[var(--foreground)] leading-snug">{sleepNeed.label}</span>
           </div>
         </div>
@@ -1969,7 +1967,7 @@ function TodaySnapshotCard({
 
       {/* Details: full /100 values, coverage, missing, explanation */}
       {!loading && recSys && (
-        <DetailAccordion title="💚 ดูรายละเอียด Recovery" data-testid="recovery-details">
+        <DetailAccordion title="ดูรายละเอียด Recovery" data-testid="recovery-details">
           <div className="space-y-3 cursor-default text-xs">
             {/* Factor bars — compact visual summary */}
             <div className="space-y-1.5 rounded-2xl bg-[var(--surface)]/35 px-2.5 py-2" data-testid="factor-bars">

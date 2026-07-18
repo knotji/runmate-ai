@@ -21,18 +21,9 @@ export function DailyBriefingCard({ coachCtx }: { coachCtx: CoachContext | null 
     >
       <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[var(--primary)] mb-1.5">สรุปวันนี้</p>
       <div className="space-y-1.5 text-xs text-[var(--color-text-soft)] font-semibold leading-relaxed">
-        <div className="flex items-start gap-2">
-          <span className="shrink-0 text-xs leading-none pt-0.5" aria-hidden="true">📋</span>
-          <p data-testid="daily-briefing-yesterday">{briefing.yesterdaySummary}</p>
-        </div>
-        <div className="flex items-start gap-2">
-          <span className="shrink-0 text-xs leading-none pt-0.5" aria-hidden="true">🌙</span>
-          <p data-testid="daily-briefing-sleep">{briefing.sleepTonightSentence}</p>
-        </div>
-        <div className="flex items-start gap-2">
-          <span className="shrink-0 text-xs leading-none pt-0.5" aria-hidden="true">🍱</span>
-          <p data-testid="daily-briefing-food">{briefing.foodTodaySentence}</p>
-        </div>
+        <p data-testid="daily-briefing-yesterday">{briefing.yesterdaySummary}</p>
+        <p data-testid="daily-briefing-sleep">{briefing.sleepTonightSentence}</p>
+        <p data-testid="daily-briefing-food">{briefing.foodTodaySentence}</p>
       </div>
     </section>
   );
